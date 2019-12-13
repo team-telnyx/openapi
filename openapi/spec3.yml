@@ -6958,17 +6958,761 @@ paths:
       summary: Unmute conference participants
       tags:
       - Conference Commands
-  /credential_connections/{id}:
+  /credential_connections:
     get:
-      description: Retrieves the details of an existing credential connection.
-      operationId: getCredentialConnection
+      description: Returns a list of your credential connections.
+      operationId: findCredentialConnections
       parameters:
-      - description: Credential Connection ID
-        in: path
-        name: id
-        required: true
+      - description: The page number to load
+        in: query
+        name: page[number]
         schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      - description: 'If present, connections with <code>connection_name</code> containing
+          the given value will be returned. Matching is not case-sensitive. Requires
+          at least three characters.
+
+          '
+        in: query
+        name: filter[connection_name][contains]
+        required: false
+        schema:
+          default: 'null'
           type: string
+      - description: "Specifies the sort order for results. By default sorting direction\
+          \ is ascending. To have the results sorterd in descending order add the\
+          \ <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>:\
+          \ sorts the result by the\n    <code>connection_name</code> field in ascending\
+          \ order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the\
+          \ result by the\n    <code>connection_name</code> field in descending order.\n\
+          \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
+          \ in descending order.\n"
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: created_at
+          enum:
+          - created_at
+          - connection_name
+          - active
+          example: connection_name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      properties:
+                        active:
+                          description: Defaults to true
+                          type: boolean
+                        anchorsite_override:
+                          description: '`Latency` directs Telnyx to route media through
+                            the site with the lowest round-trip time to the user''s
+                            connection. Telnyx calculates this time using ICMP ping
+                            messages. This can be disabled by specifying a site to
+                            handle all media.
+
+                            '
+                          enum:
+                          - Latency
+                          - Chicago, IL
+                          - Ashburn, VA
+                          - San Jose, CA
+                          - Sydney, Australia
+                          - Amsterdam, Netherlands
+                          - London, UK
+                          - Toronto, Canada
+                          - Vancouver, Canada
+                          type: string
+                        connection_name:
+                          type: string
+                        created_at:
+                          description: ISO-8601 formatted date indicating when the
+                            resource was created.
+                          example: '2018-02-02T22:25:27.521Z'
+                          type: string
+                        default_on_hold_comfort_noise_enabled:
+                          default: false
+                          description: 'When enabled, Telnyx will generate comfort
+                            noise when you place the call on hold. If disabled, you
+                            will need to generate comfort noise or on hold music to
+                            avoid RTP timeout.
+
+                            '
+                          type: boolean
+                        dtmf_type:
+                          default: RFC 2833
+                          description: 'Sets the type of DTMF digits sent from Telnyx
+                            to this Connection. Note that DTMF digits sent to Telnyx
+                            will be accepted in all formats.
+
+                            '
+                          enum:
+                          - RFC 2833
+                          - Inband
+                          - SIP INFO
+                          type: string
+                        encode_contact_header_enabled:
+                          default: false
+                          description: 'Encode the SIP contact header sent by Telnyx
+                            to avoid issues for NAT or ALG scenarios.
+
+                            '
+                          enum:
+                          - true
+                          - false
+                          type: boolean
+                        encrypted_media:
+                          description: 'Enable use of SRTP or ZRTP for encryption.
+                            Valid values are those listed or null. Cannot be set to
+                            non-null if the transport_portocol is TLS.
+
+                            '
+                          enum:
+                          - SRTP
+                          - ZRTP
+                          type: string
+                        id:
+                          description: Identifies the type of resource.
+                          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                          format: uuid
+                          type: string
+                        inbound:
+                          properties:
+                            ani_number_format:
+                              default: E.164-national
+                              description: 'This setting allows you to set the format
+                                with which the caller''s number (ANI) is sent for
+                                inbound phone calls.
+
+                                '
+                              enum:
+                              - +E.164
+                              - E.164
+                              - +E.164-national
+                              - E.164-national
+                              type: string
+                            channel_limit:
+                              default: null
+                              description: 'When set, this will limit the total number
+                                of inbound calls to phone numbers associated with
+                                this connection.
+
+                                '
+                              type: integer
+                            codecs:
+                              default:
+                              - G722
+                              - G711U
+                              - G711A
+                              - G729
+                              - OPUS
+                              - H.264
+                              description: 'Defines the list of codecs that Telnyx
+                                will send for inbound calls to a specific number on
+                                your portal account, in priority order. This only
+                                works when the Connection the number is assigned to
+                                uses Media Handling mode: default. OPUS and H.264
+                                codecs are available only when using TCP or TLS transport
+                                for SIP.
+
+                                '
+                              items:
+                                type: string
+                              type: array
+                            dnis_number_format:
+                              default: 1
+                              description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                                '
+                              type: integer
+                            generate_ringback_tone:
+                              default: false
+                              description: 'Generate ringback tone through 183 session
+                                progress message with early media.
+
+                                '
+                              enum:
+                              - true
+                              - false
+                              type: boolean
+                            isup_headers_enabled:
+                              default: false
+                              description: 'When set, inbound phone calls will receive
+                                ISUP parameters via SIP headers. (Only when available
+                                and only when using TCP or TLS transport.)
+
+                                '
+                              enum:
+                              - true
+                              - false
+                              type: boolean
+                            prack_enabled:
+                              default: false
+                              description: Enable PRACK messages as defined in RFC3262.
+                              type: boolean
+                            privacy_zone_enabled:
+                              default: false
+                              description: 'By default, Telnyx does not send caller-id
+                                information when the caller has chosen to hide this
+                                information. When this option is enabled, Telnyx will
+                                send the SIP header Privacy:id plus the caller-id
+                                information so that the receiver side can choose when
+                                to hide it.
+
+                                '
+                              type: boolean
+                            sip_compact_headers_enabled:
+                              default: true
+                              description: Defaults to true.
+                              type: boolean
+                            timeout_1xx_secs:
+                              default: '3'
+                              description: 'Time(sec) before aborting if connection
+                                is not made (min: 1, max: 20).
+
+                                '
+                              type: string
+                            timeout_2xx_secs:
+                              default: '90'
+                              description: 'Time(sec) before aborting if call is unanswered
+                                (min: 1, max: 600).
+
+                                '
+                              type: string
+                          title: Inbound configuration
+                          type: object
+                        onnet_t38_passthrough_enabled:
+                          default: false
+                          description: 'Enable on-net T38 if you prefer the sender
+                            and receiver negotiating T38 directly if both are on the
+                            Telnyx network. If this is disabled, Telnyx will be able
+                            to use T38 on just one leg of the call depending on each
+                            leg''s settings.
+
+                            '
+                          type: boolean
+                        outbound:
+                          properties:
+                            ani_override:
+                              default: ''
+                              description: 'Set a phone number as the ani_override
+                                value to override caller id number on outbound calls.
+
+                                '
+                              type: string
+                            ani_override_type:
+                              default: always
+                              description: 'Specifies when we apply your ani_override
+                                setting. Only applies when ani_override is not blank.
+
+                                '
+                              enum:
+                              - always
+                              - normal
+                              - emergency
+                              type: string
+                            call_parking_enabled:
+                              default: false
+                              description: 'Forces all SIP calls originated on this
+                                connection to be "parked" instead of "bridged" to
+                                the destination specified on the URI. Parked calls
+                                will return ringback to the caller and will await
+                                for a Call Control command to define which action
+                                will be taken next.
+
+                                '
+                              type: boolean
+                            channel_limit:
+                              default: null
+                              description: 'When set, this will limit the total number
+                                of outbound calls to phone numbers associated with
+                                this connection.
+
+                                '
+                              type: integer
+                            generate_ringback_tone:
+                              default: false
+                              description: 'Generate ringback tone through 183 session
+                                progress message with early media.
+
+                                '
+                              enum:
+                              - true
+                              - false
+                              type: boolean
+                            instant_ringback_enabled:
+                              default: true
+                              description: 'When set, ringback will not wait for indication
+                                before sending ringback tone to calling party.
+
+                                '
+                              type: boolean
+                            localization:
+                              default: null
+                              description: 'A 2-character country code specifying
+                                the country whose national dialing rules should be
+                                used. For example, if set to `US` then any US number
+                                can be dialed without preprending +1 to the number.
+                                When left blank, Telnyx will try US and GB dialing
+                                rules, in that order, by default.
+
+                                '
+                              type: string
+                            t38_reinvite_source:
+                              default: telnyx
+                              description: 'This setting only affects connections
+                                with Fax-type Outbound Profiles. The setting dictates
+                                whether or not Telnyx sends a t.38 reinvite.<br/><br/>
+                                By default, Telnyx will send the re-invite. If set
+                                to `customer`, the caller is expected to send the
+                                t.38 reinvite.
+
+                                '
+                              enum:
+                              - telnyx
+                              - customer
+                              - disabled
+                              - passthru
+                              - caller-passthru
+                              - callee-passthru
+                              type: string
+                          title: Outbound configuration
+                          type: object
+                        password:
+                          description: The password to be used as part of the credentials.
+                            Must be 8 to 128 characters long.
+                          example: my123secure456password789
+                          type: string
+                        record_type:
+                          description: Identifies the type of the resource.
+                          example: credential_connection
+                          type: string
+                        rtcp_settings:
+                          properties:
+                            port:
+                              default: rtp+1
+                              description: RTCP port by default is rtp+1, it can also
+                                be set to rtcp-mux
+                              enum:
+                              - rtcp-mux
+                              - rtp+1
+                            report_enabled:
+                              default: true
+                              description: 'DEPRECATED - RTCP reports are always sent
+                                to customers/vendors. For backwards compatibility,
+                                the value is always true.
+
+                                '
+                              type: boolean
+                            report_frequency_seconds:
+                              default: 10
+                              description: 'RTCP reports are sent to customers based
+                                on the frequency set. Frequency is in seconds and
+                                it can be set to values from 5 to 3000 seconds.
+
+                                '
+                              type: integer
+                          type: object
+                        sip_reply_code:
+                          type: integer
+                        sip_reply_reason:
+                          type: string
+                        sip_uri_calling_preference:
+                          default: disabled
+                          description: 'This feature enables inbound SIP URI calls
+                            to your Credential Auth Connection. If enabled for all
+                            (unrestricted) then anyone who calls the SIP URI <your-username>@telnyx.com
+                            will be connected to your Connection. You can also choose
+                            to allow only calls that are originated on any Connections
+                            under your account (internal).
+
+                            '
+                          enum:
+                          - disabled
+                          - unrestricted
+                          - internal
+                          type: string
+                        updated_at:
+                          description: ISO-8601 formatted date indicating when the
+                            resource was updated.
+                          example: '2018-02-02T22:25:27.521Z'
+                          type: string
+                        user_name:
+                          description: The user name to be used as part of the credentials.
+                            Must be 4-32 characters long and alphanumeric values only
+                            (no spaces or special characters).
+                          example: myusername123
+                          type: string
+                      title: Credential Connection
+                      type: object
+                    type: array
+                  meta:
+                    properties:
+                      page_number:
+                        example: 2
+                        type: integer
+                      page_size:
+                        example: 25
+                        type: integer
+                      total_pages:
+                        example: 3
+                        type: integer
+                      total_results:
+                        example: 55
+                        type: integer
+                    type: object
+                type: object
+          description: Successful response with multiple credential connections
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: List all credential connections
+      tags:
+      - Credential Connections
+    post:
+      description: Creates a credential connection.
+      operationId: CreateCredentialConnection
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                active:
+                  description: Defaults to true
+                  type: boolean
+                anchorsite_override:
+                  description: '`Latency` directs Telnyx to route media through the
+                    site with the lowest round-trip time to the user''s connection.
+                    Telnyx calculates this time using ICMP ping messages. This can
+                    be disabled by specifying a site to handle all media.
+
+                    '
+                  enum:
+                  - Latency
+                  - Chicago, IL
+                  - Ashburn, VA
+                  - San Jose, CA
+                  - Sydney, Australia
+                  - Amsterdam, Netherlands
+                  - London, UK
+                  - Toronto, Canada
+                  - Vancouver, Canada
+                  type: string
+                connection_name:
+                  type: string
+                default_on_hold_comfort_noise_enabled:
+                  default: false
+                  description: 'When enabled, Telnyx will generate comfort noise when
+                    you place the call on hold. If disabled, you will need to generate
+                    comfort noise or on hold music to avoid RTP timeout.
+
+                    '
+                  type: boolean
+                dtmf_type:
+                  default: RFC 2833
+                  description: 'Sets the type of DTMF digits sent from Telnyx to this
+                    Connection. Note that DTMF digits sent to Telnyx will be accepted
+                    in all formats.
+
+                    '
+                  enum:
+                  - RFC 2833
+                  - Inband
+                  - SIP INFO
+                  type: string
+                encode_contact_header_enabled:
+                  default: false
+                  description: 'Encode the SIP contact header sent by Telnyx to avoid
+                    issues for NAT or ALG scenarios.
+
+                    '
+                  enum:
+                  - true
+                  - false
+                  type: boolean
+                encrypted_media:
+                  description: 'Enable use of SRTP or ZRTP for encryption. Valid values
+                    are those listed or null. Cannot be set to non-null if the transport_portocol
+                    is TLS.
+
+                    '
+                  enum:
+                  - SRTP
+                  - ZRTP
+                  type: string
+                inbound:
+                  properties:
+                    ani_number_format:
+                      default: E.164-national
+                      description: 'This setting allows you to set the format with
+                        which the caller''s number (ANI) is sent for inbound phone
+                        calls.
+
+                        '
+                      enum:
+                      - +E.164
+                      - E.164
+                      - +E.164-national
+                      - E.164-national
+                      type: string
+                    channel_limit:
+                      default: null
+                      description: 'When set, this will limit the total number of
+                        inbound calls to phone numbers associated with this connection.
+
+                        '
+                      type: integer
+                    codecs:
+                      default:
+                      - G722
+                      - G711U
+                      - G711A
+                      - G729
+                      - OPUS
+                      - H.264
+                      description: 'Defines the list of codecs that Telnyx will send
+                        for inbound calls to a specific number on your portal account,
+                        in priority order. This only works when the Connection the
+                        number is assigned to uses Media Handling mode: default. OPUS
+                        and H.264 codecs are available only when using TCP or TLS
+                        transport for SIP.
+
+                        '
+                      items:
+                        type: string
+                      type: array
+                    dnis_number_format:
+                      default: 1
+                      description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                        '
+                      type: integer
+                    generate_ringback_tone:
+                      default: false
+                      description: 'Generate ringback tone through 183 session progress
+                        message with early media.
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    isup_headers_enabled:
+                      default: false
+                      description: 'When set, inbound phone calls will receive ISUP
+                        parameters via SIP headers. (Only when available and only
+                        when using TCP or TLS transport.)
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    prack_enabled:
+                      default: false
+                      description: Enable PRACK messages as defined in RFC3262.
+                      type: boolean
+                    privacy_zone_enabled:
+                      default: false
+                      description: 'By default, Telnyx does not send caller-id information
+                        when the caller has chosen to hide this information. When
+                        this option is enabled, Telnyx will send the SIP header Privacy:id
+                        plus the caller-id information so that the receiver side can
+                        choose when to hide it.
+
+                        '
+                      type: boolean
+                    sip_compact_headers_enabled:
+                      default: true
+                      description: Defaults to true.
+                      type: boolean
+                    timeout_1xx_secs:
+                      default: '3'
+                      description: 'Time(sec) before aborting if connection is not
+                        made (min: 1, max: 20).
+
+                        '
+                      type: string
+                    timeout_2xx_secs:
+                      default: '90'
+                      description: 'Time(sec) before aborting if call is unanswered
+                        (min: 1, max: 600).
+
+                        '
+                      type: string
+                  title: Inbound configuration
+                  type: object
+                onnet_t38_passthrough_enabled:
+                  default: false
+                  description: 'Enable on-net T38 if you prefer the sender and receiver
+                    negotiating T38 directly if both are on the Telnyx network. If
+                    this is disabled, Telnyx will be able to use T38 on just one leg
+                    of the call depending on each leg''s settings.
+
+                    '
+                  type: boolean
+                outbound:
+                  properties:
+                    ani_override:
+                      default: ''
+                      description: 'Set a phone number as the ani_override value to
+                        override caller id number on outbound calls.
+
+                        '
+                      type: string
+                    ani_override_type:
+                      default: always
+                      description: 'Specifies when we apply your ani_override setting.
+                        Only applies when ani_override is not blank.
+
+                        '
+                      enum:
+                      - always
+                      - normal
+                      - emergency
+                      type: string
+                    call_parking_enabled:
+                      default: false
+                      description: 'Forces all SIP calls originated on this connection
+                        to be "parked" instead of "bridged" to the destination specified
+                        on the URI. Parked calls will return ringback to the caller
+                        and will await for a Call Control command to define which
+                        action will be taken next.
+
+                        '
+                      type: boolean
+                    channel_limit:
+                      default: null
+                      description: 'When set, this will limit the total number of
+                        outbound calls to phone numbers associated with this connection.
+
+                        '
+                      type: integer
+                    generate_ringback_tone:
+                      default: false
+                      description: 'Generate ringback tone through 183 session progress
+                        message with early media.
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    instant_ringback_enabled:
+                      default: true
+                      description: 'When set, ringback will not wait for indication
+                        before sending ringback tone to calling party.
+
+                        '
+                      type: boolean
+                    localization:
+                      default: null
+                      description: 'A 2-character country code specifying the country
+                        whose national dialing rules should be used. For example,
+                        if set to `US` then any US number can be dialed without preprending
+                        +1 to the number. When left blank, Telnyx will try US and
+                        GB dialing rules, in that order, by default.
+
+                        '
+                      type: string
+                    t38_reinvite_source:
+                      default: telnyx
+                      description: 'This setting only affects connections with Fax-type
+                        Outbound Profiles. The setting dictates whether or not Telnyx
+                        sends a t.38 reinvite.<br/><br/> By default, Telnyx will send
+                        the re-invite. If set to `customer`, the caller is expected
+                        to send the t.38 reinvite.
+
+                        '
+                      enum:
+                      - telnyx
+                      - customer
+                      - disabled
+                      - passthru
+                      - caller-passthru
+                      - callee-passthru
+                      type: string
+                  title: Outbound configuration
+                  type: object
+                password:
+                  description: The password to be used as part of the credentials.
+                    Must be 8 to 128 characters long.
+                  example: my123secure456password789
+                  type: string
+                rtcp_settings:
+                  properties:
+                    port:
+                      default: rtp+1
+                      description: RTCP port by default is rtp+1, it can also be set
+                        to rtcp-mux
+                      enum:
+                      - rtcp-mux
+                      - rtp+1
+                    report_enabled:
+                      default: true
+                      description: 'DEPRECATED - RTCP reports are always sent to customers/vendors.
+                        For backwards compatibility, the value is always true.
+
+                        '
+                      type: boolean
+                    report_frequency_seconds:
+                      default: 10
+                      description: 'RTCP reports are sent to customers based on the
+                        frequency set. Frequency is in seconds and it can be set to
+                        values from 5 to 3000 seconds.
+
+                        '
+                      type: integer
+                  type: object
+                sip_reply_code:
+                  type: integer
+                sip_reply_reason:
+                  type: string
+                sip_uri_calling_preference:
+                  default: disabled
+                  description: 'This feature enables inbound SIP URI calls to your
+                    Credential Auth Connection. If enabled for all (unrestricted)
+                    then anyone who calls the SIP URI <your-username>@telnyx.com will
+                    be connected to your Connection. You can also choose to allow
+                    only calls that are originated on any Connections under your account
+                    (internal).
+
+                    '
+                  enum:
+                  - disabled
+                  - unrestricted
+                  - internal
+                  type: string
+                user_name:
+                  description: The user name to be used as part of the credentials.
+                    Must be 4-32 characters long and alphanumeric values only (no
+                    spaces or special characters).
+                  example: myusername123
+                  type: string
+              title: CredentialConnectionCreate
+              type: object
+        description: Parameters that can be defined during credential connection creation
+        required: true
       responses:
         '200':
           content:
@@ -7000,6 +7744,11 @@ paths:
                         - Vancouver, Canada
                         type: string
                       connection_name:
+                        type: string
+                      created_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was created.
+                        example: '2018-02-02T22:25:27.521Z'
                         type: string
                       default_on_hold_comfort_noise_enabled:
                         default: false
@@ -7134,18 +7883,6 @@ paths:
                             default: true
                             description: Defaults to true.
                             type: boolean
-                          sip_region:
-                            default: US
-                            description: 'Selects which `sip_region` to receive inbound
-                              calls from. If null, the default region (US) will be
-                              used.
-
-                              '
-                            enum:
-                            - US
-                            - Europe
-                            - Australia
-                            type: string
                           timeout_1xx_secs:
                             default: '3'
                             description: 'Time(sec) before aborting if connection
@@ -7258,6 +7995,11 @@ paths:
                             type: string
                         title: Outbound configuration
                         type: object
+                      password:
+                        description: The password to be used as part of the credentials.
+                          Must be 8 to 128 characters long.
+                        example: my123secure456password789
+                        type: string
                       record_type:
                         description: Identifies the type of the resource.
                         example: credential_connection
@@ -7307,17 +8049,758 @@ paths:
                         - unrestricted
                         - internal
                         type: string
-                      transport_protocol:
-                        default: UDP
-                        description: 'One of UDP, TLS, or TCP. Applies only to connections
-                          with IP authentication or FQDN authentication.
-
-                          '
+                      updated_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was updated.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      user_name:
+                        description: The user name to be used as part of the credentials.
+                          Must be 4-32 characters long and alphanumeric values only
+                          (no spaces or special characters).
+                        example: myusername123
                         type: string
                     title: Credential Connection
                     type: object
                 type: object
-          description: Successful response
+          description: Successful response with details about a credential connection
+        '422':
+          description: Bad request
+      summary: Creates a credential connection
+      tags:
+      - Credential Connections
+  /credential_connections/{id}:
+    delete:
+      description: Deletes an existing credential connection.
+      operationId: DeleteCredentialConnection
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      active:
+                        description: Defaults to true
+                        type: boolean
+                      anchorsite_override:
+                        description: '`Latency` directs Telnyx to route media through
+                          the site with the lowest round-trip time to the user''s
+                          connection. Telnyx calculates this time using ICMP ping
+                          messages. This can be disabled by specifying a site to handle
+                          all media.
+
+                          '
+                        enum:
+                        - Latency
+                        - Chicago, IL
+                        - Ashburn, VA
+                        - San Jose, CA
+                        - Sydney, Australia
+                        - Amsterdam, Netherlands
+                        - London, UK
+                        - Toronto, Canada
+                        - Vancouver, Canada
+                        type: string
+                      connection_name:
+                        type: string
+                      created_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was created.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      default_on_hold_comfort_noise_enabled:
+                        default: false
+                        description: 'When enabled, Telnyx will generate comfort noise
+                          when you place the call on hold. If disabled, you will need
+                          to generate comfort noise or on hold music to avoid RTP
+                          timeout.
+
+                          '
+                        type: boolean
+                      dtmf_type:
+                        default: RFC 2833
+                        description: 'Sets the type of DTMF digits sent from Telnyx
+                          to this Connection. Note that DTMF digits sent to Telnyx
+                          will be accepted in all formats.
+
+                          '
+                        enum:
+                        - RFC 2833
+                        - Inband
+                        - SIP INFO
+                        type: string
+                      encode_contact_header_enabled:
+                        default: false
+                        description: 'Encode the SIP contact header sent by Telnyx
+                          to avoid issues for NAT or ALG scenarios.
+
+                          '
+                        enum:
+                        - true
+                        - false
+                        type: boolean
+                      encrypted_media:
+                        description: 'Enable use of SRTP or ZRTP for encryption. Valid
+                          values are those listed or null. Cannot be set to non-null
+                          if the transport_portocol is TLS.
+
+                          '
+                        enum:
+                        - SRTP
+                        - ZRTP
+                        type: string
+                      id:
+                        description: Identifies the type of resource.
+                        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                        format: uuid
+                        type: string
+                      inbound:
+                        properties:
+                          ani_number_format:
+                            default: E.164-national
+                            description: 'This setting allows you to set the format
+                              with which the caller''s number (ANI) is sent for inbound
+                              phone calls.
+
+                              '
+                            enum:
+                            - +E.164
+                            - E.164
+                            - +E.164-national
+                            - E.164-national
+                            type: string
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of inbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          codecs:
+                            default:
+                            - G722
+                            - G711U
+                            - G711A
+                            - G729
+                            - OPUS
+                            - H.264
+                            description: 'Defines the list of codecs that Telnyx will
+                              send for inbound calls to a specific number on your
+                              portal account, in priority order. This only works when
+                              the Connection the number is assigned to uses Media
+                              Handling mode: default. OPUS and H.264 codecs are available
+                              only when using TCP or TLS transport for SIP.
+
+                              '
+                            items:
+                              type: string
+                            type: array
+                          dnis_number_format:
+                            default: 1
+                            description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          isup_headers_enabled:
+                            default: false
+                            description: 'When set, inbound phone calls will receive
+                              ISUP parameters via SIP headers. (Only when available
+                              and only when using TCP or TLS transport.)
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          prack_enabled:
+                            default: false
+                            description: Enable PRACK messages as defined in RFC3262.
+                            type: boolean
+                          privacy_zone_enabled:
+                            default: false
+                            description: 'By default, Telnyx does not send caller-id
+                              information when the caller has chosen to hide this
+                              information. When this option is enabled, Telnyx will
+                              send the SIP header Privacy:id plus the caller-id information
+                              so that the receiver side can choose when to hide it.
+
+                              '
+                            type: boolean
+                          sip_compact_headers_enabled:
+                            default: true
+                            description: Defaults to true.
+                            type: boolean
+                          timeout_1xx_secs:
+                            default: '3'
+                            description: 'Time(sec) before aborting if connection
+                              is not made (min: 1, max: 20).
+
+                              '
+                            type: string
+                          timeout_2xx_secs:
+                            default: '90'
+                            description: 'Time(sec) before aborting if call is unanswered
+                              (min: 1, max: 600).
+
+                              '
+                            type: string
+                        title: Inbound configuration
+                        type: object
+                      onnet_t38_passthrough_enabled:
+                        default: false
+                        description: 'Enable on-net T38 if you prefer the sender and
+                          receiver negotiating T38 directly if both are on the Telnyx
+                          network. If this is disabled, Telnyx will be able to use
+                          T38 on just one leg of the call depending on each leg''s
+                          settings.
+
+                          '
+                        type: boolean
+                      outbound:
+                        properties:
+                          ani_override:
+                            default: ''
+                            description: 'Set a phone number as the ani_override value
+                              to override caller id number on outbound calls.
+
+                              '
+                            type: string
+                          ani_override_type:
+                            default: always
+                            description: 'Specifies when we apply your ani_override
+                              setting. Only applies when ani_override is not blank.
+
+                              '
+                            enum:
+                            - always
+                            - normal
+                            - emergency
+                            type: string
+                          call_parking_enabled:
+                            default: false
+                            description: 'Forces all SIP calls originated on this
+                              connection to be "parked" instead of "bridged" to the
+                              destination specified on the URI. Parked calls will
+                              return ringback to the caller and will await for a Call
+                              Control command to define which action will be taken
+                              next.
+
+                              '
+                            type: boolean
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of outbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          instant_ringback_enabled:
+                            default: true
+                            description: 'When set, ringback will not wait for indication
+                              before sending ringback tone to calling party.
+
+                              '
+                            type: boolean
+                          localization:
+                            default: null
+                            description: 'A 2-character country code specifying the
+                              country whose national dialing rules should be used.
+                              For example, if set to `US` then any US number can be
+                              dialed without preprending +1 to the number. When left
+                              blank, Telnyx will try US and GB dialing rules, in that
+                              order, by default.
+
+                              '
+                            type: string
+                          t38_reinvite_source:
+                            default: telnyx
+                            description: 'This setting only affects connections with
+                              Fax-type Outbound Profiles. The setting dictates whether
+                              or not Telnyx sends a t.38 reinvite.<br/><br/> By default,
+                              Telnyx will send the re-invite. If set to `customer`,
+                              the caller is expected to send the t.38 reinvite.
+
+                              '
+                            enum:
+                            - telnyx
+                            - customer
+                            - disabled
+                            - passthru
+                            - caller-passthru
+                            - callee-passthru
+                            type: string
+                        title: Outbound configuration
+                        type: object
+                      password:
+                        description: The password to be used as part of the credentials.
+                          Must be 8 to 128 characters long.
+                        example: my123secure456password789
+                        type: string
+                      record_type:
+                        description: Identifies the type of the resource.
+                        example: credential_connection
+                        type: string
+                      rtcp_settings:
+                        properties:
+                          port:
+                            default: rtp+1
+                            description: RTCP port by default is rtp+1, it can also
+                              be set to rtcp-mux
+                            enum:
+                            - rtcp-mux
+                            - rtp+1
+                          report_enabled:
+                            default: true
+                            description: 'DEPRECATED - RTCP reports are always sent
+                              to customers/vendors. For backwards compatibility, the
+                              value is always true.
+
+                              '
+                            type: boolean
+                          report_frequency_seconds:
+                            default: 10
+                            description: 'RTCP reports are sent to customers based
+                              on the frequency set. Frequency is in seconds and it
+                              can be set to values from 5 to 3000 seconds.
+
+                              '
+                            type: integer
+                        type: object
+                      sip_reply_code:
+                        type: integer
+                      sip_reply_reason:
+                        type: string
+                      sip_uri_calling_preference:
+                        default: disabled
+                        description: 'This feature enables inbound SIP URI calls to
+                          your Credential Auth Connection. If enabled for all (unrestricted)
+                          then anyone who calls the SIP URI <your-username>@telnyx.com
+                          will be connected to your Connection. You can also choose
+                          to allow only calls that are originated on any Connections
+                          under your account (internal).
+
+                          '
+                        enum:
+                        - disabled
+                        - unrestricted
+                        - internal
+                        type: string
+                      updated_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was updated.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      user_name:
+                        description: The user name to be used as part of the credentials.
+                          Must be 4-32 characters long and alphanumeric values only
+                          (no spaces or special characters).
+                        example: myusername123
+                        type: string
+                    title: Credential Connection
+                    type: object
+                type: object
+          description: Successful response with details about a credential connection
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Deletes a credential connection
+      tags:
+      - Credential Connections
+    get:
+      description: Retrieves the details of an existing credential connection.
+      operationId: getCredentialConnection
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      active:
+                        description: Defaults to true
+                        type: boolean
+                      anchorsite_override:
+                        description: '`Latency` directs Telnyx to route media through
+                          the site with the lowest round-trip time to the user''s
+                          connection. Telnyx calculates this time using ICMP ping
+                          messages. This can be disabled by specifying a site to handle
+                          all media.
+
+                          '
+                        enum:
+                        - Latency
+                        - Chicago, IL
+                        - Ashburn, VA
+                        - San Jose, CA
+                        - Sydney, Australia
+                        - Amsterdam, Netherlands
+                        - London, UK
+                        - Toronto, Canada
+                        - Vancouver, Canada
+                        type: string
+                      connection_name:
+                        type: string
+                      created_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was created.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      default_on_hold_comfort_noise_enabled:
+                        default: false
+                        description: 'When enabled, Telnyx will generate comfort noise
+                          when you place the call on hold. If disabled, you will need
+                          to generate comfort noise or on hold music to avoid RTP
+                          timeout.
+
+                          '
+                        type: boolean
+                      dtmf_type:
+                        default: RFC 2833
+                        description: 'Sets the type of DTMF digits sent from Telnyx
+                          to this Connection. Note that DTMF digits sent to Telnyx
+                          will be accepted in all formats.
+
+                          '
+                        enum:
+                        - RFC 2833
+                        - Inband
+                        - SIP INFO
+                        type: string
+                      encode_contact_header_enabled:
+                        default: false
+                        description: 'Encode the SIP contact header sent by Telnyx
+                          to avoid issues for NAT or ALG scenarios.
+
+                          '
+                        enum:
+                        - true
+                        - false
+                        type: boolean
+                      encrypted_media:
+                        description: 'Enable use of SRTP or ZRTP for encryption. Valid
+                          values are those listed or null. Cannot be set to non-null
+                          if the transport_portocol is TLS.
+
+                          '
+                        enum:
+                        - SRTP
+                        - ZRTP
+                        type: string
+                      id:
+                        description: Identifies the type of resource.
+                        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                        format: uuid
+                        type: string
+                      inbound:
+                        properties:
+                          ani_number_format:
+                            default: E.164-national
+                            description: 'This setting allows you to set the format
+                              with which the caller''s number (ANI) is sent for inbound
+                              phone calls.
+
+                              '
+                            enum:
+                            - +E.164
+                            - E.164
+                            - +E.164-national
+                            - E.164-national
+                            type: string
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of inbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          codecs:
+                            default:
+                            - G722
+                            - G711U
+                            - G711A
+                            - G729
+                            - OPUS
+                            - H.264
+                            description: 'Defines the list of codecs that Telnyx will
+                              send for inbound calls to a specific number on your
+                              portal account, in priority order. This only works when
+                              the Connection the number is assigned to uses Media
+                              Handling mode: default. OPUS and H.264 codecs are available
+                              only when using TCP or TLS transport for SIP.
+
+                              '
+                            items:
+                              type: string
+                            type: array
+                          dnis_number_format:
+                            default: 1
+                            description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          isup_headers_enabled:
+                            default: false
+                            description: 'When set, inbound phone calls will receive
+                              ISUP parameters via SIP headers. (Only when available
+                              and only when using TCP or TLS transport.)
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          prack_enabled:
+                            default: false
+                            description: Enable PRACK messages as defined in RFC3262.
+                            type: boolean
+                          privacy_zone_enabled:
+                            default: false
+                            description: 'By default, Telnyx does not send caller-id
+                              information when the caller has chosen to hide this
+                              information. When this option is enabled, Telnyx will
+                              send the SIP header Privacy:id plus the caller-id information
+                              so that the receiver side can choose when to hide it.
+
+                              '
+                            type: boolean
+                          sip_compact_headers_enabled:
+                            default: true
+                            description: Defaults to true.
+                            type: boolean
+                          timeout_1xx_secs:
+                            default: '3'
+                            description: 'Time(sec) before aborting if connection
+                              is not made (min: 1, max: 20).
+
+                              '
+                            type: string
+                          timeout_2xx_secs:
+                            default: '90'
+                            description: 'Time(sec) before aborting if call is unanswered
+                              (min: 1, max: 600).
+
+                              '
+                            type: string
+                        title: Inbound configuration
+                        type: object
+                      onnet_t38_passthrough_enabled:
+                        default: false
+                        description: 'Enable on-net T38 if you prefer the sender and
+                          receiver negotiating T38 directly if both are on the Telnyx
+                          network. If this is disabled, Telnyx will be able to use
+                          T38 on just one leg of the call depending on each leg''s
+                          settings.
+
+                          '
+                        type: boolean
+                      outbound:
+                        properties:
+                          ani_override:
+                            default: ''
+                            description: 'Set a phone number as the ani_override value
+                              to override caller id number on outbound calls.
+
+                              '
+                            type: string
+                          ani_override_type:
+                            default: always
+                            description: 'Specifies when we apply your ani_override
+                              setting. Only applies when ani_override is not blank.
+
+                              '
+                            enum:
+                            - always
+                            - normal
+                            - emergency
+                            type: string
+                          call_parking_enabled:
+                            default: false
+                            description: 'Forces all SIP calls originated on this
+                              connection to be "parked" instead of "bridged" to the
+                              destination specified on the URI. Parked calls will
+                              return ringback to the caller and will await for a Call
+                              Control command to define which action will be taken
+                              next.
+
+                              '
+                            type: boolean
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of outbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          instant_ringback_enabled:
+                            default: true
+                            description: 'When set, ringback will not wait for indication
+                              before sending ringback tone to calling party.
+
+                              '
+                            type: boolean
+                          localization:
+                            default: null
+                            description: 'A 2-character country code specifying the
+                              country whose national dialing rules should be used.
+                              For example, if set to `US` then any US number can be
+                              dialed without preprending +1 to the number. When left
+                              blank, Telnyx will try US and GB dialing rules, in that
+                              order, by default.
+
+                              '
+                            type: string
+                          t38_reinvite_source:
+                            default: telnyx
+                            description: 'This setting only affects connections with
+                              Fax-type Outbound Profiles. The setting dictates whether
+                              or not Telnyx sends a t.38 reinvite.<br/><br/> By default,
+                              Telnyx will send the re-invite. If set to `customer`,
+                              the caller is expected to send the t.38 reinvite.
+
+                              '
+                            enum:
+                            - telnyx
+                            - customer
+                            - disabled
+                            - passthru
+                            - caller-passthru
+                            - callee-passthru
+                            type: string
+                        title: Outbound configuration
+                        type: object
+                      password:
+                        description: The password to be used as part of the credentials.
+                          Must be 8 to 128 characters long.
+                        example: my123secure456password789
+                        type: string
+                      record_type:
+                        description: Identifies the type of the resource.
+                        example: credential_connection
+                        type: string
+                      rtcp_settings:
+                        properties:
+                          port:
+                            default: rtp+1
+                            description: RTCP port by default is rtp+1, it can also
+                              be set to rtcp-mux
+                            enum:
+                            - rtcp-mux
+                            - rtp+1
+                          report_enabled:
+                            default: true
+                            description: 'DEPRECATED - RTCP reports are always sent
+                              to customers/vendors. For backwards compatibility, the
+                              value is always true.
+
+                              '
+                            type: boolean
+                          report_frequency_seconds:
+                            default: 10
+                            description: 'RTCP reports are sent to customers based
+                              on the frequency set. Frequency is in seconds and it
+                              can be set to values from 5 to 3000 seconds.
+
+                              '
+                            type: integer
+                        type: object
+                      sip_reply_code:
+                        type: integer
+                      sip_reply_reason:
+                        type: string
+                      sip_uri_calling_preference:
+                        default: disabled
+                        description: 'This feature enables inbound SIP URI calls to
+                          your Credential Auth Connection. If enabled for all (unrestricted)
+                          then anyone who calls the SIP URI <your-username>@telnyx.com
+                          will be connected to your Connection. You can also choose
+                          to allow only calls that are originated on any Connections
+                          under your account (internal).
+
+                          '
+                        enum:
+                        - disabled
+                        - unrestricted
+                        - internal
+                        type: string
+                      updated_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was updated.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      user_name:
+                        description: The user name to be used as part of the credentials.
+                          Must be 4-32 characters long and alphanumeric values only
+                          (no spaces or special characters).
+                        example: myusername123
+                        type: string
+                    title: Credential Connection
+                    type: object
+                type: object
+          description: Successful response with details about a credential connection
         '400':
           description: Bad request
         '401':
@@ -7325,6 +8808,702 @@ paths:
         '404':
           description: Resource not found
       summary: Retrieve a connection
+      tags:
+      - Credential Connections
+    patch:
+      description: Updates settings of an existing credential connection.
+      operationId: UpdateCredentialConnection
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                active:
+                  description: Defaults to true
+                  type: boolean
+                anchorsite_override:
+                  description: '`Latency` directs Telnyx to route media through the
+                    site with the lowest round-trip time to the user''s connection.
+                    Telnyx calculates this time using ICMP ping messages. This can
+                    be disabled by specifying a site to handle all media.
+
+                    '
+                  enum:
+                  - Latency
+                  - Chicago, IL
+                  - Ashburn, VA
+                  - San Jose, CA
+                  - Sydney, Australia
+                  - Amsterdam, Netherlands
+                  - London, UK
+                  - Toronto, Canada
+                  - Vancouver, Canada
+                  type: string
+                connection_name:
+                  type: string
+                default_on_hold_comfort_noise_enabled:
+                  default: false
+                  description: 'When enabled, Telnyx will generate comfort noise when
+                    you place the call on hold. If disabled, you will need to generate
+                    comfort noise or on hold music to avoid RTP timeout.
+
+                    '
+                  type: boolean
+                dtmf_type:
+                  default: RFC 2833
+                  description: 'Sets the type of DTMF digits sent from Telnyx to this
+                    Connection. Note that DTMF digits sent to Telnyx will be accepted
+                    in all formats.
+
+                    '
+                  enum:
+                  - RFC 2833
+                  - Inband
+                  - SIP INFO
+                  type: string
+                encode_contact_header_enabled:
+                  default: false
+                  description: 'Encode the SIP contact header sent by Telnyx to avoid
+                    issues for NAT or ALG scenarios.
+
+                    '
+                  enum:
+                  - true
+                  - false
+                  type: boolean
+                encrypted_media:
+                  description: 'Enable use of SRTP or ZRTP for encryption. Valid values
+                    are those listed or null. Cannot be set to non-null if the transport_portocol
+                    is TLS.
+
+                    '
+                  enum:
+                  - SRTP
+                  - ZRTP
+                  type: string
+                id:
+                  description: Identifies the resource.
+                  example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                  format: uuid
+                  type: string
+                inbound:
+                  properties:
+                    ani_number_format:
+                      default: E.164-national
+                      description: 'This setting allows you to set the format with
+                        which the caller''s number (ANI) is sent for inbound phone
+                        calls.
+
+                        '
+                      enum:
+                      - +E.164
+                      - E.164
+                      - +E.164-national
+                      - E.164-national
+                      type: string
+                    channel_limit:
+                      default: null
+                      description: 'When set, this will limit the total number of
+                        inbound calls to phone numbers associated with this connection.
+
+                        '
+                      type: integer
+                    codecs:
+                      default:
+                      - G722
+                      - G711U
+                      - G711A
+                      - G729
+                      - OPUS
+                      - H.264
+                      description: 'Defines the list of codecs that Telnyx will send
+                        for inbound calls to a specific number on your portal account,
+                        in priority order. This only works when the Connection the
+                        number is assigned to uses Media Handling mode: default. OPUS
+                        and H.264 codecs are available only when using TCP or TLS
+                        transport for SIP.
+
+                        '
+                      items:
+                        type: string
+                      type: array
+                    dnis_number_format:
+                      default: 1
+                      description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                        '
+                      type: integer
+                    generate_ringback_tone:
+                      default: false
+                      description: 'Generate ringback tone through 183 session progress
+                        message with early media.
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    isup_headers_enabled:
+                      default: false
+                      description: 'When set, inbound phone calls will receive ISUP
+                        parameters via SIP headers. (Only when available and only
+                        when using TCP or TLS transport.)
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    prack_enabled:
+                      default: false
+                      description: Enable PRACK messages as defined in RFC3262.
+                      type: boolean
+                    privacy_zone_enabled:
+                      default: false
+                      description: 'By default, Telnyx does not send caller-id information
+                        when the caller has chosen to hide this information. When
+                        this option is enabled, Telnyx will send the SIP header Privacy:id
+                        plus the caller-id information so that the receiver side can
+                        choose when to hide it.
+
+                        '
+                      type: boolean
+                    sip_compact_headers_enabled:
+                      default: true
+                      description: Defaults to true.
+                      type: boolean
+                    timeout_1xx_secs:
+                      default: '3'
+                      description: 'Time(sec) before aborting if connection is not
+                        made (min: 1, max: 20).
+
+                        '
+                      type: string
+                    timeout_2xx_secs:
+                      default: '90'
+                      description: 'Time(sec) before aborting if call is unanswered
+                        (min: 1, max: 600).
+
+                        '
+                      type: string
+                  title: Inbound configuration
+                  type: object
+                onnet_t38_passthrough_enabled:
+                  default: false
+                  description: 'Enable on-net T38 if you prefer the sender and receiver
+                    negotiating T38 directly if both are on the Telnyx network. If
+                    this is disabled, Telnyx will be able to use T38 on just one leg
+                    of the call depending on each leg''s settings.
+
+                    '
+                  type: boolean
+                outbound:
+                  properties:
+                    ani_override:
+                      default: ''
+                      description: 'Set a phone number as the ani_override value to
+                        override caller id number on outbound calls.
+
+                        '
+                      type: string
+                    ani_override_type:
+                      default: always
+                      description: 'Specifies when we apply your ani_override setting.
+                        Only applies when ani_override is not blank.
+
+                        '
+                      enum:
+                      - always
+                      - normal
+                      - emergency
+                      type: string
+                    call_parking_enabled:
+                      default: false
+                      description: 'Forces all SIP calls originated on this connection
+                        to be "parked" instead of "bridged" to the destination specified
+                        on the URI. Parked calls will return ringback to the caller
+                        and will await for a Call Control command to define which
+                        action will be taken next.
+
+                        '
+                      type: boolean
+                    channel_limit:
+                      default: null
+                      description: 'When set, this will limit the total number of
+                        outbound calls to phone numbers associated with this connection.
+
+                        '
+                      type: integer
+                    generate_ringback_tone:
+                      default: false
+                      description: 'Generate ringback tone through 183 session progress
+                        message with early media.
+
+                        '
+                      enum:
+                      - true
+                      - false
+                      type: boolean
+                    instant_ringback_enabled:
+                      default: true
+                      description: 'When set, ringback will not wait for indication
+                        before sending ringback tone to calling party.
+
+                        '
+                      type: boolean
+                    localization:
+                      default: null
+                      description: 'A 2-character country code specifying the country
+                        whose national dialing rules should be used. For example,
+                        if set to `US` then any US number can be dialed without preprending
+                        +1 to the number. When left blank, Telnyx will try US and
+                        GB dialing rules, in that order, by default.
+
+                        '
+                      type: string
+                    t38_reinvite_source:
+                      default: telnyx
+                      description: 'This setting only affects connections with Fax-type
+                        Outbound Profiles. The setting dictates whether or not Telnyx
+                        sends a t.38 reinvite.<br/><br/> By default, Telnyx will send
+                        the re-invite. If set to `customer`, the caller is expected
+                        to send the t.38 reinvite.
+
+                        '
+                      enum:
+                      - telnyx
+                      - customer
+                      - disabled
+                      - passthru
+                      - caller-passthru
+                      - callee-passthru
+                      type: string
+                  title: Outbound configuration
+                  type: object
+                password:
+                  description: The password to be used as part of the credentials.
+                    Must be 8 to 128 characters long.
+                  example: my123secure456password789
+                  type: string
+                rtcp_settings:
+                  properties:
+                    port:
+                      default: rtp+1
+                      description: RTCP port by default is rtp+1, it can also be set
+                        to rtcp-mux
+                      enum:
+                      - rtcp-mux
+                      - rtp+1
+                    report_enabled:
+                      default: true
+                      description: 'DEPRECATED - RTCP reports are always sent to customers/vendors.
+                        For backwards compatibility, the value is always true.
+
+                        '
+                      type: boolean
+                    report_frequency_seconds:
+                      default: 10
+                      description: 'RTCP reports are sent to customers based on the
+                        frequency set. Frequency is in seconds and it can be set to
+                        values from 5 to 3000 seconds.
+
+                        '
+                      type: integer
+                  type: object
+                sip_reply_code:
+                  type: integer
+                sip_reply_reason:
+                  type: string
+                sip_uri_calling_preference:
+                  default: disabled
+                  description: 'This feature enables inbound SIP URI calls to your
+                    Credential Auth Connection. If enabled for all (unrestricted)
+                    then anyone who calls the SIP URI <your-username>@telnyx.com will
+                    be connected to your Connection. You can also choose to allow
+                    only calls that are originated on any Connections under your account
+                    (internal).
+
+                    '
+                  enum:
+                  - disabled
+                  - unrestricted
+                  - internal
+                  type: string
+                user_name:
+                  description: The user name to be used as part of the credentials.
+                    Must be 4-32 characters long and alphanumeric values only (no
+                    spaces or special characters).
+                  example: myusername123
+                  type: string
+              title: CredentialConnectionUpdate
+              type: object
+        description: Parameters that can be updated in a credential connection
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      active:
+                        description: Defaults to true
+                        type: boolean
+                      anchorsite_override:
+                        description: '`Latency` directs Telnyx to route media through
+                          the site with the lowest round-trip time to the user''s
+                          connection. Telnyx calculates this time using ICMP ping
+                          messages. This can be disabled by specifying a site to handle
+                          all media.
+
+                          '
+                        enum:
+                        - Latency
+                        - Chicago, IL
+                        - Ashburn, VA
+                        - San Jose, CA
+                        - Sydney, Australia
+                        - Amsterdam, Netherlands
+                        - London, UK
+                        - Toronto, Canada
+                        - Vancouver, Canada
+                        type: string
+                      connection_name:
+                        type: string
+                      created_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was created.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      default_on_hold_comfort_noise_enabled:
+                        default: false
+                        description: 'When enabled, Telnyx will generate comfort noise
+                          when you place the call on hold. If disabled, you will need
+                          to generate comfort noise or on hold music to avoid RTP
+                          timeout.
+
+                          '
+                        type: boolean
+                      dtmf_type:
+                        default: RFC 2833
+                        description: 'Sets the type of DTMF digits sent from Telnyx
+                          to this Connection. Note that DTMF digits sent to Telnyx
+                          will be accepted in all formats.
+
+                          '
+                        enum:
+                        - RFC 2833
+                        - Inband
+                        - SIP INFO
+                        type: string
+                      encode_contact_header_enabled:
+                        default: false
+                        description: 'Encode the SIP contact header sent by Telnyx
+                          to avoid issues for NAT or ALG scenarios.
+
+                          '
+                        enum:
+                        - true
+                        - false
+                        type: boolean
+                      encrypted_media:
+                        description: 'Enable use of SRTP or ZRTP for encryption. Valid
+                          values are those listed or null. Cannot be set to non-null
+                          if the transport_portocol is TLS.
+
+                          '
+                        enum:
+                        - SRTP
+                        - ZRTP
+                        type: string
+                      id:
+                        description: Identifies the type of resource.
+                        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                        format: uuid
+                        type: string
+                      inbound:
+                        properties:
+                          ani_number_format:
+                            default: E.164-national
+                            description: 'This setting allows you to set the format
+                              with which the caller''s number (ANI) is sent for inbound
+                              phone calls.
+
+                              '
+                            enum:
+                            - +E.164
+                            - E.164
+                            - +E.164-national
+                            - E.164-national
+                            type: string
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of inbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          codecs:
+                            default:
+                            - G722
+                            - G711U
+                            - G711A
+                            - G729
+                            - OPUS
+                            - H.264
+                            description: 'Defines the list of codecs that Telnyx will
+                              send for inbound calls to a specific number on your
+                              portal account, in priority order. This only works when
+                              the Connection the number is assigned to uses Media
+                              Handling mode: default. OPUS and H.264 codecs are available
+                              only when using TCP or TLS transport for SIP.
+
+                              '
+                            items:
+                              type: string
+                            type: array
+                          dnis_number_format:
+                            default: 1
+                            description: '0 = E.164<br/> 1 = Strip-1<br/> 2 = Strip-2
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          isup_headers_enabled:
+                            default: false
+                            description: 'When set, inbound phone calls will receive
+                              ISUP parameters via SIP headers. (Only when available
+                              and only when using TCP or TLS transport.)
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          prack_enabled:
+                            default: false
+                            description: Enable PRACK messages as defined in RFC3262.
+                            type: boolean
+                          privacy_zone_enabled:
+                            default: false
+                            description: 'By default, Telnyx does not send caller-id
+                              information when the caller has chosen to hide this
+                              information. When this option is enabled, Telnyx will
+                              send the SIP header Privacy:id plus the caller-id information
+                              so that the receiver side can choose when to hide it.
+
+                              '
+                            type: boolean
+                          sip_compact_headers_enabled:
+                            default: true
+                            description: Defaults to true.
+                            type: boolean
+                          timeout_1xx_secs:
+                            default: '3'
+                            description: 'Time(sec) before aborting if connection
+                              is not made (min: 1, max: 20).
+
+                              '
+                            type: string
+                          timeout_2xx_secs:
+                            default: '90'
+                            description: 'Time(sec) before aborting if call is unanswered
+                              (min: 1, max: 600).
+
+                              '
+                            type: string
+                        title: Inbound configuration
+                        type: object
+                      onnet_t38_passthrough_enabled:
+                        default: false
+                        description: 'Enable on-net T38 if you prefer the sender and
+                          receiver negotiating T38 directly if both are on the Telnyx
+                          network. If this is disabled, Telnyx will be able to use
+                          T38 on just one leg of the call depending on each leg''s
+                          settings.
+
+                          '
+                        type: boolean
+                      outbound:
+                        properties:
+                          ani_override:
+                            default: ''
+                            description: 'Set a phone number as the ani_override value
+                              to override caller id number on outbound calls.
+
+                              '
+                            type: string
+                          ani_override_type:
+                            default: always
+                            description: 'Specifies when we apply your ani_override
+                              setting. Only applies when ani_override is not blank.
+
+                              '
+                            enum:
+                            - always
+                            - normal
+                            - emergency
+                            type: string
+                          call_parking_enabled:
+                            default: false
+                            description: 'Forces all SIP calls originated on this
+                              connection to be "parked" instead of "bridged" to the
+                              destination specified on the URI. Parked calls will
+                              return ringback to the caller and will await for a Call
+                              Control command to define which action will be taken
+                              next.
+
+                              '
+                            type: boolean
+                          channel_limit:
+                            default: null
+                            description: 'When set, this will limit the total number
+                              of outbound calls to phone numbers associated with this
+                              connection.
+
+                              '
+                            type: integer
+                          generate_ringback_tone:
+                            default: false
+                            description: 'Generate ringback tone through 183 session
+                              progress message with early media.
+
+                              '
+                            enum:
+                            - true
+                            - false
+                            type: boolean
+                          instant_ringback_enabled:
+                            default: true
+                            description: 'When set, ringback will not wait for indication
+                              before sending ringback tone to calling party.
+
+                              '
+                            type: boolean
+                          localization:
+                            default: null
+                            description: 'A 2-character country code specifying the
+                              country whose national dialing rules should be used.
+                              For example, if set to `US` then any US number can be
+                              dialed without preprending +1 to the number. When left
+                              blank, Telnyx will try US and GB dialing rules, in that
+                              order, by default.
+
+                              '
+                            type: string
+                          t38_reinvite_source:
+                            default: telnyx
+                            description: 'This setting only affects connections with
+                              Fax-type Outbound Profiles. The setting dictates whether
+                              or not Telnyx sends a t.38 reinvite.<br/><br/> By default,
+                              Telnyx will send the re-invite. If set to `customer`,
+                              the caller is expected to send the t.38 reinvite.
+
+                              '
+                            enum:
+                            - telnyx
+                            - customer
+                            - disabled
+                            - passthru
+                            - caller-passthru
+                            - callee-passthru
+                            type: string
+                        title: Outbound configuration
+                        type: object
+                      password:
+                        description: The password to be used as part of the credentials.
+                          Must be 8 to 128 characters long.
+                        example: my123secure456password789
+                        type: string
+                      record_type:
+                        description: Identifies the type of the resource.
+                        example: credential_connection
+                        type: string
+                      rtcp_settings:
+                        properties:
+                          port:
+                            default: rtp+1
+                            description: RTCP port by default is rtp+1, it can also
+                              be set to rtcp-mux
+                            enum:
+                            - rtcp-mux
+                            - rtp+1
+                          report_enabled:
+                            default: true
+                            description: 'DEPRECATED - RTCP reports are always sent
+                              to customers/vendors. For backwards compatibility, the
+                              value is always true.
+
+                              '
+                            type: boolean
+                          report_frequency_seconds:
+                            default: 10
+                            description: 'RTCP reports are sent to customers based
+                              on the frequency set. Frequency is in seconds and it
+                              can be set to values from 5 to 3000 seconds.
+
+                              '
+                            type: integer
+                        type: object
+                      sip_reply_code:
+                        type: integer
+                      sip_reply_reason:
+                        type: string
+                      sip_uri_calling_preference:
+                        default: disabled
+                        description: 'This feature enables inbound SIP URI calls to
+                          your Credential Auth Connection. If enabled for all (unrestricted)
+                          then anyone who calls the SIP URI <your-username>@telnyx.com
+                          will be connected to your Connection. You can also choose
+                          to allow only calls that are originated on any Connections
+                          under your account (internal).
+
+                          '
+                        enum:
+                        - disabled
+                        - unrestricted
+                        - internal
+                        type: string
+                      updated_at:
+                        description: ISO-8601 formatted date indicating when the resource
+                          was updated.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      user_name:
+                        description: The user name to be used as part of the credentials.
+                          Must be 4-32 characters long and alphanumeric values only
+                          (no spaces or special characters).
+                        example: myusername123
+                        type: string
+                    title: Credential Connection
+                    type: object
+                type: object
+          description: Successful response with details about a credential connection
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Updates a credential connection
       tags:
       - Credential Connections
   /fqdn_connections:
@@ -7608,10 +9787,6 @@ paths:
                               type: integer
                           title: Inbound configuration
                           type: object
-                        last_registered_ip:
-                          description: IP from the last successful registration attempt.
-                          example: 192.0.2.1
-                          type: string
                         onnet_t38_passthrough_enabled:
                           default: false
                           description: 'Enable on-net T38 if you prefer that the sender
@@ -7662,25 +9837,6 @@ paths:
                                 '
                               type: integer
                           type: object
-                        sip_reply_code:
-                          type: integer
-                        sip_reply_reason:
-                          type: string
-                        sip_uri_calling_preference:
-                          default: disabled
-                          description: 'This feature enables inbound SIP URI calls
-                            to your Credential Auth Connection. If enabled for all
-                            (unrestricted) then anyone who calls the SIP URI <your-username>@telnyx.com
-                            will be connected to your Connection. You can also choose
-                            to allow only calls that are originated on any Connections
-                            under your account (internal).
-
-                            '
-                          enum:
-                          - disabled
-                          - unrestricted
-                          - internal
-                          type: string
                         transport_protocol:
                           default: UDP
                           description: One of UDP, TLS, or TCP.
@@ -7754,11 +9910,6 @@ paths:
                   - Vancouver, Canada
                   type: string
                 connection_name:
-                  type: string
-                created_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was created.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
                 default_on_hold_comfort_noise_enabled:
                   default: true
@@ -7978,25 +10129,6 @@ paths:
                         '
                       type: integer
                   type: object
-                sip_reply_code:
-                  type: integer
-                sip_reply_reason:
-                  type: string
-                sip_uri_calling_preference:
-                  default: disabled
-                  description: 'This feature enables inbound SIP URI calls to your
-                    Credential Auth Connection. If enabled for all (unrestricted)
-                    then anyone who calls the SIP URI <your-username>@telnyx.com will
-                    be connected to your Connection. You can also choose to allow
-                    only calls that are originated on any Connections under your account
-                    (internal).
-
-                    '
-                  enum:
-                  - disabled
-                  - unrestricted
-                  - internal
-                  type: string
                 transport_protocol:
                   default: UDP
                   description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -8007,11 +10139,6 @@ paths:
                   - UDP
                   - TCP
                   - TLS
-                  type: string
-                updated_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was updated.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
         description: Parameters that can be defined during FQDN connection creation
         required: true
@@ -8244,10 +10371,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer that the sender
@@ -8297,25 +10420,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: One of UDP, TLS, or TCP.
@@ -8578,10 +10682,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer that the sender
@@ -8631,25 +10731,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: One of UDP, TLS, or TCP.
@@ -8915,10 +10996,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer that the sender
@@ -8968,25 +11045,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: One of UDP, TLS, or TCP.
@@ -9048,11 +11106,6 @@ paths:
                   - Vancouver, Canada
                   type: string
                 connection_name:
-                  type: string
-                created_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was created.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
                 default_on_hold_comfort_noise_enabled:
                   default: true
@@ -9268,25 +11321,6 @@ paths:
                         '
                       type: integer
                   type: object
-                sip_reply_code:
-                  type: integer
-                sip_reply_reason:
-                  type: string
-                sip_uri_calling_preference:
-                  default: disabled
-                  description: 'This feature enables inbound SIP URI calls to your
-                    Credential Auth Connection. If enabled for all (unrestricted)
-                    then anyone who calls the SIP URI <your-username>@telnyx.com will
-                    be connected to your Connection. You can also choose to allow
-                    only calls that are originated on any Connections under your account
-                    (internal).
-
-                    '
-                  enum:
-                  - disabled
-                  - unrestricted
-                  - internal
-                  type: string
                 transport_protocol:
                   default: UDP
                   description: One of UDP, TLS, or TCP.
@@ -9294,11 +11328,6 @@ paths:
                   - UDP
                   - TCP
                   - TLS
-                  type: string
-                updated_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was updated.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
         description: Parameters that can be updated in a FQDN connection
         required: true
@@ -9531,10 +11560,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer that the sender
@@ -9584,25 +11609,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: One of UDP, TLS, or TCP.
@@ -9932,10 +11938,6 @@ paths:
                               type: integer
                           title: Inbound configuration
                           type: object
-                        last_registered_ip:
-                          description: IP from the last successful registration attempt.
-                          example: 192.0.2.1
-                          type: string
                         onnet_t38_passthrough_enabled:
                           default: false
                           description: 'Enable on-net T38 if you prefer the sender
@@ -10087,25 +12089,6 @@ paths:
                                 '
                               type: integer
                           type: object
-                        sip_reply_code:
-                          type: integer
-                        sip_reply_reason:
-                          type: string
-                        sip_uri_calling_preference:
-                          default: disabled
-                          description: 'This feature enables inbound SIP URI calls
-                            to your Credential Auth Connection. If enabled for all
-                            (unrestricted) then anyone who calls the SIP URI <your-username>@telnyx.com
-                            will be connected to your Connection. You can also choose
-                            to allow only calls that are originated on any Connections
-                            under your account (internal).
-
-                            '
-                          enum:
-                          - disabled
-                          - unrestricted
-                          - internal
-                          type: string
                         transport_protocol:
                           default: UDP
                           description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -10182,11 +12165,6 @@ paths:
                   - Vancouver, Canada
                   type: string
                 connection_name:
-                  type: string
-                created_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was created.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
                 default_on_hold_comfort_noise_enabled:
                   default: true
@@ -10503,25 +12481,6 @@ paths:
                         '
                       type: integer
                   type: object
-                sip_reply_code:
-                  type: integer
-                sip_reply_reason:
-                  type: string
-                sip_uri_calling_preference:
-                  default: disabled
-                  description: 'This feature enables inbound SIP URI calls to your
-                    Credential Auth Connection. If enabled for all (unrestricted)
-                    then anyone who calls the SIP URI <your-username>@telnyx.com will
-                    be connected to your Connection. You can also choose to allow
-                    only calls that are originated on any Connections under your account
-                    (internal).
-
-                    '
-                  enum:
-                  - disabled
-                  - unrestricted
-                  - internal
-                  type: string
                 transport_protocol:
                   default: UDP
                   description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -10532,11 +12491,6 @@ paths:
                   - UDP
                   - TCP
                   - TLS
-                  type: string
-                updated_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was updated.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
         description: Parameters that can be defined during IP connection creation
         required: true
@@ -10790,10 +12744,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer the sender and
@@ -10943,25 +12893,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -11248,10 +13179,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer the sender and
@@ -11401,25 +13328,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -11709,10 +13617,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer the sender and
@@ -11862,25 +13766,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -11947,11 +13832,6 @@ paths:
                   - Vancouver, Canada
                   type: string
                 connection_name:
-                  type: string
-                created_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was created.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
                 default_on_hold_comfort_noise_enabled:
                   default: true
@@ -12286,25 +14166,6 @@ paths:
                         '
                       type: integer
                   type: object
-                sip_reply_code:
-                  type: integer
-                sip_reply_reason:
-                  type: string
-                sip_uri_calling_preference:
-                  default: disabled
-                  description: 'This feature enables inbound SIP URI calls to your
-                    Credential Auth Connection. If enabled for all (unrestricted)
-                    then anyone who calls the SIP URI <your-username>@telnyx.com will
-                    be connected to your Connection. You can also choose to allow
-                    only calls that are originated on any Connections under your account
-                    (internal).
-
-                    '
-                  enum:
-                  - disabled
-                  - unrestricted
-                  - internal
-                  type: string
                 transport_protocol:
                   default: UDP
                   description: 'One of UDP, TLS, or TCP. Applies only to connections
@@ -12315,11 +14176,6 @@ paths:
                   - UDP
                   - TCP
                   - TLS
-                  type: string
-                updated_at:
-                  description: ISO 8601 formatted date indicating when the resource
-                    was updated.
-                  example: '2018-02-02T22:25:27.521Z'
                   type: string
         description: Parameters that can be updated in a IP connection
         required: true
@@ -12573,10 +14429,6 @@ paths:
                             type: integer
                         title: Inbound configuration
                         type: object
-                      last_registered_ip:
-                        description: IP from the last successful registration attempt.
-                        example: 192.0.2.1
-                        type: string
                       onnet_t38_passthrough_enabled:
                         default: false
                         description: 'Enable on-net T38 if you prefer the sender and
@@ -12726,25 +14578,6 @@ paths:
                               '
                             type: integer
                         type: object
-                      sip_reply_code:
-                        type: integer
-                      sip_reply_reason:
-                        type: string
-                      sip_uri_calling_preference:
-                        default: disabled
-                        description: 'This feature enables inbound SIP URI calls to
-                          your Credential Auth Connection. If enabled for all (unrestricted)
-                          then anyone who calls the SIP URI <your-username>@telnyx.com
-                          will be connected to your Connection. You can also choose
-                          to allow only calls that are originated on any Connections
-                          under your account (internal).
-
-                          '
-                        enum:
-                        - disabled
-                        - unrestricted
-                        - internal
-                        type: string
                       transport_protocol:
                         default: UDP
                         description: 'One of UDP, TLS, or TCP. Applies only to connections
