@@ -23267,18 +23267,211 @@ paths:
       summary: Extend a Phone Number Reservation
       tags:
       - Number Reservations
-  /outbound_profiles/{id}:
+  /outbound_profiles:
     get:
-      description: Retrieves the details of an existing outbound profile.
-      operationId: getOutboundProfile
+      description: Get all outbound profiles belonging to the user that match the
+        given filters.
+      operationId: getOutboundProfiles
+      parameters:
+      - description: The page number to load.
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page.
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      - description: Optional filter on outbound profile name.
+        in: query
+        name: filter[name][contains]
+        schema:
+          example: office-profile
+          type: string
+      - description: "Specifies the sort order for results. By default sorting direction\
+          \ is ascending. To have the results sorterd in descending order add the\
+          \ <code>-</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>name</code>:\
+          \ sorts the result by the\n    <code>name</code> field in ascending order.\n\
+          \  </li>\n\n  <li>\n    <code>-name</code>: sorts the result by the\n  \
+          \  <code>name</code> field in descending order.\n  </li>\n</ul> <br/>"
+        in: query
+        name: sort
+        schema:
+          default: -created_at
+          enum:
+          - enabled
+          - -enabled
+          - created_at
+          - -created_at
+          - name
+          - -name
+          - service_plan
+          - -service_plan
+          - traffic_type
+          - -traffic_type
+          - usage_payment_method
+          - -usage_payment_method
+          example: name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      properties:
+                        billing_group_id:
+                          default: null
+                          description: The ID of the billing group to which the outbound
+                            profile is assigned. Defaults to null (for no group assigned).
+                          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                          format: uuid
+                          type: string
+                        connections_count:
+                          description: Amount of connections associated with this
+                            outbound profile.
+                          example: 12
+                          type: integer
+                        created_at:
+                          description: ISO 8601 formatted date-time indicating when
+                            the resource was created.
+                          example: '2018-02-02T22:25:27.521Z'
+                          type: string
+                        daily_spend_limit:
+                          description: The maximum amount of usage charges, in USD,
+                            you want Telnyx to allow on this outbound profile in a
+                            day before disallowing new calls.
+                          example: '100.00'
+                          type: string
+                        daily_spend_limit_enabled:
+                          default: false
+                          description: Specifies whether to enforce the daily_spend_limit
+                            on this outbound profile.
+                          example: true
+                          type: boolean
+                        enabled:
+                          default: true
+                          description: Specifies whether the outbound profile can
+                            be used. Disabled profiles will result in outbound calls
+                            being blocked for the associated Connections.
+                          example: true
+                          type: boolean
+                        id:
+                          description: Identifies the resource.
+                          example: '1293384261075731499'
+                          format: int64
+                          type: string
+                        max_destination_rate:
+                          description: Maximum rate at which you can make a call using
+                            this outbound profile.
+                          type: number
+                        name:
+                          default: ''
+                          description: A user-supplied name to help with organization.
+                          example: office
+                          type: string
+                        ports:
+                          description: Must be no more than your concurrent call limit.
+                            Null means no limit.
+                          example: 5060
+                          type: integer
+                        record_type:
+                          description: Identifies the type of the resource.
+                          example: outbound_profile
+                          type: string
+                        service_plan:
+                          default: us
+                          enum:
+                          - us
+                          - international
+                          - eea_originated_international
+                          example: international
+                          type: string
+                        tag_list:
+                          example:
+                          - office-profile
+                          items:
+                            type: string
+                          type: array
+                        traffic_type:
+                          default: conversational
+                          description: Specifies the type of traffic allowed in this
+                            profile.
+                          enum:
+                          - conversational
+                          - short_duration
+                          - fax
+                          - conversational_direct
+                          example: conversational
+                          type: string
+                        updated_at:
+                          description: ISO 8601 formatted date-time indicating when
+                            the resource was updated.
+                          example: '2018-02-02T22:25:27.521Z'
+                          type: string
+                        usage_payment_method:
+                          enum:
+                          - flat-rate
+                          - tariff
+                          example: tariff
+                          type: string
+                        whitelisted_destinations:
+                          description: The list of destinations you want to be able
+                            to call using this outbound profile formatted in alpha2.
+                          example:
+                          - US
+                          - BR
+                          - AU
+                          items:
+                            type: string
+                          type: array
+                      title: Outbound Profile
+                      type: object
+                    type: array
+                  meta:
+                    properties:
+                      page_number:
+                        example: 2
+                        type: integer
+                      page_size:
+                        example: 25
+                        type: integer
+                      total_pages:
+                        example: 3
+                        type: integer
+                      total_results:
+                        example: 55
+                        type: integer
+                    type: object
+                type: object
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '422':
+          description: Bad request
+      summary: Get all outbound profiles
+      tags:
+      - Outbound Profiles
+  /outbound_profiles/{id}:
+    delete:
+      description: Deletes an existing outbound profile.
+      operationId: deleteOutboundProfile
       parameters:
       - description: Identifies the resource.
         in: path
         name: id
         required: true
         schema:
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-          format: uuid
+          example: '1293384261075731499'
+          format: int64
           type: string
       responses:
         '200':
@@ -23326,8 +23519,8 @@ paths:
                         type: boolean
                       id:
                         description: Identifies the resource.
-                        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-                        format: uuid
+                        example: '1293384261075731499'
+                        format: int64
                         type: string
                       max_destination_rate:
                         description: Maximum rate at which you can make a call using
@@ -23386,6 +23579,148 @@ paths:
                       whitelisted_destinations:
                         description: The list of destinations you want to be able
                           to call using this outbound profile formatted in alpha2.
+                        example:
+                        - US
+                        - BR
+                        - AU
+                        items:
+                          type: string
+                        type: array
+                    title: Outbound Profile
+                    type: object
+                type: object
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Delete an outbound profile
+      tags:
+      - Outbound Profiles
+    get:
+      description: Retrieves the details of an existing outbound profile.
+      operationId: getOutboundProfile
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          example: '1293384261075731499'
+          format: int64
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    properties:
+                      billing_group_id:
+                        default: null
+                        description: The ID of the billing group to which the outbound
+                          profile is assigned. Defaults to null (for no group assigned).
+                        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                        format: uuid
+                        type: string
+                      connections_count:
+                        description: Amount of connections associated with this outbound
+                          profile.
+                        example: 12
+                        type: integer
+                      created_at:
+                        description: ISO 8601 formatted date-time indicating when
+                          the resource was created.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      daily_spend_limit:
+                        description: The maximum amount of usage charges, in USD,
+                          you want Telnyx to allow on this outbound profile in a day
+                          before disallowing new calls.
+                        example: '100.00'
+                        type: string
+                      daily_spend_limit_enabled:
+                        default: false
+                        description: Specifies whether to enforce the daily_spend_limit
+                          on this outbound profile.
+                        example: true
+                        type: boolean
+                      enabled:
+                        default: true
+                        description: Specifies whether the outbound profile can be
+                          used. Disabled profiles will result in outbound calls being
+                          blocked for the associated Connections.
+                        example: true
+                        type: boolean
+                      id:
+                        description: Identifies the resource.
+                        example: '1293384261075731499'
+                        format: int64
+                        type: string
+                      max_destination_rate:
+                        description: Maximum rate at which you can make a call using
+                          this outbound profile.
+                        type: number
+                      name:
+                        default: ''
+                        description: A user-supplied name to help with organization.
+                        example: office
+                        type: string
+                      ports:
+                        description: Must be no more than your concurrent call limit.
+                          Null means no limit.
+                        example: 5060
+                        type: integer
+                      record_type:
+                        description: Identifies the type of the resource.
+                        example: outbound_profile
+                        type: string
+                      service_plan:
+                        default: us
+                        enum:
+                        - us
+                        - international
+                        - eea_originated_international
+                        example: international
+                        type: string
+                      tag_list:
+                        example:
+                        - office-profile
+                        items:
+                          type: string
+                        type: array
+                      traffic_type:
+                        default: conversational
+                        description: Specifies the type of traffic allowed in this
+                          profile.
+                        enum:
+                        - conversational
+                        - short_duration
+                        - fax
+                        - conversational_direct
+                        example: conversational
+                        type: string
+                      updated_at:
+                        description: ISO 8601 formatted date-time indicating when
+                          the resource was updated.
+                        example: '2018-02-02T22:25:27.521Z'
+                        type: string
+                      usage_payment_method:
+                        enum:
+                        - flat-rate
+                        - tariff
+                        example: tariff
+                        type: string
+                      whitelisted_destinations:
+                        description: The list of destinations you want to be able
+                          to call using this outbound profile formatted in alpha2.
+                        example:
+                        - US
+                        - BR
+                        - AU
                         items:
                           type: string
                         type: array
