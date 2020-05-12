@@ -610,6 +610,15 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    GetFaxResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Fax'
+            type: object
+      description: Get fax response
     GetSimCardGroupResponse:
       content:
         application/json:
@@ -736,6 +745,24 @@ components:
                 type: array
             type: object
       description: A paginated array of CSV download requests.
+    ListFaxesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Fax'
+                type: array
+              meta:
+                example:
+                  page_number: 2
+                  page_size: 1
+                  total_pages: 3
+                  total_results: 3
+                type: object
+            type: object
+      description: List faxes response
     ListMessagingHostedNumberOrder:
       content:
         application/json:
@@ -1185,6 +1212,15 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    SendFaxResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Fax'
+            type: object
+      description: Send fax response
     SimpleSimCardResponse:
       content:
         application/json:
@@ -5353,6 +5389,433 @@ components:
           type: integer
       required:
       - fqdn
+      type: object
+    Fax:
+      example:
+        connection_id: c-1
+        created_at: '2020-05-05T09:59:12'
+        from: '+123'
+        media_url: http://www.example.com/fax.pdf
+        quality: high
+        record_type: fax
+        status: queued
+        store_media: true
+        stored_media_url: https://s3.amazonaws.com/faxes-dev/user-1/cf4a6b52-bf8e-4945-9f49-611d0d2b083b.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=xxxxxxxxxx%2F20200505%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200505T095917Z&X-Amz-Expires=7200&X-Amz-SignedHeaders=host&X-Amz-Signature=fac2af40464fcc77673ad762db86e34f9c1b91a82699b5578c5327f53874df51
+        to: '+456'
+        updated_at: '2020-05-05T09:59:12'
+        webhook_url: http://www.example.com/webhooks
+      properties:
+        connection_id:
+          description: The connection ID to send the fax with.
+          example: '234423'
+          type: string
+        created_at:
+          description: ISO 8601 timestamp when resource was created
+          format: datetime
+          type: string
+        from:
+          description: The phone number, in E.164 format, the fax will be sent from.
+          example: '+13125790015'
+          type: string
+        media_url:
+          description: The URL to the PDF used for the fax's media.
+          example: http://assets.com/FAX.pdf
+          type: string
+        quality:
+          default: high
+          description: The quality of the fax. Can be normal, high, very_high
+          example: high
+          type: string
+        status:
+          description: Status of the fax
+          enum:
+          - queued
+          - media.processed
+          - sending
+          - delivered
+          - failed
+          example: queued
+          type: string
+        store_media:
+          description: Should fax media be stored on temporary URL
+          type: boolean
+        stored_media_url:
+          description: If store_media was set to true, this is a link to temporary
+            location. Link expires after 2h.
+          type: boolean
+        to:
+          description: The phone number, in E.164 format, the fax will be sent to
+            or SIP URI
+          example: '+13127367276'
+          type: string
+        updated_at:
+          description: ISO 8601 timestamp when resource was updated
+          format: datetime
+          type: string
+        webhook_url:
+          description: URL to send webhooks about the fax to
+          type: string
+      type: object
+    FaxDelivered:
+      example:
+        data:
+          event_type: fax.delivered
+          id: 95479a2e-b947-470a-a88f-2da6dd07ae0f
+          occurred_at: '2020-05-05T13:08:22.039204Z'
+          payload:
+            connection_id: '234423'
+            fax_id: f8338808-3dc6-4f2b-942a-5d1f39255784
+            from: '+17733372107'
+            original_media_url: http://www.example.com/fax.pdf
+            status: delivered
+            to: '+15107882622'
+            user_id: 19a75cea-02c6-4b9a-84fa-c9bc8341feb8
+          record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - fax.delivered
+          example: fax.delivered
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            connection_id:
+              description: The ID of the connection that was used to send the fax.
+              example: '234423'
+              type: string
+            from:
+              description: The phone number, in E.164 format, the fax will be sent
+                from.
+              example: '+13125790015'
+              type: string
+            id:
+              description: Identifies the fax.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            original_media_url:
+              description: The original URL to the PDF used for the fax's media.
+              example: http://assets.com/FAX.pdf
+              type: string
+            status:
+              description: The status of the fax.
+              enum:
+              - delivered
+              example: delivered
+              type: string
+            to:
+              description: The phone number, in E.164 format, the fax will be sent
+                to or SIP URI
+              example: '+13127367276'
+              type: string
+            user_id:
+              description: Identifier of the user to whom the fax belongs
+              example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    FaxFailed:
+      example:
+        data:
+          event_type: fax.failed
+          id: 95479a2e-b947-470a-a88f-2da6dd07ae0f
+          occurred_at: '2020-05-05T13:08:22.039204Z'
+          payload:
+            connection_id: '234423'
+            failure_reason: rejected
+            fax_id: f8338808-3dc6-4f2b-942a-5d1f39255784
+            from: '+17733372107'
+            original_media_url: http://www.example.com/fax.pdf
+            status: failed
+            to: '+15107882622'
+            user_id: 19a75cea-02c6-4b9a-84fa-c9bc8341feb8
+          record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - fax.failed
+          example: fax.failed
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            connection_id:
+              description: The ID of the connection that was used to send the fax.
+              example: '234423'
+              type: string
+            failure_reason:
+              description: Cause of the sending failure
+              enum:
+              - rejected
+              type: string
+            from:
+              description: The phone number, in E.164 format, the fax will be sent
+                from.
+              example: '+13125790015'
+              type: string
+            id:
+              description: Identifies the fax.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            original_media_url:
+              description: The original URL to the PDF used for the fax's media.
+              example: http://assets.com/FAX.pdf
+              type: string
+            status:
+              description: The status of the fax.
+              enum:
+              - failed
+              example: failed
+              type: string
+            to:
+              description: The phone number, in E.164 format, the fax will be sent
+                to or SIP URI
+              example: '+13127367276'
+              type: string
+            user_id:
+              description: Identifier of the user to whom the fax belongs
+              example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    FaxMediaProcessed:
+      example:
+        data:
+          event_type: fax.media.processed
+          id: 95479a2e-b947-470a-a88f-2da6dd07ae0f
+          occurred_at: '2020-05-05T13:08:22.039204Z'
+          payload:
+            connection_id: '234423'
+            fax_id: f8338808-3dc6-4f2b-942a-5d1f39255784
+            from: '+17733372107'
+            original_media_url: http://www.example.com/fax.pdf
+            status: media.processed
+            to: '+15107882622'
+            user_id: 19a75cea-02c6-4b9a-84fa-c9bc8341feb8
+          record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - fax.media.processed
+          example: fax.media.processed
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            connection_id:
+              description: The ID of the connection that was used to send the fax.
+              example: '234423'
+              type: string
+            from:
+              description: The phone number, in E.164 format, the fax will be sent
+                from.
+              example: '+13125790015'
+              type: string
+            id:
+              description: Identifies the fax.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            original_media_url:
+              description: The original URL to the PDF used for the fax's media.
+              example: http://assets.com/FAX.pdf
+              type: string
+            status:
+              description: The status of the fax.
+              enum:
+              - media.processed
+              example: media.processed
+              type: string
+            to:
+              description: The phone number, in E.164 format, the fax will be sent
+                to or SIP URI
+              example: '+13127367276'
+              type: string
+            user_id:
+              description: Identifier of the user to whom the fax belongs
+              example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    FaxQueued:
+      example:
+        data:
+          event_type: fax.queued
+          id: 95479a2e-b947-470a-a88f-2da6dd07ae0f
+          occurred_at: '2020-05-05T13:08:22.039204Z'
+          payload:
+            connection_id: '234423'
+            fax_id: f8338808-3dc6-4f2b-942a-5d1f39255784
+            from: '+17733372107'
+            original_media_url: http://www.example.com/fax.pdf
+            status: queued
+            to: '+15107882622'
+            user_id: 19a75cea-02c6-4b9a-84fa-c9bc8341feb8
+          record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - fax.queued
+          example: fax.queued
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            connection_id:
+              description: The ID of the connection that was used to send the fax.
+              example: '234423'
+              type: string
+            from:
+              description: The phone number, in E.164 format, the fax will be sent
+                from.
+              example: '+13125790015'
+              type: string
+            id:
+              description: Identifies the fax.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            original_media_url:
+              description: The original URL to the PDF used for the fax's media.
+              example: http://assets.com/FAX.pdf
+              type: string
+            status:
+              description: The status of the fax.
+              enum:
+              - queued
+              example: queued
+              type: string
+            to:
+              description: The phone number, in E.164 format, the fax will be sent
+                to or SIP URI
+              example: '+13127367276'
+              type: string
+            user_id:
+              description: Identifier of the user to whom the fax belongs
+              example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    FaxSendingStarted:
+      example:
+        data:
+          event_type: fax.sending.started
+          id: 95479a2e-b947-470a-a88f-2da6dd07ae0f
+          occurred_at: '2020-05-05T13:08:22.039204Z'
+          payload:
+            connection_id: '234423'
+            fax_id: f8338808-3dc6-4f2b-942a-5d1f39255784
+            from: '+17733372107'
+            original_media_url: http://www.example.com/fax.pdf
+            status: sending
+            to: '+15107882622'
+            user_id: 19a75cea-02c6-4b9a-84fa-c9bc8341feb8
+          record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - fax.sending.started
+          example: fax.sending.started
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            connection_id:
+              description: The ID of the connection that was used to send the fax.
+              example: '234423'
+              type: string
+            from:
+              description: The phone number, in E.164 format, the fax will be sent
+                from.
+              example: '+13125790015'
+              type: string
+            id:
+              description: Identifies the fax.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            original_media_url:
+              description: The original URL to the PDF used for the fax's media.
+              example: http://assets.com/FAX.pdf
+              type: string
+            status:
+              description: The status of the fax.
+              enum:
+              - sending
+              example: sending
+              type: string
+            to:
+              description: The phone number, in E.164 format, the fax will be sent
+                to or SIP URI
+              example: '+13127367276'
+              type: string
+            user_id:
+              description: Identifier of the user to whom the fax belongs
+              example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
       type: object
     FirstCommandTimeout:
       default: false
@@ -9753,6 +10216,35 @@ components:
       - digits
       title: Send DTMF request
       type: object
+    SendFaxRequest:
+      properties:
+        connection_id:
+          description: The connection ID to send the fax with.
+          example: '234423'
+          required: true
+          type: string
+        from:
+          description: The phone number, in E.164 format, the fax will be sent from.
+          example: '+13125790015'
+          type: string
+        media_url:
+          description: The URL to the PDF used for the fax's media.
+          example: http://assets.com/FAX.pdf
+          required: true
+          type: string
+        quality:
+          default: high
+          description: The quality of the fax. Can be normal, high, very_high
+          example: high
+          type: string
+        to:
+          description: The phone number, in E.164 format, the fax will be sent to
+            or SIP URI
+          example: '+13127367276'
+          required: true
+          type: string
+      title: Send fax request
+      type: object
     ShortCode:
       example:
         country_code: US
@@ -12882,6 +13374,190 @@ paths:
       summary: Updates a credential connection
       tags:
       - Credential Connections
+  /faxes:
+    get:
+      description: ''
+      operationId: ListFaxes
+      parameters:
+      - description: ISO 8601 date time for filtering faxes created after or on that
+          date
+        in: query
+        name: filter[created_at][gte]
+        schema:
+          example: '2020-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+      - description: ISO 8601 date time for filtering faxes created after that date
+        in: query
+        name: filter[created_at][gt]
+        schema:
+          example: '2020-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+      - description: ISO 8601 formatted date time for filtering faxes created on or
+          before that date
+        in: query
+        name: filter[created_at][lte]
+        schema:
+          example: '2020-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+      - description: ISO 8601 formatted date time for filtering faxes created before
+          that date
+        in: query
+        name: filter[created_at][lt]
+        schema:
+          example: '2020-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+      - description: The phone number, in E.164 format for filtering faxes sent from
+          this number
+        in: query
+        name: filter[from][eq]
+        schema:
+          example: '+13127367276'
+          type: string
+      - description: Number of fax resourcxes for the single page returned
+        in: query
+        name: page[size]
+        schema:
+          example: 2
+          type: integer
+      - description: Number of the page to be retrieved
+        in: query
+        name: page[number]
+        schema:
+          example: 2
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ListFaxesResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: View a list of faxes
+      tags:
+      - Programmable Fax Commands
+    post:
+      callbacks:
+        fax.delivered:
+          ${response.body#/data/webhook_url}:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/FaxDelivered'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        fax.failed:
+          ${response.body#/data/webhook_url}:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/FaxFailed'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        fax.media.processed:
+          ${response.body#/data/webhook_url}:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/FaxMediaProcessed'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        fax.queued:
+          ${response.body#/data/webhook_url}:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/FaxQueued'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        fax.sending.started:
+          ${response.body#/data/webhook_url}:
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/FaxSendingStarted'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: ''
+      operationId: SendFax
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendFaxRequest'
+        description: Send fax request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/SendFaxResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Send a fax
+      tags:
+      - Programmable Fax Commands
+  /faxes/{id}:
+    delete:
+      operationId: DeleteFax
+      parameters:
+      - description: The unique identifier of a fax.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete a fax
+      tags:
+      - Programmable Fax Commands
+    get:
+      operationId: ViewFax
+      parameters:
+      - description: The unique identifier of a fax.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/GetFaxResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: View a fax
+      tags:
+      - Programmable Fax Commands
   /fqdn_connections:
     get:
       description: Returns a list of your FQDN connections.
@@ -15845,6 +16521,8 @@ tags:
   name: Outbound Voice Profiles
 - description: Phone numbers
   name: Phone Numbers
+- description: Programmable fax command operations
+  name: Programmable Fax Commands
 - description: Wireless reporting operations
   name: Reporting
 - description: SIM Cards operations
