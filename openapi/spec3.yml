@@ -201,6 +201,17 @@ components:
       schema:
         example: 12455643-3cf1-4683-ad23-1cd32f7d5e0a
         type: string
+    NumberLookupType:
+      description: Specifies the type of number lookup to be performed
+      in: query
+      name: type
+      required: false
+      schema:
+        default: standard
+        enum:
+        - standard
+        - caller-name
+        type: string
     PageNumber:
       description: The page number to load
       in: query
@@ -218,6 +229,14 @@ components:
         maximum: 250
         minimum: 1
         type: integer
+    PhoneNumber:
+      description: The phone number to be looked up
+      in: path
+      name: phone_number
+      required: true
+      schema:
+        example: '+18665552368'
+        type: string
     ResourceId:
       description: Identifies the resource.
       in: path
@@ -956,6 +975,15 @@ components:
       description: A paginated array of the short codes
     NotFoundResponse:
       description: Conference does not exist
+    NumberLookupResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/NumberLookupRecord'
+            type: object
+      description: Successful response
     OutboundVoiceProfileResponse:
       content:
         application/json:
@@ -3162,6 +3190,60 @@ components:
           enum:
           - event
           example: event
+          type: string
+      type: object
+    CallerName:
+      properties:
+        caller_name:
+          description: The name of the requested phone number's owner as per the CNAM
+            database
+          example: TELNYX LLC
+          type: string
+        error_code:
+          description: A caller-name lookup specific error code, expressed as a stringified
+            5-digit integer
+          example: '10001'
+          type: string
+      type: object
+    Carrier:
+      properties:
+        error_code:
+          description: Unused
+          example: null
+          type: string
+        mobile_country_code:
+          description: Region code that matches the specific country calling code
+            if the requested phone number type is mobile
+          example: US
+          type: string
+        mobile_network_code:
+          description: National destination code (NDC), with a 0 prefix, if an NDC
+            is found and the requested phone number type is mobile
+          example: 0866
+          type: string
+        name:
+          description: SPID (Service Provider ID) name, if the requested phone number
+            has been ported; otherwise, the name of carrier who owns the phone number
+            block
+          example: Telnyx/4
+          type: string
+        type:
+          description: A phone number type that identifies the type of service associated
+            with the requested phone number
+          enum:
+          - fixed line
+          - mobile
+          - voip
+          - fixed line or mobile
+          - toll free
+          - premium rate
+          - shared cost
+          - personal number
+          - pager
+          - uan
+          - voicemail
+          - unknown
+          example: voip
           type: string
       type: object
     Conference:
@@ -8484,6 +8566,78 @@ components:
       - inbound_outbound_ratio
       - success_ratio
       - spam_ratio
+      type: object
+    NumberLookupRecord:
+      properties:
+        altspid:
+          description: Alternative SPID (Service Provider ID). Often used when a carrier
+            is using a number from another carrier
+          example: 073H
+          type: string
+        altspid_carrier_name:
+          description: Alternative service provider name
+          example: Telnyx/4
+          type: string
+        altspid_carrier_type:
+          description: Alternative service provider type
+          example: '3'
+          type: string
+        caller_name:
+          $ref: '#/components/schemas/CallerName'
+        carrier:
+          $ref: '#/components/schemas/Carrier'
+        city:
+          description: City name extracted from the locality in the Local Exchange
+            Routing Guide (LERG) database
+          example: WAUKEGAN
+          type: string
+        country_code:
+          description: Region code that matches the specific country calling code
+          example: US
+          type: string
+        fraud:
+          description: Unused
+          example: null
+          type: string
+        lrn:
+          description: Local Routing Number, if assigned to the requested phone number
+          example: '2245701999'
+          type: string
+        national_format:
+          description: Hyphen-separated national number, preceded by the national
+            destination code (NDC), with a 0 prefix, if an NDC is found
+          example: (0312) 945-7420
+          type: string
+        ocn:
+          description: Operating Company Name (OCN) as per the Local Exchange Routing
+            Guide (LERG) database
+          example: 073H
+          type: string
+        phone_number:
+          description: E164-formatted phone number
+          example: '+13129457420'
+          type: string
+        ported_date:
+          description: ISO-formatted date when the requested phone number has been
+            ported
+          example: '2017-10-20'
+          type: string
+        ported_status:
+          description: Indicates whether or not the requested phone number has been
+            ported
+          enum:
+          - Y
+          - N
+          example: Y
+          type: string
+        record_type:
+          description: Identifies the type of record
+          example: number_lookup
+          type: string
+        state:
+          example: Illinois
+          type: string
+      title: NumberLookup
       type: object
     NumberOrder:
       example:
@@ -14913,6 +15067,23 @@ paths:
       summary: Retrieve a notification setting
       tags:
       - Notifications
+  /number_lookup/{phone_number}:
+    get:
+      description: Returns information about the provided phone number.
+      operationId: NumberLookup
+      parameters:
+      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/NumberLookupType'
+      responses:
+        '200':
+          $ref: '#/components/responses/NumberLookupResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Lookup phone number data
+      tags:
+      - Number Lookup
   /number_order_documents:
     get:
       description: Gets a paginated list of Number Order Documents
@@ -16505,6 +16676,8 @@ tags:
   name: Notifications
 - description: Configure your phone numbers
   name: Number Configurations
+- description: Look up phone number data
+  name: Number Lookup
 - description: Number order documents
   name: Number Order Documents
 - description: Number order regulatory requirements
