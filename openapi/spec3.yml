@@ -123,6 +123,15 @@ components:
         default: false
         example: true
         type: boolean
+    IncludeOTAUpdates:
+      description: It includes the associated OTA update objects in the response when
+        present.
+      in: query
+      name: include_ota_updates
+      schema:
+        default: false
+        example: true
+        type: boolean
     IncludeSIMCardGroup:
       description: It includes the associated SIM card group object in the response
         when present.
@@ -316,6 +325,22 @@ components:
                 $ref: '#/components/schemas/Address'
             type: object
       description: Successful response
+    BulkSIMCardNetworkPreferenceResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                description: Multi requested SIM cards network preferences.
+                items:
+                  $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
+                type: array
+              errors:
+                items:
+                  $ref: '#/components/schemas/Error'
+                type: array
+            type: object
+      description: ''
     CallControlApplicationResponse:
       content:
         application/json:
@@ -448,6 +473,21 @@ components:
                 $ref: '#/components/schemas/CredentialConnection'
             type: object
       description: Successful response with details about a credential connection
+    DELETESIMCardNetworkPreferenceResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
+            type: object
+      description: 'A successful network preferences deletion response. <br/><br/>
+
+        The delete won''t be done right away - this is an asynchronous operation.
+        The request will return the resource with an in-progress OTA update resource
+        (in the ota_updates node) representing the delete operation. Similarly to
+        the PUT API, the resource will only be deleted when the OTA updated is successfully
+        completed.'
     DeleteBillingGroupResponse:
       content:
         application/json:
@@ -481,6 +521,15 @@ components:
           schema:
             $ref: '#/components/schemas/SIMCardGroup'
       description: Successful Response
+    DeleteSimCardResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCard'
+            type: object
+      description: Successful response
     DeleteWdrReportResponse:
       content:
         application/json:
@@ -984,6 +1033,15 @@ components:
                 $ref: '#/components/schemas/NumberLookupRecord'
             type: object
       description: Successful response
+    OTAUpdateResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/CompleteOTAUpdate'
+            type: object
+      description: Successful response
     OutboundVoiceProfileResponse:
       content:
         application/json:
@@ -996,6 +1054,28 @@ components:
           schema:
             $ref: '#/components/schemas/MultipleOutboundVoiceProfiles'
       description: Successful response
+    PUTSIMCardNetworkPreferenceResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
+            type: object
+      description: "A successful network preferences definition response. <br/><br/>\n\
+        The sent mobile_operator_networks_preferences parameter won't be applied to\
+        \ the main resource right away - this is an asynchronous operation. While\
+        \ interacting with this API, you will face the following scenarios:\n\n  *\
+        \ The first request for this API will return an empty mobile_operator_networks_preferences\
+        \ with an in-progress OTA update resource in the ota_updates node containing\
+        \ the exact sent parameters to indicate the operation progress. The value\
+        \ will be applied to the principal object when the OTA update finishes its\
+        \ processing, thus indicating the SIM card network preference current state.\
+        \ \n  * The subsequent requests will contain the current state, that is what's\
+        \ applied to the SIM card settings, and return the related OTA update in the\
+        \ ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates\
+        \ node) will, by default, be the resource related to the operation, not all\
+        \ of them."
     PortoutCommentResponse:
       content:
         application/json:
@@ -1227,6 +1307,50 @@ components:
                 $ref: '#/components/schemas/ShortCode'
             type: object
       description: Expected short code detail response to a valid request
+    SIMCardNetworkPreferenceResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardNetworkPreference'
+            type: object
+      description: A successful network preferences definition response.
+    SIMCardNetworkPreferenceWithOTAUpdatesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
+            type: object
+      description: A successful network preferences definition response.
+    SearchMobileOperatorNetworksResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/MobileOperatorNetwork'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    SearchOTAUpdateResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/SimplifiedOTAUpdate'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     SearchSimCardsResponse:
       content:
         application/json:
@@ -1463,25 +1587,6 @@ components:
       description: A user-assigned name to help manage the application.
       example: call-router
       type: string
-    AsyncReport:
-      example:
-        report_url: http://example.com
-        status: pending
-      properties:
-        report_url:
-          description: The URL where the report content, when generated, will be published
-            to.
-          example: http://example.com
-          type: string
-        status:
-          description: Indicates the status of the report, which is updated asynchronously.
-          enum:
-          - pending
-          - complete
-          - failed
-          - deleted
-          type: string
-      type: object
     AvailablePhoneNumber:
       example:
         best_effort: false
@@ -3246,6 +3351,65 @@ components:
           example: voip
           type: string
       type: object
+    CompleteOTAUpdate:
+      description: This object represents an Over the Air (OTA) update request. It
+        allows tracking the current status of a operation that apply settings in a
+        particular SIM card. <br/><br/>
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          example: ota_update
+          readOnly: true
+          type: string
+        settings:
+          description: A JSON object representation of the operation. The information
+            present here will relate directly to the source of the OTA request.
+          example:
+            mobile_operator_networks_preferences:
+            - mobile_operator_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+              priority: 0
+          properties:
+            mobile_operator_networks_preferences:
+              $ref: '#/components/schemas/MobileOperatorNetworksPreferences'
+          type: object
+        sim_card_id:
+          description: The indentification UUID of the related SIM card resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          enum:
+          - in-progress
+          - completed
+          - failed
+          example: in-progress
+          type: string
+        type:
+          description: Represents the type of the operation requested. This will relate
+            directly to the source of the request.
+          enum:
+          - sim_card_network_preferences
+          example: sim_card_network_preferences
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: OTAUpdate
+      type: object
     Conference:
       example:
         created_at: '2019-01-23T18:10:02.574Z'
@@ -4530,20 +4694,6 @@ components:
       - SIP INFO
       example: Inband
       type: string
-    DatetimeRange:
-      example:
-        end_time: '2018-02-02T22:25:27.521Z'
-        start_time: '2018-02-02T22:25:27.521Z'
-      properties:
-        end_time:
-          description: ISO 8601 formatted date-time indicating the end time.
-          example: '2018-02-02T22:25:27.521Z'
-          type: string
-        start_time:
-          description: ISO 8601 formatted date-time indicating the start time.
-          example: '2018-02-02T22:25:27.521Z'
-          type: string
-      type: object
     DialRequest:
       example:
         answering_machine_detection: detect
@@ -8010,6 +8160,73 @@ components:
           type: number
       title: Metadata
       type: object
+    MobileOperatorNetwork:
+      properties:
+        country_code:
+          description: The mobile operator two-character (ISO 3166-1 alpha-2) origin
+            country code.
+          example: US
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        mcc:
+          description: 'MCC stands for Mobile Country Code. It''s a three decimal
+            digit that identifies a country.<br/><br/>
+
+            This code is commonly seen joined with a Mobile Network Code (MNC) in
+            a tuple that allows identifying a carrier known as PLMN (Public Land Mobile
+            Network) code.'
+          example: '310'
+          type: string
+        mnc:
+          description: "MNC stands for Mobile Network Code. It's a two to three decimal\
+            \ digits that identify a network.<br/><br/>\n This code is commonly seen\
+            \ joined with a Mobile Country Code (MCC) in a tuple that allows identifying\
+            \ a carrier known as PLMN (Public Land Mobile Network) code."
+          example: '410'
+          type: string
+        name:
+          description: The operator company name.
+          example: AT&T Mobility (USACG)
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: mobile_operator_network
+          readOnly: true
+          type: string
+        tadig:
+          description: TADIG stands for Transferred Account Data Interchange Group.
+            The TADIG code is a unique identifier for network operators in GSM mobile
+            networks.
+          example: USACG
+          type: string
+      title: MobileOperatorNetwork
+      type: object
+    MobileOperatorNetworkPreferences:
+      description: ''
+      properties:
+        mobile_operator_network_id:
+          description: The mobile operator network resource identification UUID.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        priority:
+          description: It determines what is the priority of a specific operator network
+            that should be assumed by a SIM card when connecting to a network. The
+            highest priority is 0, the second highest is 1 and so on.
+          example: 0
+          type: integer
+      type: object
+    MobileOperatorNetworksPreferences:
+      description: A list of mobile operator networks and the priority that should
+        be applied when the SIM is connecting to the network.
+      items:
+        $ref: '#/components/schemas/MobileOperatorNetworkPreferences'
+      type: array
     MultipleOutboundVoiceProfiles:
       properties:
         data:
@@ -10160,32 +10377,6 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           type: string
       type: object
-    Record:
-      properties:
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-        id:
-          description: Identifies the resource.
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-          format: uuid
-          readOnly: true
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: sample_record_type
-          readOnly: true
-          type: string
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-      type: object
     RegionInformation:
       example:
         region_name: US
@@ -10364,84 +10555,391 @@ components:
           readOnly: true
           type: string
     SIMCard:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - $ref: '#/components/schemas/SimpleSIMCard'
-      - properties:
-          ipv4:
-            description: 'The SIM''s address in the currently connected network. This
-              IPv4 address is usually obtained dynamically, so it may vary according
-              to the location or new connections.
-
-              '
-            example: 192.168.0.0
-            readOnly: true
-            type: string
-          ipv6:
-            description: 'The SIM''s address in the currently connected network. This
-              IPv6 address is usually obtained dynamically, so it may vary according
-              to the location or new connections.
-
-              '
-            example: 2001:cdba:0000:0000:0000:0000:3257:9652
-            readOnly: true
-            type: string
-        title: SIMCard
-        type: object
-      example:
+      properties:
         created_at:
-          $ref: '#/components/schemas/Record/properties/created_at/example'
-        iccid: '89310410106543789301'
-        id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-        imsi: 081932214823362973
-        ipv4: 192.168.0.0
-        ipv6: 2001:cdba:0000:0000:0000:0000:3257:9652
-        msisdn: '+13109976224'
-        record_type: sim_card
-        sim_card_group_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-        status: active
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        iccid:
+          description: 'The ICCID is the identifier of the specific SIM card/chip.
+            Each SIM is internationally identified by its integrated circuit card
+            identifier (ICCID). ICCIDs are stored in the SIM card''s memory and are
+            also engraved or printed on the SIM card body during a process called
+            personalization.
+
+            '
+          example: '89310410106543789301'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        imsi:
+          description: 'SIM cards are identified on their individual operator networks
+            by a unique International Mobile Subscriber Identity (IMSI). <br/>
+
+            Mobile network operators connect mobile phone calls and communicate with
+            their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity
+            Module (SIM) inside the device and is sent by the device to the appropriate
+            network. It is used to acquire the details of the device in the Home  Location
+            Register (HLR) or the Visitor Location Register (VLR).
+
+            '
+          example: 081932214823362973
+          readOnly: true
+          type: string
+        ipv4:
+          description: 'The SIM''s address in the currently connected network. This
+            IPv4 address is usually obtained dynamically, so it may vary according
+            to the location or new connections.
+
+            '
+          example: 192.168.0.0
+          readOnly: true
+          type: string
+        ipv6:
+          description: 'The SIM''s address in the currently connected network. This
+            IPv6 address is usually obtained dynamically, so it may vary according
+            to the location or new connections.
+
+            '
+          example: 2001:cdba:0000:0000:0000:0000:3257:9652
+          readOnly: true
+          type: string
+        msisdn:
+          description: 'Mobile Station International Subscriber Directory Number (MSISDN)
+            is a number used to identify a mobile phone number internationally. <br/>
+
+            MSISDN is defined by the E.164 numbering plan. It includes a country code
+            and a National Destination Code which identifies the subscriber''s operator.
+
+            '
+          example: '+13109976224'
+          readOnly: true
+          type: string
+        record_type:
+          example: sim_card_network_preferences
+          readOnly: true
+          type: string
+        sim_card_group_id:
+          description: The group SIMCardGroup identification. This attribute can be
+            <code>null</code> when it's present in an associated resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          description: "The current status of the SIM card. It will be one of the\
+            \ following: <br/>\n<ul>\n  <li><code>activating</code> - the card is\
+            \ being activated</li>\n  <li><code>active</code> - the card is active\
+            \ and ready for use</li>\n  <li><code>inactivating</code> - the card is\
+            \ being inactivated</li>\n  <li><code>inactive</code> - the card has been\
+            \ inactivated and cannot be used</li>\n  <li><code>data_limit_exceeded</code>\
+            \ - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning\
+            \ between the active and inactive states may take a period of time.\n"
+          enum:
+          - activating
+          - active
+          - inactivating
+          - inactive
+          - data_limit_exceeded
+          example: active
+          readOnly: true
+          type: string
         tags:
-        - personal
+          description: Searchable tags associated with the SIM card
+          example:
+          - personal
+          - customers
+          - active-customers
+          items:
+            type: string
+          type: array
         updated_at:
-          $ref: '#/components/schemas/Record/properties/updated_at/example'
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCard
+      type: object
     SIMCardGroup:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - example:
-          data_limit: 2048
-          data_plan_id: 6b14e151-8493-4fa1-8664-1cc4e6d14158
-          name: My Test Group
-        properties:
-          data_limit:
-            description: Upper limit on the amount of data the SIM cards, within the
-              group, can use.
-            example: 2048
-            type: integer
-          data_plan_id:
-            description: Data Plan ID associated with the SIM card group.
-            example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
-            format: uuid
-            type: string
-          name:
-            description: A user friendly name for the SIM card group.
-            example: My Test Group
-            type: string
-        title: SIMCardGroup
-        type: object
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        data_limit:
+          description: Upper limit on the amount of data the SIM cards, within the
+            group, can use.
+          example: 2048
+          type: integer
+        data_plan_id:
+          description: Data Plan ID associated with the SIM card group.
+          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
+          format: uuid
+          type: string
+        default:
+          description: Indicates whether the SIM card group is the users default group.<br/>The
+            default group is created for the user and can not be removed.
+          example: true
+          readOnly: true
+          type: boolean
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: A user friendly name for the SIM card group.
+          example: My Test Group
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: sim_card_group
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCardGroup
+      type: object
+    SIMCardGroupCreate:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        data_limit:
+          description: Upper limit on the amount of data the SIM cards, within the
+            group, can use.
+          example: 2048
+          type: integer
+        data_plan_id:
+          description: Data Plan ID associated with the SIM card group.
+          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
+          format: uuid
+          type: string
+        default:
+          description: Indicates whether the SIM card group is the users default group.<br/>The
+            default group is created for the user and can not be removed.
+          example: true
+          readOnly: true
+          type: boolean
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: A user friendly name for the SIM card group.
+          example: My Test Group
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: sim_card_group
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      required:
+      - name
+      title: SIMCardGroupCreate
+      type: object
+    SIMCardNetworkPreference:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        mobile_operator_networks_preferences:
+          $ref: '#/components/schemas/MobileOperatorNetworksPreferences'
+        record_type:
+          example: sim_card_network_preferences
+          readOnly: true
+          type: string
+        sim_card_id:
+          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
+          format: uuid
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCardNetworkPreference
+      type: object
+    SIMCardNetworkPreferenceWithOTAUpdates:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        mobile_operator_networks_preferences:
+          $ref: '#/components/schemas/MobileOperatorNetworksPreferences'
+        ota_updates:
+          items:
+            $ref: '#/components/schemas/CompleteOTAUpdate'
+          type: array
+        record_type:
+          example: sim_card_network_preferences
+          readOnly: true
+          type: string
+        sim_card_id:
+          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
+          format: uuid
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCardNetworkPreferenceWithOTAUpdates
+      type: object
     SIMCardRegistration:
-      allOf:
-      - $ref: '#/components/schemas/SIMCard'
-      - properties:
-          registration_codes:
-            example:
-            - '0000000001'
-            - '0000000002'
-            - '0000000003'
-            items:
-              type: string
-            type: array
-        title: SIMCardRegistration
-        type: object
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        iccid:
+          description: 'The ICCID is the identifier of the specific SIM card/chip.
+            Each SIM is internationally identified by its integrated circuit card
+            identifier (ICCID). ICCIDs are stored in the SIM card''s memory and are
+            also engraved or printed on the SIM card body during a process called
+            personalization.
+
+            '
+          example: '89310410106543789301'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        imsi:
+          description: 'SIM cards are identified on their individual operator networks
+            by a unique International Mobile Subscriber Identity (IMSI). <br/>
+
+            Mobile network operators connect mobile phone calls and communicate with
+            their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity
+            Module (SIM) inside the device and is sent by the device to the appropriate
+            network. It is used to acquire the details of the device in the Home  Location
+            Register (HLR) or the Visitor Location Register (VLR).
+
+            '
+          example: 081932214823362973
+          readOnly: true
+          type: string
+        ipv4:
+          description: 'The SIM''s address in the currently connected network. This
+            IPv4 address is usually obtained dynamically, so it may vary according
+            to the location or new connections.
+
+            '
+          example: 192.168.0.0
+          readOnly: true
+          type: string
+        ipv6:
+          description: 'The SIM''s address in the currently connected network. This
+            IPv6 address is usually obtained dynamically, so it may vary according
+            to the location or new connections.
+
+            '
+          example: 2001:cdba:0000:0000:0000:0000:3257:9652
+          readOnly: true
+          type: string
+        msisdn:
+          description: 'Mobile Station International Subscriber Directory Number (MSISDN)
+            is a number used to identify a mobile phone number internationally. <br/>
+
+            MSISDN is defined by the E.164 numbering plan. It includes a country code
+            and a National Destination Code which identifies the subscriber''s operator.
+
+            '
+          example: '+13109976224'
+          readOnly: true
+          type: string
+        record_type:
+          example: sim_card_network_preferences
+          readOnly: true
+          type: string
+        registration_codes:
+          example:
+          - '0000000001'
+          - '0000000002'
+          - '0000000003'
+          items:
+            type: string
+          type: array
+        sim_card_group_id:
+          description: The group SIMCardGroup identification. This attribute can be
+            <code>null</code> when it's present in an associated resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          description: "The current status of the SIM card. It will be one of the\
+            \ following: <br/>\n<ul>\n  <li><code>activating</code> - the card is\
+            \ being activated</li>\n  <li><code>active</code> - the card is active\
+            \ and ready for use</li>\n  <li><code>inactivating</code> - the card is\
+            \ being inactivated</li>\n  <li><code>inactive</code> - the card has been\
+            \ inactivated and cannot be used</li>\n  <li><code>data_limit_exceeded</code>\
+            \ - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning\
+            \ between the active and inactive states may take a period of time.\n"
+          enum:
+          - activating
+          - active
+          - inactivating
+          - inactive
+          - data_limit_exceeded
+          example: active
+          readOnly: true
+          type: string
+        tags:
+          description: Searchable tags associated with the SIM card
+          example:
+          - personal
+          - customers
+          - active-customers
+          items:
+            type: string
+          type: array
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCardRegistration
+      type: object
     SendDTMFRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -10585,95 +11083,148 @@ components:
       - messaging_profile_id
       type: object
     SimpleSIMCard:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - properties:
-          iccid:
-            description: 'The ICCID is the identifier of the specific SIM card/chip.
-              Each SIM is internationally identified by its integrated circuit card
-              identifier (ICCID). ICCIDs are stored in the SIM card''s memory and
-              are also engraved or printed on the SIM card body during a process called
-              personalization.
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        iccid:
+          description: 'The ICCID is the identifier of the specific SIM card/chip.
+            Each SIM is internationally identified by its integrated circuit card
+            identifier (ICCID). ICCIDs are stored in the SIM card''s memory and are
+            also engraved or printed on the SIM card body during a process called
+            personalization.
 
-              '
-            example: '89310410106543789301'
-            readOnly: true
-            type: string
-          imsi:
-            description: 'SIM cards are identified on their individual operator networks
-              by a unique International Mobile Subscriber Identity (IMSI). <br/>
+            '
+          example: '89310410106543789301'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        imsi:
+          description: 'SIM cards are identified on their individual operator networks
+            by a unique International Mobile Subscriber Identity (IMSI). <br/>
 
-              Mobile network operators connect mobile phone calls and communicate
-              with their market SIM cards using their IMSIs. The IMSI is stored in
-              the Subscriber  Identity Module (SIM) inside the device and is sent
-              by the device to the appropriate network. It is used to acquire the
-              details of the device in the Home  Location Register (HLR) or the Visitor
-              Location Register (VLR).
+            Mobile network operators connect mobile phone calls and communicate with
+            their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity
+            Module (SIM) inside the device and is sent by the device to the appropriate
+            network. It is used to acquire the details of the device in the Home  Location
+            Register (HLR) or the Visitor Location Register (VLR).
 
-              '
-            example: 081932214823362973
-            readOnly: true
-            type: string
-          msisdn:
-            description: 'Mobile Station International Subscriber Directory Number
-              (MSISDN) is a number used to identify a mobile phone number internationally.
-              <br/>
+            '
+          example: 081932214823362973
+          readOnly: true
+          type: string
+        msisdn:
+          description: 'Mobile Station International Subscriber Directory Number (MSISDN)
+            is a number used to identify a mobile phone number internationally. <br/>
 
-              MSISDN is defined by the E.164 numbering plan. It includes a country
-              code and a National Destination Code which identifies the subscriber''s
-              operator.
+            MSISDN is defined by the E.164 numbering plan. It includes a country code
+            and a National Destination Code which identifies the subscriber''s operator.
 
-              '
-            example: '+13109976224'
-            readOnly: true
-            type: string
-          sim_card_group_id:
-            description: The group SIMCardGroup identification. This attribute can
-              be <code>null</code> when it's present in an associated resource.
-            example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-            format: uuid
-            type: string
-          status:
-            description: "The current status of the SIM card. It will be one of the\
-              \ following: <br/>\n<ul>\n  <li><code>activating</code> - the card is\
-              \ being activated</li>\n  <li><code>active</code> - the card is active\
-              \ and ready for use</li>\n  <li><code>inactivating</code> - the card\
-              \ is being inactivated</li>\n  <li><code>inactive</code> - the card\
-              \ has been inactivated and cannot be used</li>\n  <li><code>data_limit_exceeded</code>\
-              \ - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning\
-              \ between the active and inactive states may take a period of time.\n"
-            enum:
-            - activating
-            - active
-            - inactivating
-            - inactive
-            - data_limit_exceeded
-            example: active
-            readOnly: true
-            type: string
-          tags:
-            description: Searchable tags associated with the SIM card
-            example:
-            - personal
-            - customers
-            - active-customers
-            items:
-              type: string
-            type: array
-        title: SIMCard
-        type: object
-      example:
-        created_at: '2018-02-02T22:25:27.521Z'
-        iccid: '89310410106543789301'
-        id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-        imsi: 081932214823362973
-        msisdn: '+13109976224'
-        record_type: sim_card
-        sim_card_group_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-        status: active
+            '
+          example: '+13109976224'
+          readOnly: true
+          type: string
+        record_type:
+          example: sim_card_network_preferences
+          readOnly: true
+          type: string
+        sim_card_group_id:
+          description: The group SIMCardGroup identification. This attribute can be
+            <code>null</code> when it's present in an associated resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          description: "The current status of the SIM card. It will be one of the\
+            \ following: <br/>\n<ul>\n  <li><code>activating</code> - the card is\
+            \ being activated</li>\n  <li><code>active</code> - the card is active\
+            \ and ready for use</li>\n  <li><code>inactivating</code> - the card is\
+            \ being inactivated</li>\n  <li><code>inactive</code> - the card has been\
+            \ inactivated and cannot be used</li>\n  <li><code>data_limit_exceeded</code>\
+            \ - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning\
+            \ between the active and inactive states may take a period of time.\n"
+          enum:
+          - activating
+          - active
+          - inactivating
+          - inactive
+          - data_limit_exceeded
+          example: active
+          readOnly: true
+          type: string
         tags:
-        - recent
-        updated_at: 2018-02-02T22:2520:27.521Z
+          description: Searchable tags associated with the SIM card
+          example:
+          - personal
+          - customers
+          - active-customers
+          items:
+            type: string
+          type: array
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: SIMCard
+      type: object
+    SimplifiedOTAUpdate:
+      description: This object represents an Over the Air (OTA) update request. It
+        allows tracking the current status of a operation that apply settings in a
+        particular SIM card. <br/><br/>
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          example: ota_update
+          readOnly: true
+          type: string
+        sim_card_id:
+          description: The indentification UUID of the related SIM card resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          enum:
+          - in-progress
+          - completed
+          - failed
+          example: in-progress
+          type: string
+        type:
+          description: Represents the type of the operation requested. This will relate
+            directly to the source of the request.
+          enum:
+          - sim_card_network_preferences
+          example: sim_card_network_preferences
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: OTAUpdate
+      type: object
     SingleOutboundVoiceProfile:
       properties:
         data:
@@ -11536,22 +12087,66 @@ components:
           type: string
       type: object
     WdrReport:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - $ref: '#/components/schemas/DatetimeRange'
-      - $ref: '#/components/schemas/AsyncReport'
-      example:
-        created_at: '2018-02-02T22:25:27.521Z'
-        end_time: '2018-02-02T22:25:27.521Z'
-        id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-        record_type: detail_records_report
-        report_url: http://example.com
-        start_time: '2018-02-02T22:25:27.521Z'
-        status: pending
-        updated_at: '2018-02-02T22:25:27.521Z'
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        end_time:
+          description: ISO 8601 formatted date-time indicating the end time.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          example: detail_records_report
+          readOnly: true
+          type: string
+        report_url:
+          description: The URL where the report content, when generated, will be published
+            to.
+          example: http://example.com
+          type: string
+        start_time:
+          description: ISO 8601 formatted date-time indicating the start time.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        status:
+          description: Indicates the status of the report, which is updated asynchronously.
+          enum:
+          - pending
+          - complete
+          - failed
+          - deleted
+          example: pending
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      type: object
     WdrReportRequest:
-      allOf:
-      - $ref: '#/components/schemas/DatetimeRange'
+      example:
+        end_time: '2018-02-02T22:25:27.521Z'
+        start_time: '2018-02-02T22:25:27.521Z'
+      properties:
+        end_time:
+          description: ISO 8601 formatted date-time indicating the end time.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        start_time:
+          description: ISO 8601 formatted date-time indicating the start time.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      type: object
     WebhookAPIVersion:
       default: '1'
       description: Determines which webhook format will be used, Telnyx API v1 or
@@ -11668,6 +12263,44 @@ info:
   version: 2.0.0
 openapi: 3.0.0
 paths:
+  /actions/network_preferences/sim_cards:
+    put:
+      description: 'This API allows dispatching the same operation described for the
+        PUT sim_cards/:id/network_preferences API for multiple SIM cards at once.<br/><br/>
+
+        Although, a SIM card network preference may fail individually under any validation
+        triggered as a consequence of its state. For example, a SIM can''t have an
+        in-progress OTA update for applying a Network Preference, so they''ll fail
+        when requested in this API. In that scenario, the specific error will be present
+        in the response along with the successful definitions in the "errors" response
+        node.
+
+        '
+      operationId: BulkSIMCardNetworkPreferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                mobile_operator_networks_preferences:
+                  $ref: '#/components/schemas/MobileOperatorNetworksPreferences'
+                sim_card_ids:
+                  example:
+                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
+                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
+                  items:
+                    format: uuid
+                    type: string
+                  type: array
+              type: object
+      responses:
+        '202':
+          $ref: '#/components/responses/BulkSIMCardNetworkPreferenceResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Bulk Network Preferences for SIM cards
+      tags:
+      - SIM Cards
   /actions/register/sim_cards:
     post:
       description: 'Register the SIM cards associated with the provided registration
@@ -14781,6 +15414,74 @@ paths:
       summary: List all available messaging URL domains
       tags:
       - Messaging URL Domains
+  /mobile_operator_networks:
+    get:
+      description: Telnyx has a set of GSM mobile operators partners that are available
+        through our mobile network roaming. This resource is entirely managed by Telnyx
+        and may change over time. That means that this resource won't allow any write
+        operations for it. Still, it's available so it can be used as a support resource
+        that can be related to other resources or become a configuration option.
+      operationId: MobileOperatorNetworksGet
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: Filter by name starting with.
+        in: query
+        name: filter[name][starts_with]
+        required: false
+        schema:
+          example: AT
+          type: string
+      - description: Filter by name containing match.
+        in: query
+        name: filter[name][contains]
+        required: false
+        schema:
+          example: T&T
+          type: string
+      - description: Filter by name ending with.
+        in: query
+        name: filter[name][ends_with]
+        required: false
+        schema:
+          example: T
+          type: string
+      - description: Filter by exact country_code.
+        in: query
+        name: filter[country_code]
+        required: false
+        schema:
+          example: US
+          type: string
+      - description: Filter by exact MCC.
+        in: query
+        name: filter[mcc]
+        required: false
+        schema:
+          example: '310'
+          type: string
+      - description: Filter by exact MNC.
+        in: query
+        name: filter[mnc]
+        required: false
+        schema:
+          example: '410'
+          type: string
+      - description: Filter by exact TADIG.
+        in: query
+        name: filter[tadig]
+        required: false
+        schema:
+          example: USACG
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SearchMobileOperatorNetworksResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List mobile operator networks
+      tags:
+      - Mobile Operator Networks
   /notification_channels:
     get:
       description: List notification channels.
@@ -15499,6 +16200,58 @@ paths:
       summary: Extend a Phone Number Reservation
       tags:
       - Number Reservations
+  /ota_updates:
+    get:
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: The SIM card identification UUID.
+        in: query
+        name: filter[sim_card_id]
+        required: false
+        schema:
+          type: string
+      - description: Filter by possible OTA updates statuses.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          enum:
+          - in-progress
+          - completed
+          - failed
+          example: in-progress
+          type: string
+      - description: Filter by type.
+        in: query
+        name: filter[type]
+        required: false
+        schema:
+          enum:
+          - sim_card_network_preferences
+          example: sim_card_network_preferences
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SearchOTAUpdateResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List OTA updates
+      tags:
+      - OTA updates
+  /ota_updates/{id}:
+    get:
+      description: This API returns the details of an Over the Air (OTA) update.
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          $ref: '#/components/responses/OTAUpdateResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get OTA update
+      tags:
+      - OTA updates
   /outbound_voice_profiles:
     get:
       description: Get all outbound voice profiles belonging to the user that match
@@ -16386,7 +17139,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SIMCardGroup'
+              $ref: '#/components/schemas/SIMCardGroupCreate'
         required: true
       responses:
         '200':
@@ -16422,7 +17175,7 @@ paths:
           $ref: '#/components/responses/GetSimCardGroupResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Get SIM card gruop
+      summary: Get SIM card group
       tags:
       - SIM Card Groups
     patch:
@@ -16489,6 +17242,28 @@ paths:
       tags:
       - SIM Cards
   /sim_cards/{id}:
+    delete:
+      description: 'The SIM card will be decommissioned, removed from your account
+        and you will stop being charged.<br />The SIM card won''t be able to connect
+        to the network after the deletion is completed, thus making it impossible
+        to consume data.<br/>
+
+        Transitioning to the inactive state may take a period of time.</br>
+
+        Until the transition is completed, the SIM card status will be inactivating
+        <code>inactivating</code>.<br />In order to re-activate the SIM card, you
+        will need to re-register it.'
+      operationId: SimCardDelete
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          $ref: '#/components/responses/DeleteSimCardResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Deletes a SIM card
+      tags:
+      - SIM Cards
     get:
       description: Returns the details regarding a specific SIM card.
       operationId: SimCardGet
@@ -16567,6 +17342,73 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Request a SIM card deactivation
+      tags:
+      - SIM Cards
+  /sim_cards/{id}/network_preferences:
+    delete:
+      description: 'This API asynchronously removes the custom-defined network preferences
+        settings. After this operation is done the Telnyx default settings, the same
+        applied for an unaltered SIM card, will be in place.
+
+        '
+      operationId: SIMCardNetworkPreferencesDelete
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '202':
+          $ref: '#/components/responses/DELETESIMCardNetworkPreferenceResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: DELETE network preferences
+      tags:
+      - SIM Cards
+    get:
+      description: 'It returns the network preferences currently applied in the SIM
+        card.
+
+        '
+      operationId: SIMCardNetworkPreferencesGet
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      - $ref: '#/components/parameters/IncludeOTAUpdates'
+      responses:
+        '200':
+          $ref: '#/components/responses/SIMCardNetworkPreferenceWithOTAUpdatesResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get network preferences
+      tags:
+      - SIM Cards
+    put:
+      description: 'This API allows setting or updating a SIM card network preference.
+        <br/><br/>
+
+        Every SIM card has default network preferences defined on Telnyx. These preferences
+        will determine how a SIMCard will connect to the network by considering a
+        list of preferable operators.<br/><br/>
+
+        There can be multiple scenarios where an operator can be preferred over another,
+        for example, when a specific mobile operator can provide better network latency
+        or better pricing.
+
+        '
+      operationId: SIMCardNetworkPreferencesPut
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                mobile_operator_networks_preferences:
+                  $ref: '#/components/schemas/MobileOperatorNetworksPreferences'
+              type: object
+      responses:
+        '202':
+          $ref: '#/components/responses/PUTSIMCardNetworkPreferenceResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Set network preferences
       tags:
       - SIM Cards
   /texml_applications:
@@ -16789,6 +17631,8 @@ tags:
   name: Messaging Profiles
 - description: Messaging URL Domains
   name: Messaging URL Domains
+- description: Mobile operator networks operations
+  name: Mobile Operator Networks
 - description: Notification settings operations
   name: Notifications
 - description: Configure your phone numbers
@@ -16807,6 +17651,8 @@ tags:
   name: Number Reservations
 - description: Number search
   name: Number Search
+- description: OTA updates operations
+  name: OTA updates
 - description: Outbound voice profiles operations
   name: Outbound Voice Profiles
 - description: Phone numbers
