@@ -182,6 +182,29 @@ components:
       schema:
         format: uuid
         type: string
+    MessagingProfileMetric:
+      description: The id of the messaging profile(s) to retrieve
+      in: query
+      name: id
+      required: false
+      schema:
+        format: uuid
+        type: string
+    MessagingProfileMetricTimeFrame:
+      description: The timeframe for which you'd like to retrieve metrics.
+      in: query
+      name: time_frame
+      required: false
+      schema:
+        default: 24h
+        enum:
+        - 1h
+        - 3h
+        - 24h
+        - 3d
+        - 7d
+        - 30d
+        type: string
     NameFilter:
       description: Optional filter on outbound voice profile name.
       in: query
@@ -854,6 +877,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: A paginated array of the phone numbers
+    ListMessagingProfileMetrics:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/MessagingProfileHighLevelMetrics'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Paginated array of high-level metrics for messaging profiles
     ListMessagingProfilesResponse:
       content:
         application/json:
@@ -1189,6 +1225,15 @@ components:
                 $ref: '#/components/schemas/MessagingPhoneNumber'
             type: object
       description: Expected phone number response to a valid request
+    RetrieveMessagingProfileMetrics:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/MessagingProfileDetailedMetrics'
+            type: object
+      description: Detailed messaging metrics for the messaging profile
     RetrieveMessagingProfilePhoneNumbersResponse:
       content:
         application/json:
@@ -7962,6 +8007,107 @@ components:
             type: string
           nullable: true
           type: array
+      type: object
+    MessagingProfileDetailedMetric:
+      properties:
+        metrics:
+          items:
+            $ref: '#/components/schemas/MessagingProfileMessageTypeMetrics'
+          type: array
+        timestamp:
+          description: The timestamp of the aggregated data.
+          example: '2019-01-23T18:10:02.574Z'
+          readOnly: true
+          type: string
+      type: object
+    MessagingProfileDetailedMetrics:
+      properties:
+        detailed:
+          items:
+            $ref: '#/components/schemas/MessagingProfileDetailedMetric'
+          type: array
+        overview:
+          $ref: '#/components/schemas/MessagingProfileHighLevelMetrics'
+      type: object
+    MessagingProfileHighLevelMetrics:
+      example:
+        inbound:
+          received: 850
+        messaging_profile_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        outbound:
+          delivered: 990
+          errors: 0.01
+          sent: 1000
+        phone_numbers: 250
+        record_type: messaging_profile_metrics
+      properties:
+        inbound:
+          properties:
+            received:
+              description: The number of inbound messages received.
+              readOnly: true
+              type: number
+          type: object
+        messaging_profile_id:
+          description: Identifies the type of resource.
+          format: uuid
+          readOnly: true
+          type: string
+        outbound:
+          properties:
+            delivered:
+              description: The number of outbound messages successfully delivered.
+              readOnly: true
+              type: number
+            error_ratio:
+              description: The ratio of messages sent that resulted in errors.
+              readOnly: true
+              type: number
+            sent:
+              description: The number of outbound messages sent.
+              readOnly: true
+              type: number
+          type: object
+        phone_numbers:
+          description: The number of phone numbers associated with the messaging profile.
+          readOnly: true
+          type: number
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - messaging_profile_metrics
+          example: messaging_profile_metrics
+          readOnly: true
+          type: string
+      type: object
+    MessagingProfileMessageTypeMetrics:
+      example:
+        delivered: 990
+        errors: 0.01
+        label: longcode
+        received: 750
+        sent: 1000
+      properties:
+        delivered:
+          description: The number of outbound messages successfully delivered.
+          readOnly: true
+          type: number
+        label:
+          description: The metric type.
+          readOnly: true
+          type: string
+        outbound_error_ratio:
+          description: The ratio of outbound messages sent that resulted in errors.
+          readOnly: true
+          type: number
+        received:
+          description: The number of inbound messages received.
+          readOnly: true
+          type: number
+        sent:
+          description: The number of outbound messages sent.
+          readOnly: true
+          type: number
       type: object
     MessagingResponse:
       example:
@@ -15304,6 +15450,22 @@ paths:
       summary: Update a messaging phone number
       tags:
       - Phone Numbers
+  /messaging_profile_metrics:
+    get:
+      operationId: listMessagingProfileMetrics
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/MessagingProfileMetric'
+      - $ref: '#/components/parameters/MessagingProfileMetricTimeFrame'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListMessagingProfileMetrics'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List high-level messaging profile metrics
+      tags:
+      - Messaging Profiles
   /messaging_profiles:
     get:
       operationId: listMessagingProfiles
@@ -15417,6 +15579,20 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a messaging profile
+      tags:
+      - Messaging Profiles
+  /messaging_profiles/{id}/metrics:
+    get:
+      operationId: getMessagingProfileDetailedMetrics
+      parameters:
+      - $ref: '#/components/parameters/MessagingProfileId'
+      - $ref: '#/components/parameters/MessagingProfileMetricTimeFrame'
+      responses:
+        '200':
+          $ref: '#/components/responses/RetrieveMessagingProfileMetrics'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get detailed messaging metrics for a messaging profile
       tags:
       - Messaging Profiles
   /messaging_profiles/{id}/phone_numbers:

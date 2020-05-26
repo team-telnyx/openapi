@@ -4432,6 +4432,37 @@
         }
       }
     },
+    "/messaging_profile_metrics": {
+      "get": {
+        "summary": "List high-level messaging profile metrics",
+        "operationId": "listMessagingProfileMetrics",
+        "tags": [
+          "Messaging Profiles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/MessagingProfileMetric"
+          },
+          {
+            "$ref": "#/components/parameters/MessagingProfileMetricTimeFrame"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListMessagingProfileMetrics"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
     "/messaging_profiles": {
       "get": {
         "summary": "List all messaging profiles",
@@ -4614,6 +4645,31 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/UpdateMessagingProfileResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
+    "/messaging_profiles/{id}/metrics": {
+      "get": {
+        "summary": "Get detailed messaging metrics for a messaging profile",
+        "operationId": "getMessagingProfileDetailedMetrics",
+        "tags": [
+          "Messaging Profiles"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MessagingProfileId"
+          },
+          {
+            "$ref": "#/components/parameters/MessagingProfileMetricTimeFrame"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RetrieveMessagingProfileMetrics"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -8258,6 +8314,34 @@
           "format": "uuid"
         }
       },
+      "MessagingProfileMetric": {
+        "name": "id",
+        "in": "query",
+        "description": "The id of the messaging profile(s) to retrieve",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "MessagingProfileMetricTimeFrame": {
+        "name": "time_frame",
+        "in": "query",
+        "description": "The timeframe for which you'd like to retrieve metrics.",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": "24h",
+          "enum": [
+            "1h",
+            "3h",
+            "24h",
+            "3d",
+            "7d",
+            "30d"
+          ]
+        }
+      },
       "NameFilter": {
         "name": "filter[name][contains]",
         "in": "query",
@@ -9288,6 +9372,27 @@
           }
         }
       },
+      "ListMessagingProfileMetrics": {
+        "description": "Paginated array of high-level metrics for messaging profiles",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MessagingProfileHighLevelMetrics"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListMessagingProfilesResponse": {
         "description": "A paginated array of Messaging Profiles",
         "content": {
@@ -9808,6 +9913,21 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/MessagingPhoneNumber"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RetrieveMessagingProfileMetrics": {
+        "description": "Detailed messaging metrics for the messaging profile",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/MessagingProfileDetailedMetrics"
                 }
               }
             }
@@ -17823,6 +17943,142 @@
             "send_webhooks": false
           },
           "v1_secret": "rP1VamejkU2v0qIUxntqLW2c"
+        }
+      },
+      "MessagingProfileDetailedMetric": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "The timestamp of the aggregated data.",
+            "example": "2019-01-23T18:10:02.574Z",
+            "readOnly": true
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessagingProfileMessageTypeMetrics"
+            }
+          }
+        }
+      },
+      "MessagingProfileDetailedMetrics": {
+        "type": "object",
+        "properties": {
+          "overview": {
+            "$ref": "#/components/schemas/MessagingProfileHighLevelMetrics"
+          },
+          "detailed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessagingProfileDetailedMetric"
+            }
+          }
+        }
+      },
+      "MessagingProfileHighLevelMetrics": {
+        "type": "object",
+        "example": {
+          "record_type": "messaging_profile_metrics",
+          "messaging_profile_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "phone_numbers": 250,
+          "outbound": {
+            "sent": 1000,
+            "delivered": 990,
+            "errors": 0.01
+          },
+          "inbound": {
+            "received": 850
+          }
+        },
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "messaging_profile_metrics",
+            "enum": [
+              "messaging_profile_metrics"
+            ],
+            "description": "Identifies the type of the resource.",
+            "readOnly": true
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the type of resource.",
+            "readOnly": true
+          },
+          "phone_numbers": {
+            "type": "number",
+            "description": "The number of phone numbers associated with the messaging profile.",
+            "readOnly": true
+          },
+          "outbound": {
+            "type": "object",
+            "properties": {
+              "sent": {
+                "type": "number",
+                "description": "The number of outbound messages sent.",
+                "readOnly": true
+              },
+              "delivered": {
+                "type": "number",
+                "description": "The number of outbound messages successfully delivered.",
+                "readOnly": true
+              },
+              "error_ratio": {
+                "type": "number",
+                "description": "The ratio of messages sent that resulted in errors.",
+                "readOnly": true
+              }
+            }
+          },
+          "inbound": {
+            "type": "object",
+            "properties": {
+              "received": {
+                "type": "number",
+                "description": "The number of inbound messages received.",
+                "readOnly": true
+              }
+            }
+          }
+        }
+      },
+      "MessagingProfileMessageTypeMetrics": {
+        "type": "object",
+        "example": {
+          "label": "longcode",
+          "sent": 1000,
+          "delivered": 990,
+          "errors": 0.01,
+          "received": 750
+        },
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "The metric type.",
+            "readOnly": true
+          },
+          "sent": {
+            "type": "number",
+            "description": "The number of outbound messages sent.",
+            "readOnly": true
+          },
+          "delivered": {
+            "type": "number",
+            "description": "The number of outbound messages successfully delivered.",
+            "readOnly": true
+          },
+          "outbound_error_ratio": {
+            "type": "number",
+            "description": "The ratio of outbound messages sent that resulted in errors.",
+            "readOnly": true
+          },
+          "received": {
+            "type": "number",
+            "description": "The number of inbound messages received.",
+            "readOnly": true
+          }
         }
       },
       "MessagingResponse": {
