@@ -160,6 +160,10 @@
       "description": "Wireless reporting operations"
     },
     {
+      "name": "SIM Card Groups",
+      "description": "SIM Card Groups operations"
+    },
+    {
       "name": "SIM Cards",
       "description": "SIM Cards operations"
     },
@@ -7576,12 +7580,6 @@
             "$ref": "#/components/parameters/PageSize"
           },
           {
-            "$ref": "#/components/parameters/IncludeSIMCards"
-          },
-          {
-            "$ref": "#/components/parameters/IncludeDataPlans"
-          },
-          {
             "name": "filter[name]",
             "description": "A valid SIM card group name.",
             "schema": {
@@ -7663,12 +7661,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ResourceId"
-          },
-          {
-            "$ref": "#/components/parameters/IncludeSIMCards"
-          },
-          {
-            "$ref": "#/components/parameters/IncludeDataPlans"
           }
         ],
         "responses": {
@@ -7689,7 +7681,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SIMCardGroup"
+                "$ref": "#/components/schemas/SIMCardGroupPatch"
               }
             }
           },
@@ -8419,16 +8411,6 @@
           "format": "uuid"
         }
       },
-      "IncludeDataPlans": {
-        "name": "include_data_plans",
-        "description": "It includes the associated data plan objects in the response when present.",
-        "schema": {
-          "default": false,
-          "type": "boolean",
-          "example": true
-        },
-        "in": "query"
-      },
       "IncludeOTAUpdates": {
         "name": "include_ota_updates",
         "description": "It includes the associated OTA update objects in the response when present.",
@@ -8448,16 +8430,6 @@
           "default": false,
           "example": true
         }
-      },
-      "IncludeSIMCards": {
-        "name": "include_sim_cards",
-        "description": "It includes the associated SIM card objects in the response when present.",
-        "schema": {
-          "default": false,
-          "type": "boolean",
-          "example": true
-        },
-        "in": "query"
       },
       "IntId": {
         "name": "id",
@@ -13579,6 +13551,22 @@
           "port": "rtcp-mux",
           "capture_enabled": true,
           "report_frequency_secs": 10
+        }
+      },
+      "ConsumedData": {
+        "type": "object",
+        "title": "ConsumedData",
+        "description": "Represents the amount of data consumed.",
+        "properties": {
+          "unit": {
+            "type": "string",
+            "example": "B",
+            "default": "B"
+          },
+          "amount": {
+            "type": "integer",
+            "example": 10
+          }
         }
       },
       "CostInformation": {
@@ -21490,16 +21478,18 @@
             "type": "string",
             "example": "My Test Group"
           },
-          "data_plan_id": {
-            "format": "uuid",
-            "description": "Data Plan ID associated with the SIM card group.",
-            "type": "string",
-            "example": "6b14e151-8493-4fa1-8664-1cc4e6d14158"
+          "data_enabled": {
+            "description": "It enables or not data consumption on all SIM cards in a group. <br/><br/> It's important to note that the data_limit will be respected even though this attribute is set to `true`.",
+            "type": "boolean",
+            "example": true
           },
           "data_limit": {
             "description": "Upper limit on the amount of data the SIM cards, within the group, can use.",
             "type": "integer",
             "example": 2048
+          },
+          "consumed_data": {
+            "$ref": "#/components/schemas/ConsumedData"
           },
           "created_at": {
             "type": "string",
@@ -21519,57 +21509,46 @@
         "title": "SIMCardGroupCreate",
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Identifies the resource.",
-            "readOnly": true,
-            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
-          },
-          "record_type": {
-            "type": "string",
-            "description": "Identifies the type of the resource.",
-            "readOnly": true,
-            "example": "sim_card_group"
-          },
-          "default": {
-            "description": "Indicates whether the SIM card group is the users default group.<br/>The default group is created for the user and can not be removed.",
-            "type": "boolean",
-            "example": true,
-            "readOnly": true
-          },
           "name": {
             "description": "A user friendly name for the SIM card group.",
             "type": "string",
             "example": "My Test Group"
           },
-          "data_plan_id": {
-            "format": "uuid",
-            "description": "Data Plan ID associated with the SIM card group.",
-            "type": "string",
-            "example": "6b14e151-8493-4fa1-8664-1cc4e6d14158"
+          "data_enabled": {
+            "description": "It enables or not data consumption on all SIM cards in a group. <br/><br/> It's important to note that the data_limit will be respected even though this attribute is set to `true`.",
+            "type": "boolean",
+            "example": true
           },
           "data_limit": {
             "description": "Upper limit on the amount of data the SIM cards, within the group, can use.",
             "type": "integer",
             "example": 2048
-          },
-          "created_at": {
-            "type": "string",
-            "description": "ISO 8601 formatted date-time indicating when the resource was created.",
-            "readOnly": true,
-            "example": "2018-02-02T22:25:27.521Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
-            "readOnly": true,
-            "example": "2018-02-02T22:25:27.521Z"
           }
         },
         "required": [
           "name"
         ]
+      },
+      "SIMCardGroupPatch": {
+        "title": "SIMCardGroupPatch",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "A user friendly name for the SIM card group.",
+            "type": "string",
+            "example": "My Test Group"
+          },
+          "data_enabled": {
+            "description": "It enables or not data consumption on all SIM cards in a group. <br/><br/> It's important to note that the data_limit will be respected even though this attribute is set to `true`.",
+            "type": "boolean",
+            "example": true
+          },
+          "data_limit": {
+            "description": "Upper limit on the amount of data the SIM cards, within the group, can use.",
+            "type": "integer",
+            "example": 2048
+          }
+        }
       },
       "SIMCardNetworkPreference": {
         "type": "object",

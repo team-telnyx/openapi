@@ -114,15 +114,6 @@ components:
       schema:
         format: uuid
         type: string
-    IncludeDataPlans:
-      description: It includes the associated data plan objects in the response when
-        present.
-      in: query
-      name: include_data_plans
-      schema:
-        default: false
-        example: true
-        type: boolean
     IncludeOTAUpdates:
       description: It includes the associated OTA update objects in the response when
         present.
@@ -137,15 +128,6 @@ components:
         when present.
       in: query
       name: include_sim_card_group
-      schema:
-        default: false
-        example: true
-        type: boolean
-    IncludeSIMCards:
-      description: It includes the associated SIM card objects in the response when
-        present.
-      in: query
-      name: include_sim_cards
       schema:
         default: false
         example: true
@@ -3958,6 +3940,18 @@ components:
             Frequency is in seconds and it can be set to values from 5 to 3000 seconds.
           example: 10
           type: integer
+      type: object
+    ConsumedData:
+      description: Represents the amount of data consumed.
+      properties:
+        amount:
+          example: 10
+          type: integer
+        unit:
+          default: B
+          example: B
+          type: string
+      title: ConsumedData
       type: object
     CostInformation:
       example:
@@ -10864,22 +10858,25 @@ components:
       type: object
     SIMCardGroup:
       properties:
+        consumed_data:
+          $ref: '#/components/schemas/ConsumedData'
         created_at:
           description: ISO 8601 formatted date-time indicating when the resource was
             created.
           example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
+        data_enabled:
+          description: It enables or not data consumption on all SIM cards in a group.
+            <br/><br/> It's important to note that the data_limit will be respected
+            even though this attribute is set to `true`.
+          example: true
+          type: boolean
         data_limit:
           description: Upper limit on the amount of data the SIM cards, within the
             group, can use.
           example: 2048
           type: integer
-        data_plan_id:
-          description: Data Plan ID associated with the SIM card group.
-          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
-          format: uuid
-          type: string
         default:
           description: Indicates whether the SIM card group is the users default group.<br/>The
             default group is created for the user and can not be removed.
@@ -10911,52 +10908,43 @@ components:
       type: object
     SIMCardGroupCreate:
       properties:
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
+        data_enabled:
+          description: It enables or not data consumption on all SIM cards in a group.
+            <br/><br/> It's important to note that the data_limit will be respected
+            even though this attribute is set to `true`.
+          example: true
+          type: boolean
         data_limit:
           description: Upper limit on the amount of data the SIM cards, within the
             group, can use.
           example: 2048
           type: integer
-        data_plan_id:
-          description: Data Plan ID associated with the SIM card group.
-          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
-          format: uuid
-          type: string
-        default:
-          description: Indicates whether the SIM card group is the users default group.<br/>The
-            default group is created for the user and can not be removed.
-          example: true
-          readOnly: true
-          type: boolean
-        id:
-          description: Identifies the resource.
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-          format: uuid
-          readOnly: true
-          type: string
         name:
           description: A user friendly name for the SIM card group.
           example: My Test Group
           type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: sim_card_group
-          readOnly: true
-          type: string
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
       required:
       - name
       title: SIMCardGroupCreate
+      type: object
+    SIMCardGroupPatch:
+      properties:
+        data_enabled:
+          description: It enables or not data consumption on all SIM cards in a group.
+            <br/><br/> It's important to note that the data_limit will be respected
+            even though this attribute is set to `true`.
+          example: true
+          type: boolean
+        data_limit:
+          description: Upper limit on the amount of data the SIM cards, within the
+            group, can use.
+          example: 2048
+          type: integer
+        name:
+          description: A user friendly name for the SIM card group.
+          example: My Test Group
+          type: string
+      title: SIMCardGroupPatch
       type: object
     SIMCardNetworkPreference:
       properties:
@@ -17505,8 +17493,6 @@ paths:
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/IncludeSIMCards'
-      - $ref: '#/components/parameters/IncludeDataPlans'
       - description: A valid SIM card group name.
         in: query
         name: filter[name]
@@ -17561,8 +17547,6 @@ paths:
       operationId: SimCardGroupsGet
       parameters:
       - $ref: '#/components/parameters/ResourceId'
-      - $ref: '#/components/parameters/IncludeSIMCards'
-      - $ref: '#/components/parameters/IncludeDataPlans'
       responses:
         '200':
           $ref: '#/components/responses/GetSimCardGroupResponse'
@@ -17581,7 +17565,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SIMCardGroup'
+              $ref: '#/components/schemas/SIMCardGroupPatch'
         required: true
       responses:
         '200':
@@ -18078,6 +18062,8 @@ tags:
   name: Programmable Fax Commands
 - description: Wireless reporting operations
   name: Reporting
+- description: SIM Card Groups operations
+  name: SIM Card Groups
 - description: SIM Cards operations
   name: SIM Cards
 - description: Short codes
