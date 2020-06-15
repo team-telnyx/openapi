@@ -1093,6 +1093,17 @@ components:
         \ ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates\
         \ node) will, by default, be the resource related to the operation, not all\
         \ of them."
+    PortabilityCheckResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortabilityCheckDetails'
+                type: array
+            type: object
+      description: PortabilityCheck Response
     PortoutCommentResponse:
       content:
         application/json:
@@ -10462,6 +10473,35 @@ components:
           example: Illinois
           type: string
       type: object
+    PortabilityCheckDetails:
+      properties:
+        fast_portable:
+          description: Indicates whether this phone number is FastPort eligible
+          example: true
+          readOnly: true
+          type: boolean
+        not_portable_reason:
+          description: If this phone number is not portable, explains why. Empty string
+            if the number is portable.
+          example: No coverage
+          readOnly: true
+          type: string
+        phone_number:
+          description: The +E.164 formatted phone number this result is about
+          example: '+13125550123'
+          readOnly: true
+          type: string
+        portable:
+          description: Indicates whether this phone number is portable
+          example: true
+          readOnly: true
+          type: boolean
+        record_type:
+          description: Identifies the type of the resource.
+          example: portability_check_result
+          readOnly: true
+          type: string
+      type: object
     PortoutComment:
       example:
         body: This is a comment
@@ -17216,6 +17256,38 @@ paths:
       tags:
       - Number Configurations
       x-latency-category: interactive
+  /portability_checks:
+    post:
+      description: Runs a portability check, returning the results immediately.
+      operationId: postPortabilityCheck
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                phone_numbers:
+                  description: The list of +E.164 formatted phone numbers to check
+                    for portability
+                  example:
+                  - '+13035550000'
+                  - '+13035550001'
+                  - '+13035550002'
+                  items:
+                    type: string
+                  type: array
+              type: object
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/PortabilityCheckResponse'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Run a portability check
+      tags:
+      - Phone Number Porting
+      x-latency-category: interactive
   /portouts:
     get:
       description: Returns the portout requests according to filters
@@ -18056,6 +18128,8 @@ tags:
   name: OTA updates
 - description: Outbound voice profiles operations
   name: Outbound Voice Profiles
+- description: Determining portability of phone numbers
+  name: Phone Number Porting
 - description: Phone numbers
   name: Phone Numbers
 - description: Programmable fax command operations
