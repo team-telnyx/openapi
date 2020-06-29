@@ -973,6 +973,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Returns a list of number reservations
+    ListParticipantsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Participant'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMetaSimple'
+            type: object
+      description: A paginated array of conference participants
     ListPhoneNumberRegulatoryRequirementsResponse:
       content:
         application/json:
@@ -10051,6 +10064,46 @@ components:
           example: 55
           type: integer
       type: object
+    Participant:
+      example:
+        call_leg_id: 3a15df2d-c801-4729-adf5-b56dd42e2abb
+        conference:
+          id: 41b9acd4-f4da-4ff5-a85c-e07e90b53f46
+          name: '1'
+        id: dfadada7-af74-47bc-83a4-554275f55f5c
+        record_type: participant
+      properties:
+        call_leg_id:
+          description: Uniquely identifies the call leg associated with the participant
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
+        conference:
+          description: Info about the conference that the participant is in
+          properties:
+            id:
+              description: Uniquely identifies the conference
+              example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              type: string
+            name:
+              description: Name of the conference
+              example: All hands meeting
+              type: string
+          type: object
+        id:
+          description: Uniquely identifies the participant
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
+        record_type:
+          enum:
+          - participant
+          example: participant
+          type: string
+      required:
+      - record_type
+      - id
+      - call_leg_id
+      - conference
+      type: object
     PhoneNumber:
       example:
         id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
@@ -14315,7 +14368,7 @@ paths:
       description: Hold a list of participants in a conference call
       operationId: HoldConference
       parameters:
-      - description: Unique identifier of the conference
+      - description: Uniquely identifies the conference
         in: path
         name: id
         required: true
@@ -14416,7 +14469,7 @@ paths:
       description: Mute a list of participants in a conference call
       operationId: MuteConference
       parameters:
-      - description: Unique identifier of the conference
+      - description: Uniquely identifies the conference
         in: path
         name: id
         required: true
@@ -14449,7 +14502,7 @@ paths:
       description: Unhold a list of participants in a conference call
       operationId: UnholdConference
       parameters:
-      - description: Unique identifier of the conference
+      - description: Uniquely identifies the conference
         in: path
         name: id
         required: true
@@ -14482,7 +14535,7 @@ paths:
       description: Unmute a list of participants in a conference call
       operationId: UnmuteConference
       parameters:
-      - description: Unique identifier of the conference
+      - description: Uniquely identifies the conference
         in: path
         name: id
         required: true
@@ -14507,6 +14560,50 @@ paths:
       - basicAuth: []
       - bearerAuth: []
       summary: Unmute conference participants
+      tags:
+      - Conference Commands
+      x-latency-category: interactive
+  /conferences/{id}/participants:
+    get:
+      description: Lists conference participants
+      operationId: GetConferenceParticipants
+      parameters:
+      - description: Uniquely identifies the conference
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - description: If present, participants will be filtered to those who are/are
+          not muted
+        in: query
+        name: filter[muted]
+        schema:
+          type: boolean
+      - description: If present, participants will be filtered to those who are/are
+          not put on hold
+        in: query
+        name: filter[on_hold]
+        schema:
+          type: boolean
+      - description: If present, participants will be filtered to those who are whispering
+          or are not
+        in: query
+        name: filter[whispering]
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListParticipantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List conference participants
       tags:
       - Conference Commands
       x-latency-category: interactive
