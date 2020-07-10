@@ -1442,6 +1442,64 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/gather_stop": {
+      "post": {
+        "summary": "Gather stop",
+        "description": "Stop current gather.\n\n**Expected Webhooks:**\n\n- `call.gather.ended`\n",
+        "operationId": "CallControlGatherStop",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Stop current gather",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopGatherRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callGatherEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallGatherEnded"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/gather_using_audio": {
       "post": {
         "summary": "Gather using audio",
@@ -12069,7 +12127,9 @@
                 "enum": [
                   "valid",
                   "invalid",
-                  "call_hangup"
+                  "call_hangup",
+                  "cancelled",
+                  "cancelled_amd"
                 ],
                 "example": "valid",
                 "description": "Reflects how command ended."
@@ -22720,9 +22780,29 @@
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
         }
       },
+      "StopGatherRequest": {
+        "type": "object",
+        "title": "Stop Gather request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "StopRecordingRequest": {
         "type": "object",
-        "title": "Strop Recording request",
+        "title": "Stop Recording request",
         "properties": {
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",

@@ -2576,6 +2576,8 @@ components:
               - valid
               - invalid
               - call_hangup
+              - cancelled
+              - cancelled_amd
               example: valid
               type: string
             to:
@@ -11849,6 +11851,23 @@ components:
           type: string
       title: Stop Forking request
       type: object
+    StopGatherRequest:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            commands with the same `command_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: Stop Gather request
+      type: object
     StopRecordingRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -11864,7 +11883,7 @@ components:
             commands with the same `command_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
-      title: Strop Recording request
+      title: Stop Recording request
       type: object
     TexmlApplication:
       example:
@@ -13641,6 +13660,50 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Forking stop
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/gather_stop:
+    post:
+      callbacks:
+        callGatherEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallGatherEnded'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: 'Stop current gather.
+
+
+        **Expected Webhooks:**
+
+
+        - `call.gather.ended`
+
+        '
+      operationId: CallControlGatherStop
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StopGatherRequest'
+        description: Stop current gather
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Gather stop
       tags:
       - Call Commands
       x-latency-category: interactive
