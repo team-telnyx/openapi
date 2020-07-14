@@ -1940,7 +1940,7 @@
     "/calls/{call_control_id}/actions/record_start": {
       "post": {
         "summary": "Recording start",
-        "description": "Start recording the call. Recording will stop on call hang-up, or can be initiated via the Stop Recording command.\n\n**Expected Webhooks:**\n\nThere are no webhooks associated with this Command.\n",
+        "description": "Start recording the call. Recording will stop on call hang-up, or can be initiated via the Stop Recording command.\n\n**Expected Webhooks:**\n\n- `call.recording.saved`\n",
         "operationId": "CallControlRecordStart",
         "tags": [
           "Call Commands"
@@ -1986,7 +1986,7 @@
           }
         ],
         "requestBody": {
-          "description": "Answer call request",
+          "description": "Stop recording call request",
           "required": true,
           "content": {
             "application/json": {
@@ -2362,7 +2362,7 @@
       },
       "post": {
         "summary": "Create conference",
-        "description": "Create a conference from an existing call leg using a `call_control_id` and a conference name. Upon creating the conference, the call will be automatically bridged to the conference. Conferences will expire after all participants have left the conference or after 4 hours regardless of the number of active participants.\n\n**Expected Webhooks:**\n\n- `conference.created`\n- `conference.participant.joined`\n- `conference.participant.left`\n- `conference.ended`\n",
+        "description": "Create a conference from an existing call leg using a `call_control_id` and a conference name. Upon creating the conference, the call will be automatically bridged to the conference. Conferences will expire after all participants have left the conference or after 4 hours regardless of the number of active participants.\n\n**Expected Webhooks:**\n\n- `conference.created`\n- `conference.participant.joined`\n- `conference.participant.left`\n- `conference.ended`\n- `conference.recording.saved`\n",
         "operationId": "CreateConference",
         "tags": [
           "Conference Commands"
@@ -2683,6 +2683,99 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ConferenceMuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ConferenceCommandResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/conferences/{id}/actions/record_start": {
+      "post": {
+        "summary": "Conference recording start",
+        "description": "Start recording the conference. Recording will stop on conference end, or via the Stop Recording command.\n\n**Expected Webhooks:**\n\n- `conference.recording.saved`",
+        "operationId": "CallControlRecordConferenceStart",
+        "tags": [
+          "Conference Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Specifies the conference to record",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRecordingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ConferenceCommandResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/conferences/{id}/actions/record_stop": {
+      "post": {
+        "summary": "Conference recording stop",
+        "description": "Stop recording the conference.\n\n**Expected Webhooks:**\n\n- `conference.recording.saved`\n",
+        "operationId": "CallControlRecordConferenceStop",
+        "tags": [
+          "Conference Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Specifies the conference to stop the recording for",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Stop recording conference request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopRecordingRequest"
               }
             }
           }
@@ -13751,6 +13844,138 @@
           }
         }
       },
+      "ConferenceRecordingSaved": {
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "conference.recording.saved",
+            "enum": [
+              "conference.recording.saved"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "conference_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the conference and can be used to correlate webhook events."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "recording_id": {
+                "type": "string",
+                "example": "11111111-1111-1111-1111-111111111112",
+                "description": "ID of the recording."
+              },
+              "recording_started_at": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2018-02-02T22:20:27.521992Z",
+                "description": "ISO 8601 datetime of when recording started."
+              },
+              "recording_ended_at": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2018-02-02T22:25:27.521992Z",
+                "description": "ISO 8601 datetime of when recording ended."
+              },
+              "channels": {
+                "type": "string",
+                "example": "single",
+                "enum": [
+                  "single",
+                  "dual"
+                ],
+                "description": "Whether recording was recorded in `single` or `dual` channel."
+              },
+              "recording_urls": {
+                "type": "object",
+                "description": "Recording URLs in requested format valid for 10 minutes. After 10 minutes, you may retrieve recordings via API using Reports -> Call Recordings documentation, or via Mission Control under Reporting -> Recordings.",
+                "properties": {
+                  "mp3": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "http://example.com/recording.mp3",
+                    "description": "Recording URL in requested `mp3` format."
+                  },
+                  "wav": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "http://example.com/recording.wav",
+                    "description": "Recording URL in requested `wav` format."
+                  }
+                }
+              },
+              "public_recording_urls": {
+                "type": "object",
+                "description": "Recording URLs in requested format. The URL is valid for as long as the file exists. For security purposes, this feature is activated on a per request basis.  Please contact customer support with your Account ID to request activation.",
+                "properties": {
+                  "mp3": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "http://example.com/recording.mp3",
+                    "description": "Recording URL in requested `mp3` format."
+                  },
+                  "wav": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "http://example.com/recording.wav",
+                    "description": "Recording URL in requested `wav` format."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "conference.recording.started",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "conference_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "recording_id": "11111111-1111-1111-1111-111111111112",
+            "recording_started_at": "2018-02-02T22:20:27.521992Z",
+            "recording_ended_at": "2018-02-02T22:20:27.521992Z",
+            "channels": "single",
+            "recording_urls": {
+              "mp3": "http://example.com/recording.mp3",
+              "wav": "http://example.com/recording.wav"
+            },
+            "public_recording_urls": {
+              "mp3": "http://example.com/recording.mp3",
+              "wav": "http://example.com/recording.wav"
+            }
+          }
+        }
+      },
       "ConferenceUnholdRequest": {
         "required": [
           "call_control_ids"
@@ -20817,6 +21042,7 @@
           "record_type",
           "id",
           "call_leg_id",
+          "call_control_id",
           "conference",
           "whisper_call_control_ids",
           "created_at",
@@ -20844,6 +21070,11 @@
             "type": "string",
             "description": "Uniquely identifies the call leg associated with the participant",
             "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "call_control_id": {
+            "type": "string",
+            "description": "Call Control ID associated with the partiipant of the conference",
+            "example": "v2:AgDIxmoRX6QMuaIj_uXRXnPAXP0QlNfXczRrZvZakpWxBlpw48KyZQ"
           },
           "conference": {
             "type": "object",
