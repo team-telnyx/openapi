@@ -191,9 +191,9 @@
   "paths": {
     "/actions/network_preferences/sim_cards": {
       "put": {
+        "x-latency-category": "background",
         "summary": "Bulk Network Preferences for SIM cards",
         "description": "This API allows dispatching the same operation described for the PUT sim_cards/:id/network_preferences API for multiple SIM cards at once.<br/><br/>\nAlthough, a SIM card network preference may fail individually under any validation triggered as a consequence of its state. For example, a SIM can't have an in-progress OTA update for applying a Network Preference, so they'll fail when requested in this API. In that scenario, the specific error will be present in the response along with the successful definitions in the \"errors\" response node.\n",
-        "x-latency-category": "background",
         "operationId": "BulkSIMCardNetworkPreferences",
         "tags": [
           "SIM Cards"
@@ -235,9 +235,9 @@
     },
     "/actions/register/sim_cards": {
       "post": {
-        "summary": "Register SIM cards",
-        "description": "Register the SIM cards associated with the provided registration codes to the current user's account.<br/><br/>\nIf <code>sim_card_group_id</code> is provided, the SIM cards will be associated with that group. Otherwise, the default group for the current user, which is associated with the default free data plan, will be used.<br/><br/>\n",
         "x-latency-category": "background",
+        "summary": "Register SIM cards",
+        "description": "Register the SIM cards associated with the provided registration codes to the current user's account.<br/><br/>\nIf <code>sim_card_group_id</code> is provided, the SIM cards will be associated with that group. Otherwise, the default group for the current user, which is already data-enabled, will be used.<br/><br/>\n",
         "operationId": "SimCardRegister",
         "tags": [
           "SIM Cards"
@@ -8094,7 +8094,7 @@
     "/sim_cards/{id}": {
       "delete": {
         "summary": "Deletes a SIM card",
-        "description": "The SIM card will be decommissioned, removed from your account and you will stop being charged.<br />The SIM card won't be able to connect to the network after the deletion is completed, thus making it impossible to consume data.<br/>\nTransitioning to the inactive state may take a period of time.</br>\nUntil the transition is completed, the SIM card status will be inactivating <code>inactivating</code>.<br />In order to re-activate the SIM card, you will need to re-register it.",
+        "description": "The SIM card will be decommissioned, removed from your account and you will stop being charged.<br />The SIM card won't be able to connect to the network after the deletion is completed, thus making it impossible to consume data.<br/>\nTransitioning to the disabled state may take a period of time.</br>\nUntil the transition is completed, the SIM card status will be disabling <code>disabling</code>.<br />In order to re-enable the SIM card, you will need to re-register it.",
         "operationId": "SimCardDelete",
         "tags": [
           "SIM Cards"
@@ -8172,12 +8172,36 @@
         "x-latency-category": "responsive"
       }
     },
-    "/sim_cards/{id}/actions/activate": {
+    "/sim_cards/{id}/actions/disable": {
       "post": {
-        "summary": "Request a SIM card activation",
-        "description": "The SIM card will be able to connect to the network once the activation is complete, thus making it possible to consume data.<br/>\nTo activate a SIM card, it must be associated with a SIM card group that has a data plan.<br/>\nTransitioning to the active state may take a period of time. Until the transition is completed, the SIM card status will be <code>activating</code>.\n",
         "x-latency-category": "background",
-        "operationId": "SimCardActivate",
+        "summary": "Request a SIM card disable",
+        "description": "The SIM card won't be able to connect to the network after the disabling is completed, thus making it impossible to consume data.<br/>\nTransitioning to the disabled state may take a period of time.</br>\nUntil the transition is completed, the SIM card status will be <code>disabling</code>.\n",
+        "operationId": "SimCardDisable",
+        "tags": [
+          "SIM Cards"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/SimpleSimCardResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
+    "/sim_cards/{id}/actions/enable": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Request a SIM card enable",
+        "description": "The SIM card will be able to connect to the network once the enabling is complete, thus making it possible to consume data.<br/>\nTo enable a SIM card, it must be associated with a data-enabled SIM card group.<br/>\nTransitioning to the enabled state may take a period of time. Until the transition is completed, the SIM card status will be <code>enabling</code>.\n",
+        "operationId": "SimCardEnable",
         "tags": [
           "SIM Cards"
         ],
@@ -8192,30 +8216,6 @@
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        }
-      }
-    },
-    "/sim_cards/{id}/actions/deactivate": {
-      "post": {
-        "summary": "Request a SIM card deactivation",
-        "description": "The SIM card won't be able to connect to the network after the deactivation is completed, thus making it impossible to consume data.<br/>\nTransitioning to the inactive state may take a period of time.</br>\nUntil the transition is completed, the SIM card status will be inactivating <code>inactivating</code>.\n",
-        "x-latency-category": "background",
-        "operationId": "SimCardDeactivate",
-        "tags": [
-          "SIM Cards"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "202": {
-            "$ref": "#/components/responses/SimpleSimCardResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -22938,15 +22938,15 @@
             "type": "string",
             "enum": [
               "registering",
-              "activating",
-              "active",
-              "inactivating",
-              "inactive",
+              "enabling",
+              "enabled",
+              "disabling",
+              "disabled",
               "data_limit_exceeded"
             ],
-            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>activating</code> - the card is being activated</li>\n <li><code>active</code> - the card is active and ready for use</li>\n <li><code>inactivating</code> - the card is being inactivated</li>\n <li><code>inactive</code> - the card has been inactivated and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the active and inactive states may take a period of time.\n",
+            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>enabling</code> - the card is being enabled</li>\n <li><code>enabled</code> - the card is enabled and ready for use</li>\n <li><code>disabling</code> - the card is being disabled</li>\n <li><code>disabled</code> - the card has been disabled and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the enabled and disabled states may take a period of time.\n",
             "readOnly": true,
-            "example": "active"
+            "example": "enabled"
           },
           "iccid": {
             "type": "string",
@@ -23198,15 +23198,15 @@
             "type": "string",
             "enum": [
               "registering",
-              "activating",
-              "active",
-              "inactivating",
-              "inactive",
+              "enabling",
+              "enabled",
+              "disabling",
+              "disabled",
               "data_limit_exceeded"
             ],
-            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>activating</code> - the card is being activated</li>\n <li><code>active</code> - the card is active and ready for use</li>\n <li><code>inactivating</code> - the card is being inactivated</li>\n <li><code>inactive</code> - the card has been inactivated and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the active and inactive states may take a period of time.\n",
+            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>enabling</code> - the card is being enabled</li>\n <li><code>enabled</code> - the card is enabled and ready for use</li>\n <li><code>disabling</code> - the card is being disabled</li>\n <li><code>disabled</code> - the card has been disabled and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the enabled and disabled states may take a period of time.\n",
             "readOnly": true,
-            "example": "active"
+            "example": "enabled"
           },
           "iccid": {
             "type": "string",
@@ -23477,15 +23477,15 @@
             "type": "string",
             "enum": [
               "registering",
-              "activating",
-              "active",
-              "inactivating",
-              "inactive",
+              "enabling",
+              "enabled",
+              "disabling",
+              "disabled",
               "data_limit_exceeded"
             ],
-            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>activating</code> - the card is being activated</li>\n <li><code>active</code> - the card is active and ready for use</li>\n <li><code>inactivating</code> - the card is being inactivated</li>\n <li><code>inactive</code> - the card has been inactivated and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the active and inactive states may take a period of time.\n",
+            "description": "The current status of the SIM card. It will be one of the following: <br/>\n<ul>\n <li><code>registering</code> - the card is being registered</li>\n <li><code>enabling</code> - the card is being enabled</li>\n <li><code>enabled</code> - the card is enabled and ready for use</li>\n <li><code>disabling</code> - the card is being disabled</li>\n <li><code>disabled</code> - the card has been disabled and cannot be used</li>\n <li><code>data_limit_exceeded</code> - the card has exceeded its data consumption limit</li>\n</ul>\nTransitioning between the enabled and disabled states may take a period of time.\n",
             "readOnly": true,
-            "example": "active"
+            "example": "enabled"
           },
           "iccid": {
             "type": "string",
