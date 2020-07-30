@@ -2511,6 +2511,139 @@
         "x-latency-category": "interactive"
       }
     },
+    "/conferences/{id}/actions/dial_participant": {
+      "post": {
+        "x-latency-category": "interactive",
+        "summary": "Dial a new participant into a conference",
+        "description": "Dials a phone number and, when the call is answered, automatically joins them into the specified conference.\n\n**Expected Webhooks:**\n\n- `call.hangup`\n- `call.answered`\n- `conference.participant.joined`\n- `conference.participant.left`\n",
+        "operationId": "DialIntoConference",
+        "tags": [
+          "Conference Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Uniquely identifies the conference by id or name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Dial Into Conference request object",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConferenceDialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ConferenceCommandResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "callbacks": {
+          "callAnswered": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallAnswered"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callHangup": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallHangup"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "conferenceParticipantJoined": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/ConferenceParticipantJoined"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "conferenceParticipantLeft": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/ConferenceParticipantLeft"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/conferences/{id}/actions/hold": {
       "post": {
         "summary": "Hold conference participants",
@@ -2585,7 +2718,7 @@
           }
         ],
         "requestBody": {
-          "description": "New Messaging Profile object",
+          "description": "Join Conferenec request object",
           "required": true,
           "content": {
             "application/json": {
@@ -13926,6 +14059,101 @@
               }
             }
           }
+        }
+      },
+      "ConferenceDialRequest": {
+        "required": [
+          "call_control_id",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "title": "Conference Dial request",
+        "properties": {
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call",
+            "example": "AgDIxmoRX6QMuaIj_uXRXnPAXP0QlNfXczRrZvZakpWxBlpw48KyZQ==",
+            "type": "string"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "type": "string"
+          },
+          "command_id": {
+            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+            "type": "string"
+          },
+          "from": {
+            "description": "The `from` number to be used as the caller id presented to the destination (`to` number).",
+            "type": "string",
+            "example": "+18005550101"
+          },
+          "hold": {
+            "description": "Whether the participant should be put on hold immediately after joining the conference.",
+            "example": true,
+            "type": "boolean",
+            "default": false
+          },
+          "hold_audio_url": {
+            "description": "The URL of an audio file to be played to the participant when they are put on hold after joining the conference. This property takes effect only if \"hold\" is set to \"true\".",
+            "example": "http://www.example.com/audio.wav",
+            "type": "string"
+          },
+          "mute": {
+            "description": "Whether the participant should be muted immediately after joining the conference.",
+            "example": false,
+            "type": "boolean",
+            "default": false
+          },
+          "start_conference_on_enter": {
+            "description": "Whether the conference should be started after the participant joins the conference.",
+            "example": true,
+            "type": "boolean",
+            "default": false
+          },
+          "supervisor_role": {
+            "description": "Sets the joining participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
+            "example": "whisper",
+            "type": "string",
+            "enum": [
+              "barge",
+              "monitor",
+              "none",
+              "whisper"
+            ]
+          },
+          "to": {
+            "description": "The DID or SIP URI to dial out and bridge to the given call.",
+            "type": "string",
+            "example": "+18005550100 or SIP:username@sip.telnyx.com"
+          },
+          "whisper_call_control_ids": {
+            "description": "Array of unique call_control_ids the joining supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
+            "example": [
+              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "call_control_id": "AgDIxmoRX6QMuaIj_uXRXnPAXP0QlNfX",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "hold": true,
+          "hold_audio_url": "http://www.example.com/audio.wav",
+          "mute": true,
+          "start_conference_on_enter": true,
+          "supervisor_role": "whisper",
+          "whisper_call_control_ids": [
+            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+          ]
         }
       },
       "ConferenceEnded": {
