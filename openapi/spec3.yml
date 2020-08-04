@@ -726,6 +726,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    GetAllTelephonyCredentialResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/TelephonyCredential'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response with multiple credentials
     GetAllTexmlApplicationsResponse:
       content:
         application/json:
@@ -1502,6 +1515,15 @@ components:
                 $ref: '#/components/schemas/SimpleSIMCard'
             type: object
       description: Successful response
+    TelephonyCredentialResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/TelephonyCredential'
+            type: object
+      description: Successful response with details about a credential
     TexmlApplicationResponse:
       content:
         application/json:
@@ -12467,6 +12489,88 @@ components:
           type: string
       title: Stop Recording request
       type: object
+    TelephonyCredential:
+      example:
+        created_at: '2020-06-18T21:32:38'
+        expired: 'false'
+        expires_at: '2042-06-18T21:32:38'
+        id: c215ade3-0d39-418e-94be-c5f780760199
+        name: '2020-06-18 21:32:38.917732Z'
+        record_type: credential
+        resource_id: connection:804252963366242252
+        sip_password: a92dbcfb60184a8cb330b0acb2f7617b
+        sip_username: gencrednCvHU5IYpSBPPsXI2iQsDX
+        updated_at: '2020-06-18T21:32:38.000Z'
+        user_id: user-id
+      properties:
+        created_at:
+          description: ISO-8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        expired:
+          description: Defaults to false
+          type: boolean
+        expires_at:
+          description: ISO-8601 formatted date indicating when the resource will expire.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        id:
+          description: Identifies the resource.
+          example: c215ade3-0d39-418e-94be-c5f780760199
+          format: string
+          type: string
+        name:
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: credential
+          type: string
+        resource_id:
+          description: Identifier the resource this credential is associated with.
+          example: connection:1234567890
+          type: string
+        sip_password:
+          description: The randomly generated SIP password for the credential.
+          example: a92dbcfb60184a8cb330b0acb2f7617b
+          type: string
+        sip_username:
+          description: The randomly generated SIP username for the credential.
+          example: gencrednCvHU5IYpSBPPsXI2iQsDX
+          type: string
+        updated_at:
+          description: ISO-8601 formatted date indicating when the resource was updated.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      title: On-demand Credential
+      type: object
+    TelephonyCredentialCreate:
+      example:
+        connection_id: '1234567890'
+        name: My-new-credential
+      properties:
+        connection_id:
+          description: Identifier of the Credential Connection this credential is
+            associated with.
+          example: '1234567890'
+          type: string
+        name:
+          type: string
+      title: TelephonyCredentialCreate
+      type: object
+    TelephonyCredentialUpdate:
+      example:
+        connection_id: '987654321'
+        name: My-new-updated-credential
+      properties:
+        connection_id:
+          description: Identifier of the Credential Connection this credential is
+            associated with.
+          example: '987654321'
+          type: string
+        name:
+          type: string
+      title: TelephonyCredentialUpdate
+      type: object
     TexmlApplication:
       example:
         active: false
@@ -19007,6 +19111,148 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
+  /telephony_credentials:
+    get:
+      description: Returns a list of your On-demand telephony credentials.
+      operationId: findTelephonyCredentials
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetAllTelephonyCredentialResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: List all credentials
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
+    post:
+      description: Creates a credential.
+      operationId: CreateTelephonyCredential
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelephonyCredentialCreate'
+        description: Parameters that can be defined during credential creation
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/TelephonyCredentialResponse'
+        '422':
+          description: Bad request
+      summary: Creates a credential
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
+  /telephony_credentials/{id}:
+    delete:
+      description: Deletes an existing credential.
+      operationId: DeleteTelephonyCredential
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/TelephonyCredentialResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Deletes a credential
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
+    get:
+      description: Retrieves the details of an existing On-demand telephony credential.
+      operationId: getTelephonyCredential
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/TelephonyCredentialResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Retrieve a credential
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
+    patch:
+      description: Updates an existing credential.
+      operationId: UpdateTelephonyCredential
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelephonyCredentialUpdate'
+        description: Parameters that can be updated in a credential
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/TelephonyCredentialResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Updates a credential
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
+  /telephony_credentials/{id}/token:
+    post:
+      description: Creates a token for the credential.
+      operationId: CreateTelephonyCredentialToken
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          content:
+            text/plain:
+              schema:
+                example: eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ0ZWxueXhfdGVsZXBob255IiwiZXhwIjoxNTkwMDEwMTQzLCJpYXQiOjE1ODc1OTA5NDMsImlzcyI6InRlbG55eF90ZWxlcGhvbnkiLCJqdGkiOiJiOGM3NDgzNy1kODllLTRhNjUtOWNmMi0zNGM3YTZmYTYwYzgiLCJuYmYiOjE1ODc1OTA5NDIsInN1YiI6IjVjN2FjN2QwLWRiNjUtNGYxMS05OGUxLWVlYzBkMWQ1YzZhZSIsInRlbF90b2tlbiI6InJqX1pra1pVT1pNeFpPZk9tTHBFVUIzc2lVN3U2UmpaRmVNOXMtZ2JfeENSNTZXRktGQUppTXlGMlQ2Q0JSbWxoX1N5MGlfbGZ5VDlBSThzRWlmOE1USUlzenl6U2xfYURuRzQ4YU81MHlhSEd1UlNZYlViU1ltOVdJaVEwZz09IiwidHlwIjoiYWNjZXNzIn0.gNEwzTow5MLLPLQENytca7pUN79PmPj6FyqZWW06ZeEmesxYpwKh0xRtA0TzLh6CDYIRHrI8seofOO0YFGDhpQ
+                type: string
+          description: JWT
+        '404':
+          description: Resource not Found
+      summary: Creates a credential token
+      tags:
+      - On-demand Credentials
+      x-latency-category: responsive
   /texml_applications:
     get:
       description: Returns a list of your TeXML Applications.
@@ -19468,6 +19714,8 @@ tags:
   name: Number Search
 - description: OTA updates operations
   name: OTA updates
+- description: On-demand Credentials operations
+  name: On-demand Credentials
 - description: Outbound voice profiles operations
   name: Outbound Voice Profiles
 - description: Determining portability of phone numbers
