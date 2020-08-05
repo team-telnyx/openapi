@@ -771,6 +771,16 @@ components:
                 $ref: '#/components/schemas/Fax'
             type: object
       description: Get fax response
+    GetRecordingResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Recording'
+                type: object
+            type: object
+      description: A recording
     GetSimCardGroupResponse:
       content:
         application/json:
@@ -1122,6 +1132,19 @@ components:
                 $ref: '#/components/schemas/Metadata'
             type: object
       description: Portout Response
+    ListRecordingsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Recording'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMetaSimple'
+            type: object
+      description: A paginated array of recordings
     ListShortCodesResponse:
       content:
         application/json:
@@ -11403,6 +11426,91 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           type: string
       type: object
+    Recording:
+      example:
+        channels: single
+        conference:
+          id: 41b9acd4-f4da-4ff5-a85c-e07e90b53f46
+          name: All hands meeting
+        created_at: '2019-03-29T13:10:00Z'
+        id: dfadada7-af74-47bc-83a4-554275f55f5c
+        record_type: recording
+        recording_ended_at: '2019-03-29T12:10:00Z'
+        recording_started_at: '2019-03-29T11:10:00Z'
+        source: conference
+        status: completed
+        updated_at: '2019-03-29T14:10:00Z'
+      properties:
+        channels:
+          description: When `dual`, final audio file has the first leg on channel
+            A, and the rest on channel B.
+          enum:
+          - single
+          - dual
+          example: single
+          type: string
+        conference:
+          description: Info about the conference that the recording is for
+          properties:
+            id:
+              description: Uniquely identifies the conference
+              example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+              type: string
+            name:
+              description: Name of the conference
+              example: All hands meeting
+              type: string
+          type: object
+        created_at:
+          description: ISO 8601 formatted date of when the recording was created
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        id:
+          description: Uniquely identifies the recording
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
+        record_type:
+          enum:
+          - recording
+          example: recording
+          type: string
+        recording_ended_at:
+          description: ISO 8601 formatted date of when the recording ended
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        recording_started_at:
+          description: ISO 8601 formatted date of when the recording started
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        source:
+          description: The kind of event that led to this recording being created
+          enum:
+          - conference
+          example: conference
+          type: string
+        status:
+          description: The status of the recording. Only resources for `completed`
+            recordings are currently supported
+          enum:
+          - completed
+          example: completed
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date of when the recording was last updated
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+      required:
+      - record_type
+      - id
+      - conference
+      - created_at
+      - updated_at
+      - recording_started_at
+      - recording_ended_at
+      - status
+      - channels
+      - source
+      type: object
     RegionInformation:
       example:
         region_name: US
@@ -15175,6 +15283,50 @@ paths:
       tags:
       - Conference Commands
       x-latency-category: interactive
+  /conferences/{conference_id}/participants:
+    get:
+      description: Lists conference participants
+      operationId: GetConferenceParticipants
+      parameters:
+      - description: Uniquely identifies the conference by id or name
+        in: path
+        name: conference_id
+        required: true
+        schema:
+          type: string
+      - description: If present, participants will be filtered to those who are/are
+          not muted
+        in: query
+        name: filter[muted]
+        schema:
+          type: boolean
+      - description: If present, participants will be filtered to those who are/are
+          not put on hold
+        in: query
+        name: filter[on_hold]
+        schema:
+          type: boolean
+      - description: If present, participants will be filtered to those who are whispering
+          or are not
+        in: query
+        name: filter[whispering]
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListParticipantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List conference participants
+      tags:
+      - Conference Commands
+      x-latency-category: interactive
   /conferences/{id}:
     get:
       description: Retrieve an existing conference
@@ -15382,7 +15534,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/JoinConferenceRequest'
-        description: Join Conferenec request object
+        description: Join Conference request object
         required: true
       responses:
         '200':
@@ -15567,50 +15719,6 @@ paths:
       - basicAuth: []
       - bearerAuth: []
       summary: Unmute conference participants
-      tags:
-      - Conference Commands
-      x-latency-category: interactive
-  /conferences/{id}/participants:
-    get:
-      description: Lists conference participants
-      operationId: GetConferenceParticipants
-      parameters:
-      - description: Uniquely identifies the conference by id or name
-        in: path
-        name: id
-        required: true
-        schema:
-          type: string
-      - description: If present, participants will be filtered to those who are/are
-          not muted
-        in: query
-        name: filter[muted]
-        schema:
-          type: boolean
-      - description: If present, participants will be filtered to those who are/are
-          not put on hold
-        in: query
-        name: filter[on_hold]
-        schema:
-          type: boolean
-      - description: If present, participants will be filtered to those who are whispering
-          or are not
-        in: query
-        name: filter[whispering]
-        schema:
-          type: boolean
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      responses:
-        '200':
-          $ref: '#/components/responses/ListParticipantsResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedResponse'
-        '404':
-          $ref: '#/components/responses/NotFoundResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
-      summary: List conference participants
       tags:
       - Conference Commands
       x-latency-category: interactive
@@ -18697,6 +18805,69 @@ paths:
       tags:
       - Number Portout
       x-latency-category: responsive
+  /recordings:
+    get:
+      description: Lists recordings for the authenticated user
+      operationId: GetRecordings
+      parameters:
+      - description: Return only recordings associated with a given conference
+        in: query
+        name: filter[conference_id_or_name]
+        required: false
+        schema:
+          example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          type: string
+      - description: Return only recordings created later than or at given ISO 8601
+          datetime
+        in: query
+        name: filter[created_at][gte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - description: Return only recordings created earlier than or at given ISO 8601
+          datetime
+        in: query
+        name: filter[created_at][lte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListRecordingsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List recordings
+      tags:
+      - Recordings Commands
+      x-latency-category: interactive
+  /recordings/{id}:
+    get:
+      description: Retrieve a recording from the authenticated user's recordings
+      operationId: GetRecording
+      parameters:
+      - description: Uniquely identifies the recording
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/GetRecordingResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Retrieve a recording
+      tags:
+      - Recordings Commands
+      x-latency-category: interactive
   /regulatory_requirements:
     get:
       description: Gets a paginated list of Number Order Regulatory Requirements
