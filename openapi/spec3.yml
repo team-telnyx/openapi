@@ -11436,11 +11436,14 @@ components:
       type: object
     Recording:
       example:
+        call_leg_id: null
+        call_session_id: null
         channels: single
-        conference:
-          id: 41b9acd4-f4da-4ff5-a85c-e07e90b53f46
-          name: All hands meeting
+        conference_id: 41b9acd4-f4da-4ff5-a85c-e07e90b53f46
         created_at: '2019-03-29T13:10:00Z'
+        download_urls:
+          mp3: https://s3.amazonaws.com/some/path
+        duration_millis: 50000
         id: dfadada7-af74-47bc-83a4-554275f55f5c
         record_type: recording
         recording_ended_at: '2019-03-29T12:10:00Z'
@@ -11449,6 +11452,16 @@ components:
         status: completed
         updated_at: '2019-03-29T14:10:00Z'
       properties:
+        call_leg_id:
+          description: If a call recording, uniquely identifies the call leg the recording
+            is for
+          example: 11111111-5717-4562-b3fc-2c963f66afa6
+          type: string
+        call_session_id:
+          description: If a call recording, uniquely identifies the call session the
+            recording is for
+          example: 22222222-5717-4562-b3fc-2c963f66afa6
+          type: string
         channels:
           description: When `dual`, final audio file has the first leg on channel
             A, and the rest on channel B.
@@ -11457,22 +11470,30 @@ components:
           - dual
           example: single
           type: string
-        conference:
-          description: Info about the conference that the recording is for
-          properties:
-            id:
-              description: Uniquely identifies the conference
-              example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-              type: string
-            name:
-              description: Name of the conference
-              example: All hands meeting
-              type: string
-          type: object
+        conference_id:
+          description: If a conference recording, uniquely identifies the conference
+            the recording is for
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
         created_at:
           description: ISO 8601 formatted date of when the recording was created
           example: '2019-01-23T18:10:02.574Z'
           type: string
+        download_urls:
+          description: The links to download the recording files
+          properties:
+            mp3:
+              description: Link to download the recording in mp3 format
+              type: string
+            wav:
+              description: Link to download the recording in wav format
+              type: string
+          type: object
+        duration_millis:
+          description: The duration of the recording in milliseconds
+          example: 60000
+          format: int32
+          type: integer
         id:
           description: Uniquely identifies the recording
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
@@ -11494,6 +11515,7 @@ components:
           description: The kind of event that led to this recording being created
           enum:
           - conference
+          - call
           example: conference
           type: string
         status:
@@ -11510,14 +11532,15 @@ components:
       required:
       - record_type
       - id
-      - conference
       - created_at
       - updated_at
       - recording_started_at
       - recording_ended_at
+      - duration_millis
       - status
       - channels
       - source
+      - download_urls
       type: object
     RegionInformation:
       example:
@@ -18820,7 +18843,7 @@ paths:
       parameters:
       - description: Return only recordings associated with a given conference
         in: query
-        name: filter[conference_id_or_name]
+        name: filter[conference_id]
         required: false
         schema:
           example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
