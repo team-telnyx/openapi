@@ -1702,6 +1702,16 @@ components:
                 $ref: '#/components/schemas/UserBalance'
             type: object
       description: Retrieve user balance details
+    ValidateAddressResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/ValidateAddressResult'
+            title: Validate address action response
+            type: object
+      description: Action response
   schemas:
     Address:
       properties:
@@ -14791,6 +14801,42 @@ components:
           example: balance
           type: string
       type: object
+    ValidateAddressRequest:
+      properties:
+        administrative_area:
+          $ref: '#/components/schemas/administrative_area'
+        country_code:
+          $ref: '#/components/schemas/country_code'
+        extended_address:
+          $ref: '#/components/schemas/extended_address'
+        locality:
+          $ref: '#/components/schemas/locality'
+        postal_code:
+          $ref: '#/components/schemas/postal_code'
+        street_address:
+          $ref: '#/components/schemas/street_address'
+    ValidateAddressResult:
+      properties:
+        record_type:
+          description: Identifies the type of the resource.
+          example: address_validation
+          type: string
+        result:
+          description: Indicates whether an address is valid or invalid.
+          enum:
+          - valid
+          - invalid
+          example: valid
+          type: string
+        suggested:
+          $ref: '#/components/schemas/ValidateAddressRequest'
+          description: Provides normalized address when available.
+          type: object
+      required:
+      - result
+      - suggested
+      title: Validate address action result
+      type: object
     VoiceUpdate:
       example:
         call_forwarding:
@@ -14956,7 +15002,7 @@ components:
       type: string
     country_code:
       description: The two-character (ISO 3166-1 alpha-2) country code of the address.
-      example: us
+      example: US
       type: string
     createdAt:
       description: ISO 8601 formatted date indicating when the resource was created.
@@ -15367,6 +15413,27 @@ paths:
         '422':
           description: Bad request
       summary: Creates an address
+      tags:
+      - Addresses
+      x-latency-category: responsive
+  /addresses/actions/validate:
+    post:
+      description: Validates an address for emergency services.
+      operationId: validateAddress
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateAddressRequest'
+        description: Parameters that can be defined during address validation
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ValidateAddressResponse'
+        '422':
+          description: Bad request
+      summary: Validate an address
       tags:
       - Addresses
       x-latency-category: responsive
