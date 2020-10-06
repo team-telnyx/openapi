@@ -165,6 +165,12 @@ components:
       schema:
         default: 'null'
         type: string
+    FilterName:
+      description: Filter by name
+      in: query
+      name: filter[name]
+      schema:
+        type: string
     FilterOutboundVoiceProfileId:
       description: Identifies the associated outbound voice profile.
       in: query
@@ -174,6 +180,12 @@ components:
         example: '1293384261075731499'
         format: int64
         type: string
+    FilterResourceId:
+      description: Filter by resource_id
+      in: query
+      name: filter[resource_id]
+      schema:
+        type: string
     FilterSIMCardGroupId:
       description: A valid SIM card group ID.
       in: query
@@ -181,6 +193,18 @@ components:
       schema:
         example: 47a1c2b0-cc7b-4ab1-bb98-b33fb0fc61b9
         format: uuid
+        type: string
+    FilterSipUsername:
+      description: Filter by sip_username
+      in: query
+      name: filter[sip_username]
+      schema:
+        type: string
+    FilterStatus:
+      description: Filter by status
+      in: query
+      name: filter[status]
+      schema:
         type: string
     FilterStreetAddress:
       description: If present, addresses with <code>street_address</code> containing
@@ -313,6 +337,12 @@ components:
         - carrier
         - caller-name
         type: string
+    OptionalTag:
+      description: Filter by tag
+      in: query
+      name: filter[tag]
+      schema:
+        type: string
     PageNumber:
       description: The page number to load
       in: query
@@ -337,6 +367,13 @@ components:
       required: true
       schema:
         example: '+18665552368'
+        type: string
+    RequiredTag:
+      description: Filter by tag, required by bulk operations.
+      in: query
+      name: filter[tag]
+      required: true
+      schema:
         type: string
     ResourceId:
       description: Identifies the resource.
@@ -459,6 +496,20 @@ components:
                 $ref: '#/components/schemas/Address'
             type: object
       description: Successful response
+    BulkCredentialResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                properties:
+                  credentials:
+                    description: Amount of credentials affected
+                    example: 0
+                    type: integer
+                type: object
+            type: object
+      description: Successful response for Bulk credential requests
     BulkSIMCardNetworkPreferenceResponse:
       content:
         application/json:
@@ -1227,6 +1278,26 @@ components:
             title: List Short Codes Response
             type: object
       description: Successful response with a list of short codes.
+    ListTagsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  properties:
+                    amount:
+                      example: 1
+                      type: integer
+                    tag:
+                      example: a_tag
+                      type: string
+                  type: object
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response with multiple tags
     MessageResponse:
       content:
         application/json:
@@ -1951,6 +2022,35 @@ components:
       required:
       - call_control_id
       title: Bridge Request
+      type: object
+    BulkCredentialRequest:
+      example:
+        connection_id: '804252963366242252'
+        name: Default Name
+        tag: My Credentials
+      properties:
+        amount:
+          description: Amount of credentials to be created. A single tag can hold
+            at maximum 1000 credentials
+          example: 100
+          type: integer
+        connection_id:
+          description: Identifies the connection this credential is associated with.
+          example: '1234567890'
+          type: string
+        name:
+          description: A default name for all credentials.
+          example: Default Credentials
+          type: string
+        tag:
+          description: Tags a credential for bulk operations. A single tag can hold
+            at maximum 1000 credentials.
+          example: My Credentials
+          type: string
+      required:
+      - tag
+      - connection_id
+      title: Bulk Credential Request
       type: object
     Call:
       example:
@@ -13987,7 +14087,7 @@ components:
           example: credential
           type: string
         resource_id:
-          description: Identifier the resource this credential is associated with.
+          description: Identifies the resource this credential is associated with.
           example: connection:1234567890
           type: string
         sip_password:
@@ -14010,8 +14110,8 @@ components:
         name: My-new-credential
       properties:
         connection_id:
-          description: Identifier of the Credential Connection this credential is
-            associated with.
+          description: Identifies the Credential Connection this credential is associated
+            with.
           example: '1234567890'
           type: string
         expires_at:
@@ -14021,6 +14121,11 @@ components:
           type: string
         name:
           type: string
+        tag:
+          description: Tags a credential to filter for bulk operations. A single tag
+            can hold at maximum 1000 credentials.
+          example: some_tag
+          type: string
       title: TelephonyCredentialCreate
       type: object
     TelephonyCredentialUpdate:
@@ -14029,8 +14134,8 @@ components:
         name: My-new-updated-credential
       properties:
         connection_id:
-          description: Identifier of the Credential Connection this credential is
-            associated with.
+          description: Identifies the Credential Connection this credential is associated
+            with.
           example: '987654321'
           type: string
         expires_at:
@@ -14039,6 +14144,11 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           type: string
         name:
+          type: string
+        tag:
+          description: Tags a credential to filter for bulk operations. A single tag
+            can hold at maximum 1000 credentials.
+          example: some_tag
           type: string
       title: TelephonyCredentialUpdate
       type: object
@@ -15728,6 +15838,62 @@ paths:
       tags:
       - Verify
       x-latency-category: responsive
+  /actions/bulk/telephony_credentials:
+    delete:
+      description: Delete several credentials in bulk.
+      operationId: DeleteBulkTelephonyCredential
+      parameters:
+      - $ref: '#/components/parameters/RequiredTag'
+      responses:
+        '201':
+          $ref: '#/components/responses/BulkCredentialResponse'
+        '422':
+          description: Bad request
+      summary: Delete several credentials
+      tags:
+      - Bulk Credentials
+      x-latency-category: responsive
+    patch:
+      description: Update several credentials in bulk.
+      operationId: UpdateBulkTelephonyCredential
+      parameters:
+      - $ref: '#/components/parameters/RequiredTag'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCredentialRequest'
+        description: Parameters to update credentials on bulk
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/BulkCredentialResponse'
+        '422':
+          description: Bad request
+      summary: Update several credentials
+      tags:
+      - Bulk Credentials
+      x-latency-category: responsive
+    post:
+      description: Creates several credentials in bulk.
+      operationId: CreateBulkTelephonyCredential
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCredentialRequest'
+        description: Requested parameters to create credentials on bulk
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/BulkCredentialResponse'
+        '422':
+          description: Bad request
+      summary: Creates several credentials
+      tags:
+      - Bulk Credentials
+      x-latency-category: responsive
   /actions/network_preferences/sim_cards:
     put:
       description: 'This API allows dispatching the same operation described for the
@@ -15791,6 +15957,39 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: background
+  /actions/{action}/telephony_credentials:
+    post:
+      description: Perform activate or deactivate action on all credentials filtered
+        by the provided tag. Activate action will change the status to active, making
+        it possible to connect calls with the credential. Deactivate action will change
+        the status to inactive, making it impossible to connect calls with the credential.
+      operationId: BulkCredentialAction
+      parameters:
+      - description: Identifies the action to be taken. Activate will change the status
+          to active. Deactivate will change the status to inactive.
+        in: path
+        name: action
+        required: true
+        schema:
+          enum:
+          - activate
+          - deactivate
+          type: string
+      - $ref: '#/components/parameters/RequiredTag'
+      responses:
+        '200':
+          $ref: '#/components/responses/BulkCredentialResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Perform activate or deactivate action on all credentials filtered by
+        the provided tag.
+      tags:
+      - Bulk Credentials
+      x-latency-category: responsive
   /addresses:
     get:
       description: Returns a list of your addresses.
@@ -21913,6 +22112,11 @@ paths:
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/OptionalTag'
+      - $ref: '#/components/parameters/FilterName'
+      - $ref: '#/components/parameters/FilterStatus'
+      - $ref: '#/components/parameters/FilterResourceId'
+      - $ref: '#/components/parameters/FilterSipUsername'
       responses:
         '200':
           $ref: '#/components/responses/GetAllTelephonyCredentialResponse'
@@ -21924,7 +22128,7 @@ paths:
           description: Resource not found
       summary: List all credentials
       tags:
-      - Credentials and Access Tokens
+      - Credentials
       x-latency-category: responsive
     post:
       description: Create a credential.
@@ -21944,7 +22148,27 @@ paths:
           description: Bad request
       summary: Create a credential
       tags:
-      - Credentials and Access Tokens
+      - Credentials
+      x-latency-category: responsive
+  /telephony_credentials/tags:
+    get:
+      description: Returns a list of tags used on Credentials
+      operationId: listTags
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListTagsResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: List all tags
+      tags:
+      - Credentials
       x-latency-category: responsive
   /telephony_credentials/{id}:
     delete:
@@ -21968,7 +22192,7 @@ paths:
           description: Bad request
       summary: Delete a credential
       tags:
-      - Credentials and Access Tokens
+      - Credentials
       x-latency-category: responsive
     get:
       description: Get the details of an existing On-demand Credential.
@@ -21991,7 +22215,7 @@ paths:
           description: Resource not found
       summary: Get a credential
       tags:
-      - Credentials and Access Tokens
+      - Credentials
       x-latency-category: responsive
     patch:
       description: Update an existing credential.
@@ -22021,7 +22245,43 @@ paths:
           description: Bad request
       summary: Update a credential
       tags:
-      - Credentials and Access Tokens
+      - Credentials
+      x-latency-category: responsive
+  /telephony_credentials/{id}/actions/{action}:
+    post:
+      description: Perform activate or deactivate action on provided Credential. Activate
+        action will change the status to active, making it possible to connect calls
+        with the credential. Deactivate action will change the status to inactive,
+        making it impossible to connect calls with the credential.
+      operationId: telephonyCredentialAction
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - description: Identifies the action to be taken.
+        in: path
+        name: action
+        required: true
+        schema:
+          enum:
+          - activate
+          - deactivate
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/TelephonyCredentialResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Perform activate or deactivate action on provided Credential
+      tags:
+      - Credentials
       x-latency-category: responsive
   /telephony_credentials/{id}/token:
     post:
@@ -22046,7 +22306,7 @@ paths:
           description: Resource not Found
       summary: Create an Access Token.
       tags:
-      - Credentials and Access Tokens
+      - Access Tokens
       x-latency-category: responsive
   /texml_applications:
     get:
@@ -22239,12 +22499,16 @@ servers:
 - description: Version 2.0.0 of the Telnyx API
   url: https://api.telnyx.com/v2
 tags:
+- description: Access Tokens creation
+  name: Access Tokens
 - description: Address operations
   name: Addresses
 - description: Billing operations
   name: Billing
 - description: Billing groups operations
   name: Billing Groups
+- description: Bulk operations over Credentials
+  name: Bulk Credentials
 - description: Call Control command operations
   name: Call Commands
 - description: Call Control applications operations
@@ -22257,8 +22521,8 @@ tags:
   name: Connections
 - description: Credential connection operations
   name: Credential Connections
-- description: Credentials operations and Access Tokens creation
-  name: Credentials and Access Tokens
+- description: Credentials operations
+  name: Credentials
 - description: Call Control debugging
   name: Debugging
 - description: FQDN connection operations
