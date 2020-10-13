@@ -172,6 +172,10 @@
       "description": "Programmable fax command operations"
     },
     {
+      "name": "Recordings Commands",
+      "description": "Recordings commands operations"
+    },
+    {
       "name": "Reporting",
       "description": "Wireless reporting operations"
     },
@@ -12474,7 +12478,6 @@
               "title": "Get Recording Response",
               "properties": {
                 "data": {
-                  "type": "object",
                   "$ref": "#/components/schemas/Recording"
                 }
               }
@@ -13134,6 +13137,55 @@
           }
         }
       },
+      "BaseMessageRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Message body (i.e., content) as a non-empty string.\n\n**Required for SMS**"
+          },
+          "subject": {
+            "type": "string",
+            "description": "Subject of multimedia message"
+          },
+          "media_urls": {
+            "description": "A list of media URLs. The total media size must be less than 1 MB.\n\n**Required for MMS**",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "url"
+            }
+          },
+          "webhook_url": {
+            "description": "The URL where webhooks related to this message will be sent.",
+            "type": "string",
+            "format": "url"
+          },
+          "webhook_failover_url": {
+            "description": "The failover URL where webhooks related to this message will be sent if sending to the primary URL fails.",
+            "type": "string",
+            "format": "url"
+          },
+          "use_profile_webhooks": {
+            "type": "boolean",
+            "description": "If the profile this number is associated with has webhooks, use them for delivery notifications. If webhooks are also specified on the message itself, they will be attempted first, then those on the profile.",
+            "default": true
+          },
+          "type": {
+            "description": "The protocol for sending the message, either SMS or MMS.",
+            "type": "string",
+            "enum": [
+              "SMS",
+              "MMS"
+            ]
+          },
+          "auto_detect": {
+            "description": "Automatically detect if an SMS message is unusually long and exceeds a recommended limit of message parts.",
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
       "BillingGroup": {
         "type": "object",
         "properties": {
@@ -13641,7 +13693,7 @@
         },
         "example": {
           "active": false,
-          "anchorsite_override": "Amsterdam, Netherlands",
+          "anchorsite_override": "\"Latency\"",
           "application_name": "call-router",
           "created_at": "2018-02-02T22:25:27.521Z",
           "dtmf_type": "Inband",
@@ -14529,7 +14581,7 @@
         },
         "example": {
           "record_type": "event",
-          "event_type": "call.detection.ended",
+          "event_type": "call.machine.detection.ended",
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
@@ -14726,7 +14778,7 @@
               },
               "overlay": {
                 "type": "boolean",
-                "example": "false",
+                "example": false,
                 "description": "Whether the audio is going to be played in overlay mode or not."
               },
               "status": {
@@ -14835,7 +14887,7 @@
               },
               "overlay": {
                 "type": "boolean",
-                "example": "false",
+                "example": false,
                 "description": "Whether the audio is going to be played in overlay mode or not."
               }
             }
@@ -15017,7 +15069,7 @@
         },
         "example": {
           "record_type": "event",
-          "event_type": "call.recording.started",
+          "event_type": "call.recording.saved",
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
@@ -15060,6 +15112,7 @@
         "example": {
           "to": "+18005550100 or SIP:username@sip.telnyx.com",
           "from": "+18005550101",
+          "connection_id": "7267xxxxxxxxxxxxxx",
           "audio_url": "http://www.example.com/sounds/greeting.wav",
           "timeout_secs": 60,
           "timeout_limit_secs": 60,
@@ -15078,10 +15131,16 @@
             "greeting_total_analysis_time_millis": 50000,
             "greeting_silence_duration_millis": 2000
           },
-          "custom_headers": {
-            "name": "head_1",
-            "value": "val_1"
-          },
+          "custom_headers": [
+            {
+              "name": "head_1",
+              "value": "val_1"
+            },
+            {
+              "name": "head_2",
+              "value": "val_2"
+            }
+          ],
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "link_to": "ilditnZK_eVysupV21KzmzN_sM29ygfauQojpm4BgFtfX5hXAcjotg==",
@@ -15803,6 +15862,8 @@
           "hold": true,
           "hold_audio_url": "http://www.example.com/audio.wav",
           "mute": true,
+          "from": "+18005550101",
+          "to": "+18005550100",
           "start_conference_on_enter": true,
           "supervisor_role": "whisper",
           "whisper_call_control_ids": [
@@ -16673,14 +16734,7 @@
             "description": "The number of times the audio file should be played. If supplied, the value must be an integer between 1 and 100, or the special string `infinity` for an endless loop.",
             "example": "infinity",
             "default": 1,
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              }
-            ]
+            "$ref": "#/components/schemas/OneOfstringinteger"
           },
           "call_control_ids": {
             "description": "List of call control ids identifying participants the audio file should be played to. If not given, the audio file will be played to the entire conference.",
@@ -16853,148 +16907,6 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ConferencePlaybackStarted"
-          }
-        }
-      },
-      "ConferenceRecordingSaved": {
-        "type": "object",
-        "title": "Conference Recording Saved",
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
-          },
-          "event_type": {
-            "type": "string",
-            "example": "conference.recording.saved",
-            "enum": [
-              "conference.recording.saved"
-            ],
-            "description": "The type of event being delivered."
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
-          },
-          "occurred_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2018-02-02T22:25:27.521992Z",
-            "description": "ISO 8601 datetime of when the event occurred."
-          },
-          "payload": {
-            "type": "object",
-            "properties": {
-              "conference_id": {
-                "type": "string",
-                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
-                "description": "ID that is unique to the conference and can be used to correlate webhook events."
-              },
-              "connection_id": {
-                "type": "string",
-                "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
-              },
-              "recording_id": {
-                "type": "string",
-                "example": "11111111-1111-1111-1111-111111111112",
-                "description": "ID of the recording."
-              },
-              "recording_started_at": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2018-02-02T22:20:27.521992Z",
-                "description": "ISO 8601 datetime of when recording started."
-              },
-              "recording_ended_at": {
-                "type": "string",
-                "format": "date-time",
-                "example": "2018-02-02T22:25:27.521992Z",
-                "description": "ISO 8601 datetime of when recording ended."
-              },
-              "channels": {
-                "type": "string",
-                "example": "single",
-                "enum": [
-                  "single",
-                  "dual"
-                ],
-                "description": "Whether recording was recorded in `single` or `dual` channel."
-              },
-              "recording_urls": {
-                "type": "object",
-                "description": "Recording URLs in requested format valid for 10 minutes. After 10 minutes, you may retrieve recordings via API using Reports -> Call Recordings documentation, or via Mission Control under Reporting -> Recordings.",
-                "properties": {
-                  "mp3": {
-                    "type": "string",
-                    "nullable": true,
-                    "example": "http://example.com/recording.mp3",
-                    "description": "Recording URL in requested `mp3` format."
-                  },
-                  "wav": {
-                    "type": "string",
-                    "nullable": true,
-                    "example": "http://example.com/recording.wav",
-                    "description": "Recording URL in requested `wav` format."
-                  }
-                }
-              },
-              "public_recording_urls": {
-                "type": "object",
-                "description": "Recording URLs in requested format. The URL is valid for as long as the file exists. For security purposes, this feature is activated on a per request basis.  Please contact customer support with your Account ID to request activation.",
-                "properties": {
-                  "mp3": {
-                    "type": "string",
-                    "nullable": true,
-                    "example": "http://example.com/recording.mp3",
-                    "description": "Recording URL in requested `mp3` format."
-                  },
-                  "wav": {
-                    "type": "string",
-                    "nullable": true,
-                    "example": "http://example.com/recording.wav",
-                    "description": "Recording URL in requested `wav` format."
-                  }
-                }
-              }
-            }
-          }
-        },
-        "example": {
-          "record_type": "event",
-          "event_type": "conference.recording.started",
-          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-          "occurred_at": "2018-02-02T22:25:27.521992Z",
-          "payload": {
-            "connection_id": "7267xxxxxxxxxxxxxx",
-            "conference_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
-            "recording_id": "11111111-1111-1111-1111-111111111112",
-            "recording_started_at": "2018-02-02T22:20:27.521992Z",
-            "recording_ended_at": "2018-02-02T22:20:27.521992Z",
-            "channels": "single",
-            "recording_urls": {
-              "mp3": "http://example.com/recording.mp3",
-              "wav": "http://example.com/recording.wav"
-            },
-            "public_recording_urls": {
-              "mp3": "http://example.com/recording.mp3",
-              "wav": "http://example.com/recording.wav"
-            }
-          }
-        }
-      },
-      "ConferenceRecordingSavedEvent": {
-        "type": "object",
-        "title": "Conference Recording Saved Event",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/ConferenceRecordingSaved"
           }
         }
       },
@@ -17558,7 +17470,7 @@
           "application_name": "call-router",
           "webhook_event_url": "https://example.com",
           "active": false,
-          "anchorsite_override": "Amsterdam, Netherlands",
+          "anchorsite_override": "\"Latency\"",
           "dtmf_type": "Inband",
           "first_command_timeout": true,
           "first_command_timeout_secs": 10,
@@ -17648,6 +17560,11 @@
           "from",
           "to"
         ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseMessageRequest"
+          }
+        ],
         "properties": {
           "from": {
             "type": "string",
@@ -17655,70 +17572,11 @@
             "description": "Phone number, in +E.164 format, used to send the message."
           },
           "to": {
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "address",
-                "description": "Receiving address (+E.164 formatted phone number or short code)."
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "format": "address",
-                  "description": "Receiving address (+E.164 formatted phone number or short code)."
-                }
-              }
-            ]
-          },
-          "text": {
-            "type": "string",
-            "description": "Message body (i.e., content) as a non-empty string.\n\n**Required for SMS**"
-          },
-          "subject": {
-            "type": "string",
-            "description": "Subject of multimedia message"
-          },
-          "media_urls": {
-            "description": "A list of media URLs. The total media size must be less than 1 MB.\n\n**Required for MMS**",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "url"
-            }
-          },
-          "webhook_url": {
-            "description": "The URL where webhooks related to this message will be sent.",
-            "type": "string",
-            "format": "url"
-          },
-          "webhook_failover_url": {
-            "description": "The failover URL where webhooks related to this message will be sent if sending to the primary URL fails.",
-            "type": "string",
-            "format": "url"
-          },
-          "use_profile_webhooks": {
-            "type": "boolean",
-            "description": "If the profile this number is associated with has webhooks, use them for delivery notifications. If webhooks are also specified on the message itself, they will be attempted first, then those on the profile.",
-            "default": true
-          },
-          "type": {
-            "description": "The protocol for sending the message, either SMS or MMS.",
-            "type": "string",
-            "enum": [
-              "SMS",
-              "MMS"
-            ]
-          },
-          "auto_detect": {
-            "description": "Automatically detect if an SMS message is unusually long and exceeds a recommended limit of message parts.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/ToNumber"
           }
         },
         "example": {
           "from": "+18445550001",
-          "messaging_profile_id": "abc85f64-5717-4562-b3fc-2c9600000000",
           "to": "+13125550002",
           "text": "Hello, World!",
           "subject": "From Telnyx!",
@@ -17736,6 +17594,11 @@
         "required": [
           "to"
         ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseMessageRequest"
+          }
+        ],
         "properties": {
           "from": {
             "type": "string",
@@ -17747,55 +17610,7 @@
             "description": "Unique identifier for a messaging profile.\n\n**Required if sending via number pool or with an alphanumeric sender ID.**\n"
           },
           "to": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ToNumber"
-              }
-            ]
-          },
-          "text": {
-            "type": "string",
-            "description": "Message body (i.e., content) as a non-empty string.\n\n**Required for SMS**"
-          },
-          "subject": {
-            "type": "string",
-            "description": "Subject of multimedia message"
-          },
-          "media_urls": {
-            "description": "A list of media URLs. The total media size must be less than 1 MB.\n\n**Required for MMS**",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "url"
-            }
-          },
-          "webhook_url": {
-            "description": "The URL where webhooks related to this message will be sent.",
-            "type": "string",
-            "format": "url"
-          },
-          "webhook_failover_url": {
-            "description": "The failover URL where webhooks related to this message will be sent if sending to the primary URL fails.",
-            "type": "string",
-            "format": "url"
-          },
-          "use_profile_webhooks": {
-            "type": "boolean",
-            "description": "If the profile this number is associated with has webhooks, use them for delivery notifications. If webhooks are also specified on the message itself, they will be attempted first, then those on the profile.",
-            "default": true
-          },
-          "type": {
-            "description": "The protocol for sending the message, either SMS or MMS.",
-            "type": "string",
-            "enum": [
-              "SMS",
-              "MMS"
-            ]
-          },
-          "auto_detect": {
-            "description": "Automatically detect if an SMS message is unusually long and exceeds a recommended limit of message parts.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/ToNumber"
           }
         },
         "example": {
@@ -18056,71 +17871,18 @@
           "to",
           "messaging_profile_id"
         ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseMessageRequest"
+          }
+        ],
         "properties": {
           "messaging_profile_id": {
             "type": "string",
             "description": "Unique identifier for a messaging profile."
           },
           "to": {
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "address",
-                "description": "Receiving address (+E.164 formatted phone number)."
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "format": "address",
-                  "description": "Receiving address (+E.164 formatted phone number)."
-                }
-              }
-            ]
-          },
-          "text": {
-            "type": "string",
-            "description": "Message body (i.e., content) as a non-empty string.\n\n**Required for SMS**"
-          },
-          "subject": {
-            "type": "string",
-            "description": "Subject of multimedia message."
-          },
-          "media_urls": {
-            "description": "A list of media URLs. The total media size must be less than 1 MB.\n\n**Required for MMS**",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "url"
-            }
-          },
-          "webhook_url": {
-            "description": "The URL where webhooks related to this message will be sent.",
-            "type": "string",
-            "format": "url"
-          },
-          "webhook_failover_url": {
-            "description": "The failover URL where webhooks related to this message will be sent if sending to the primary URL fails.",
-            "type": "string",
-            "format": "url"
-          },
-          "use_profile_webhooks": {
-            "type": "boolean",
-            "description": "If the profile this number is associated with has webhooks, use them for delivery notifications. If webhooks are also specified on the message itself, they will be attempted first, then those on the profile.",
-            "default": true
-          },
-          "type": {
-            "description": "The protocol for sending the message, either SMS or MMS.",
-            "type": "string",
-            "enum": [
-              "SMS",
-              "MMS"
-            ]
-          },
-          "auto_detect": {
-            "description": "Automatically detect if an SMS message is unusually long and exceeds a recommended limit of message parts.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/ToNumber"
           }
         },
         "example": {
@@ -18215,6 +17977,11 @@
           "from",
           "to"
         ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseMessageRequest"
+          }
+        ],
         "properties": {
           "from": {
             "type": "string",
@@ -18222,72 +17989,11 @@
             "description": "Phone number, in +E.164 format, used to send the message."
           },
           "to": {
-            "oneOf": [
-              {
-                "type": "string",
-                "format": "address",
-                "description": "Receiving address (+E.164 formatted phone number)."
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "format": "address",
-                  "description": "Receiving short code."
-                }
-              }
-            ]
-          },
-          "text": {
-            "type": "string",
-            "description": "Message body (i.e., content) as a non-empty string.\n\n**Required for SMS**"
-          },
-          "subject": {
-            "type": "string",
-            "description": "Subject of multimedia message."
-          },
-          "media_urls": {
-            "description": "A list of media URLs. The total media size must be less than 1 MB.\n\n**Required for MMS**",
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "url"
-            }
-          },
-          "webhook_url": {
-            "description": "The URL where webhooks related to this message will be sent.",
-            "type": "string",
-            "format": "url",
-            "default": ""
-          },
-          "webhook_failover_url": {
-            "description": "The failover URL where webhooks related to this message will be sent if sending to the primary URL fails.",
-            "type": "string",
-            "format": "url",
-            "default": ""
-          },
-          "use_profile_webhooks": {
-            "type": "boolean",
-            "description": "If the profile this number is associated with has webhooks, use them for delivery notifications. If webhooks are also specified on the message itself, they will be attempted first, then those on the profile.",
-            "default": true
-          },
-          "type": {
-            "description": "The protocol for sending the message, either SMS or MMS.",
-            "type": "string",
-            "enum": [
-              "SMS",
-              "MMS"
-            ]
-          },
-          "auto_detect": {
-            "description": "Automatically detect if an SMS message is unusually long and exceeds a recommended limit of message parts.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/ToNumber"
           }
         },
         "example": {
           "from": "+18445550001",
-          "messaging_profile_id": "abc85f64-5717-4562-b3fc-2c9600000000",
           "to": "+18445550001",
           "text": "Hello, World!",
           "subject": "From Telnyx!",
@@ -22228,7 +21934,6 @@
           "cost": {
             "type": "object",
             "nullable": true,
-            "default": null,
             "properties": {
               "amount": {
                 "type": "string",
@@ -22251,22 +21956,19 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "default": null,
             "description": "Not used for inbound messages."
           },
           "completed_at": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "default": null,
             "description": "Not used for inbound messages."
           },
           "valid_until": {
             "type": "string",
             "description": "Not used for inbound messages.",
             "format": "date-time",
-            "nullable": true,
-            "default": null
+            "nullable": true
           },
           "errors": {
             "type": "array",
@@ -23019,7 +22721,6 @@
       "MessagingFeatureSet": {
         "type": "object",
         "nullable": true,
-        "default": null,
         "required": [
           "domestic_two_way",
           "international_inbound",
@@ -24104,7 +23805,6 @@
       "NumberPoolSettings": {
         "type": "object",
         "nullable": true,
-        "default": null,
         "required": [
           "toll_free_weight",
           "long_code_weight",
@@ -24214,6 +23914,16 @@
           "created_at": "2018-01-01T00:00:00.000000Z",
           "updated_at": "2018-01-01T00:00:00.000000Z"
         }
+      },
+      "OneOfstringinteger": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          }
+        ]
       },
       "OutboundMessage": {
         "properties": {
@@ -24479,7 +24189,6 @@
           "cost": {
             "type": "object",
             "nullable": true,
-            "default": null,
             "properties": {
               "amount": {
                 "type": "string",
@@ -25095,6 +24804,18 @@
         },
         "example": {
           "record_type": "participant",
+          "created_at": "2019-01-23T18:10:02.574Z",
+          "updated_at": "2019-01-23T18:10:02.574Z",
+          "end_conference_on_exit": true,
+          "soft_end_conference_on_exit": true,
+          "status": "joining",
+          "muted": false,
+          "on_hold": true,
+          "call_control_id": "v2:v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ",
+          "whisper_call_control_ids": [
+            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+          ],
           "id": "dfadada7-af74-47bc-83a4-554275f55f5c",
           "call_leg_id": "3a15df2d-c801-4729-adf5-b56dd42e2abb",
           "conference": {
@@ -25650,8 +25371,8 @@
           "overlay": {
             "description": "When enabled, audio will be mixed on top of any other audio that is actively being played back. Note that `overlay: true` will only work if there is another audio file already being played on the call.",
             "type": "boolean",
-            "example": "true",
-            "default": "false"
+            "example": true,
+            "default": false
           },
           "stop": {
             "description": "When specified, it stops the current audio being played.  Specify `current` to stop the current audio being played, and to play the next file in the queue. Specify `all` to stop the current audio file being played and to also clear all audio files from the queue.",
@@ -26073,8 +25794,8 @@
           "channels": "single",
           "source": "conference",
           "conference_id": "41b9acd4-f4da-4ff5-a85c-e07e90b53f46",
-          "call_leg_id": null,
-          "call_session_id": null,
+          "call_leg_id": "11111111-5717-4562-b3fc-2c963f66afa6",
+          "call_session_id": "22222222-5717-4562-b3fc-2c963f66afa6",
           "download_urls": {
             "mp3": "https://s3.amazonaws.com/some/path"
           }
@@ -27648,10 +27369,16 @@
             "greeting_total_analysis_time_millis": 50000,
             "greeting_silence_duration_millis": 2000
           },
-          "custom_headers": {
-            "name": "head_1",
-            "value": "val_1"
-          },
+          "custom_headers": [
+            {
+              "name": "head_1",
+              "value": "val_1"
+            },
+            {
+              "name": "head_2",
+              "value": "val_2"
+            }
+          ],
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "sip_auth_username": "username",
@@ -28223,7 +27950,7 @@
           "application_name": "call-router",
           "webhook_event_url": "https://example.com",
           "active": false,
-          "anchorsite_override": "Amsterdam, Netherlands",
+          "anchorsite_override": "\"Latency\"",
           "dtmf_type": "Inband",
           "first_command_timeout": true,
           "first_command_timeout_secs": 10,
@@ -28657,7 +28384,6 @@
       "UrlShortenerSettings": {
         "type": "object",
         "nullable": true,
-        "default": null,
         "required": [
           "domain"
         ],
