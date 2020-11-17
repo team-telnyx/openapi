@@ -1334,6 +1334,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response with multiple tags
+    ListWebhookDeliveriesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/webhook_delivery'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMetaSimple'
+            type: object
+      description: A paginated array of webhook_delivery attempts
     MessageResponse:
       content:
         application/json:
@@ -16052,6 +16065,74 @@ components:
         to the state of the address.
       example: IL
       type: string
+    attempt:
+      description: Webhook delivery attempt details.
+      example:
+      - finished_at: '2020-08-10T14:00:05.595Z'
+        http:
+          request:
+            headers:
+            - 'Accept: */*'
+            url: https://fallback.example.com/webhooks
+          response:
+            body: All good.
+            headers:
+            - 'Content-Type: text/html'
+            status: 200
+        started_at: '2020-08-10T14:00:05.364Z'
+        status: delivered
+      - errors:
+        - code: '75499'
+          detail: The server returned another HTTP 4XX error
+          title: Webhook host returned HTTP 4XX
+        finished_at: '2020-08-10T14:00:05.360Z'
+        http:
+          request:
+            headers:
+            - 'Accept: */*'
+            url: https://typo.example.com/webhooks
+          response:
+            body: Oops. Not found.
+            headers:
+            - 'Content-Type: text/html'
+            - 'Pragma: no-cache'
+            status: 404
+        started_at: '2020-08-10T14:00:05.004Z'
+        status: failed
+      - errors:
+        - code: '75001'
+          detail: Unable to resolve the webhook URL domain name
+          title: Could not resolve name
+        finished_at: '2020-08-10T14:00:05.000Z'
+        http:
+          reponse: null
+          request:
+            headers:
+            - 'Accept: */*'
+            url: https://slow.example.com/webhooks
+        started_at: '2020-08-10T14:00:00.000Z'
+        status: failed
+      properties:
+        errors:
+          description: Webhook delivery errors.
+          items:
+            $ref: '#/components/schemas/error'
+          type: array
+        finished_at:
+          description: ISO 8601 timestamp indicating when the attempt has finished.
+          format: date-time
+          type: string
+        http:
+          $ref: '#/components/schemas/http'
+        started_at:
+          description: ISO 8601 timestamp indicating when the attempt was initiated.
+          format: date-time
+          type: string
+        status:
+          enum:
+          - delivered
+          - failed
+          type: string
     borough:
       description: The borough of the address. This field is not used for addresses
         in the US but is used for some international addresses.
@@ -16070,6 +16151,15 @@ components:
       description: A customer reference string for customer look ups.
       example: MY REF 001
       type: string
+    error:
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        title:
+          type: string
     extended_address:
       description: Additional street address information about the address such as,
         but not limited to, unit number or apartment number.
@@ -16080,6 +16170,35 @@ components:
         either a first last name or a business name.
       example: Alfred
       type: string
+    http:
+      description: HTTP request and response information.
+      properties:
+        request:
+          description: Request details.
+          properties:
+            headers:
+              $ref: '#/components/schemas/http_headers'
+            url:
+              example: https://example.com/webhooks
+              type: string
+        response:
+          description: Response details, optional.
+          nullable: true
+          properties:
+            body:
+              description: Raw response body, limited to 10kB.
+              type: string
+            headers:
+              $ref: '#/components/schemas/http_headers'
+            status:
+              example: 200
+              type: integer
+    http_headers:
+      description: List of headers, limited to 10kB.
+      items:
+        example: 'Header-Name: header value'
+        type: string
+      type: array
     last_name:
       description: The last name associated with the address. An address must have
         either a first last name or a business name.
@@ -16107,6 +16226,59 @@ components:
       description: The primary street address information about the address.
       example: 311 W Superior Street
       type: string
+    webhook_delivery:
+      description: Record of all attempts to deliver a webhook.
+      properties:
+        attempts:
+          description: Detailed delivery attempts, ordered by most recent.
+          items:
+            $ref: '#/components/schemas/attempt'
+          type: array
+        finished_at:
+          description: ISO 8601 timestamp indicating when the last webhook response
+            has been received.
+          example: '2020-08-10T14:00:05.595Z'
+          format: date-time
+          type: string
+        id:
+          description: Uniquely identifies the webhook_delivery record.
+          example: f5586561-8ff0-4291-a0ac-84fe544797bd
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: webhook_delivery
+          type: string
+        started_at:
+          description: ISO 8601 timestamp indicating when the first request attempt
+            was initiated.
+          example: '2020-08-10T14:00:00.000Z'
+          format: date-time
+          type: string
+        status:
+          description: 'Delivery status: ''delivered'' when successfuly delivered
+            or ''failed'' if all attempts have failed.'
+          enum:
+          - delivered
+          - failed
+          type: string
+        user_id:
+          description: Uniquely identifies the user that owns the webhook_delivery
+            record.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        webhook:
+          description: Original webhook JSON data. Payload fields vary according to
+            event type.
+          example:
+            event_type: call_initiated
+            id: C9C0797E-901D-4349-A33C-C2C8F31A92C2
+            occurred_at: '2020-08-10T13:02:01.000Z'
+            payload:
+              useful: information
+            record_type: event
+          type: object
   securitySchemes:
     BearerAuth:
       scheme: bearer
@@ -23143,6 +23315,111 @@ paths:
       tags:
       - TeXML Applications
       x-latency-category: responsive
+  /webhook_deliveries:
+    get:
+      description: Lists webhook_deliveries for the authenticated user
+      operationId: GetWebhookDeliveries
+      parameters:
+      - description: Return only webhook_deliveries matching the given `status`
+        in: query
+        name: filter[status][eq]
+        required: false
+        schema:
+          enum:
+          - delivered
+          - failed
+          example: delivered
+          type: string
+      - description: Return only webhook deliveries whose `webhook` component contains
+          the given text
+        in: query
+        name: filter[webhook_delivery][contains]
+        required: false
+        schema:
+          example: call.initiated
+          type: string
+      - description: Return only webhook_deliveries whose `attempts` component contains
+          the given text
+        in: query
+        name: filter[attempts][contains]
+        required: false
+        schema:
+          example: https://fallback.example.com/webhooks
+          type: string
+      - description: Return only webhook_deliveries whose delivery started later than
+          or at given ISO 8601 datetime
+        in: query
+        name: filter[started_at][gte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - description: Return only webhook_deliveries whose delivery started earlier
+          than or at given ISO 8601 datetime
+        in: query
+        name: filter[started_at][lte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - description: Return only webhook_deliveries whose delivery finished later
+          than or at given ISO 8601 datetime
+        in: query
+        name: filter[finished_at][gte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - description: Return only webhook_deliveries whose delivery finished earlier
+          than or at given ISO 8601 datetime
+        in: query
+        name: filter[finished_at][lte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListWebhookDeliveriesResponse'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity
+      summary: List webhook deliveries
+      tags:
+      - Webhooks
+      x-latency-category: responsive
+  /webhook_deliveries/{id}:
+    get:
+      description: Provides webhook_delivery debug data, such as timestamps, delivery
+        status and attempts.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/webhook_delivery'
+                type: object
+          description: Webhook delivery record.
+        '401':
+          description: Unauthorized
+        '404':
+          description: WebhookDelivery not found
+      summary: Find webhook_delivery details by ID
+      x-latency-category: responsive
+    parameters:
+    - description: Uniquely identifies the webhook_delivery.
+      in: path
+      name: id
+      required: true
+      schema:
+        example: C9C0797E-901D-4349-A33C-C2C8F31A92C2
+        format: uuid
+        type: string
   /wireless/detail_records_reports:
     get:
       description: Returns the WDR Reports that match the given parameters.
