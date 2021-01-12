@@ -96,6 +96,10 @@
       "description": "Inbound channels operations"
     },
     {
+      "name": "Managed Accounts",
+      "description": "Managed Accounts operations"
+    },
+    {
       "name": "Messages",
       "description": "Messages"
     },
@@ -5155,6 +5159,179 @@
             "$ref": "#/components/responses/GenericErrorResponse"
           }
         }
+      }
+    },
+    "/managed_accounts": {
+      "get": {
+        "summary": "Lists accounts managed by the current user.",
+        "description": "Lists the accounts managed by the current user. Users need to be explictly approved by Telnyx in order to become manager accounts.",
+        "operationId": "listManagedAccounts",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/FilterEmailContains"
+          },
+          {
+            "$ref": "#/components/parameters/FilterEmailEq"
+          },
+          {
+            "$ref": "#/components/parameters/Sort"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListManagedAccountsResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create a new managed account.",
+        "description": "Create a new managed account owned by the authenticated user. You need to be explictly approved by Telnyx in order to become a manager account.",
+        "operationId": "createManagedAccount",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "description": "Parameters that define the managed account to be created",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManagedAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedAccountResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableManagedAccountEntity"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/managed_accounts/{id}": {
+      "get": {
+        "description": "Retrieves the details of a single managed account.",
+        "summary": "Retrieve a managed account",
+        "operationId": "retrieveManagedAccount",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Managed Account User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedAccountResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/managed_accounts/{id}/actions/disable": {
+      "post": {
+        "summary": "Disables a managed account",
+        "description": "Disables a managed account, forbidding it to use Telnyx services, including sending or receiving phone calls and SMS messages. Ongoing phone calls will not be affected. The managed account and its sub-users will still be able to log in via the mission control portal.",
+        "operationId": "disableManagedAccount",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Managed Account User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedAccountResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableManagedAccountEntity"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/managed_accounts/{id}/actions/enable": {
+      "post": {
+        "summary": "Enables a managed account",
+        "description": "Enables a managed account and its sub-users to use Telnyx services.",
+        "operationId": "enableManagedAccount",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Managed Account User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagedAccountResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableManagedAccountEntity"
+          }
+        },
+        "x-latency-category": "responsive"
       }
     },
     "/messages": {
@@ -11207,6 +11384,26 @@
           "type": "string"
         }
       },
+      "FilterEmailContains": {
+        "name": "filter[email][contains]",
+        "in": "query",
+        "required": false,
+        "description": "If present, email containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
+        "schema": {
+          "type": "string",
+          "default": "null"
+        }
+      },
+      "FilterEmailEq": {
+        "name": "filter[email][eq]",
+        "in": "query",
+        "required": false,
+        "description": "If present, only returns results with the <code>email</code> matching exactly the value given.",
+        "schema": {
+          "type": "string",
+          "default": "null"
+        }
+      },
       "FilterInnerOutboundVoiceProfileId": {
         "name": "filter[outbound.outbound_voice_profile_id]",
         "in": "query",
@@ -11517,6 +11714,21 @@
         "schema": {
           "type": "string",
           "format": "uuid"
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>: sorts the result by the\n    <code>email</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n    <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "created_at",
+            "email"
+          ],
+          "example": "email",
+          "default": "created_at"
         }
       },
       "SortAddress": {
@@ -12480,6 +12692,27 @@
           }
         }
       },
+      "ListManagedAccountsResponse": {
+        "description": "Successful response with a list of managed accounts.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManagedAccount"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListMessagingHostedNumberOrdersResponse": {
         "description": "Successful response with a list of messaging hosted number orders.",
         "content": {
@@ -12986,6 +13219,21 @@
                 },
                 "meta": {
                   "$ref": "#/components/schemas/PaginationMetaSimple"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ManagedAccountResponse": {
+        "description": "Successful response with information about a single managed account.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/ManagedAccount"
                 }
               }
             }
@@ -13607,6 +13855,24 @@
       },
       "UnprocessableEntityResponse": {
         "description": "Unprocessable entity"
+      },
+      "UnprocessableManagedAccountEntity": {
+        "description": "Unprocessable entity. Check the 'detail' field in response for details.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnprocessableEntityError"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "UpdateBillingGroupResponse": {
         "description": "Expected billing group response to a valid request",
@@ -19437,6 +19703,76 @@
           "type": "MMS"
         }
       },
+      "CreateManagedAccountRequest": {
+        "title": "Create Managed Account Request",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The email address for the managed account. If not provided, the email address will be generated based on the email address of the manager account.",
+            "example": "new_managed_account@customer.org"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for the managed account. If a password is not supplied, the account will not be able to be signed into directly. (A password reset may still be performed later to enable sign-in via password.)",
+            "example": "3jVjLq!tMuWKyWx4NN*CvhnB"
+          },
+          "business_name": {
+            "type": "string",
+            "description": "The name of the business for which the new managed account is being created, that will be used as the managed accounts's organization's name.",
+            "example": "Larry's Cat Food Inc"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "The first name of the user for whom the new account is being created."
+          },
+          "last_name": {
+            "type": "string",
+            "description": "The last name of the user for whom the new account is being created."
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number to be associated with the user profile of the new managed account. This is not validated or used for any authentication purposes and is considered supplemental information only."
+          },
+          "address_1": {
+            "type": "string",
+            "description": "The street address portion of the address of the new account."
+          },
+          "address_2": {
+            "type": "string",
+            "description": "The extended address portion of the address of the new account."
+          },
+          "city": {
+            "type": "string",
+            "description": "The city portion of the address of the new account."
+          },
+          "state": {
+            "type": "string",
+            "description": "The state portion of the address of the new account."
+          },
+          "zip": {
+            "type": "string",
+            "description": "The postal code portion of the address of the new account."
+          },
+          "country": {
+            "type": "string",
+            "description": "The country portion of the address of the new account."
+          }
+        },
+        "example": {
+          "email": "larry_cat_food@customer.org",
+          "password": "3jVjLq!tMuWKyWx4NN*CvhnB",
+          "business_name": "Larry's Cat Food Inc",
+          "first_name": "Larry",
+          "last_name": "Meowton",
+          "phone_number": 3035551234,
+          "address_1": "1234 Kibble Ave",
+          "address_2": "Ste 3",
+          "city": "Denver",
+          "state": "CO",
+          "zip": 80023,
+          "country": "USA"
+        }
+      },
       "CreateMessageRequest": {
         "type": "object",
         "required": [
@@ -23111,6 +23447,125 @@
             "type": "integer"
           }
         ]
+      },
+      "ManagedAccount": {
+        "type": "object",
+        "title": "ManagedAccount",
+        "required": [
+          "record_type",
+          "id",
+          "email",
+          "api_key",
+          "api_user",
+          "api_token",
+          "manager_account_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "managed_account",
+            "enum": [
+              "managed_account"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "id": {
+            "type": "string",
+            "format": "UUID",
+            "description": "Uniquely identifies the managed account.",
+            "example": "f65ceda4-6522-4ad6-aede-98de83385123"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The managed account's email.",
+            "example": "user@example.com"
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The managed account's V2 API access key",
+            "example": "KEY0174227C1D16D1B180A8FF742AD37F70_1bA4vlJKHpZcJGaSXaadFu"
+          },
+          "api_user": {
+            "type": "string",
+            "description": "The manager account's email, which serves as the V1 API user identifier",
+            "example": "managed_account@example.com"
+          },
+          "api_token": {
+            "type": "string",
+            "description": "The managed account's V1 API token",
+            "example": "x6oexQNHTs-fZ7-QsDMOeg"
+          },
+          "organization_name": {
+            "type": "string",
+            "description": "The organization the managed account is associated with.",
+            "example": "Example Company LLC"
+          },
+          "manager_account_id": {
+            "type": "string",
+            "description": "The ID of the manager account associated with the managed account.",
+            "example": "f65ceda4-6522-4ad6-aede-98de83385123"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/ManagedAccountBalance"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "example": "2018-02-02T22:25:27.521Z"
+          }
+        }
+      },
+      "ManagedAccountBalance": {
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "balance",
+            "enum": [
+              "balance"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "balance": {
+            "type": "string",
+            "format": "decimal",
+            "description": "The account's current balance.",
+            "example": "300.00"
+          },
+          "credit_limit": {
+            "type": "string",
+            "format": "decimal",
+            "description": "The account's credit limit.",
+            "example": "100.00"
+          },
+          "available_credit": {
+            "type": "string",
+            "format": "decimal",
+            "description": "Available amount to spend (balance + credit limit)",
+            "example": "400.00"
+          },
+          "currency": {
+            "type": "string",
+            "format": "iso4217",
+            "description": "The ISO 4217 currency identifier.",
+            "example": "USD"
+          }
+        },
+        "example": {
+          "record_type": "balance",
+          "balance": "300.00",
+          "credit_limit": "100.00",
+          "available_credit": "400.00",
+          "currency": "USD"
+        }
       },
       "MdrDeleteDetailReportV2Resp": {
         "type": "object",
@@ -28673,6 +29128,41 @@
               "GET"
             ],
             "example": "GET"
+          }
+        }
+      },
+      "UnprocessableEntityError": {
+        "required": [
+          "code",
+          "title"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "int"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "description": "JSON pointer (RFC6901) to the offending entity.",
+                "type": "string",
+                "format": "json-pointer"
+              },
+              "parameter": {
+                "description": "Indicates which query parameter caused the error.",
+                "type": "string"
+              }
+            }
+          },
+          "meta": {
+            "type": "object"
           }
         }
       },

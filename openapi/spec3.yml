@@ -170,6 +170,24 @@ components:
       required: false
       schema:
         type: string
+    FilterEmailContains:
+      description: If present, email containing the given value will be returned.
+        Matching is not case-sensitive. Requires at least three characters.
+      in: query
+      name: filter[email][contains]
+      required: false
+      schema:
+        default: 'null'
+        type: string
+    FilterEmailEq:
+      description: If present, only returns results with the <code>email</code> matching
+        exactly the value given.
+      in: query
+      name: filter[email][eq]
+      required: false
+      schema:
+        default: 'null'
+        type: string
     FilterInnerOutboundVoiceProfileId:
       description: Identifies the associated outbound voice profile.
       in: query
@@ -421,6 +439,24 @@ components:
       required: true
       schema:
         format: uuid
+        type: string
+    Sort:
+      description: "Specifies the sort order for results. By default sorting direction\
+        \ is ascending. To have the results sorted in descending order add the <code>\
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
+        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
+        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
+        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
+        \ given, results are sorted by <code>created_at</code> in descending order."
+      in: query
+      name: sort
+      required: false
+      schema:
+        default: created_at
+        enum:
+        - created_at
+        - email
+        example: email
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1064,6 +1100,19 @@ components:
             title: List Ips Response
             type: object
       description: Successful response with a list of IPs.
+    ListManagedAccountsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/ManagedAccount'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response with a list of managed accounts.
     ListMessagingHostedNumberOrdersResponse:
       content:
         application/json:
@@ -1390,6 +1439,15 @@ components:
                 $ref: '#/components/schemas/PaginationMetaSimple'
             type: object
       description: A paginated array of webhook_delivery attempts
+    ManagedAccountResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/ManagedAccount'
+            type: object
+      description: Successful response with information about a single managed account.
     MessageResponse:
       content:
         application/json:
@@ -1787,6 +1845,18 @@ components:
         details.
     UnprocessableEntityResponse:
       description: Unprocessable entity
+    UnprocessableManagedAccountEntity:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/UnprocessableEntityError'
+                type: array
+            type: object
+      description: Unprocessable entity. Check the 'detail' field in response for
+        details.
     UpdateBillingGroupResponse:
       content:
         application/json:
@@ -6636,6 +6706,71 @@ components:
       - from
       - to
       type: object
+    CreateManagedAccountRequest:
+      example:
+        address_1: 1234 Kibble Ave
+        address_2: Ste 3
+        business_name: Larry's Cat Food Inc
+        city: Denver
+        country: USA
+        email: larry_cat_food@customer.org
+        first_name: Larry
+        last_name: Meowton
+        password: 3jVjLq!tMuWKyWx4NN*CvhnB
+        phone_number: 3035551234
+        state: CO
+        zip: 80023
+      properties:
+        address_1:
+          description: The street address portion of the address of the new account.
+          type: string
+        address_2:
+          description: The extended address portion of the address of the new account.
+          type: string
+        business_name:
+          description: The name of the business for which the new managed account
+            is being created, that will be used as the managed accounts's organization's
+            name.
+          example: Larry's Cat Food Inc
+          type: string
+        city:
+          description: The city portion of the address of the new account.
+          type: string
+        country:
+          description: The country portion of the address of the new account.
+          type: string
+        email:
+          description: The email address for the managed account. If not provided,
+            the email address will be generated based on the email address of the
+            manager account.
+          example: new_managed_account@customer.org
+          type: string
+        first_name:
+          description: The first name of the user for whom the new account is being
+            created.
+          type: string
+        last_name:
+          description: The last name of the user for whom the new account is being
+            created.
+          type: string
+        password:
+          description: Password for the managed account. If a password is not supplied,
+            the account will not be able to be signed into directly. (A password reset
+            may still be performed later to enable sign-in via password.)
+          example: 3jVjLq!tMuWKyWx4NN*CvhnB
+          type: string
+        phone_number:
+          description: The phone number to be associated with the user profile of
+            the new managed account. This is not validated or used for any authentication
+            purposes and is considered supplemental information only.
+          type: string
+        state:
+          description: The state portion of the address of the new account.
+          type: string
+        zip:
+          description: The postal code portion of the address of the new account.
+          type: string
+      title: Create Managed Account Request
     CreateMessageRequest:
       example:
         from: '+18445550001'
@@ -9812,6 +9947,102 @@ components:
       oneOf:
       - type: string
       - type: integer
+    ManagedAccount:
+      properties:
+        api_key:
+          description: The managed account's V2 API access key
+          example: KEY0174227C1D16D1B180A8FF742AD37F70_1bA4vlJKHpZcJGaSXaadFu
+          type: string
+        api_token:
+          description: The managed account's V1 API token
+          example: x6oexQNHTs-fZ7-QsDMOeg
+          type: string
+        api_user:
+          description: The manager account's email, which serves as the V1 API user
+            identifier
+          example: managed_account@example.com
+          type: string
+        balance:
+          $ref: '#/components/schemas/ManagedAccountBalance'
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        email:
+          description: The managed account's email.
+          example: user@example.com
+          format: email
+          type: string
+        id:
+          description: Uniquely identifies the managed account.
+          example: f65ceda4-6522-4ad6-aede-98de83385123
+          format: UUID
+          type: string
+        manager_account_id:
+          description: The ID of the manager account associated with the managed account.
+          example: f65ceda4-6522-4ad6-aede-98de83385123
+          type: string
+        organization_name:
+          description: The organization the managed account is associated with.
+          example: Example Company LLC
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - managed_account
+          example: managed_account
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      required:
+      - record_type
+      - id
+      - email
+      - api_key
+      - api_user
+      - api_token
+      - manager_account_id
+      - created_at
+      - updated_at
+      title: ManagedAccount
+      type: object
+    ManagedAccountBalance:
+      example:
+        available_credit: '400.00'
+        balance: '300.00'
+        credit_limit: '100.00'
+        currency: USD
+        record_type: balance
+      properties:
+        available_credit:
+          description: Available amount to spend (balance + credit limit)
+          example: '400.00'
+          format: decimal
+          type: string
+        balance:
+          description: The account's current balance.
+          example: '300.00'
+          format: decimal
+          type: string
+        credit_limit:
+          description: The account's credit limit.
+          example: '100.00'
+          format: decimal
+          type: string
+        currency:
+          description: The ISO 4217 currency identifier.
+          example: USD
+          format: iso4217
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - balance
+          example: balance
+          type: string
+      type: object
     MdrDeleteDetailReportV2Resp:
       properties:
         data:
@@ -14578,6 +14809,30 @@ components:
       - to
       title: Transfer Call Request
       type: object
+    UnprocessableEntityError:
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
     UpdateBillingGroup:
       example:
         name: string
@@ -20067,6 +20322,122 @@ paths:
       tags:
       - Reports
       x-latency-category: background
+  /managed_accounts:
+    get:
+      description: Lists the accounts managed by the current user. Users need to be
+        explictly approved by Telnyx in order to become manager accounts.
+      operationId: listManagedAccounts
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/FilterEmailContains'
+      - $ref: '#/components/parameters/FilterEmailEq'
+      - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListManagedAccountsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+      summary: Lists accounts managed by the current user.
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+    post:
+      description: Create a new managed account owned by the authenticated user. You
+        need to be explictly approved by Telnyx in order to become a manager account.
+      operationId: createManagedAccount
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateManagedAccountRequest'
+        description: Parameters that define the managed account to be created
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ManagedAccountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableManagedAccountEntity'
+      summary: Create a new managed account.
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+  /managed_accounts/{id}:
+    get:
+      description: Retrieves the details of a single managed account.
+      operationId: retrieveManagedAccount
+      parameters:
+      - description: Managed Account User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ManagedAccountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found
+      summary: Retrieve a managed account
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+  /managed_accounts/{id}/actions/disable:
+    post:
+      description: Disables a managed account, forbidding it to use Telnyx services,
+        including sending or receiving phone calls and SMS messages. Ongoing phone
+        calls will not be affected. The managed account and its sub-users will still
+        be able to log in via the mission control portal.
+      operationId: disableManagedAccount
+      parameters:
+      - description: Managed Account User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ManagedAccountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found
+        '422':
+          $ref: '#/components/responses/UnprocessableManagedAccountEntity'
+      summary: Disables a managed account
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+  /managed_accounts/{id}/actions/enable:
+    post:
+      description: Enables a managed account and its sub-users to use Telnyx services.
+      operationId: enableManagedAccount
+      parameters:
+      - description: Managed Account User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ManagedAccountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found
+        '422':
+          $ref: '#/components/responses/UnprocessableManagedAccountEntity'
+      summary: Enables a managed account
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
   /messages:
     post:
       callbacks:
@@ -23949,6 +24320,8 @@ tags:
   name: IPs
 - description: Inbound channels operations
   name: Inbound Channels
+- description: Managed Accounts operations
+  name: Managed Accounts
 - description: Messages
   name: Messages
 - description: Manage your messaging hosted numbers
