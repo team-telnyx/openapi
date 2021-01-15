@@ -7440,6 +7440,33 @@ components:
       - voice_url
       title: Create Texml Application Request
       type: object
+    CreateVerificationRequest:
+      description: The request body when creating a verification.
+      properties:
+        phone_number:
+          description: +E164 formatted phone number.
+          example: '+13035551234'
+          type: string
+        timeout_secs:
+          description: 'This is the number of seconds before the code of the request
+            is expired. Once this request has expired, the code will no longer verify
+            the user. Note: this will override the `default_timeout_secs` on the Verify
+            profile.'
+          example: 300
+          type: integer
+        type:
+          $ref: '#/components/schemas/VerificationType'
+        verify_profile_id:
+          description: The identifier of the associated Verify profile.
+          example: 12ade33a-21c0-473b-b055-b3c836e1c292
+          format: uuid
+          type: string
+      required:
+      - phone_number
+      - verify_profile_id
+      - type
+      title: CreateVerificationRequest
+      type: object
     CreateVerificationResponse:
       properties:
         data:
@@ -7447,6 +7474,42 @@ components:
       required:
       - data
       title: CreateVerifyVerificationResponse
+      type: object
+    CreateVerifyProfileRequest:
+      description: The request body when creating a Verify profile.
+      properties:
+        default_timeout_secs:
+          description: For every request that is initiated via this Verify profile,
+            this sets the number of seconds before a verification request code expires.
+            Once the verification request expires, the user cannot use the code to
+            verify their identity.
+          example: 300
+          type: integer
+        messaging_enabled:
+          default: true
+          description: Enables SMS text messaging for the Verify profile.
+          example: true
+          type: boolean
+        messaging_template:
+          default: null
+          description: Optionally sets a messaging text template when sending the
+            verification code. Uses `{code}` to template in the actual verification
+            code.
+          example: 'Hello, this is the Acme Inc verification code you requested: {code}.'
+          nullable: true
+          type: string
+        name:
+          description: The human readable label for the Verify profile.
+          example: Test Profile
+          type: string
+        rcs_enabled:
+          default: false
+          description: Enables RCS messaging for the Verify profile.
+          example: true
+          type: boolean
+      required:
+      - name
+      title: CreateVerifyProfileRequest
       type: object
     CreateVerifyProfileResponse:
       properties:
@@ -13516,7 +13579,7 @@ components:
           $ref: '#/components/schemas/Verification'
       required:
       - data
-      title: RetrieveVerifyVerificationResponse
+      title: RetrieveVerificationResponse
       type: object
     SIMCard:
       properties:
@@ -16081,6 +16144,42 @@ components:
       - voice_url
       title: Update Texml Application Request
       type: object
+    UpdateVerifyProfileRequest:
+      description: The request body when updating a Verify profile.
+      properties:
+        default_timeout_secs:
+          description: For every request that is initiated via this Verify profile,
+            this sets the number of seconds before a verification request code expires.
+            Once the verification request expires, the user cannot use the code to
+            verify their identity.
+          example: 300
+          type: integer
+        messaging_enabled:
+          default: true
+          description: Enables SMS text messaging for the Verify profile.
+          example: true
+          type: boolean
+        messaging_template:
+          default: null
+          description: Optionally sets a messaging text template when sending the
+            verification code. Uses `{code}` to template in the actual verification
+            code.
+          example: 'Hello, this is the Acme Inc verification code you requested: {code}.'
+          nullable: true
+          type: string
+        name:
+          description: The human readable label for the Verify profile.
+          example: Test Profile
+          type: string
+        rcs_enabled:
+          default: false
+          description: Enables RCS messaging for the Verify profile.
+          example: true
+          type: boolean
+      required:
+      - name
+      title: UpdateVerifyProfileRequest
+      type: object
     UpdateVerifyProfileResponse:
       properties:
         data:
@@ -16270,7 +16369,6 @@ components:
       properties:
         created_at:
           example: '2020-09-14T17:03:32.965812'
-          format: date-time
           type: string
         id:
           example: 12ade33a-21c0-473b-b055-b3c836e1c292
@@ -16297,7 +16395,6 @@ components:
           $ref: '#/components/schemas/VerificationType'
         updated_at:
           example: '2020-09-14T17:03:32.965812'
-          format: date-time
           type: string
         verify_profile_id:
           description: The identifier of the associated Verify profile.
@@ -16314,64 +16411,6 @@ components:
       - updated_at
       title: Verification
       type: object
-    VerificationAggregate:
-      properties:
-        data:
-          items:
-            properties:
-              aggregations:
-                properties:
-                  count:
-                    type: integer
-                type: object
-              fields:
-                properties:
-                  status:
-                    type: string
-                  verify_profile_id:
-                    type: string
-                type: object
-            type: object
-          type: array
-      title: VerificationAggregate
-      type: object
-    VerificationCodeRequest:
-      properties:
-        code:
-          description: This is the code the user submits for verification.
-          example: '17686'
-          type: string
-      required:
-      - code
-      title: VerifyVerificationCodeRequest
-      type: object
-    VerificationRequest:
-      description: The request body when creating a verification.
-      properties:
-        phone_number:
-          description: +E164 formatted phone number.
-          example: '+13035551234'
-          type: string
-        timeout_secs:
-          description: 'This is the number of seconds before the code of the request
-            is expired. Once this request has expired, the code will no longer verify
-            the user. Note: this will override the `default_timeout_secs` on the Verify
-            profile.'
-          example: 300
-          type: integer
-        type:
-          $ref: '#/components/schemas/VerificationType'
-        verify_profile_id:
-          description: The identifier of the associated Verify profile.
-          example: 12ade33a-21c0-473b-b055-b3c836e1c292
-          format: uuid
-          type: string
-      required:
-      - phone_number
-      - verify_profile_id
-      - type
-      title: VerifyVerificationRequest
-      type: object
     VerificationStatus:
       description: The possible statuses of the verification request.
       enum:
@@ -16386,29 +16425,8 @@ components:
       - invalid_destination
       - timed_out
       example: accepted
-      title: VerifyVerificationStatus
+      title: VerificationStatus
       type: string
-    VerificationSubmissionReponseCode:
-      description: Identifies if the verification code has been accepted or rejected.
-      enum:
-      - accepted
-      - rejected
-      example: accepted
-      title: VerifyVerificationSubmissionReponseCode
-      type: string
-    VerificationSubmissionResponse:
-      properties:
-        phone_number:
-          description: +E164 formatted phone number.
-          example: '+13035551234'
-          type: string
-        response_code:
-          $ref: '#/components/schemas/VerificationSubmissionReponseCode'
-      required:
-      - phone_number
-      - response_code
-      title: VerifyVerificationSubmissionResponse
-      type: object
     VerificationType:
       description: The verification request type.
       enum:
@@ -16416,19 +16434,10 @@ components:
       example: sms
       title: VerificationType
       type: string
-    VerificationVerify:
-      properties:
-        data:
-          $ref: '#/components/schemas/VerificationSubmissionResponse'
-      required:
-      - data
-      title: VerificationVerify
-      type: object
     VerifyProfile:
       properties:
         created_at:
           example: '2020-09-14T17:03:32.965812'
-          format: date-time
           type: string
         default_timeout_secs:
           description: For every request that is initiated via this Verify profile,
@@ -16465,8 +16474,11 @@ components:
           type: string
         updated_at:
           example: '2020-09-14T17:03:32.965812'
-          format: date-time
           type: string
+        vsms_enabled:
+          description: Enables VSMS for the Verify profile.
+          example: true
+          type: boolean
       required:
       - id
       - name
@@ -16476,39 +16488,46 @@ components:
       - rcs_enabled
       title: VerifyProfile
       type: object
-    VerifyProfileRequest:
-      description: The request body when creating a Verify profile.
+    VerifyProfileResponse:
+      description: A Verify profile
       properties:
-        default_timeout_secs:
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        messaging_enabled:
-          default: false
-          description: Enables SMS text messaging for the Verify profile.
-          example: true
-          type: boolean
-        messaging_template:
-          description: Optionally sets a messaging text template when sending the
-            verification code. Uses `{code}` to template in the actual verification
-            code.
-          example: 'Hello, this is the Acme Inc verification code you requested: {code}.'
+        data:
+          $ref: '#/components/schemas/VerifyProfile'
+      title: VerifyProfilesResponse
+      type: object
+    VerifyVerificationCodeRequest:
+      properties:
+        code:
+          description: This is the code the user submits for verification.
+          example: '17686'
           type: string
-        name:
-          description: The human readable label for the Verify profile.
-          example: Test Profile
-          type: string
-        rcs_enabled:
-          default: false
-          description: Enables RCS messaging for the Verify profile.
-          example: true
-          type: boolean
       required:
-      - name
-      title: VerifyProfileRequest
+      - code
+      title: VerifyVerificationCodeRequest
+      type: object
+    VerifyVerificationCodeResponse:
+      properties:
+        data:
+          properties:
+            phone_number:
+              description: +E164 formatted phone number.
+              example: '+13035551234'
+              type: string
+            response_code:
+              description: Identifies if the verification code has been accepted or
+                rejected.
+              enum:
+              - accepted
+              - rejected
+              example: accepted
+              type: string
+          required:
+          - phone_number
+          - response_code
+          type: object
+      required:
+      - data
+      title: VerifyVerificationCodeResponse
       type: object
     WdrReport:
       properties:
@@ -23989,7 +24008,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerificationRequest'
+              $ref: '#/components/schemas/CreateVerificationRequest'
         required: true
       responses:
         '200':
@@ -23998,7 +24017,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateVerificationResponse'
           description: Expected verifications response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Trigger a verification
       tags:
@@ -24006,9 +24025,9 @@ paths:
       x-latency-category: responsive
   /verifications/by_phone_number/{phone_number}:
     get:
-      operationId: retrieveVerificationByPhoneNumber
+      operationId: listVerifications
       parameters:
-      - description: The phone number associated with the verification to retrieve.
+      - description: The phone number associated with the verifications to retrieve.
         in: path
         name: phone_number
         required: true
@@ -24023,17 +24042,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ListVerificationsResponse'
           description: Expected verifications response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Retrieve a verification by phone number
+      summary: List verifications by phone number
       tags:
       - Verify
       x-latency-category: responsive
   /verifications/by_phone_number/{phone_number}/actions/verify:
     post:
-      operationId: verifyVerificationByPhoneNumber
+      operationId: verifyVerificationCode
       parameters:
-      - description: The phone number associated with the verification being verified.
+      - description: The phone number associated with the verification code being
+          verified.
         in: path
         name: phone_number
         required: true
@@ -24045,16 +24065,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerificationCodeRequest'
+              $ref: '#/components/schemas/VerifyVerificationCodeRequest'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VerificationVerify'
+                $ref: '#/components/schemas/VerifyVerificationCodeResponse'
           description: Expected verify response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Submit a verification code
       tags:
@@ -24062,7 +24082,7 @@ paths:
       x-latency-category: responsive
   /verifications/{verification_id}:
     get:
-      operationId: retrieveVerificationById
+      operationId: retrieveVerification
       parameters:
       - description: The identifier of the verification to retrieve.
         in: path
@@ -24079,7 +24099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RetrieveVerificationResponse'
           description: Expected verifications response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a verification
       tags:
@@ -24118,7 +24138,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ListVerifyProfilesResponse'
           description: Expected Verify profile response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: List all Verify profiles
       tags:
@@ -24132,16 +24152,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerifyProfileRequest'
+              $ref: '#/components/schemas/CreateVerifyProfileRequest'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateVerifyProfileResponse'
+                $ref: '#/components/schemas/VerifyProfileResponse'
           description: Expected Verify profile response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Create a Verify profile
       tags:
@@ -24164,9 +24184,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DeleteVerifyProfileResponse'
+                $ref: '#/components/schemas/VerifyProfileResponse'
           description: Expected Verify profile response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a Verify profile
       tags:
@@ -24189,9 +24209,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateVerifyProfileResponse'
+                $ref: '#/components/schemas/VerifyProfileResponse'
           description: Expected Verify profile response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a Verify profile
       tags:
@@ -24212,16 +24232,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VerifyProfileRequest'
+              $ref: '#/components/schemas/UpdateVerifyProfileRequest'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UpdateVerifyProfileResponse'
+                $ref: '#/components/schemas/VerifyProfileResponse'
           description: Expected Verify profile response to a valid request.
-        default:
+        '400':
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a Verify profile
       tags:
