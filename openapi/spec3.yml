@@ -725,6 +725,17 @@ components:
         (in the ota_updates node) representing the delete operation. Similarly to
         the PUT API, the resource will only be deleted when the OTA updated is successfully
         completed.'
+    DecommissionedSIMCardPublicIPResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardPublicIP'
+            type: object
+      description: A successful and synchronous decommission of a public IP. This
+        response happens when no further processing is required. Therefore, a new
+        public IP can be requested right away.
     DeleteBillingGroupResponse:
       content:
         application/json:
@@ -1664,6 +1675,17 @@ components:
                 $ref: '#/components/schemas/PortoutDetails'
             type: object
       description: Portout Response
+    ReceivedSIMCardPublicIPResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardPublicIP'
+            type: object
+      description: A successful response on an asynchronous operation. The content
+        in this response represents the current status of the public IP. But, it'll
+        change during the operation processing.
     RecordingResponse:
       content:
         application/json:
@@ -13737,12 +13759,6 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
-        data_enabled:
-          description: It toggles data consumption on all SIM cards in a group. <br/><br/>
-            It's important to note that the data_limit will be respected even though
-            this attribute is set to `true`.
-          example: true
-          type: boolean
         data_limit:
           description: Upper limit on the amount of data the SIM cards, within the
             group, can use.
@@ -13779,12 +13795,6 @@ components:
       type: object
     SIMCardGroupCreate:
       properties:
-        data_enabled:
-          description: It enables or not data consumption on all SIM cards in a group.
-            <br/><br/> It's important to note that the data_limit will be respected
-            even though this attribute is set to `true`.
-          example: true
-          type: boolean
         data_limit:
           description: Upper limit on the amount of data the SIM cards, within the
             group, can use.
@@ -13800,12 +13810,6 @@ components:
       type: object
     SIMCardGroupPatch:
       properties:
-        data_enabled:
-          description: It enables or not data consumption on all SIM cards in a group.
-            <br/><br/> It's important to note that the data_limit will be respected
-            even though this attribute is set to `true`.
-          example: true
-          type: boolean
         data_limit:
           description: Upper limit on the amount of data the SIM cards, within the
             group, can use.
@@ -17069,8 +17073,8 @@ paths:
         codes to the current user''s account.<br/><br/>
 
         If <code>sim_card_group_id</code> is provided, the SIM cards will be associated
-        with that group. Otherwise, the default group for the current user, which
-        is already data-enabled, will be used.<br/><br/>
+        with that group. Otherwise, the default group for the current user will be
+        used.<br/><br/>
 
         '
       operationId: SimCardRegister
@@ -23567,7 +23571,7 @@ paths:
       description: 'The SIM card will be able to connect to the network once the enabling
         is complete, thus making it possible to consume data.<br/>
 
-        To enable a SIM card, it must be associated with a data-enabled SIM card group.<br/>
+        To enable a SIM card, it must be associated with SIM card group.<br/>
 
         Transitioning to the enabled state may take a period of time. Until the transition
         is completed, the SIM card status will be <code>enabling</code>.
@@ -23671,8 +23675,10 @@ paths:
       parameters:
       - $ref: '#/components/parameters/SIMCardId'
       responses:
+        '200':
+          $ref: '#/components/responses/DecommissionedSIMCardPublicIPResponse'
         '202':
-          $ref: '#/components/responses/SIMCardPublicIPResponse'
+          $ref: '#/components/responses/ReceivedSIMCardPublicIPResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete SIM card public IP
@@ -23710,7 +23716,7 @@ paths:
       - $ref: '#/components/parameters/SIMCardId'
       responses:
         '202':
-          $ref: '#/components/responses/SIMCardPublicIPResponse'
+          $ref: '#/components/responses/ReceivedSIMCardPublicIPResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Set SIM card public IP
