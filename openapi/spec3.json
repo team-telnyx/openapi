@@ -2539,6 +2539,99 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/transcription_start": {
+      "post": {
+        "summary": "Transcription start",
+        "description": "Start real-time transcription. Transcription will stop on call hang-up, or can be initiated via the Transcription stop command.",
+        "operationId": "callTranscriptionStart",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Transcription start request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptionStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "transcription": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/TranscriptionEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/transcription_stop": {
+      "post": {
+        "summary": "Transcription stop",
+        "description": "Stop real-time transcription.",
+        "operationId": "callTranscriptionStop",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Transcription stop request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptionStopRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/transfer": {
       "post": {
         "summary": "Transfer call",
@@ -3662,6 +3755,50 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/conferences/{id}/actions/update": {
+      "post": {
+        "summary": "Update conference participant",
+        "description": "Update conference participant supervisor_role",
+        "operationId": "conferenceUpdate",
+        "tags": [
+          "Conference Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Uniquely identifies the conference by id or name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Update Conference request object",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ConferenceCommandResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntityResponse"
@@ -29337,6 +29474,167 @@
         "example": "conversational",
         "default": "conversational"
       },
+      "Transcription": {
+        "type": "object",
+        "title": "Transcription",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.transcription",
+            "enum": [
+              "call.transcription"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "description": "Unique identifier and token for controlling the call.",
+                "type": "string",
+                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events."
+              },
+              "client_state": {
+                "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "transcription_data": {
+                "type": "object",
+                "properties": {
+                  "confidence": {
+                    "type": "number",
+                    "format": "double",
+                    "example": 0.977219,
+                    "description": "Speech recognition confidence level."
+                  },
+                  "transcript": {
+                    "type": "string",
+                    "example": "hello this is a test speech",
+                    "description": "Recognized text."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.transcription",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "call_control_id": "v2:7subYr8fLrXmaAXm8egeAMpoSJ72J3SGPUuome81-hQuaKRf9b7hKA",
+            "call_leg_id": "5ca81340-5beb-11eb-ae45-02420a0f8b69",
+            "call_session_id": "5ca81eee-5beb-11eb-ba6c-02420a0f8b69",
+            "client_state": null,
+            "connection_id": "1240401930086254526",
+            "transcription_data": {
+              "confidence": 0.977219,
+              "transcript": "hello this is a test speech"
+            }
+          }
+        }
+      },
+      "TranscriptionEvent": {
+        "type": "object",
+        "title": "Transcription Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Transcription"
+          }
+        }
+      },
+      "TranscriptionStartRequest": {
+        "type": "object",
+        "title": "Transcription start request",
+        "properties": {
+          "language": {
+            "description": "Language to use for speech recognition",
+            "type": "string",
+            "enum": [
+              "de",
+              "en",
+              "es",
+              "fr",
+              "it",
+              "pl"
+            ],
+            "default": "en",
+            "example": "en"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "language": "en",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "TranscriptionStopRequest": {
+        "type": "object",
+        "title": "Transcription stop request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "TransferCallRequest": {
         "type": "object",
         "title": "Transfer Call Request",
@@ -29721,6 +30019,62 @@
           "webhook_api_version": "1",
           "webhook_event_failover_url": "https://failover.example.com",
           "webhook_timeout_secs": 25
+        }
+      },
+      "UpdateConferenceRequest": {
+        "required": [
+          "call_control_id"
+        ],
+        "type": "object",
+        "title": "Update Conference Request",
+        "properties": {
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call",
+            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
+            "type": "string"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "type": "string"
+          },
+          "command_id": {
+            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+            "type": "string"
+          },
+          "supervisor_role": {
+            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
+            "example": "whisper",
+            "type": "string",
+            "enum": [
+              "barge",
+              "monitor",
+              "none",
+              "whisper"
+            ]
+          },
+          "whisper_call_control_ids": {
+            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
+            "example": [
+              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "supervisor_role": "whisper",
+          "whisper_call_control_ids": [
+            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+          ]
         }
       },
       "UpdateCredentialConnectionRequest": {
