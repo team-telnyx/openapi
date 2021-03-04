@@ -5747,6 +5747,17 @@ components:
           $ref: '#/components/schemas/ConferenceSpeakStarted'
       title: Conference Speak Started Event
       type: object
+    ConferenceStopRequest:
+      properties:
+        call_control_ids:
+          description: List of call control ids identifying participants the audio
+            file should stop be played to. If not given, the audio will be stoped
+            to the entire conference.
+          items:
+            type: string
+          type: array
+      title: Conference Stop Request
+      type: object
     ConferenceUnholdRequest:
       example:
         call_control_ids:
@@ -19811,6 +19822,51 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Speak text to conference participants
+      tags:
+      - Conference Commands
+      x-latency-category: interactive
+  /conferences/{id}/actions/stop:
+    post:
+      callbacks:
+        conferenceParticipantPlaybackEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/ConferenceParticipantPlaybackEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: Stop audio being played to all or some participants on a conference
+        call.
+      operationId: conferenceStopAudio
+      parameters:
+      - description: Uniquely identifies the conference by id or name
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConferenceStopRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ConferenceCommandResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Stop audio being played on the conference
       tags:
       - Conference Commands
       x-latency-category: interactive
