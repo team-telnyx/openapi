@@ -4458,6 +4458,73 @@ components:
           example: voip
           type: string
       type: object
+    CdrGetSyncUsageReportResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/CdrUsageReportResponse'
+      type: object
+    CdrUsageReportResponse:
+      properties:
+        aggregation_type:
+          enum:
+          - NO_AGGREGATION
+          - CONNECTION
+          - TAG
+          - BILLING_GROUP
+          type: string
+        connections:
+          example: '[1234567890L, 9876543210L]'
+          items:
+            format: int64
+            type: integer
+          properties:
+            empty:
+              type: boolean
+          type: array
+          uniqueItems: true
+        created_at:
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+        end_time:
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+        id:
+          description: Identifies the resource
+          format: uuid
+          type: string
+        product_breakdown:
+          enum:
+          - NO_BREAKDOWN
+          - DID_VS_TOLL_FREE
+          - COUNTRY
+          - DID_VS_TOLL_FREE_PER_COUNTRY
+          type: string
+        record_type:
+          example: cdr_usage_report
+          type: string
+        report_url:
+          example: http://portal.telnyx.com/downloads/report_name_8hvb45Gu.csv
+          type: string
+        result:
+          type: object
+        start_time:
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+        status:
+          enum:
+          - PENDING
+          - COMPLETE
+          - FAILED
+          - EXPIRED
+          type: string
+        updated_at:
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+      type: object
     CnamListing:
       description: The CNAM listing settings for a phone number.
       example:
@@ -9181,6 +9248,16 @@ components:
           - successful
           type: string
       type: object
+    ImmutableSetLong:
+      example: '[1234567890L, 9876543210L]'
+      items:
+        format: int64
+        type: integer
+      properties:
+        empty:
+          type: boolean
+      type: array
+      uniqueItems: true
     InboundFqdn:
       example:
         ani_number_format: +E.164
@@ -10416,6 +10493,11 @@ components:
         meta:
           $ref: '#/components/schemas/PaginationMeta'
       type: object
+    MdrGetSyncUsageReportResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/MdrUsageReportResponse'
+      type: object
     MdrGetUsageReportsByIdResponse:
       properties:
         data:
@@ -10512,6 +10594,9 @@ components:
       type: object
     MdrUsageRecord:
       properties:
+        carrier_passthrough_fee:
+          example: '0'
+          type: string
         connection:
           example: all
           type: string
@@ -23819,7 +23904,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Mdr Detail Reports
+      - MDR Detail Reports
       x-latency-category: interactive
     post:
       description: Submit a request for new messaging detail report. Messaging detail
@@ -23842,7 +23927,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Submit Mdr Detail Report Request
+      - MDR Detail Reports
       x-latency-category: background
   /reports/batch_mdr_reports/{id}:
     delete:
@@ -23867,7 +23952,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Delete Mdr Detail Report
+      - MDR Detail Reports
       x-latency-category: interactive
     get:
       description: Fetch single messaging detail report by id.
@@ -23891,8 +23976,70 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Mdr Detail Report
+      - MDR Detail Reports
       x-latency-category: interactive
+  /reports/cdr_usage_reports/sync:
+    get:
+      description: 'Generate and fetch voice usage report synchronously. This endpoint
+        will both generate and fetch the voice report over a specified time period.
+        No polling is necessary but the response may take up to a couple of minutes. '
+      operationId: getUsageReportSync
+      parameters:
+      - in: query
+        name: start_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: end_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: aggregation_type
+        required: true
+        schema:
+          enum:
+          - NO_AGGREGATION
+          - CONNECTION
+          - TAG
+          - BILLING_GROUP
+          example: no_aggregation
+          type: string
+      - in: query
+        name: product_breakdown
+        required: true
+        schema:
+          enum:
+          - NO_BREAKDOWN
+          - DID_VS_TOLL_FREE
+          - COUNTRY
+          - DID_VS_TOLL_FREE_PER_COUNTRY
+          example: no_breakdown
+          type: string
+      - in: query
+        name: connections
+        schema:
+          example: 1234567890123
+          items:
+            example: 1234567890123
+            type: number
+          type: array
+          uniqueItems: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CdrGetSyncUsageReportResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - CDR Usage Reports
+      x-latency-category: background
   /reports/mdr_usage_reports:
     get:
       description: Fetch all messaging usage reports. Usage reports are aggregated
@@ -23923,7 +24070,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Mdr Usage Reports
+      - MDR Usage Reports
       x-latency-category: interactive
     post:
       description: 'Submit request for new new messaging usage report. This endpoint
@@ -23946,7 +24093,58 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Submit Mdr Usage Report Request
+      - MDR Usage Reports
+      x-latency-category: background
+  /reports/mdr_usage_reports/sync:
+    get:
+      description: 'Generate and fetch messaging usage report synchronously. This
+        endpoint will both generate and fetch the messaging report over a specified
+        time period. No polling is necessary but the response may take up to a couple
+        of minutes. '
+      operationId: getUsageReportSync_1
+      parameters:
+      - in: query
+        name: start_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: end_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: aggregation_type
+        required: true
+        schema:
+          enum:
+          - NO_AGGREGATION
+          - PROFILE
+          - TAGS
+          example: profile
+          type: string
+      - in: query
+        name: profiles
+        schema:
+          example: My profile
+          items:
+            example: My profile
+            type: string
+          type: array
+          uniqueItems: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdrGetSyncUsageReportResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - MDR Usage Reports
       x-latency-category: background
   /reports/mdr_usage_reports/{id}:
     delete:
@@ -23971,7 +24169,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Mdr Delete Usage Report
+      - MDR Usage Reports
       x-latency-category: interactive
     get:
       description: Fetch a single messaging usage report by id
@@ -23995,7 +24193,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Mdr Usage Report By Id
+      - MDR Usage Reports
       x-latency-category: interactive
   /reports/mdrs:
     get:
@@ -24078,7 +24276,7 @@ paths:
       security:
       - bearerAuth: []
       tags:
-      - Reporting
+      - MDR Detail Reports
       x-latency-category: interactive
   /short_codes:
     get:
