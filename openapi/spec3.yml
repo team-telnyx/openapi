@@ -41,7 +41,7 @@ components:
         - voice
         example: webhook
         type: string
-    DocumentIdFilter:
+    DocServiceDocumentIdFilter:
       description: Identifies the associated document to filter on.
       in: query
       name: filter[document_id]
@@ -703,14 +703,14 @@ components:
                 type: array
             type: object
       description: ''
-    BulkUploadDocumentsResponse:
+    BulkUploadDocServiceDocumentsResponse:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/Document'
+                  $ref: '#/components/schemas/DocServiceDocument'
                 type: array
             type: object
       description: Successful response
@@ -924,16 +924,16 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
-    DocumentResponse:
+    DocServiceDocumentResponse:
       content:
         application/json:
           schema:
             properties:
               data:
-                $ref: '#/components/schemas/Document'
+                $ref: '#/components/schemas/DocServiceDocument'
             type: object
       description: Successful response
-    DownloadDocumentResponse:
+    DownloadDocServiceDocumentResponse:
       content:
         '*':
           schema:
@@ -1260,27 +1260,27 @@ components:
             title: List CSV Downloads Response
             type: object
       description: Successful response with a list of CSV downloads.
-    ListDocumentLinksResponse:
+    ListDocServiceDocumentLinksResponse:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/DocumentLink'
+                  $ref: '#/components/schemas/DocServiceDocumentLink'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
-    ListDocumentsResponse:
+    ListDocServiceDocumentsResponse:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/Document'
+                  $ref: '#/components/schemas/DocServiceDocument'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
@@ -6833,13 +6833,10 @@ components:
       - connection_name
       title: Create Credential Connection Request
       type: object
-    CreateDocumentRequest:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - $ref: '#/components/schemas/Document'
-      - oneOf:
-        - $ref: '#/components/schemas/DocumentUploadURL'
-        - $ref: '#/components/schemas/DocumentUploadInline'
+    CreateDocServiceDocumentRequest:
+      oneOf:
+      - $ref: '#/components/schemas/DocServiceDocumentUploadURL'
+      - $ref: '#/components/schemas/DocServiceDocumentUploadInline'
     CreateFaxApplicationRequest:
       example:
         active: false
@@ -7591,7 +7588,7 @@ components:
       required:
       - name
       type: object
-    CreateMultiPartDocumentRequest:
+    CreateMultiPartDocServiceDocumentRequest:
       properties:
         file:
           description: The file you are uploading.
@@ -8724,6 +8721,118 @@ components:
       - data
       title: DeleteVerifyProfileResponse
       type: object
+    DocServiceDocument:
+      allOf:
+      - $ref: '#/components/schemas/DocServiceRecord'
+      - properties:
+          content_type:
+            description: The document's content_type.
+            example: application/pdf
+            readOnly: true
+            type: string
+          filename:
+            description: The filename of the document.
+            example: test-document.pdf
+            type: string
+          record_type:
+            description: Identifies the type of the resource.
+            example: document
+            readOnly: true
+            type: string
+          sha256:
+            description: The document's SHA256 hash provided for optional verification
+              purposes.
+            example: 08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c
+            readOnly: true
+            type: string
+          size:
+            description: Indicates the document's filesize
+            properties:
+              amount:
+                description: The number of bytes
+                example: 123456
+                readOnly: true
+                type: integer
+              unit:
+                description: Identifies the unit
+                example: bytes
+                readOnly: true
+                type: string
+            readOnly: true
+            type: object
+        type: object
+    DocServiceDocumentLink:
+      allOf:
+      - $ref: '#/components/schemas/DocServiceRecord'
+      - properties:
+          document_id:
+            description: Identifies the associated document.
+            example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+            format: uuid
+            readOnly: true
+            type: string
+          linked_record_type:
+            description: The linked resource's record type.
+            example: porting_order
+            readOnly: true
+            type: string
+          linked_resource_id:
+            description: Identifies the linked resource.
+            example: 132091b4-442b-4a2a-b87f-61e707e46d54
+            readOnly: true
+            type: string
+          record_type:
+            description: Identifies the type of the resource.
+            example: document_link
+            readOnly: true
+            type: string
+        type: object
+    DocServiceDocumentUploadInline:
+      properties:
+        file:
+          description: The Base64 encoded contents of the file you are uploading.
+          example: '[Base64 encoded content]'
+          format: byte
+          type: string
+      required:
+      - file
+      type: object
+    DocServiceDocumentUploadURL:
+      properties:
+        url:
+          description: If the file is already hosted publicly, you can provide a URL
+            and have the documents service fetch it for you.
+          example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
+          type: string
+      required:
+      - url
+      type: object
+    DocServiceRecord:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: sample_record_type
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      type: object
     Document:
       description: The media object containing a document reference
       example:
@@ -8750,51 +8859,6 @@ components:
           example: http://www.example.com/file
           type: string
       title: Document
-      type: object
-    DocumentLink:
-      allOf:
-      - $ref: '#/components/schemas/Record'
-      - properties:
-          document_id:
-            description: Identifies the associated document.
-            example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-            format: uuid
-            readOnly: true
-            type: string
-          linked_record_type:
-            description: The linked resource's record type.
-            example: porting_order
-            readOnly: true
-            type: string
-          linked_resource_id:
-            description: Identifies the linked resource.
-            example: 132091b4-442b-4a2a-b87f-61e707e46d54
-            readOnly: true
-            type: string
-          record_type:
-            description: Identifies the type of the resource.
-            example: document_link
-            readOnly: true
-            type: string
-        type: object
-    DocumentUploadInline:
-      properties:
-        file:
-          description: The Base64 encoded contents of the file you are uploading.
-          format: byte
-          type: string
-      required:
-      - file
-      type: object
-    DocumentUploadURL:
-      properties:
-        url:
-          description: If the file is already hosted publicly, you can provide a URL
-            and have the documents service fetch it for you.
-          example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
-          type: string
-      required:
-      - url
       type: object
     DtmfType:
       default: RFC 2833
@@ -14830,32 +14894,6 @@ components:
           - failed
           - decommissioning
           example: provisioned
-          readOnly: true
-          type: string
-      type: object
-    Record:
-      properties:
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-        id:
-          description: Identifies the resource.
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-          format: uuid
-          readOnly: true
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: sample_record_type
-          readOnly: true
-          type: string
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
       type: object
@@ -21872,12 +21910,12 @@ paths:
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/DocumentIdFilter'
+      - $ref: '#/components/parameters/DocServiceDocumentIdFilter'
       - $ref: '#/components/parameters/LinkedRecordTypeFilter'
       - $ref: '#/components/parameters/LinkedResourceIdFilter'
       responses:
         '200':
-          $ref: '#/components/responses/ListDocumentLinksResponse'
+          $ref: '#/components/responses/ListDocServiceDocumentLinksResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: List all document links
@@ -21893,7 +21931,7 @@ paths:
       - $ref: '#/components/parameters/PageSize'
       responses:
         '200':
-          $ref: '#/components/responses/ListDocumentsResponse'
+          $ref: '#/components/responses/ListDocServiceDocumentsResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: List all documents
@@ -21908,14 +21946,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateDocumentRequest'
+              $ref: '#/components/schemas/CreateDocServiceDocumentRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateMultiPartDocumentRequest'
+              $ref: '#/components/schemas/CreateMultiPartDocServiceDocumentRequest'
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/DocumentResponse'
+          $ref: '#/components/responses/DocServiceDocumentResponse'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         default:
@@ -21934,7 +21972,7 @@ paths:
       - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          $ref: '#/components/responses/DocumentResponse'
+          $ref: '#/components/responses/DocServiceDocumentResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a document
@@ -21948,7 +21986,7 @@ paths:
       - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          $ref: '#/components/responses/DocumentResponse'
+          $ref: '#/components/responses/DocServiceDocumentResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a document
@@ -21964,11 +22002,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Document'
+              $ref: '#/components/schemas/DocServiceDocument'
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/DocumentResponse'
+          $ref: '#/components/responses/DocServiceDocumentResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a document
@@ -21978,12 +22016,12 @@ paths:
   /documents/{id}/download:
     get:
       description: Download a document.
-      operationId: downloadDocument
+      operationId: downloadDocServiceDocument
       parameters:
       - $ref: '#/components/parameters/Id'
       responses:
         '200':
-          $ref: '#/components/responses/DownloadDocumentResponse'
+          $ref: '#/components/responses/DownloadDocServiceDocumentResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Download a document
