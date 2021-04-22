@@ -786,6 +786,15 @@ components:
                 $ref: '#/components/schemas/PrivateWirelessGateway'
             type: object
       description: Successful response
+    CreateRoomResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Room'
+            type: object
+      description: Create room response.
     CreateSimCardGroupResponse:
       content:
         application/json:
@@ -1061,6 +1070,15 @@ components:
                 $ref: '#/components/schemas/PrivateWirelessGateway'
             type: object
       description: Successful response
+    GetRoomResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Room'
+            type: object
+      description: Get room response.
     GetSimCardGroupResponse:
       content:
         application/json:
@@ -1670,6 +1688,19 @@ components:
             title: List Recordings Response
             type: object
       description: Successful response with a list of recordings.
+    ListRoomsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Room'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: List rooms response.
     ListShortCodesResponse:
       content:
         application/json:
@@ -7971,6 +8002,23 @@ components:
       required:
       - phone_numbers
       title: CreatePortingOrder
+      type: object
+    CreateRoomRequest:
+      properties:
+        max_participants:
+          default: 10
+          description: The maximum amount of participants allowed in a room. If new
+            participants try to join after that limit is reached, their request will
+            be rejected.
+          example: 10
+          maximum: 50
+          minimum: 2
+          type: integer
+        unique_name:
+          description: The unique (within the Telnyx account scope) name of the room.
+          example: My room
+          type: string
+      required: []
       type: object
     CreateShortCodeMessageRequest:
       example:
@@ -15335,6 +15383,38 @@ components:
       required:
       - data
       title: RetrieveVerificationResponse
+      type: object
+    Room:
+      example:
+        created_at: '2021-04-16T09:46:20.954863Z'
+        id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+        max_participants: 50
+        unique_name: My Room
+        updated_at: '2021-04-16T10:24:55.962200Z'
+      properties:
+        created_at:
+          description: ISO 8601 timestamp when the room was created.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        id:
+          description: Identifies the room.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        max_participants:
+          description: Maximum participants allowed in the room.
+          example: 50
+          type: integer
+        unique_name:
+          description: The unique (within the Telnyx account scope) name of the room.
+          example: My room
+          type: string
+        updated_at:
+          description: ISO 8601 timestamp when the room was updated.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
       type: object
     SIMCard:
       properties:
@@ -26105,6 +26185,135 @@ paths:
       tags:
       - MDR Detail Reports
       x-latency-category: interactive
+  /rooms:
+    get:
+      description: ''
+      operationId: ListRooms
+      parameters:
+      - description: ISO 8601 date for filtering rooms created on that date.
+        in: query
+        name: filter[date_created_at][eq]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering rooms created after that date.
+        in: query
+        name: filter[date_created_at][gte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering rooms created before that date.
+        in: query
+        name: filter[date_created_at][lte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering rooms updated on that date.
+        in: query
+        name: filter[date_updated_at][eq]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering rooms updated after that date.
+        in: query
+        name: filter[date_updated_at][gte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering rooms updated before that date.
+        in: query
+        name: filter[date_updated_at][lte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: Unique_name for filtering rooms.
+        in: query
+        name: filter[unique_name]
+        schema:
+          example: my_video_room
+          type: string
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListRoomsResponse'
+      summary: View a list of rooms.
+      tags:
+      - Rooms
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+    post:
+      description: Synchronously create a Room.
+      operationId: CreateRoom
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomRequest'
+        description: Parameters that can be defined during room creation.
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateRoomResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Create a room
+      tags:
+      - Rooms
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+  /rooms/{room_id}:
+    delete:
+      description: Synchronously delete a Room. Participants from that room will be
+        kicked out, they won't be able to join that room anymore, and you won't be
+        charged anymore for that room.
+      operationId: DeleteRoom
+      parameters:
+      - description: The unique identifier of a room.
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      summary: Delete a room
+      tags:
+      - Rooms
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+    get:
+      operationId: ViewRoom
+      parameters:
+      - description: The unique identifier of a room.
+        in: path
+        name: room_id
+        required: true
+        schema:
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/GetRoomResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      summary: View a room
+      tags:
+      - Rooms
+      x-endpoint-cost: light
+      x-latency-category: responsive
   /short_codes:
     get:
       operationId: listShortCodes
@@ -27622,6 +27831,8 @@ tags:
   name: Recordings Commands
 - description: Wireless reporting operations
   name: Reporting
+- description: Rooms operations.
+  name: Rooms
 - description: SIM Card Groups operations
   name: SIM Card Groups
 - description: SIM Cards operations
