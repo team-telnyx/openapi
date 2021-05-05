@@ -41,6 +41,80 @@ components:
         - voice
         example: webhook
         type: string
+    DocReqsActionFilter:
+      description: Filters requirements to those applying to a specific action.
+      in: query
+      name: filter[action]
+      schema:
+        enum:
+        - ordering
+        - porting
+        example: porting
+        type: string
+    DocReqsCountryFilter:
+      description: Filters results to those applying to a 2-character (ISO 3166-1
+        alpha-2) country code
+      in: query
+      name: filter[country_code]
+      schema:
+        example: US
+        type: string
+    DocReqsDocumentRequirementsSort:
+      description: Specifies the sort order for results. If you want to sort by a
+        field in ascending order, include it as a sort parameter. If you want to sort
+        in descending order, prepend a `-` in front of the field name.
+      in: query
+      name: sort[]
+      required: false
+      schema:
+        enum:
+        - action
+        - country_code
+        - locality
+        - phone_number_type
+        example: country_code
+        type: string
+    DocReqsDocumentTypeId:
+      description: Uniquely identifies the document_type record
+      example: a38c217a-8019-48f8-bff6-0fdd9939075b
+      in: path
+      name: id
+      required: true
+      schema:
+        format: uuid
+        type: string
+    DocReqsDocumentTypeNameFilter:
+      description: Filters document types to those whose name contains a certain string.
+      in: query
+      name: filter[name][contains]
+      schema:
+        example: utility bill
+        type: string
+    DocReqsDocumentTypesSort:
+      description: Specifies the sort order for results. If you want to sort by a
+        field in ascending order, include it as a sort parameter. If you want to sort
+        in descending order, prepend a `-` in front of the field name.
+      in: query
+      name: sort[]
+      required: false
+      schema:
+        enum:
+        - created_at
+        - name
+        - updated_at
+        example: country_code
+        type: string
+    DocReqsPhoneNumberTypeFilter:
+      description: Filters results to those applying to a specific `phone_number_type`
+      in: query
+      name: filter[phone_number_type]
+      schema:
+        enum:
+        - local
+        - national
+        - toll-free
+        example: local
+        type: string
     DocServiceDocumentIdFilter:
       description: Identifies the associated document to filter on.
       in: query
@@ -949,6 +1023,17 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
+    DocReqsListDocumentTypesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/DocReqsDocumentTypeList'
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     DocServiceDocumentResponse:
       content:
         application/json:
@@ -1326,6 +1411,17 @@ components:
                 items:
                   $ref: '#/components/schemas/DocServiceDocument'
                 type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    ListDocumentRequirementsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/DocumentRequirementList'
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
@@ -8931,6 +9027,66 @@ components:
       - data
       title: DeleteVerifyProfileResponse
       type: object
+    DocReqsDocumentType:
+      properties:
+        acceptance_criteria:
+          description: Specifies objective criteria for acceptance
+          properties:
+            locality_limit:
+              description: Specifies geography-based acceptance criteria
+              example: Issued by the same country that the phone number belongs to
+              readOnly: false
+              type: string
+            time_limit:
+              description: Specifies time-based acceptance criteria
+              example: Current and not expired
+              readOnly: false
+              type: string
+          type: object
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2021-04-09T22:25:27.521Z'
+          readOnly: true
+          type: string
+        description:
+          description: Describes the document type
+          example: Proves the customer has a physical address in the same locality
+            as the phone number
+          readOnly: false
+          type: string
+        example:
+          description: Provides one or more examples of acceptable documents
+          example: Utility bill, internet bill, phone bill, or lease
+          readOnly: false
+          type: string
+        id:
+          description: Identifies the associated document
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: A short descriptive name for this document_type
+          example: Proof of Address
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource
+          example: document_type
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            last updated.
+          example: '2021-04-12T20:20:20.020Z'
+          readOnly: true
+          type: string
+      type: object
+    DocReqsDocumentTypeList:
+      items:
+        $ref: '#/components/schemas/DocReqsDocumentType'
+      type: array
     DocServiceDocument:
       allOf:
       - $ref: '#/components/schemas/DocServiceRecord'
@@ -9070,6 +9226,49 @@ components:
           type: string
       title: Document
       type: object
+    DocumentRequirement:
+      properties:
+        acceptance_criteria:
+          description: Additional requirements
+          properties:
+            locality_limit:
+              description: Indicates geography-based acceptance criterium
+              example: within locality of phone number desired
+              readOnly: true
+              type: string
+            time_limit:
+              description: Indicates a time-based acceptance criterium
+              example: no older than 45 days from submission
+              readOnly: true
+              type: string
+          readOnly: true
+          type: object
+        description:
+          description: Describes the requirement in more detail
+          example: This proves the customer has a physical address in the same locality
+            of the desired phone number
+          readOnly: true
+          type: string
+        example:
+          description: Describes an acceptable document that would meet the requirement
+          example: Utility bill, internet bill, phone bill, or lease
+          readOnly: true
+          type: string
+        name:
+          description: A short name for the document requirement
+          example: Proof of Address
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: document_requirement
+          readOnly: true
+          type: string
+      type: object
+    DocumentRequirementList:
+      items:
+        $ref: '#/components/schemas/DocumentRequirement'
+      type: array
     DtmfType:
       default: RFC 2833
       description: Sets the type of DTMF digits sent from Telnyx to this Connection.
@@ -22118,6 +22317,42 @@ paths:
       tags:
       - Documents
       x-latency-category: responsive
+  /document_requirements:
+    get:
+      description: List all document requirements with filtering, sorting, and pagination
+      operationId: listDocumentRequirements
+      parameters:
+      - $ref: '#/components/parameters/DocReqsCountryFilter'
+      - $ref: '#/components/parameters/DocReqsPhoneNumberTypeFilter'
+      - $ref: '#/components/parameters/DocReqsActionFilter'
+      - $ref: '#/components/parameters/DocReqsDocumentRequirementsSort'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListDocumentRequirementsResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all document requirements
+      tags:
+      - Document Requirements
+      x-latency-category: responsive
+  /document_types:
+    get:
+      description: List all document types ordered by created_at descending
+      operationId: docReqsListDocumentTypes
+      parameters:
+      - $ref: '#/components/parameters/DocReqsDocumentTypeNameFilter'
+      - $ref: '#/components/parameters/DocReqsDocumentTypesSort'
+      responses:
+        '200':
+          $ref: '#/components/responses/DocReqsListDocumentTypesResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all document types
+      tags:
+      - Document Types
+      x-latency-category: responsive
   /documents:
     get:
       description: List all documents ordered by created_at descending.
@@ -28062,6 +28297,12 @@ tags:
   name: Credentials
 - description: Call Control debugging
   name: Debugging
+- description: Documents required documentation for international numbers and porting
+    orders
+  name: Document Requirements
+- description: Documents the various types of documents required for international
+    numbers and porting orders
+  name: Document Types
 - description: Documents
   name: Documents
 - description: FQDN connection operations
