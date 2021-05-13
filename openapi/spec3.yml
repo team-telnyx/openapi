@@ -4315,10 +4315,10 @@ components:
               format: date-time
               type: string
             recording_urls:
-              description: Recording URLs in requested format valid for 10 minutes.
-                After 10 minutes, you may retrieve recordings via API using Reports
-                -> Call Recordings documentation, or via Mission Control under Reporting
-                -> Recordings.
+              description: Recording URLs in requested format. These URLs are valid
+                for 10 minutes. After 10 minutes, you may retrieve recordings via
+                API using Reports -> Call Recordings documentation, or via Mission
+                Control under Reporting -> Recordings.
               properties:
                 mp3:
                   description: Recording URL in requested `mp3` format.
@@ -6290,6 +6290,135 @@ components:
         data:
           $ref: '#/components/schemas/ConferencePlaybackStarted'
       title: Conference Playback Started Event
+      type: object
+    ConferenceRecordingSaved:
+      example:
+        event_type: conference.recording.saved
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_control_id: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+          channels: single
+          conference_id: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+          connection_id: 7267xxxxxxxxxxxxxx
+          format: mp3
+          public_recording_urls:
+            mp3: http://example.com/recording.mp3
+            wav: http://example.com/recording.wav
+          recording_ended_at: '2018-02-02T22:20:27.521992Z'
+          recording_id: 4577f9a2-cf0e-44f3-ac57-9f95fb03fa47
+          recording_started_at: '2021-05-11T10:17:03.692107Z'
+          recording_urls:
+            mp3: http://example.com/recording.mp3
+            wav: http://example.com/recording.wav
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - conference.recording.saved
+          example: conference.recording.saved
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Participant's call ID used to issue commands via Call Control
+                API.
+              example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+              type: string
+            channels:
+              description: Whether recording was recorded in `single` or `dual` channel.
+              enum:
+              - single
+              - dual
+              example: single
+              type: string
+            conference_id:
+              description: ID of the conference that is being recorded.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              format: uuid
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            format:
+              description: The audio file format used when storing the call recording.
+                Can be either `mp3` or `wav`.
+              enum:
+              - wav
+              - mp3
+              example: mp3
+              type: string
+            public_recording_urls:
+              description: Recording URLs in requested format. The URL is valid for
+                as long as the file exists. For security purposes, this feature is
+                activated on a per request basis.  Please contact customer support
+                with your Account ID to request activation.
+              properties:
+                mp3:
+                  description: Recording URL in requested `mp3` format.
+                  example: http://example.com/recording.mp3
+                  nullable: true
+                  type: string
+                wav:
+                  description: Recording URL in requested `wav` format.
+                  example: http://example.com/recording.wav
+                  nullable: true
+                  type: string
+              type: object
+            recording_ended_at:
+              description: ISO 8601 datetime of when recording ended.
+              example: '2018-02-02T22:25:27.521992Z'
+              format: date-time
+              type: string
+            recording_id:
+              description: ID of the conference recording.
+              example: 4577f9a2-cf0e-44f3-ac57-9f95fb03fa47
+              format: uuid
+              type: string
+            recording_started_at:
+              description: ISO 8601 datetime of when recording started.
+              example: '2018-02-02T22:20:27.521992Z'
+              format: date-time
+              type: string
+            recording_urls:
+              description: Recording URLs in requested format. These URLs are valid
+                for 10 minutes. After 10 minutes, you may retrieve recordings via
+                API using Reports -> Call Recordings documentation, or via Mission
+                Control under Reporting -> Recordings.
+              properties:
+                mp3:
+                  description: Recording URL in requested `mp3` format.
+                  example: http://example.com/recording.mp3
+                  nullable: true
+                  type: string
+                wav:
+                  description: Recording URL in requested `wav` format.
+                  example: http://example.com/recording.wav
+                  nullable: true
+                  type: string
+              type: object
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Conference Recording Saved
+      type: object
+    ConferenceRecordingSavedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/ConferenceRecordingSaved'
+      title: Conference Recording Saved Event
       type: object
     ConferenceSpeakEnded:
       example:
@@ -21870,6 +21999,20 @@ paths:
       x-latency-category: interactive
   /conferences/{id}/actions/record_stop:
     post:
+      callbacks:
+        conferenceRecordingSaved:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/ConferenceRecordingSavedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
       description: 'Stop recording the conference.
 
 
