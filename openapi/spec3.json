@@ -8199,27 +8199,15 @@
             "$ref": "#/components/parameters/PageSize"
           },
           {
+            "$ref": "#/components/parameters/FilterBasicStatusLifecycle"
+          },
+          {
             "name": "filter[sim_card_id]",
             "description": "The SIM card identification UUID.",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "filter[status]",
-            "description": "Filter by possible OTA updates statuses.",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "in-progress",
-                "completed",
-                "failed"
-              ],
-              "example": "in-progress"
             }
           },
           {
@@ -11469,6 +11457,77 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sim_card_group_actions": {
+      "get": {
+        "operationId": "SimCardGroupActionsGet",
+        "summary": "List SIM card group actions",
+        "description": "This API allows listing a paginated collection a SIM card group actions. It allows to explore a collection of existing asynchronous operation using specific filters.",
+        "tags": [
+          "SIM Card Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/FilterSIMCardGroupId"
+          },
+          {
+            "$ref": "#/components/parameters/FilterBasicStatusLifecycle"
+          },
+          {
+            "name": "filter[type]",
+            "description": "Filter by action type.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "set_private_wireless_gateway",
+                "remove_private_wireless_gateway"
+              ],
+              "example": "set_private_wireless_gateway"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SimCardGroupActionCollectionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sim_card_group_actions/{id}": {
+      "get": {
+        "operationId": "SimCardGroupActionGet",
+        "summary": "Get SIM card group action detail",
+        "description": "This API allows fetching detailed information about a SIM card group action resource to make follow-ups in an existing asynchronous operation.",
+        "tags": [
+          "SIM Card Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardGroupActionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/sim_card_groups": {
       "get": {
         "tags": [
@@ -11609,6 +11668,75 @@
         "summary": "Update a SIM card group",
         "description": "Updates a SIM card group",
         "x-latency-category": "responsive"
+      }
+    },
+    "/sim_card_groups/{id}/actions/remove_private_wireless_gateway": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Asynchronous request to remove a Private Wireless Gateway definition from a SIM card group.",
+        "description": "This action will asynchronously remove an existing Private Wireless Gateway definition from a SIM card group. Completing this operation defines that all SIM cards in the SIM card group will get their traffic handled by Telnyx's default mobile network configuration.",
+        "operationId": "RemoveSIMCardGroupPrivateWirelessGateway",
+        "tags": [
+          "SIM Card Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/SIMCardGroupActionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
+    "/sim_card_groups/{id}/actions/set_private_wireless_gateway": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Asynchronous assignment request for Private Wireless Gateway in a SIM card group.",
+        "description": "This action will asynchronously assign a provisioned Private Wireless Gateway to the SIM card group. Completing this operation defines that all SIM cards in the SIM card group will get their traffic controlled by the associated Private Wireless Gateway. This operation will also imply that new SIM cards assigned to a group will inherit its network definitions. If it's moved to a different group that doesn't have a Private Wireless Gateway, it'll use Telnyx's default mobile network configuration.",
+        "operationId": "SetSIMCardGroupPrivateWirelessGateway",
+        "tags": [
+          "SIM Card Groups"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "private_wireless_gateway_id": {
+                    "description": "The identification of the related Private Wireless Gateway resource.",
+                    "format": "uuid",
+                    "type": "string",
+                    "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+                  }
+                },
+                "required": [
+                  "private_wireless_gateway_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/SIMCardGroupActionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
       }
     },
     "/sim_card_orders": {
@@ -13915,6 +14043,21 @@
         "schema": {
           "type": "string",
           "default": "null"
+        }
+      },
+      "FilterBasicStatusLifecycle": {
+        "name": "filter[status]",
+        "description": "Filter by a specific status of the resource's lifecycle.",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "in-progress",
+            "completed",
+            "failed"
+          ],
+          "example": "in-progress"
         }
       },
       "FilterByActivationStatus": {
@@ -17107,6 +17250,21 @@
           }
         }
       },
+      "SIMCardGroupActionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SIMCardGroupAction"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
       "SIMCardNetworkPreferenceResponse": {
         "description": "A successful network preferences definition response.",
         "content": {
@@ -17322,6 +17480,27 @@
             }
           }
         }
+      },
+      "SimCardGroupActionCollectionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SIMCardGroupAction"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful response"
       },
       "SimpleSimCardResponse": {
         "description": "Successful response",
@@ -33917,6 +34096,80 @@
           },
           "consumed_data": {
             "$ref": "#/components/schemas/ConsumedData"
+          },
+          "private_wireless_gateway_id": {
+            "description": "The identification of the related Private Wireless Gateway resource.",
+            "format": "uuid",
+            "type": "string",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58",
+            "default": null
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+            "readOnly": true,
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
+            "readOnly": true,
+            "example": "2018-02-02T22:25:27.521Z"
+          }
+        }
+      },
+      "SIMCardGroupAction": {
+        "type": "object",
+        "title": "SIMCardGroupAction",
+        "description": "This object represents a SIM card group action request. It allows tracking the current status of an operation that impacts the SIM card group and SIM card in it.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the resource.",
+            "readOnly": true,
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "sim_card_group_action",
+            "readOnly": true
+          },
+          "sim_card_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The SIM card group identification.",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "type": {
+            "type": "string",
+            "description": "Represents the type of the operation requested.",
+            "enum": [
+              "set_private_wireless_gateway",
+              "remove_private_wireless_gateway"
+            ],
+            "example": "set_private_wireless_gateway"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in-progress",
+              "completed",
+              "failed"
+            ],
+            "example": "in-progress"
+          },
+          "settings": {
+            "type": "object",
+            "description": "A JSON object representation of the action params.",
+            "properties": {
+              "private_wireless_gateway_id": {
+                "description": "The identification of the related Private Wireless Gateway resource.",
+                "format": "uuid",
+                "type": "string",
+                "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+              }
+            }
           },
           "created_at": {
             "type": "string",
