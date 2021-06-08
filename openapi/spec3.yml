@@ -9810,6 +9810,21 @@ components:
       items:
         $ref: '#/components/schemas/DocumentRequirement'
       type: array
+    DownlinkData:
+      properties:
+        amount:
+          description: Downlink data
+          example: 1
+          type: number
+        unit:
+          default: MB
+          description: Transmission unit
+          enum:
+          - B
+          - KB
+          - MB
+          type: string
+      type: object
     DtmfType:
       default: RFC 2833
       description: Sets the type of DTMF digits sent from Telnyx to this Connection.
@@ -9899,6 +9914,70 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
+    ExternalWdrDetailRecordDto:
+      properties:
+        cost:
+          $ref: '#/components/schemas/WirelessCost'
+        created_at:
+          description: Record created time
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        downlink_data:
+          $ref: '#/components/schemas/DownlinkData'
+        duration_seconds:
+          description: Session duration in seconds.
+          example: 1
+          type: number
+        id:
+          description: WDR id
+          example: 3ca7bd3d-7d82-4e07-9df4-009123068320
+          type: string
+        imsi:
+          description: International mobile subscriber identity
+          example: '123'
+          type: string
+        mcc:
+          description: Mobile country code.
+          example: '204'
+          type: string
+        mnc:
+          description: Mobile network code.
+          example: '01'
+          type: string
+        phone_number:
+          description: Phone number
+          example: '+12345678910'
+          type: string
+        rate:
+          $ref: '#/components/schemas/WirelessRate'
+        record_type:
+          example: wdr
+          type: string
+        sim_card_id:
+          description: Sim card unique identifier
+          example: 877f80a6-e5b2-4687-9a04-88076265720f
+          type: string
+        sim_group_id:
+          description: Sim group unique identifier
+          example: f05a189f-7c46-4531-ac56-1460dc465a42
+          type: string
+        sim_group_name:
+          description: Defined sim group name
+          example: sim name
+          type: string
+        uplink_data:
+          $ref: '#/components/schemas/UplinkData'
+      type: object
+    ExternalWdrGetDetailResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ExternalWdrDetailRecordDto'
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      type: object
     Fax:
       example:
         connection_id: c-1
@@ -19328,6 +19407,21 @@ components:
       example: '2020-02-03T22:25:27.521Z'
       title: Updated At
       type: string
+    UplinkData:
+      properties:
+        amount:
+          description: Uplink data
+          example: 1
+          type: number
+        unit:
+          default: MB
+          description: Transmission unit
+          enum:
+          - B
+          - KB
+          - MB
+          type: string
+      type: object
     UploadFileMessagingHostedNumberOrderRequest:
       example:
         bill: bill example
@@ -19881,6 +19975,40 @@ components:
           title: Webhook Url
           type: string
       title: WhatsApp User
+      type: object
+    WirelessCost:
+      properties:
+        amount:
+          description: Final cost. Cost is calculated as rate * unit
+          example: 0.1
+          type: string
+        currency:
+          description: Currency of the rate and cost
+          enum:
+          - AUD
+          - CAD
+          - EUR
+          - GBP
+          - USD
+          example: USD
+          type: string
+      type: object
+    WirelessRate:
+      properties:
+        amount:
+          description: Rate from which cost is calculated
+          example: 0.1
+          type: string
+        currency:
+          description: Currency of the rate and cost
+          enum:
+          - AUD
+          - CAD
+          - EUR
+          - GBP
+          - USD
+          example: USD
+          type: string
       type: object
     active:
       default: true
@@ -27585,6 +27713,105 @@ paths:
       - bearerAuth: []
       tags:
       - MDR Detail Reports
+      x-latency-category: interactive
+  /reports/wdrs:
+    get:
+      description: 'Fetch all Wdr records '
+      operationId: getPaginatedWdrs
+      parameters:
+      - description: Start date
+        in: query
+        name: start_date
+        schema:
+          example: '2021-05-01T00:00:00Z'
+          type: string
+      - description: End date
+        in: query
+        name: end_date
+        schema:
+          example: '2021-06-01T00:00:00Z'
+          type: string
+      - in: query
+        name: id
+        schema:
+          description: WDR uuid
+          example: e093fbe0-5bde-11eb-ae93-0242ac130002
+          type: string
+      - in: query
+        name: mcc
+        schema:
+          description: Mobile country code
+          example: '204'
+          type: string
+      - in: query
+        name: mnc
+        schema:
+          description: Mobile network code
+          example: '01'
+          type: string
+      - in: query
+        name: imsi
+        schema:
+          description: International mobile subscriber identity
+          example: '123456'
+          type: string
+      - in: query
+        name: sim_group_name
+        schema:
+          description: Sim group name
+          example: sim name
+          type: string
+      - in: query
+        name: sim_group_id
+        schema:
+          description: Sim group unique identifier
+          example: f05a189f-7c46-4531-ac56-1460dc465a42
+          type: string
+      - in: query
+        name: sim_card_id
+        schema:
+          description: Sim card unique identifier
+          example: 877f80a6-e5b2-4687-9a04-88076265720f
+          type: string
+      - in: query
+        name: phone_number
+        schema:
+          description: Phone number
+          example: '+12345678910'
+          type: string
+      - description: Page number
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          format: int32
+          type: integer
+      - description: Size of the page
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          format: int32
+          type: integer
+      - in: query
+        name: sort
+        schema:
+          default: created_at
+          description: Field used to order the data. If no field is specified, default
+            value is 'created_at'
+          example: created_at
+          items:
+            type: string
+          type: array
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalWdrGetDetailResponse'
+          description: Successful
+      tags:
+      - WDR Detail Reports
       x-latency-category: interactive
   /rooms:
     get:
