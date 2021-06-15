@@ -1718,6 +1718,85 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/enqueue": {
+      "post": {
+        "summary": "Enqueue call",
+        "description": "Put the call in a queue.",
+        "operationId": "callEnqueue",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Enqueue call request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnqueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callEnqueued": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallEnqueuedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callLeftQueue": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallLeftQueueEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/fork_start": {
       "post": {
         "summary": "Forking start",
@@ -2176,6 +2255,64 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallRecordingSavedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/leave_queue": {
+      "post": {
+        "summary": "Remove call from a queue",
+        "description": "Removes the call from a queue.",
+        "operationId": "leaveQueue",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Removes the call from the queue, the call currently is enqueued in.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callLeftQueue": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallLeftQueueEvent"
                       }
                     }
                   }
@@ -10298,6 +10435,105 @@
         "x-latency-category": "responsive"
       }
     },
+    "/queues/{queue_name}": {
+      "get": {
+        "summary": "Retrieve a call queue",
+        "description": "Retrieve an existing call queue",
+        "operationId": "retrieveCallQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/queues/{queue_name}/calls": {
+      "get": {
+        "summary": "Retrieve calls from a queue",
+        "description": "Retrieve the list of calls in an existing queue",
+        "operationId": "listQueueCalls",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListQueueCallsResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/queues/{queue_name}/calls/{call_control_id}": {
+      "get": {
+        "summary": "Retrieve a call from a queue",
+        "description": "Retrieve an existing call from an existing queue",
+        "operationId": "retrieveCallFromQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueCallResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/recordings": {
       "get": {
         "description": "Lists recordings for the authenticated user",
@@ -16783,6 +17019,28 @@
           }
         }
       },
+      "ListQueueCallsResponse": {
+        "description": "Successful response with a list of calls in a queue.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Queue Calls Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueueCall"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListRecordingsResponse": {
         "description": "Successful response with a list of recordings.",
         "content": {
@@ -17198,6 +17456,38 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/PortoutDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "QueueCallResponse": {
+        "description": "Successful response with details about a call in a queue.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Queue Call Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/QueueCall"
+                }
+              }
+            }
+          }
+        }
+      },
+      "QueueResponse": {
+        "description": "Successful response with details about a queue.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Queue Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/Queue"
                 }
               }
             }
@@ -18412,6 +18702,11 @@
             "type": "string",
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
           },
+          "queue": {
+            "description": "The name of the queue you want to bridge with, can't be used together with call_control_id parameter. Bridging with a queue means bridging with the first call in the queue. The call will always be removed from the queue regardless of whether bridging succeeds. Returns an error when the queue is empty.",
+            "type": "string",
+            "example": "support"
+          },
           "park_after_unbridge": {
             "description": "Specifies behavior after the bridge ends (i.e. the opposite leg either hangs up or is transferred). If supplied with the value `self`, the current leg will be parked after unbridge. If not set, the default behavior is to hang up the leg.",
             "type": "string",
@@ -19017,6 +19312,104 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallDtmfReceived"
+          }
+        }
+      },
+      "CallEnqueued": {
+        "type": "object",
+        "title": "Call Enqueued",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.enqueued",
+            "enum": [
+              "call.enqueued"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "queue": {
+                "type": "string",
+                "example": "support",
+                "description": "The name of the queue"
+              },
+              "current_position": {
+                "type": "integer",
+                "example": 7,
+                "description": "Current position of the call in the queue."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.enqueued",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "queue": "support",
+            "current_position": 5
+          }
+        }
+      },
+      "CallEnqueuedEvent": {
+        "type": "object",
+        "title": "Call Enqueued Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallEnqueued"
           }
         }
       },
@@ -19641,6 +20034,111 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallInitiated"
+          }
+        }
+      },
+      "CallLeftQueue": {
+        "type": "object",
+        "title": "Call Left Queue",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.left.queue",
+            "enum": [
+              "call.left.queue"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "queue": {
+                "type": "string",
+                "example": "support",
+                "description": "The name of the queue"
+              },
+              "reason": {
+                "type": "integer",
+                "description": "The reason for leaving the queue",
+                "example": "bridged",
+                "enum": [
+                  "bridged",
+                  "bridging-in-process",
+                  "hangup",
+                  "leave",
+                  "timeout"
+                ]
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.left.queue",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "queue": "support",
+            "reason": "leave"
+          }
+        }
+      },
+      "CallLeftQueueEvent": {
+        "type": "object",
+        "title": "Call Left Queue Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallLeftQueue"
           }
         }
       },
@@ -26431,6 +26929,45 @@
         "example": "SRTP",
         "description": "Enable use of SRTP or ZRTP for encryption. Valid values are those listed or null. Cannot be set to non-null if the transport_portocol is TLS."
       },
+      "EnqueueRequest": {
+        "type": "object",
+        "title": "Enqueue Request",
+        "properties": {
+          "queue_name": {
+            "description": "The name of the queue the call should be put in. If a queue with a given name doesn't exist yet it will be created.",
+            "type": "string",
+            "example": "tier_1_support"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          },
+          "max_wait_time_secs": {
+            "description": "The number of seconds after which the call will be removed from the queue.",
+            "type": "integer",
+            "example": 600
+          },
+          "max_size": {
+            "description": "The maximum number of calls allowed in the queue at a given time. Can't be modified for an existing queue.",
+            "type": "integer",
+            "default": 100,
+            "example": 200
+          }
+        },
+        "example": {
+          "queue": "support",
+          "max_wait_time_secs": 600,
+          "max_size": 20,
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "Error": {
         "required": [
           "code",
@@ -28966,6 +29503,26 @@
         "example": {
           "policy": "deterministic",
           "code": "en"
+        }
+      },
+      "LeaveQueueRequest": {
+        "type": "object",
+        "title": "Leave Queue Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
         }
       },
       "LedgerBillingGroupReport": {
@@ -33702,6 +34259,164 @@
             "readOnly": true,
             "default": null,
             "example": null
+          }
+        }
+      },
+      "Queue": {
+        "type": "object",
+        "title": "Queue",
+        "required": [
+          "record_type",
+          "id",
+          "name",
+          "current_size",
+          "max_size",
+          "average_wait_time_secs",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "queue"
+            ],
+            "example": "queue"
+          },
+          "id": {
+            "type": "string",
+            "description": "Uniquely identifies the queue",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the queue",
+            "example": "support"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the queue was created",
+            "example": "2019-01-23T18:10:02.574Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the queue was last updated",
+            "example": "2019-01-23T18:10:02.574Z"
+          },
+          "current_size": {
+            "type": "integer",
+            "description": "The number of calls currently in the queue",
+            "example": 20
+          },
+          "max_size": {
+            "type": "integer",
+            "description": "The maximum number of calls allowed in the queue",
+            "example": 50
+          },
+          "average_wait_time_secs": {
+            "type": "integer",
+            "description": "The average time that the calls currently in the queue have spent waiting, given in seconds.",
+            "example": 175
+          }
+        },
+        "example": {
+          "record_type": "queue",
+          "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "name": "support",
+          "created_at": "2019-01-23T18:10:02.574Z",
+          "updated_at": "2019-01-23T18:10:02.574Z",
+          "current_size": 20,
+          "max_size": 50,
+          "average_wait_time_secs": 175
+        }
+      },
+      "QueueCall": {
+        "type": "object",
+        "title": "QueueCall",
+        "required": [
+          "call_control_id",
+          "call_leg_id",
+          "call_session_id",
+          "is_alive",
+          "record_type",
+          "connection_id",
+          "from",
+          "to",
+          "enqueued_at",
+          "wait_time_secs",
+          "queue_position",
+          "queue_id"
+        ],
+        "example": {
+          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_leg_id": "2dc6fc34-f9e0-11ea-b68e-02420a0f7768",
+          "call_session_id": "2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768",
+          "record_type": "queue_call",
+          "connection_id": "7267xxxxxxxxxxxxxx",
+          "from": "+18005550101",
+          "to": "+18005550102",
+          "enqueued_at": "2019-01-23T18:10:02.574Z",
+          "wait_time_secs": 145,
+          "queue_position": 3,
+          "queue_id": "ae1626cc-6f42-11ea-becd-02420a0f8b69"
+        },
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "queue_call"
+            ],
+            "example": "queue_call"
+          },
+          "call_session_id": {
+            "description": "ID that is unique to the call session and can be used to correlate webhook events",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b68e-5013ef9657c1"
+          },
+          "call_leg_id": {
+            "description": "ID that is unique to the call and can be used to correlate webhook events",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+          },
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call.",
+            "type": "string",
+            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+          },
+          "connection_id": {
+            "type": "string",
+            "example": "7267xxxxxxxxxxxxxx",
+            "description": "Telnyx connection ID used in the call."
+          },
+          "from": {
+            "type": "string",
+            "example": "+35319605860",
+            "description": "Number or SIP URI placing the call."
+          },
+          "to": {
+            "type": "string",
+            "example": "+13129457420",
+            "description": "Destination number or SIP URI of the call."
+          },
+          "enqueued_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the call was put in the queue",
+            "example": "2019-01-23T18:10:02.574Z"
+          },
+          "wait_time_secs": {
+            "type": "integer",
+            "description": "The time the call has been waiting in the queue, given in seconds",
+            "example": 272
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "Current position of the call in the queue",
+            "example": 3
+          },
+          "queue_id": {
+            "type": "string",
+            "description": "Unique identifier of the queue the call is in.",
+            "example": "ae1626cc-6f42-11ea-becd-02420a0f8b69"
           }
         }
       },
