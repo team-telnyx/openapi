@@ -9776,6 +9776,11 @@ components:
       - data
       title: DeleteVerifyProfileResponse
       type: object
+    Direction:
+      enum:
+      - INBOUND
+      - OUTBOUND
+      type: string
     DocReqsDocumentType:
       properties:
         acceptance_criteria:
@@ -10158,6 +10163,93 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
+    ExternalMessageDetailRecordDto:
+      properties:
+        cld:
+          description: The destination number for a call, or the callee
+          example: '+1555123456'
+          type: string
+        cli:
+          description: The number associated with the person initiating the call,
+            or the caller
+          example: '+1555123456'
+          type: string
+        cost:
+          $ref: '#/components/schemas/MessageCost'
+        country_iso:
+          description: Cld number ISO country code.
+          example: US
+          type: string
+        created_at:
+          description: Message sent time
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        direction:
+          $ref: '#/components/schemas/Direction'
+        errors:
+          description: Error returned by the gateway in case sending of message failed.
+          example: US
+          items:
+            description: Error returned by the gateway in case sending of message
+              failed.
+            example: '40001'
+            type: string
+          properties:
+            empty:
+              type: boolean
+          type: array
+        id:
+          description: Message id
+          example: 3ca7bd3d-7d82-4e07-9df4-009123068320
+          type: string
+        mcc:
+          description: Mobile country code.
+          example: '204'
+          type: string
+        message_type:
+          $ref: '#/components/schemas/MessageType'
+        mnc:
+          description: Mobile network code.
+          example: '01'
+          type: string
+        normalized_carrier:
+          description: Cld carrier.
+          example: T-Mobile
+          type: string
+        outbound_profile_id:
+          description: Configured profile id. New profiles can be created and configured
+            on Telnyx portal
+          example: 30ef55db-c4a2-4c4a-9804-a68077973d07
+          type: string
+        outbound_profile_name:
+          description: Configured profile name. New profiles can be created and configured
+            on Telnyx portal
+          example: configured-profile-name
+          type: string
+        parts:
+          description: Number of parts this message has. Max number of character is
+            160. If message contains more characters then that it will be broken down
+            in multiple parts
+          example: 2
+          type: integer
+        pass_through_fee:
+          $ref: '#/components/schemas/PassThroughFee'
+        product:
+          $ref: '#/components/schemas/Product'
+        rate:
+          $ref: '#/components/schemas/MessageRate'
+        record_type:
+          default: message_detail_record
+          example: message_detail_record
+          type: string
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        tags:
+          description: User tag.
+          example: tag1
+          type: string
+      type: object
     ExternalWdrDetailRecordDto:
       properties:
         cost:
@@ -11376,6 +11468,17 @@ components:
           type: string
       title: Image
       type: object
+    ImmutableListString:
+      description: Error returned by the gateway in case sending of message failed.
+      example: US
+      items:
+        description: Error returned by the gateway in case sending of message failed.
+        example: US
+        type: string
+      properties:
+        empty:
+          type: boolean
+      type: array
     ImmutableSetLong:
       example: '[1234567890L, 9876543210L]'
       items:
@@ -12734,6 +12837,11 @@ components:
         meta:
           $ref: '#/components/schemas/PaginationMeta'
       type: object
+    MdrMessageBodyResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/MessageBody'
+      type: object
     MdrPostDetailReportRequest:
       properties:
         connections:
@@ -12983,6 +13091,47 @@ components:
           type: string
       title: Message
       type: object
+    MessageBody:
+      properties:
+        message_body:
+          description: Text of the message. This is available only for last 7 days
+          example: This is message text
+          type: string
+        record_type:
+          default: message_body
+          example: message_body
+          type: string
+      type: object
+    MessageCost:
+      properties:
+        amount:
+          description: Final cost. Cost is calculated as rate * parts
+          example: 0.1
+          type: number
+        currency:
+          $ref: '#/components/schemas/Currency'
+      type: object
+    MessageRate:
+      properties:
+        amount:
+          description: Rate applied to the message
+          example: 0.1
+          type: number
+        currency:
+          $ref: '#/components/schemas/Currency'
+      type: object
+    MessageStatus:
+      description: Message status
+      enum:
+      - GW_TIMEOUT
+      - DELIVERED
+      - DLR_UNCONFIRMED
+      - DLR_TIMEOUT
+      - RECEIVED
+      - GW_REJECT
+      - FAILED
+      example: DELIVERED
+      type: string
     MessageType:
       default: text
       description: type of the message
@@ -14790,6 +14939,15 @@ components:
       - on_hold
       title: Participant
       type: object
+    PassThroughFee:
+      properties:
+        amount:
+          description: Normalized carrier pass through fee
+          example: 0.1
+          type: number
+        currency:
+          $ref: '#/components/schemas/Currency'
+      type: object
     PauseRecordingRequest:
       properties:
         client_state:
@@ -16200,6 +16358,17 @@ components:
           readOnly: true
           type: string
       type: object
+    Product:
+      description: Used product
+      enum:
+      - LONG_CODE
+      - SHORT_CODE
+      - SHORT_CODE_FTEU
+      - TOLL_FREE
+      - ALPHANUMERIC_ID
+      - RCS
+      example: LONG_CODE
+      type: string
     Queue:
       example:
         average_wait_time_secs: 175
@@ -24974,6 +25143,165 @@ paths:
       tags:
       - Managed Accounts
       x-latency-category: responsive
+  /message_detail_records:
+    get:
+      description: 'Fetch all Mdr records '
+      operationId: getPaginatedMdrs
+      parameters:
+      - description: Start date
+        in: query
+        name: start_date
+        required: true
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - description: End date
+        in: query
+        name: end_date
+        required: true
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: id
+        schema:
+          description: Message uuid
+          example: e093fbe0-5bde-11eb-ae93-0242ac130002
+          type: string
+      - in: query
+        name: direction
+        schema:
+          $ref: '#/components/schemas/Direction'
+      - in: query
+        name: outbound_profile_id
+        schema:
+          description: Configured profile id. New profiles can be created and configured
+            on Telnyx portal
+          example: 30ef55db-c4a2-4c4a-9804-a68077973d07
+          type: string
+      - in: query
+        name: cld
+        schema:
+          description: Destination number
+          example: '+15551237654'
+          type: string
+      - in: query
+        name: cli
+        schema:
+          description: Origination number
+          example: '+15551237654'
+          type: string
+      - in: query
+        name: status
+        schema:
+          $ref: '#/components/schemas/MessageStatus'
+      - in: query
+        name: message_type
+        schema:
+          $ref: '#/components/schemas/MessageType'
+      - in: query
+        name: country_iso
+        schema:
+          description: Destination number ISO country code
+          example: US
+          type: string
+      - in: query
+        name: error
+        schema:
+          description: Reported error code
+          example: '40001'
+          type: string
+      - in: query
+        name: normalized_carrier
+        schema:
+          description: Carrier
+          example: Verizon
+          type: string
+      - in: query
+        name: tag
+        schema:
+          description: Specified tag
+          example: Tag1
+          type: string
+      - in: query
+        name: mcc
+        schema:
+          description: Mobile country code
+          example: '204'
+          type: string
+      - in: query
+        name: mnc
+        schema:
+          description: Mobile network code
+          example: '01'
+          type: string
+      - in: query
+        name: product
+        schema:
+          $ref: '#/components/schemas/Product'
+      - description: Page number
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          format: int32
+          minimum: 1
+          type: integer
+      - description: Size of the page
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          format: int32
+          maximum: 50
+          minimum: 1
+          type: integer
+      - in: query
+        name: sort
+        schema:
+          default: created_at
+          description: Field used to order the data. If no field is specified, default
+            value is 'created_at'
+          example: created_at
+          items:
+            type: string
+          type: array
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdrGetDetailResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - MDR Detail Reports
+      x-latency-category: interactive
+  /message_detail_records/{id}/message_body:
+    get:
+      description: 'Fetch Mdr message body '
+      operationId: getMdrMessageBody
+      parameters:
+      - description: Message unique identifier
+        in: path
+        name: id
+        required: true
+        schema:
+          example: ee5d9b20-15db-4b86-a5d7-9c32bfa7b47e
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MdrMessageBodyResponse'
+          description: Successful
+      tags:
+      - MDR Detail Reports
+      x-latency-category: interactive
   /messages:
     post:
       callbacks:
