@@ -9881,6 +9881,24 @@ components:
           type: integer
       title: Date Time by Unix Epoch
       type: object
+    DetailRecord:
+      description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
+      discriminator:
+        propertyName: record_type
+      oneOf:
+      - $ref: '#/components/schemas/MessageDetailRecord'
+      required:
+      - record_type
+      type: object
+    DetailRecordsSearchResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/DetailRecord'
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      type: object
     Direction:
       enum:
       - INBOUND
@@ -13227,6 +13245,99 @@ components:
           type: number
         currency:
           $ref: '#/components/schemas/Currency'
+      type: object
+    MessageDetailRecord:
+      properties:
+        cld:
+          description: The destination number for a call, or the callee
+          example: '+1555123456'
+          type: string
+        cli:
+          description: The number associated with the person initiating the call,
+            or the caller
+          example: '+1555123456'
+          type: string
+        cost:
+          $ref: '#/components/schemas/MessageCost'
+        country_iso:
+          description: Cld number ISO country code.
+          example: US
+          type: string
+        created_at:
+          description: Message sent time
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        direction:
+          $ref: '#/components/schemas/Direction'
+        errors:
+          description: Error returned by the gateway in case sending of message failed.
+          example: US
+          items:
+            description: Error returned by the gateway in case sending of message
+              failed.
+            example: '40001'
+            type: string
+          properties:
+            empty:
+              type: boolean
+          type: array
+        id:
+          description: Message id
+          example: 3ca7bd3d-7d82-4e07-9df4-009123068320
+          type: string
+        mcc:
+          description: Mobile country code.
+          example: '204'
+          type: string
+        message_type:
+          $ref: '#/components/schemas/MessageType'
+        mnc:
+          description: Mobile network code.
+          example: '01'
+          type: string
+        normalized_carrier:
+          description: Cld carrier.
+          example: T-Mobile
+          type: string
+        outbound_profile_id:
+          description: Configured profile id. New profiles can be created and configured
+            on Telnyx portal
+          example: 30ef55db-c4a2-4c4a-9804-a68077973d07
+          type: string
+        outbound_profile_name:
+          description: Configured profile name. New profiles can be created and configured
+            on Telnyx portal
+          example: configured-profile-name
+          type: string
+        parts:
+          description: Number of parts this message has. Max number of character is
+            160. If message contains more characters then that it will be broken down
+            in multiple parts
+          example: 2
+          type: integer
+        pass_through_fee:
+          $ref: '#/components/schemas/PassThroughFee'
+        product:
+          $ref: '#/components/schemas/Product'
+        rate:
+          $ref: '#/components/schemas/MessageRate'
+        record_type:
+          default: message_detail_record
+          example: message_detail_record
+          type: string
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        tags:
+          description: User tag.
+          example: tag1
+          type: string
+        user_id:
+          description: User id
+          example: 3ca7bd3d-7d82-4e07-9df4-009123068320
+          type: string
+      required:
+      - record_type
       type: object
     MessageRate:
       properties:
@@ -24288,6 +24399,111 @@ paths:
       tags:
       - Credential Connections
       x-latency-category: responsive
+  /detail_records:
+    get:
+      description: Search for any detail record across the Telnyx Platform
+      operationId: DetailRecordsSearch
+      parameters:
+      - description: Filter by the given record type
+        examples:
+          filter[record_type]=messaging:
+            summary: Searches for messaging detail records
+            value: messaging
+        in: query
+        name: filter[record_type]
+        required: true
+        schema:
+          type: string
+      - description: Filter by the given user-friendly date range
+        examples:
+          filter[date_range]=last_3_days:
+            summary: Searches for records with timestamp starting at `00:00:00` since
+              3 days ago
+            value: last_3_days
+          filter[date_range]=today:
+            summary: Searches for records with timestamp starting at `00:00:00` of
+              the current day
+            value: today
+        in: query
+        name: filter[date_range]
+        required: false
+        schema:
+          type: string
+      - description: Filter records
+        examples:
+          filter[cld][contains]=456:
+            summary: Searches for records which have the property `cld` containing
+              the pattern `456`
+            value: '456'
+          filter[cld][ends_with]=789:
+            summary: Searches for records which have the property `cld` ending with
+              the suffix `789`
+            value: '789'
+          filter[cld][starts_with]=123:
+            summary: Searches for records which have the property `cld` starting with
+              the prefix `123`
+            value: '123'
+          filter[created_at][gte]=2021-06-22:
+            summary: Searches for records with `created_at` starting at `2021-06-22`
+            value: '2021-06-22'
+          filter[created_at][lt]=2021-06-23:
+            summary: Searches for records with `created_at` ending at `2021-06-22`
+            value: '2021-06-23'
+          filter[direction]=inbound:
+            summary: Searches for records which have the property `direction` equal
+              to `inbound`
+            value: inbound
+        in: query
+        name: filter
+        required: false
+        schema:
+          additionalProperties: true
+          type: object
+      - description: Page number
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          format: int32
+          minimum: 1
+          type: integer
+      - description: Page size
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          format: int32
+          maximum: 50
+          minimum: 1
+          type: integer
+      - description: Specifies the sort order for results
+        examples:
+          sort=-created_at:
+            summary: Sorts search results using the `created_at` date-time in descending
+              order
+            value: created_at
+          sort=created_at:
+            summary: Sorts search results using the `created_at` date-time in ascending
+              order
+            value: created_at
+        in: query
+        name: sort
+        schema:
+          items:
+            type: string
+          type: array
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailRecordsSearchResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - Detail Records
+      x-latency-category: interactive
   /document_links:
     get:
       description: List all documents links ordered by created_at descending.
@@ -30908,6 +31124,8 @@ tags:
   name: Credentials
 - description: Call Control debugging
   name: Debugging
+- description: Detail Records operations
+  name: Detail Records
 - description: Documents required documentation for international numbers and porting
     orders
   name: Document Requirements
