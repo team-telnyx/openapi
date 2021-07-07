@@ -10280,6 +10280,15 @@ components:
       required:
       - code
       - title
+    ErrorSource:
+      properties:
+        parameter:
+          description: Indicates which query parameter caused the error.
+          type: string
+        pointer:
+          description: JSON pointer (RFC6901) to the offending entity.
+          type: string
+      type: object
     Errors:
       properties:
         errors:
@@ -13811,6 +13820,20 @@ components:
       items:
         $ref: '#/components/schemas/MobileOperatorNetworkPreferencesResponse'
       type: array
+    Money:
+      properties:
+        amount:
+          example: '0.06'
+          type: string
+        currency:
+          enum:
+          - AUD
+          - CAD
+          - EUR
+          - GBP
+          - USD
+          type: string
+      type: object
     Name:
       description: Full contact name
       example:
@@ -20873,6 +20896,99 @@ components:
       - type
       - zip
       title: Address
+      type: object
+    WhatsAppDetailRecordReport:
+      properties:
+        created_at:
+          example: '2020-05-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        download_link:
+          example: https://portal-cdrs-usage.s3.amazonaws.com
+          type: string
+        end_date:
+          example: '2020-05-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        id:
+          example: ab76c3b6-80cd-11eb-9439-0242ac130002
+          type: string
+        record_type:
+          example: whatsapp_detail_record_report
+          type: string
+        start_date:
+          example: '2020-05-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        status:
+          enum:
+          - PENDING
+          - COMPLETE
+          - FAILED
+          - EXPIRED
+          type: string
+      type: object
+    WhatsAppDetailReportResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/WhatsAppDetailRecordReport'
+      type: object
+    WhatsAppGetAllDetailReportResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/WhatsAppDetailRecordReport'
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      type: object
+    WhatsAppReportsReq:
+      properties:
+        end_date:
+          example: '2021-05-01T00:00:00-06:00'
+          format: date-time
+          type: string
+        start_date:
+          example: '2021-05-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      required:
+      - end_date
+      - start_date
+      type: object
+    WhatsAppUsageAggregation:
+      properties:
+        cost:
+          $ref: '#/components/schemas/Money'
+        count:
+          example: '3'
+          type: string
+        direction:
+          example: inbound
+          type: string
+        message_type:
+          example: template
+          type: string
+        recipient_country_code:
+          example: '1'
+          type: string
+        record_type:
+          example: whatsapp_usage_aggregation
+          type: string
+        status:
+          example: delivered
+          type: string
+        telnyx_fee:
+          $ref: '#/components/schemas/Money'
+        whatsapp_fee:
+          $ref: '#/components/schemas/Money'
+      type: object
+    WhatsAppUsageAggregationsResponseContainer:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/WhatsAppUsageAggregation'
+          type: array
       type: object
     WhatsAppUser:
       description: The WhatsApp user object
@@ -30824,6 +30940,116 @@ paths:
       tags:
       - WhatsApp Contacts
       x-latency-category: responsive
+  /whatsapp_detail_record_reports:
+    get:
+      description: 'Fetch all previous requests for WhatsApp detail reports. WhatsApp
+        detail reports are reports for pulling all WhatsApp records. '
+      operationId: getRequests
+      parameters:
+      - description: Page number
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          format: int32
+          type: integer
+      - description: Size of the page
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          format: int32
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppGetAllDetailReportResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - WhatsApp Detail Reports
+      x-latency-category: interactive
+    post:
+      description: Submit a request for new WhatsApp detail report. WhatsApp detail
+        report pulls all raw WhatsApp data according to defined filters.
+      operationId: submitRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhatsAppReportsReq'
+        description: WhatsApp detail request data
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppDetailReportResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - WhatsApp Detail Reports
+      x-latency-category: background
+  /whatsapp_detail_record_reports/{id}:
+    delete:
+      description: Delete generated WhatsApp detail report by id
+      operationId: deleteRequest
+      parameters:
+      - content:
+          '*/*':
+            schema:
+              format: uuid
+              type: string
+        in: path
+        name: id
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppDetailReportResponse'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - WhatsApp Detail Reports
+      x-latency-category: interactive
+    get:
+      description: Fetch single whatsapp detail report by id.
+      operationId: getRequest
+      parameters:
+      - content:
+          '*/*':
+            schema:
+              format: uuid
+              type: string
+        in: path
+        name: id
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppDetailReportResponse'
+          description: Successful
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Resource not found
+      security:
+      - bearerAuth: []
+      tags:
+      - WhatsApp Detail Reports
+      x-latency-category: interactive
   /whatsapp_media:
     post:
       deprecated: false
@@ -30968,6 +31194,37 @@ paths:
       tags:
       - WhatsApp Messages
       x-latency-category: responsive
+  /whatsapp_usage_aggregations:
+    get:
+      description: 'Generate and fetch WhatsApp usage aggregations synchronously.
+        This endpoint will both generate and fetch the WhatsApp aggregations over
+        a specified time period. '
+      operationId: getUsageAggregationsSync
+      parameters:
+      - in: query
+        name: start_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      - in: query
+        name: end_date
+        schema:
+          example: '2020-07-01T00:00:00-06:00'
+          format: date-time
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppUsageAggregationsResponseContainer'
+          description: Successful
+      security:
+      - bearerAuth: []
+      tags:
+      - WhatsApp Usage Aggregations
+      x-latency-category: background
   /whatsapp_users/{whatsapp_user_id}:
     get:
       deprecated: false
