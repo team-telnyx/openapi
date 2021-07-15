@@ -59,23 +59,28 @@ components:
       schema:
         example: US
         type: string
-    DocReqsDocumentRequirementsSort:
-      description: Specifies the sort order for results. If you want to sort by a
-        field in ascending order, include it as a sort parameter. If you want to sort
-        in descending order, prepend a `-` in front of the field name.
+    DocReqsPhoneNumberTypeFilter:
+      description: Filters results to those applying to a specific `phone_number_type`
       in: query
-      name: sort[]
-      required: false
+      name: filter[phone_number_type]
       schema:
         enum:
-        - action
-        - country_code
-        - locality
-        - phone_number_type
-        example: country_code
+        - local
+        - national
+        - toll-free
+        example: local
         type: string
-    DocReqsDocumentTypeId:
-      description: Uniquely identifies the document_type record
+    DocReqsRequirementId:
+      description: Uniquely identifies the requirement_type record
+      example: a9dad8d5-fdbd-49d7-aa23-39bb08a5ebaa
+      in: path
+      name: id
+      required: true
+      schema:
+        format: uuid
+        type: string
+    DocReqsRequirementTypeId:
+      description: Uniquely identifies the requirement_type record
       example: a38c217a-8019-48f8-bff6-0fdd9939075b
       in: path
       name: id
@@ -83,14 +88,15 @@ components:
       schema:
         format: uuid
         type: string
-    DocReqsDocumentTypeNameFilter:
-      description: Filters document types to those whose name contains a certain string.
+    DocReqsRequirementTypeNameFilter:
+      description: Filters requirement types to those whose name contains a certain
+        string.
       in: query
       name: filter[name][contains]
       schema:
         example: utility bill
         type: string
-    DocReqsDocumentTypesSort:
+    DocReqsRequirementTypesSort:
       description: Specifies the sort order for results. If you want to sort by a
         field in ascending order, include it as a sort parameter. If you want to sort
         in descending order, prepend a `-` in front of the field name.
@@ -104,16 +110,20 @@ components:
         - updated_at
         example: country_code
         type: string
-    DocReqsPhoneNumberTypeFilter:
-      description: Filters results to those applying to a specific `phone_number_type`
+    DocReqsRequirementsSort:
+      description: Specifies the sort order for results. If you want to sort by a
+        field in ascending order, include it as a sort parameter. If you want to sort
+        in descending order, prepend a `-` in front of the field name.
       in: query
-      name: filter[phone_number_type]
+      name: sort[]
+      required: false
       schema:
         enum:
-        - local
-        - national
-        - toll-free
-        example: local
+        - action
+        - country_code
+        - locality
+        - phone_number_type
+        example: country_code
         type: string
     DocServiceDocumentIdFilter:
       description: Identifies the associated document to filter on.
@@ -1180,15 +1190,33 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
-    DocReqsListDocumentTypesResponse:
+    DocReqsListRequirementTypesResponse:
       content:
         application/json:
           schema:
             properties:
               data:
-                $ref: '#/components/schemas/DocReqsDocumentTypeList'
+                $ref: '#/components/schemas/DocReqsRequirementTypeList'
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    DocReqsRequirementResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/DocReqsRequirement'
+            type: object
+      description: Successful response
+    DocReqsRequirementTypeResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/DocReqsRequirementType'
             type: object
       description: Successful response
     DocServiceDocumentResponse:
@@ -1626,17 +1654,6 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
-    ListDocumentRequirementsResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/DocumentRequirementList'
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: Successful response
     ListFaxesResponse:
       content:
         application/json:
@@ -2053,6 +2070,17 @@ components:
             title: List Recordings Response
             type: object
       description: Successful response with a list of recordings.
+    ListRequirementsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/DocReqsRequirementList'
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     ListRoomParticipantsResponse:
       content:
         application/json:
@@ -10091,7 +10119,74 @@ components:
       - INBOUND
       - OUTBOUND
       type: string
-    DocReqsDocumentType:
+    DocReqsRequirement:
+      properties:
+        action:
+          description: Indicates whether this requirement applies to ordering, porting,
+            or both
+          enum:
+          - both
+          - ordering
+          - porting
+          example: ordering
+          readOnly: false
+          type: string
+        country_code:
+          description: The 2-character (ISO 3166-1 alpha-2) country code where this
+            requirement applies
+          example: FR
+          readOnly: false
+          type: string
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2021-04-09T22:25:27.521Z'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the associated document
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          readOnly: true
+          type: string
+        locality:
+          description: The locality where this requirement applies
+          example: Nice
+          readOnly: false
+          type: string
+        phone_number_type:
+          description: Indicates the phone_number_type this requirement applies to.
+            Leave blank if this requirement applies to all number_types.
+          enum:
+          - local
+          - national
+          - toll_free
+          example: local
+          readOnly: false
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: requirement
+          readOnly: true
+          type: string
+        requirements_types:
+          description: Lists the requirement types necessary to fulfill this requirement
+          items:
+            $ref: '#/components/schemas/DocReqsRequirementType'
+          readOnly: true
+          type: array
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            last updated.
+          example: '2021-04-12T20:20:20.020Z'
+          readOnly: true
+          type: string
+      type: object
+    DocReqsRequirementList:
+      items:
+        $ref: '#/components/schemas/DocReqsRequirement'
+      type: array
+    DocReqsRequirementType:
       properties:
         acceptance_criteria:
           description: Specifies objective criteria for acceptance
@@ -10114,7 +10209,7 @@ components:
           readOnly: true
           type: string
         description:
-          description: Describes the document type
+          description: Describes the requirement type
           example: Proves the customer has a physical address in the same locality
             as the phone number
           readOnly: false
@@ -10131,14 +10226,23 @@ components:
           readOnly: true
           type: string
         name:
-          description: A short descriptive name for this document_type
+          description: A short descriptive name for this requirement_type
           example: Proof of Address
           readOnly: true
           type: string
         record_type:
           description: Identifies the type of the resource
-          example: document_type
+          example: requirement_type
           readOnly: true
+          type: string
+        type:
+          description: Defines the type of this requirement type
+          enum:
+          - document
+          - address
+          - textual
+          example: document
+          readOnly: false
           type: string
         updated_at:
           description: ISO 8601 formatted date-time indicating when the resource was
@@ -10147,9 +10251,9 @@ components:
           readOnly: true
           type: string
       type: object
-    DocReqsDocumentTypeList:
+    DocReqsRequirementTypeList:
       items:
-        $ref: '#/components/schemas/DocReqsDocumentType'
+        $ref: '#/components/schemas/DocReqsRequirementType'
       type: array
     DocServiceDocument:
       allOf:
@@ -10190,6 +10294,15 @@ components:
                 type: string
             readOnly: true
             type: object
+          status:
+            description: Indicates the current document reviewing status
+            enum:
+            - pending
+            - verified
+            - denied
+            example: pending
+            readOnly: true
+            type: string
         type: object
     DocServiceDocumentLink:
       allOf:
@@ -10290,49 +10403,6 @@ components:
           type: string
       title: Document
       type: object
-    DocumentRequirement:
-      properties:
-        acceptance_criteria:
-          description: Additional requirements
-          properties:
-            locality_limit:
-              description: Indicates geography-based acceptance criterium
-              example: within locality of phone number desired
-              readOnly: true
-              type: string
-            time_limit:
-              description: Indicates a time-based acceptance criterium
-              example: no older than 45 days from submission
-              readOnly: true
-              type: string
-          readOnly: true
-          type: object
-        description:
-          description: Describes the requirement in more detail
-          example: This proves the customer has a physical address in the same locality
-            of the desired phone number
-          readOnly: true
-          type: string
-        example:
-          description: Describes an acceptable document that would meet the requirement
-          example: Utility bill, internet bill, phone bill, or lease
-          readOnly: true
-          type: string
-        name:
-          description: A short name for the document requirement
-          example: Proof of Address
-          readOnly: true
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: document_requirement
-          readOnly: true
-          type: string
-      type: object
-    DocumentRequirementList:
-      items:
-        $ref: '#/components/schemas/DocumentRequirement'
-      type: array
     DownlinkData:
       properties:
         amount:
@@ -24974,42 +25044,6 @@ paths:
       tags:
       - Documents
       x-latency-category: responsive
-  /document_requirements:
-    get:
-      description: List all document requirements with filtering, sorting, and pagination
-      operationId: listDocumentRequirements
-      parameters:
-      - $ref: '#/components/parameters/DocReqsCountryFilter'
-      - $ref: '#/components/parameters/DocReqsPhoneNumberTypeFilter'
-      - $ref: '#/components/parameters/DocReqsActionFilter'
-      - $ref: '#/components/parameters/DocReqsDocumentRequirementsSort'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      responses:
-        '200':
-          $ref: '#/components/responses/ListDocumentRequirementsResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: List all document requirements
-      tags:
-      - Document Requirements
-      x-latency-category: responsive
-  /document_types:
-    get:
-      description: List all document types ordered by created_at descending
-      operationId: docReqsListDocumentTypes
-      parameters:
-      - $ref: '#/components/parameters/DocReqsDocumentTypeNameFilter'
-      - $ref: '#/components/parameters/DocReqsDocumentTypesSort'
-      responses:
-        '200':
-          $ref: '#/components/responses/DocReqsListDocumentTypesResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: List all document types
-      tags:
-      - Document Types
-      x-latency-category: responsive
   /documents:
     get:
       description: List all documents ordered by created_at descending.
@@ -29616,6 +29650,72 @@ paths:
       tags:
       - WDR Detail Reports
       x-latency-category: interactive
+  /requirement_types:
+    get:
+      description: List all requirement types ordered by created_at descending
+      operationId: docReqsListRequirementTypes
+      parameters:
+      - $ref: '#/components/parameters/DocReqsRequirementTypeNameFilter'
+      - $ref: '#/components/parameters/DocReqsRequirementTypesSort'
+      responses:
+        '200':
+          $ref: '#/components/responses/DocReqsListRequirementTypesResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all requirement types
+      tags:
+      - Requirement Types
+      x-latency-category: responsive
+  /requirement_types/{id}:
+    get:
+      description: Retrieve a requirement type by id
+      operationId: docReqsRetrieveRequirementType
+      parameters:
+      - $ref: '#/components/parameters/DocReqsRequirementTypeId'
+      responses:
+        '200':
+          $ref: '#/components/responses/DocReqsRequirementTypeResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve a requirement types
+      tags:
+      - Requirement Types
+      x-latency-category: responsive
+  /requirements:
+    get:
+      description: List all requirements with filtering, sorting, and pagination
+      operationId: listRequirements
+      parameters:
+      - $ref: '#/components/parameters/DocReqsCountryFilter'
+      - $ref: '#/components/parameters/DocReqsPhoneNumberTypeFilter'
+      - $ref: '#/components/parameters/DocReqsActionFilter'
+      - $ref: '#/components/parameters/DocReqsRequirementsSort'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListRequirementsResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all requirements
+      tags:
+      - Requirements
+      x-latency-category: responsive
+  /requirements/{id}:
+    get:
+      description: Retrieve a document requirement record
+      operationId: docReqsRetrieveDocumentRequirements
+      parameters:
+      - $ref: '#/components/parameters/DocReqsRequirementId'
+      responses:
+        '200':
+          $ref: '#/components/responses/DocReqsRequirementResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve a document requirement
+      tags:
+      - Requirements
+      x-latency-category: responsive
   /room_participants:
     get:
       description: ''
@@ -32182,12 +32282,6 @@ tags:
   name: Debugging
 - description: Detail Records operations
   name: Detail Records
-- description: Documents required documentation for international numbers and porting
-    orders
-  name: Document Requirements
-- description: Documents the various types of documents required for international
-    numbers and porting orders
-  name: Document Types
 - description: Documents
   name: Documents
 - description: FQDN connection operations
@@ -32254,6 +32348,10 @@ tags:
   name: Recordings Commands
 - description: Wireless reporting operations
   name: Reporting
+- description: Types of requirements for international numbers and porting orders
+  name: Requirement Types
+- description: Requirements for international numbers and porting orders
+  name: Requirements
 - description: Rooms Participants operations.
   name: Room Participants
 - description: Rooms Sessions operations.
