@@ -644,7 +644,7 @@ components:
       schema:
         type: string
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -652,7 +652,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The size of the page
       in: query
       name: page[size]
       schema:
@@ -2715,7 +2715,8 @@ components:
             type: object
       description: Successful response
     UnauthorizedResponse:
-      description: Unauthorized
+      description: Unauthorized response. Happens when the current user is not a manager
+        account.
     UnprocessableEntity:
       content:
         application/json:
@@ -12497,10 +12498,10 @@ components:
           nullable: true
           type: string
     IntId:
-      description: Identifies the resource.
+      description: Uniquely identifies the resource.
       example: '1293384261075731499'
       format: int64
-      readOnly: true
+      title: Int ID
       type: string
     Ip:
       example:
@@ -13242,7 +13243,7 @@ components:
       properties:
         data:
           items:
-            $ref: '#/components/schemas/MdrDetailResponse'
+            $ref: '#/components/schemas/ExternalMessageDetailRecordDto'
           type: array
         meta:
           $ref: '#/components/schemas/PaginationMeta'
@@ -15533,26 +15534,54 @@ components:
       title: Phone Number
       type: object
     PhoneNumber:
+      example:
+        id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
+        phone_number: '+19705555098'
+        record_type: number_order_phone_number
+        regulatory_group_id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
+        regulatory_requirements:
+        - field_type: address_id
+          field_value: 45f45a04-b4be-4592-95b1-9306b9db2b21
+          record_type: phone_number_regulatory_requirement
+          requirement_id: 8ffb3622-7c6b-4ccc-b65f-7a3dc0099576
+        requirements_met: true
+        status: success
       properties:
-        activation_status:
-          $ref: '#/components/schemas/ActivationStatus'
-        phone_number:
-          description: E164 formatted phone number
-          example: 13035550987
-          type: string
-        portability_status:
-          $ref: '#/components/schemas/PortabilityStatus'
-        porting_order_id:
-          description: Identifies the associated port request
-          example: f1486bae-f067-460c-ad43-73a92848f902
+        id:
+          example: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
           format: uuid
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: porting_phone_number
           readOnly: true
           type: string
-      type: object
+        phone_number:
+          example: '+19705555098'
+          format: e164_phone_number
+          type: string
+        record_type:
+          example: number_order_phone_number
+          readOnly: true
+          type: string
+        regulatory_group_id:
+          example: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
+          readOnly: true
+          type: string
+        regulatory_requirements:
+          items:
+            $ref: '#/components/schemas/PhoneNumberRegulatoryRequirement'
+          type: array
+        requirements_met:
+          description: True if all requirements are met for a phone number, false
+            otherwise.
+          example: true
+          readOnly: true
+          type: boolean
+        status:
+          description: The status of the phone number in the order.
+          enum:
+          - pending
+          - success
+          - failure
+          readOnly: true
+          type: string
     PhoneNumberDeletedDetailed:
       example:
         billing_group_id: 86f58db9-0fe3-4adc-9d1f-46e66e6e9323
@@ -18280,6 +18309,42 @@ components:
       - digits
       title: Send DTMF Request
       type: object
+    SendFaxMultipartRequest:
+      properties:
+        connection_id:
+          description: The connection ID to send the fax with.
+          example: '234423'
+          type: string
+        contents:
+          description: The file you want to upload. The maximum allowed size is 20
+            MB.
+          format: binary
+          type: string
+        from:
+          description: The phone number, in E.164 format, the fax will be sent from.
+          example: '+13125790015'
+          type: string
+        quality:
+          default: high
+          description: The quality of the fax. Can be normal, high, very_high.
+          example: high
+          type: string
+        store_media:
+          default: false
+          description: Should fax media be stored on temporary URL.
+          type: boolean
+        to:
+          description: The phone number, in E.164 format, the fax will be sent to
+            or SIP URI.
+          example: '+13127367276'
+          type: string
+      required:
+      - connection_id
+      - contents
+      - from
+      - to
+      title: Send fax multipart request
+      type: object
     SendFaxRequest:
       properties:
         connection_id:
@@ -18296,17 +18361,22 @@ components:
           type: string
         quality:
           default: high
-          description: The quality of the fax. Can be normal, high, very_high
+          description: The quality of the fax. Can be normal, high, very_high.
           example: high
           type: string
+        store_media:
+          default: false
+          description: Should fax media be stored on temporary URL.
+          type: boolean
         to:
           description: The phone number, in E.164 format, the fax will be sent to
-            or SIP URI
+            or SIP URI.
           example: '+13127367276'
           type: string
       required:
       - connection_id
       - media_url
+      - from
       - to
       title: Send fax request
       type: object
@@ -18687,6 +18757,7 @@ components:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
         format: wav
+        max_length: 0
         play_beep: true
       properties:
         channels:
@@ -18715,6 +18786,13 @@ components:
           - mp3
           example: mp3
           type: string
+        max_length:
+          default: 0
+          description: Defines the maximum length for the recording in seconds. Minimum
+            value is 0. Maximum value is 14400. Default is 0 (infinite)
+          example: 100
+          format: int32
+          type: integer
         play_beep:
           description: If enabled, a beep sound will be played at the start of a recording.
           example: true
@@ -22064,7 +22142,7 @@ info:
   title: Telnyx API
   version: 2.0.0
   x-endpoint-cost: light
-openapi: 3.0.0
+openapi: 3.0.1
 paths:
   /actions/bulk/telephony_credentials:
     delete:
@@ -25656,6 +25734,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SendFaxRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendFaxMultipartRequest'
         description: Send fax request
         required: true
       responses:
