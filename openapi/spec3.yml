@@ -568,6 +568,13 @@ components:
         example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
+    MediaName:
+      description: Uniquely identifies a media resource.
+      in: path
+      name: media_name
+      required: true
+      schema:
+        type: string
     MessagingProfileId:
       description: The id of the messaging profile to retrieve
       in: path
@@ -1740,6 +1747,20 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response with a list of managed accounts.
+    ListMediaResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/MediaResource'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            title: List of media resources response
+            type: object
+      description: A response with a list of media resources
     ListMessagingHostedNumberOrdersResponse:
       content:
         application/json:
@@ -2177,6 +2198,23 @@ components:
                 $ref: '#/components/schemas/ManagedAccount'
             type: object
       description: Successful response with information about a single managed account.
+    MediaDownloadResponse:
+      content:
+        '*/*':
+          schema:
+            format: binary
+            type: string
+      description: A response describing a media resource
+    MediaResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/MediaResource'
+            title: Media resource response
+            type: object
+      description: A response describing a media resource
     MessageResponse:
       content:
         application/json:
@@ -4640,7 +4678,7 @@ components:
           call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
           client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
           connection_id: 7267xxxxxxxxxxxxxx
-          media_url: http://example.com/audio.wav
+          media_name: my_media_uploaded_to_media_storage_api
           overlay: false
           status: valid
         record_type: event
@@ -4686,8 +4724,14 @@ components:
                 in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The audio URL being played back.
+              description: The audio URL being played back, if audio_url has been
+                used to start.
               example: http://example.com/audio.wav
               type: string
             overlay:
@@ -4774,8 +4818,14 @@ components:
                 in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The audio URL being played back.
+              description: The audio URL being played back, if audio_url has been
+                used to start.
               example: http://example.com/audio.wav
               type: string
             overlay:
@@ -5325,7 +5375,8 @@ components:
           type: object
         audio_url:
           description: The URL of a file to be played back to the callee when the
-            call is answered. The URL can point to either a WAV or MP3 file.
+            call is answered. The URL can point to either a WAV or MP3 file. media_name
+            and audio_url cannot be used together in one request.
           example: http://example.com/message.wav
           type: string
         billing_group_id:
@@ -5376,6 +5427,13 @@ components:
           description: Use another call's control id for sharing the same call session
             id
           example: ilditnZK_eVysupV21KzmzN_sM29ygfauQojpm4BgFtfX5hXAcjotg==
+          type: string
+        media_name:
+          description: The media_name of a file to be played back to the callee when
+            the call is answered. The media_name must point to a file previously uploaded
+            to api.telnyx.com/v2/media by the same user/organization. The file must
+            either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
           type: string
         sip_auth_password:
           description: SIP Authentication password used for SIP challenges.
@@ -6002,10 +6060,21 @@ components:
           example: true
           type: boolean
         hold_audio_url:
-          description: The URL of an audio file to be played to the participant when
-            they are put on hold after joining the conference. This property takes
-            effect only if "hold" is set to "true".
-          example: http://www.example.com/audio.wav
+          description: The URL of a file to be played to the participant when they
+            are put on hold after joining the conference. If media_name is also supplied,
+            this is currently ignored. Takes effect only when "start_conference_on_create"
+            is set to "false". This property takes effect only if "hold" is set to
+            "true".
+          example: http://example.com/message.wav
+          type: string
+        hold_media_name:
+          description: The media_name of a file to be played to the participant when
+            they are put on hold after joining the conference. The media_name must
+            point to a file previously uploaded to api.telnyx.com/v2/media by the
+            same user/organization. The file must either be a WAV or MP3 file. Takes
+            effect only when "start_conference_on_create" is set to "false". This
+            property takes effect only if "hold" is set to "true".
+          example: my_media_uploaded_to_media_storage_api
           type: string
         mute:
           default: false
@@ -6364,8 +6433,9 @@ components:
         - v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
       properties:
         audio_url:
-          description: The URL of a file to be played back at the beginning of each
-            prompt. The URL can point to either a WAV or MP3 file.
+          description: The URL of a file to be played to the participants when they
+            are put on hold. media_name and audio_url cannot be used together in one
+            request.
           example: http://example.com/message.wav
           type: string
         call_control_ids:
@@ -6374,6 +6444,13 @@ components:
           items:
             type: string
           type: array
+        media_name:
+          description: The media_name of a file to be played to the participants when
+            they are put on hold. The media_name must point to a file previously uploaded
+            to api.telnyx.com/v2/media by the same user/organization. The file must
+            either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
       title: Conference Hold Request
       type: object
     ConferenceMuteRequest:
@@ -6677,9 +6754,15 @@ components:
                 conference.
               example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The URL to the audio file being played.
-              example: https://www.example.com/audio.mp3
+              description: The audio URL being played back, if audio_url has been
+                used to start.
+              example: http://example.com/audio.wav
               type: string
             occurred_at:
               description: ISO 8601 datetime of when the event occurred.
@@ -6764,9 +6847,15 @@ components:
                 conference.
               example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The URL to the audio file being played.
-              example: https://www.example.com/audio.mp3
+              description: The audio URL being played back, if audio_url has been
+                used to start.
+              example: http://example.com/audio.wav
               type: string
             occurred_at:
               description: ISO 8601 datetime of when the event occurred.
@@ -6957,9 +7046,9 @@ components:
         audio_url: http://www.example.com/sounds/greeting.wav
       properties:
         audio_url:
-          description: The URL of the file to be played back in the conference. The
-            URL can point to either a WAV or MP3 file.
-          example: http://www.example.com/sounds/greeting.wav
+          description: The URL of a file to be played back in the conference. media_name
+            and audio_url cannot be used together in one request.
+          example: http://example.com/message.wav
           type: string
         call_control_ids:
           description: List of call control ids identifying participants the audio
@@ -6975,8 +7064,12 @@ components:
             the value must be an integer between 1 and 100, or the special string
             `infinity` for an endless loop.
           example: infinity
-      required:
-      - audio_url
+        media_name:
+          description: The media_name of a file to be played back in the conference.
+            The media_name must point to a file previously uploaded to api.telnyx.com/v2/media
+            by the same user/organization. The file must either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
       title: Conference Play Request
       type: object
     ConferencePlaybackEnded:
@@ -7019,9 +7112,15 @@ components:
                 conference.
               example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The URL to the audio file being played.
-              example: https://www.example.com/audio.mp3
+              description: The audio URL being played back, if audio_url has been
+                used to start.
+              example: http://example.com/audio.wav
               type: string
             occurred_at:
               description: ISO 8601 datetime of when the event occurred.
@@ -7083,9 +7182,15 @@ components:
                 conference.
               example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
               type: string
+            media_name:
+              description: The name of the audio media file being played back, if
+                media_name has been used to start.
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             media_url:
-              description: The URL to the audio file being played.
-              example: https://www.example.com/audio.mp3
+              description: The audio URL being played back, if audio_url has been
+                used to start.
+              example: http://example.com/audio.wav
               type: string
             occurred_at:
               description: ISO 8601 datetime of when the event occurred.
@@ -7839,10 +7944,19 @@ components:
           example: 5
           type: integer
         hold_audio_url:
-          description: The URL to an audio file to be played to participants joining
-            the conference. Takes effect only when "start_conference_on_create" is
-            set to "false".
-          example: http://www.example.com/audio.wav
+          description: The URL of a file to be played to participants joining the
+            conference. The URL can point to either a WAV or MP3 file. hold_media_name
+            and hold_audio_url cannot be used together in one request. Takes effect
+            only when "start_conference_on_create" is set to "false".
+          example: http://example.com/message.wav
+          type: string
+        hold_media_name:
+          description: The media_name of a file to be played to participants joining
+            the conference. The media_name must point to a file previously uploaded
+            to api.telnyx.com/v2/media by the same user/organization. The file must
+            either be a WAV or MP3 file. Takes effect only when "start_conference_on_create"
+            is set to "false".
+          example: my_media_uploaded_to_media_storage_api
           type: string
         name:
           description: Name of the conference
@@ -10768,8 +10882,13 @@ components:
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
+        media_name:
+          description: The media_name of a file used for the fax's media.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
         media_url:
-          description: The URL to the PDF used for the fax's media.
+          description: The URL to the PDF used for the fax's media. If media_name
+            was supplied, this is omitted.
           example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
           type: string
         quality:
@@ -10798,7 +10917,7 @@ components:
           example: queued
           type: string
         store_media:
-          description: Should fax media be stored on temporary URL
+          description: Should fax media be stored on temporary URL.
           type: boolean
         stored_media_url:
           description: If store_media was set to true, this is a link to temporary
@@ -10966,8 +11085,15 @@ components:
                 from.
               example: '+13125790015'
               type: string
+            media_name:
+              description: The media_name used for the fax's media. Must point to
+                a file previously uploaded to api.telnyx.com/v2/media by the same
+                user/organization
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             original_media_url:
-              description: The original URL to the PDF used for the fax's media.
+              description: The original URL to the PDF used for the fax's media. If
+                media_name was supplied, this is omitted
               example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
               type: string
             page_count:
@@ -11055,8 +11181,15 @@ components:
                 from.
               example: '+13125790015'
               type: string
+            media_name:
+              description: The media_name used for the fax's media. Must point to
+                a file previously uploaded to api.telnyx.com/v2/media by the same
+                user/organization
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             original_media_url:
-              description: The original URL to the PDF used for the fax's media.
+              description: The original URL to the PDF used for the fax's media. If
+                media_name was supplied, this is omitted
               example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
               type: string
             status:
@@ -11134,8 +11267,15 @@ components:
                 from.
               example: '+13125790015'
               type: string
+            media_name:
+              description: The media_name used for the fax's media. Must point to
+                a file previously uploaded to api.telnyx.com/v2/media by the same
+                user/organization
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             original_media_url:
-              description: The original URL to the PDF used for the fax's media.
+              description: The original URL to the PDF used for the fax's media. If
+                media_name was supplied, this is omitted
               example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
               type: string
             status:
@@ -11213,8 +11353,15 @@ components:
                 from.
               example: '+13125790015'
               type: string
+            media_name:
+              description: The media_name used for the fax's media. Must point to
+                a file previously uploaded to api.telnyx.com/v2/media by the same
+                user/organization
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             original_media_url:
-              description: The original URL to the PDF used for the fax's media.
+              description: The original URL to the PDF used for the fax's media. If
+                media_name was supplied, this is omitted
               example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
               type: string
             status:
@@ -11292,8 +11439,15 @@ components:
                 from.
               example: '+13125790015'
               type: string
+            media_name:
+              description: The media_name used for the fax's media. Must point to
+                a file previously uploaded to api.telnyx.com/v2/media by the same
+                user/organization
+              example: my_media_uploaded_to_media_storage_api
+              type: string
             original_media_url:
-              description: The original URL to the PDF used for the fax's media.
+              description: The original URL to the PDF used for the fax's media. If
+                media_name was supplied, this is omitted
               example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
               type: string
             status:
@@ -11567,7 +11721,8 @@ components:
       properties:
         audio_url:
           description: The URL of a file to be played back at the beginning of each
-            prompt. The URL can point to either a WAV or MP3 file.
+            prompt. The URL can point to either a WAV or MP3 file. media_name and
+            audio_url cannot be used together in one request.
           example: http://example.com/message.wav
           type: string
         client_state:
@@ -11589,8 +11744,17 @@ components:
         invalid_audio_url:
           description: The URL of a file to play when digits don't match the `valid_digits`
             parameter or the number of digits is not between `min` and `max`. The
-            URL can point to either a WAV or MP3 file.
+            URL can point to either a WAV or MP3 file. invalid_media_name and invalid_audio_url
+            cannot be used together in one request.
           example: http://example.com/invalid.wav
+          type: string
+        invalid_media_name:
+          description: The media_name of a file to be played back when digits don't
+            match the `valid_digits` parameter or the number of digits is not between
+            `min` and `max`. The media_name must point to a file previously uploaded
+            to api.telnyx.com/v2/media by the same user/organization. The file must
+            either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
           type: string
         maximum_digits:
           default: 128
@@ -11606,6 +11770,13 @@ components:
           example: 3
           format: int32
           type: integer
+        media_name:
+          description: The media_name of a file to be played back at the beginning
+            of each prompt. The media_name must point to a file previously uploaded
+            to api.telnyx.com/v2/media by the same user/organization. The file must
+            either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
         minimum_digits:
           default: 1
           description: The minimum number of digits to fetch. This parameter has a
@@ -11631,8 +11802,6 @@ components:
           description: A list of all digits accepted as valid.
           example: '123'
           type: string
-      required:
-      - audio_url
       title: Gather Using Audio Request
       type: object
     GatherUsingSpeakRequest:
@@ -12755,10 +12924,21 @@ components:
           example: true
           type: boolean
         hold_audio_url:
-          description: The URL of an audio file to be played to the participant when
-            they are put on hold after joining the conference. This property takes
-            effect only if "hold" is set to "true".
-          example: http://www.example.com/audio.wav
+          description: The URL of a file to be played to the participant when they
+            are put on hold after joining the conference. hold_media_name and hold_audio_url
+            cannot be used together in one request. Takes effect only when "start_conference_on_create"
+            is set to "false". This property takes effect only if "hold" is set to
+            "true".
+          example: http://example.com/message.wav
+          type: string
+        hold_media_name:
+          description: The media_name of a file to be played to the participant when
+            they are put on hold after joining the conference. The media_name must
+            point to a file previously uploaded to api.telnyx.com/v2/media by the
+            same user/organization. The file must either be a WAV or MP3 file. Takes
+            effect only when "start_conference_on_create" is set to "false". This
+            property takes effect only if "hold" is set to "true".
+          example: my_media_uploaded_to_media_storage_api
           type: string
         mute:
           description: Whether the participant should be muted immediately after joining
@@ -13504,6 +13684,32 @@ components:
       - media_content_type
       - upload_file
       title: Media Request Body
+      type: object
+    MediaResource:
+      example:
+        created_at: '2019-01-23T18:10:02.574Z'
+        expires_at: '2020-01-23T18:10:02.574Z'
+        media_name: f5586561-8ff0-4291-a0ac-84fe544797bd
+        updated_at: '2019-01-23T18:10:02.574Z'
+      properties:
+        created_at:
+          description: ISO 8601 formatted date of when the media resource was created
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        expires_at:
+          description: ISO 8601 formatted date of when the media resource will expire
+            and be deleted.
+          example: '2020-01-23T18:10:02.574Z'
+          type: string
+        media_name:
+          description: Uniquely identifies a media resource.
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date of when the media resource was last
+            updated
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+      title: Media Resource
       type: object
     Message:
       description: ''
@@ -16361,9 +16567,10 @@ components:
         target_legs: self
       properties:
         audio_url:
-          description: The URL of the file to be played back on the call. The URL
-            can point to either a WAV or MP3 file.
-          example: http://www.example.com/sounds/greeting.wav
+          description: The URL of a file to be played back on the call. The URL can
+            point to either a WAV or MP3 file. media_name and audio_url cannot be
+            used together in one request.
+          example: http://example.com/message.wav
           type: string
         client_state:
           description: Use this field to add state to every subsequent webhook. It
@@ -16382,6 +16589,12 @@ components:
             the value must be an integer between 1 and 100, or the special string
             `infinity` for an endless loop.
           example: infinity
+        media_name:
+          description: The media_name of a file to be played back on the call. The
+            media_name must point to a file previously uploaded to api.telnyx.com/v2/media
+            by the same user/organization. The file must either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
         overlay:
           default: false
           description: 'When enabled, audio will be mixed on top of any other audio
@@ -16403,8 +16616,6 @@ components:
             supplied, the value must be either `self`, `opposite` or `both`.
           example: self
           type: string
-      required:
-      - audio_url
       title: Play Audio URL Request
       type: object
     PlaybackStopRequest:
@@ -18355,8 +18566,16 @@ components:
           description: The phone number, in E.164 format, the fax will be sent from.
           example: '+13125790015'
           type: string
+        media_name:
+          description: The media_name of a file to be used for the fax's media. The
+            media_name must point to a file previously uploaded to api.telnyx.com/v2/media
+            by the same user/organization. media_url and media_name can't be submitted
+            together.
+          example: my_media_uploaded_to_media_storage_api
+          type: string
         media_url:
-          description: The URL to the PDF used for the fax's media.
+          description: The URL to the PDF used for the fax's media. media_url and
+            media_name can't be submitted together.
           example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
           type: string
         quality:
@@ -18366,7 +18585,8 @@ components:
           type: string
         store_media:
           default: false
-          description: Should fax media be stored on temporary URL.
+          description: Should fax media be stored on temporary URL. It does not support
+            media_name, they can't be submitted together.
           type: boolean
         to:
           description: The phone number, in E.164 format, the fax will be sent to
@@ -18375,7 +18595,6 @@ components:
           type: string
       required:
       - connection_id
-      - media_url
       - from
       - to
       title: Send fax request
@@ -19431,9 +19650,10 @@ components:
               type: integer
           type: object
         audio_url:
-          description: Audio URL to be played back when the transfer destination answers
-            before bridging the call. The URL can point to either a WAV or MP3 file.
-          example: http://www.example.com/sounds/greeting.wav
+          description: The URL of a file to be played back when the transfer destination
+            answers before bridging the call. The URL can point to either a WAV or
+            MP3 file. media_name and audio_url cannot be used together in one request.
+          example: http://example.com/message.wav
           type: string
         client_state:
           description: Use this field to add state to every subsequent webhook. It
@@ -19468,6 +19688,13 @@ components:
             numbers, spaces, and -_~!.+ special characters. If ommited, the display
             name will be the same as the number in the `from` field.
           example: Company Name
+          type: string
+        media_name:
+          description: The media_name of a file to be played back when the transfer
+            destination answers before bridging the call. The media_name must point
+            to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization.
+            The file must either be a WAV or MP3 file.
+          example: my_media_uploaded_to_media_storage_api
           type: string
         sip_auth_password:
           description: SIP Authentication password used for SIP challenges.
@@ -20226,6 +20453,40 @@ components:
       - ip_address
       title: Update Ip Request
       type: object
+    UpdateMediaMultipartRequest:
+      example:
+        media: string($binary)
+        ttl_secs: 86400
+      properties:
+        media:
+          description: The file you want to upload. The maximum allowed size is 20
+            MB.
+          format: binary
+          type: string
+        ttl_secs:
+          description: The number of seconds after which the media resource will be
+            deleted, defaults to 2 days.
+          example: 86400
+          type: integer
+      title: Upload media multipart request
+      type: object
+    UpdateMediaRequest:
+      example:
+        media_url: http://www.example.com/audio.mp3
+        ttl_secs: 86400
+      properties:
+        media_url:
+          description: The URL where the media to be stored in Telnyx network is currently
+            hosted. The maximum allowed size is 20 MB.
+          example: http://www.example.com/audio.mp3
+          type: string
+        ttl_secs:
+          description: The number of seconds after which the media resource will be
+            deleted, defaults to 2 days.
+          example: 86400
+          type: integer
+      title: Upload media request
+      type: object
     UpdateMessagingProfileRequest:
       example:
         enabled: true
@@ -20924,6 +21185,54 @@ components:
           readOnly: true
           type: string
       title: Upload Media
+      type: object
+    UploadMediaMultipartRequest:
+      example:
+        media: string($binary)
+        media_name: my-file
+        ttl_secs: 86400
+      properties:
+        media:
+          description: The file you want to upload. The maximum allowed size is 20
+            MB.
+          format: binary
+          type: string
+        media_name:
+          description: The unique identifier of a file.
+          example: my_file
+          type: string
+        ttl_secs:
+          description: The number of seconds after which the media resource will be
+            deleted, defaults to 2 days.
+          example: 86400
+          type: integer
+      required:
+      - media
+      title: Upload media multipart request
+      type: object
+    UploadMediaRequest:
+      example:
+        media_name: my-file
+        media_url: http://www.example.com/audio.mp3
+        ttl_secs: 86400
+      properties:
+        media_name:
+          description: The unique identifier of a file.
+          example: my_file
+          type: string
+        media_url:
+          description: The URL where the media to be stored in Telnyx network is currently
+            hosted. The maximum allowed size is 20 MB.
+          example: http://www.example.com/audio.mp3
+          type: string
+        ttl_secs:
+          description: The number of seconds after which the media resource will be
+            deleted, defaults to 2 days.
+          example: 86400
+          type: integer
+      required:
+      - media_url
+      title: Upload media request
       type: object
     Url:
       description: 'Standard Values: HOME, WORK'
@@ -26434,6 +26743,110 @@ paths:
       tags:
       - Managed Accounts
       x-latency-category: responsive
+  /media:
+    get:
+      description: Returns a list of stored media files.
+      operationId: listMedia
+      responses:
+        '200':
+          $ref: '#/components/responses/ListMediaResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List uploaded media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
+    post:
+      description: Upload media file to Telnyx so it can be used with other Telnyx
+        services
+      operationId: createMedia
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadMediaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadMediaMultipartRequest'
+        description: Upload media request
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/MediaResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Upload media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
+  /media/{media_name}:
+    delete:
+      description: Deletes a stored media file.
+      operationId: deleteMedia
+      parameters:
+      - $ref: '#/components/parameters/MediaName'
+      responses:
+        '204':
+          description: The media was deleted successfully.
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Deletes stored media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
+    get:
+      description: Returns the information about a stored media file.
+      operationId: getMedia
+      parameters:
+      - $ref: '#/components/parameters/MediaName'
+      responses:
+        '200':
+          $ref: '#/components/responses/MediaResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve stored media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
+    put:
+      description: Updates a stored media file.
+      operationId: updateMedia
+      parameters:
+      - $ref: '#/components/parameters/MediaName'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMediaRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateMediaMultipartRequest'
+        description: Update media request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/MediaResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Update stored media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
+  /media/{media_name}/download:
+    get:
+      description: Downloads a stored media file.
+      operationId: downloadMedia
+      parameters:
+      - $ref: '#/components/parameters/MediaName'
+      responses:
+        '200':
+          $ref: '#/components/responses/MediaDownloadResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Download stored media
+      tags:
+      - Media Storage API
+      x-latency-category: interactive
   /message_detail_records:
     get:
       description: 'Fetch all Mdr records '
@@ -32716,6 +33129,8 @@ tags:
   name: MDR Search (Beta)
 - description: Managed Accounts operations
   name: Managed Accounts
+- description: Media Storage operations
+  name: Media Storage API
 - description: Messages
   name: Messages
 - description: Manage your messaging hosted numbers
