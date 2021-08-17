@@ -13004,6 +13004,35 @@ components:
       - code
       title: Language
       type: object
+    LeaveConferenceRequest:
+      example:
+        beep_enabled: never
+        call_control_id: c46e06d7-b78f-4b13-96b6-c576af9640ff
+      properties:
+        beep_enabled:
+          description: Whether a beep sound should be played when the participant
+            leaves the conference. Can be used to override the conference-level setting.
+          enum:
+          - always
+          - never
+          - on_enter
+          - on_exit
+          example: on_exit
+          type: string
+        call_control_id:
+          description: Unique identifier and token for controlling the call
+          example: f91269aa-61d1-417f-97b3-10e020e8bc47
+          type: string
+        command_id:
+          description: Use this field to avoid execution of duplicate commands. Telnyx
+            will ignore subsequent commands with the same `command_id` as one that
+            has already been executed.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      required:
+      - call_control_id
+      title: Leave Conference Request
+      type: object
     LeaveQueueRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -25032,6 +25061,55 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Join a conference
+      tags:
+      - Conference Commands
+      x-latency-category: interactive
+  /conferences/{id}/actions/leave:
+    post:
+      callbacks:
+        conferenceParticipantLeft:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/ConferenceParticipantLeftEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: 'Removes a call leg from a conference and moves it back to parked
+        state. **Expected Webhooks:**
+
+
+        - `conference.participant.left`
+
+        '
+      operationId: conferenceLeave
+      parameters:
+      - description: Uniquely identifies the conference by id or name
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveConferenceRequest'
+        description: Leave Conference request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ConferenceCommandResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Leave a conference
       tags:
       - Conference Commands
       x-latency-category: interactive

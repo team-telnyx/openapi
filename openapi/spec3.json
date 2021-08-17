@@ -3692,6 +3692,73 @@
         "x-latency-category": "interactive"
       }
     },
+    "/conferences/{id}/actions/leave": {
+      "post": {
+        "summary": "Leave a conference",
+        "description": "Removes a call leg from a conference and moves it back to parked state. **Expected Webhooks:**\n\n- `conference.participant.left`\n",
+        "operationId": "conferenceLeave",
+        "tags": [
+          "Conference Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Uniquely identifies the conference by id or name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Leave Conference request object",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveConferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ConferenceCommandResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "callbacks": {
+          "conferenceParticipantLeft": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/ConferenceParticipantLeftEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/conferences/{id}/actions/mute": {
       "post": {
         "summary": "Mute conference participants",
@@ -32062,6 +32129,40 @@
         "example": {
           "policy": "deterministic",
           "code": "en"
+        }
+      },
+      "LeaveConferenceRequest": {
+        "required": [
+          "call_control_id"
+        ],
+        "type": "object",
+        "title": "Leave Conference Request",
+        "properties": {
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call",
+            "example": "f91269aa-61d1-417f-97b3-10e020e8bc47",
+            "type": "string"
+          },
+          "command_id": {
+            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+            "type": "string"
+          },
+          "beep_enabled": {
+            "description": "Whether a beep sound should be played when the participant leaves the conference. Can be used to override the conference-level setting.",
+            "enum": [
+              "always",
+              "never",
+              "on_enter",
+              "on_exit"
+            ],
+            "example": "on_exit",
+            "type": "string"
+          }
+        },
+        "example": {
+          "call_control_id": "c46e06d7-b78f-4b13-96b6-c576af9640ff",
+          "beep_enabled": "never"
         }
       },
       "LeaveQueueRequest": {
