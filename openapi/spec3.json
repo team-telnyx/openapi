@@ -109,6 +109,10 @@
       "description": "Inbound channels operations"
     },
     {
+      "name": "Inventory Level",
+      "description": "Inventory Level"
+    },
+    {
       "name": "MDR Search (Beta)",
       "description": "Search messaging detail records"
     },
@@ -149,6 +153,10 @@
       "description": "Background jobs performed over a batch of phone numbers"
     },
     {
+      "name": "Number Blocks Background Jobs",
+      "description": "Background jobs performed over a phone-numbers block's phone numbers"
+    },
+    {
       "name": "Number Configurations",
       "description": "Configure your phone numbers"
     },
@@ -159,10 +167,6 @@
     {
       "name": "Number Order Documents",
       "description": "Number order documents"
-    },
-    {
-      "name": "Number Order Regulatory Requirements",
-      "description": "Number order regulatory requirements"
     },
     {
       "name": "Number Orders",
@@ -860,6 +864,167 @@
         "x-latency-category": "responsive"
       }
     },
+    "/available_phone_number_blocks": {
+      "get": {
+        "summary": "List available phone number blocks",
+        "operationId": "listAvailablePhoneNumberBlocks",
+        "tags": [
+          "Number Search"
+        ],
+        "parameters": [
+          {
+            "name": "filter[phone_number][starts_with]",
+            "in": "query",
+            "description": "Filter number blocks that start with a pattern (meant to be used after `national_destination_code` filter has been set).",
+            "schema": {
+              "type": "string",
+              "example": "201"
+            }
+          },
+          {
+            "name": "filter[phone_number][ends_with]",
+            "in": "query",
+            "description": "Filter numbers ending with a pattern.",
+            "schema": {
+              "type": "string",
+              "example": "8000"
+            }
+          },
+          {
+            "name": "filter[phone_number][contains]",
+            "in": "query",
+            "description": "Filter numbers containing a pattern.",
+            "schema": {
+              "type": "string",
+              "example": "456"
+            }
+          },
+          {
+            "name": "filter[locality]",
+            "in": "query",
+            "description": "Filter phone numbers by city.",
+            "schema": {
+              "type": "string"
+            },
+            "examples": {
+              "US": {
+                "value": "Chicago"
+              },
+              "CA": {
+                "value": "Toronto"
+              },
+              "AU": {
+                "value": "Canberra"
+              }
+            }
+          },
+          {
+            "name": "filter[administrative_area]",
+            "in": "query",
+            "description": "Filter phone numbers by US state/CA province.",
+            "schema": {
+              "type": "string",
+              "example": "IL"
+            }
+          },
+          {
+            "name": "filter[country_code]",
+            "in": "query",
+            "description": "Filter phone numbers by ISO alpha-2 country code.",
+            "schema": {
+              "type": "string",
+              "example": "US"
+            }
+          },
+          {
+            "name": "filter[national_destination_code]",
+            "in": "query",
+            "description": "Filter by the national destination code of the number. This filter is only applicable to North American numbers.",
+            "schema": {
+              "type": "string"
+            },
+            "examples": {
+              "US": {
+                "value": "312"
+              },
+              "CA": {
+                "value": "437"
+              },
+              "AU": {
+                "value": "0251"
+              }
+            }
+          },
+          {
+            "name": "filter[rate_center]",
+            "in": "query",
+            "description": "Filter phone numbers by NANP rate center. This filter is only applicable to North American numbers.",
+            "schema": {
+              "type": "string",
+              "example": "CHICAGO HEIGHTS"
+            }
+          },
+          {
+            "name": "filter[number_type]",
+            "in": "query",
+            "description": "Filter phone numbers by number type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "toll-free"
+              ],
+              "example": "toll-free"
+            }
+          },
+          {
+            "name": "filter[features]",
+            "in": "query",
+            "description": "Filter if the phone number should be used for voice, fax, mms, sms, emergency.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "sms",
+                  "mms",
+                  "voice",
+                  "fax",
+                  "emergency"
+                ]
+              },
+              "example": "voice,sms"
+            }
+          },
+          {
+            "name": "filter[minimum_block_size]",
+            "in": "query",
+            "description": "Filter number blocks by minimum blocks size",
+            "schema": {
+              "type": "integer",
+              "example": 100
+            }
+          },
+          {
+            "name": "filter[limit]",
+            "in": "query",
+            "description": "Limits the number of results.",
+            "schema": {
+              "type": "integer",
+              "example": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListAvailablePhoneNumbersBlockResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/available_phone_numbers": {
       "get": {
         "summary": "List available phone numbers",
@@ -984,9 +1149,12 @@
             "schema": {
               "type": "string",
               "enum": [
-                "toll-free"
+                "toll-free",
+                "national",
+                "mobile",
+                "local"
               ],
-              "example": "toll-free"
+              "example": "local"
             }
           },
           {
@@ -3154,6 +3322,130 @@
           }
         },
         "x-latency-category": "interactive"
+      }
+    },
+    "/comments": {
+      "get": {
+        "summary": "Retrieve all comments",
+        "operationId": "listComments",
+        "tags": [
+          "Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "filter[comment_record_type]",
+            "in": "query",
+            "description": "Record type that the comment relates to i.e number_order, sub_number_order or number_order_phone_number",
+            "schema": {
+              "type": "string",
+              "example": "sub_number_order"
+            },
+            "required": true
+          },
+          {
+            "name": "filter[comment_record_id]",
+            "in": "query",
+            "description": "ID of the record the comments relate to",
+            "schema": {
+              "type": "string",
+              "example": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/listCommentsResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create a comment",
+        "operationId": "createComment",
+        "tags": [
+          "Number Orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Comment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommentResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/comments/{id}": {
+      "get": {
+        "summary": "Retrieve a comment",
+        "operationId": "retrieveComment",
+        "tags": [
+          "Number Orders"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CommentResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "description": "The comment ID.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/comments/{id}/read": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "description": "The comment ID.",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Mark a comment as read",
+        "operationId": "markCommentRead",
+        "tags": [
+          "Number Orders"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ReadCommentResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
       }
     },
     "/conferences": {
@@ -5871,6 +6163,124 @@
         "x-latency-category": "responsive"
       }
     },
+    "/inventory_coverage": {
+      "get": {
+        "summary": "Create an inventory coverage request",
+        "description": "Creates an inventory coverage request. If locality, npa or national_destination_code is used in groupBy, and no region or locality filters are used, the whole paginated set is returned.",
+        "operationId": "createInventoryCoverageRequest",
+        "tags": [
+          "Inventory Level"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filter[npa]",
+            "example": 318,
+            "schema": {
+              "type": "integer",
+              "description": "Filter by npa"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[nxx]",
+            "example": 202,
+            "schema": {
+              "type": "integer",
+              "description": "Filter by nxx"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[administrative_area]",
+            "example": "LA",
+            "schema": {
+              "type": "string",
+              "description": "Filter by administrative area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[number_type]",
+            "example": "did",
+            "schema": {
+              "type": "string",
+              "description": "Filter by number type",
+              "enum": [
+                "did",
+                "toll-free"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[phone_number_type]",
+            "example": "local",
+            "schema": {
+              "type": "string",
+              "description": "Filter by phone number type",
+              "enum": [
+                "local",
+                "toll_free",
+                "national",
+                "mobile",
+                "landline",
+                "shared_cost"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[country_code]",
+            "example": "US",
+            "schema": {
+              "type": "string",
+              "description": "Filter by country. Defaults to US",
+              "enum": [
+                "US",
+                "CA",
+                "GB"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[count]",
+            "example": "true",
+            "schema": {
+              "type": "boolean",
+              "description": "Include count in the result"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[groupBy]",
+            "example": "nxx",
+            "schema": {
+              "type": "string",
+              "description": "Filter to group results",
+              "enum": [
+                "rate_center",
+                "locality",
+                "npa",
+                "national_destination_code",
+                "nxx"
+              ]
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InventoryCoverageResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/ip_connections": {
       "get": {
         "description": "Returns a list of your IP connections.",
@@ -8389,6 +8799,149 @@
         "x-latency-category": "responsive"
       }
     },
+    "/number_block_orders": {
+      "get": {
+        "summary": "List number block orders",
+        "description": "Get a paginated list of number block orders.",
+        "operationId": "listNumberBlockOrders",
+        "tags": [
+          "Number Block Orders"
+        ],
+        "parameters": [
+          {
+            "name": "filter[status]",
+            "in": "query",
+            "description": "Filter number block orders by status.",
+            "schema": {
+              "type": "string",
+              "example": "pending"
+            }
+          },
+          {
+            "name": "filter[created_at][gt]",
+            "in": "query",
+            "description": "Filter number block orders later than this value.",
+            "schema": {
+              "type": "string",
+              "example": "2018-01-01T00:00:00.000000Z"
+            }
+          },
+          {
+            "name": "filter[created_at][lt]",
+            "in": "query",
+            "description": "Filter number block orders earlier than this value.",
+            "schema": {
+              "type": "string",
+              "example": "2018-01-01T00:00:00.000000Z"
+            }
+          },
+          {
+            "name": "filter[phone_numbers.starting_number]",
+            "in": "query",
+            "description": "Filter number block  orders having these phone numbers.",
+            "schema": {
+              "type": "string",
+              "example": "+19705555000"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListNumberBlockOrdersResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create a number block order",
+        "description": "Creates a phone number block order.",
+        "operationId": "createNumberBlockOrder",
+        "tags": [
+          "Number Block Orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNumberBlockOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/NumberBlockOrderResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "numberOrderStatusUpdate": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/NumberOrderBlockEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return a HTTP 200, otherwise we will reattempt to deliver the webhook to the failover URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/number_block_orders/{number_block_order_id}": {
+      "get": {
+        "summary": "Retrieve a number block order",
+        "description": "Get an existing phone number block order.",
+        "operationId": "retrieveNumberBlockOrder",
+        "tags": [
+          "Number Block Orders"
+        ],
+        "parameters": [
+          {
+            "name": "number_block_order_id",
+            "in": "path",
+            "description": "The number block order ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/NumberBlockOrderResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/number_lookup/{phone_number}": {
       "get": {
         "summary": "Lookup phone number data",
@@ -8566,6 +9119,93 @@
         "x-latency-category": "responsive"
       }
     },
+    "/number_order_phone_numbers": {
+      "get": {
+        "summary": "Retrieve a list of phone numbers associated to orders",
+        "description": "Get a list of phone numbers associated to orders.",
+        "operationId": "retrieveNumberOrderPhoneNumbers",
+        "tags": [
+          "Number Orders"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListNumberOrderPhoneNumbersResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/number_order_phone_numbers/{number_order_phone_number_id}": {
+      "get": {
+        "summary": "Retrieve a number order phone number.",
+        "description": "Get an existing number order phone number.",
+        "operationId": "retrieveNumberOrderPhoneNumber",
+        "tags": [
+          "Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "number_order_phone_number_id",
+            "in": "path",
+            "description": "The number order phone number ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/NumberOrderPhoneNumberResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "patch": {
+        "summary": "Update a number order phone number.",
+        "description": "Updates a number order phone number.",
+        "operationId": "updateNumberOrderPhoneNumber",
+        "tags": [
+          "Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "number_order_phone_number_id",
+            "in": "path",
+            "description": "The number order phone number ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNumberOrderPhoneNumberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/NumberOrderPhoneNumberResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/number_orders": {
       "get": {
         "summary": "List number orders",
@@ -8602,9 +9242,9 @@
             }
           },
           {
-            "name": "filter[phone_numbers.phone_number]",
+            "name": "filter[phone_numbers_count]",
             "in": "query",
-            "description": "Filter number orders having these phone numbers.",
+            "description": "Filter number order with this amount of numbers",
             "schema": {
               "type": "string"
             }
@@ -9161,6 +9801,161 @@
         "x-latency-category": "responsive"
       }
     },
+    "/phone_number_blocks/jobs": {
+      "get": {
+        "summary": "Lists the phone number blocks jobs",
+        "operationId": "listPhoneNumberBlocksJobs",
+        "tags": [
+          "Number Blocks Background Jobs"
+        ],
+        "x-group-parameters": "true",
+        "parameters": [
+          {
+            "name": "filter[type]",
+            "in": "query",
+            "description": "Filter the phone number blocks jobs by type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "delete_phone_number_block"
+              ],
+              "example": "delete_phone_number_block",
+              "description": "Identifies the type of the background job."
+            }
+          },
+          {
+            "name": "filter[status]",
+            "in": "query",
+            "description": "Filter the phone number blocks jobs by status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "in_progress",
+                "completed",
+                "failed"
+              ],
+              "example": "in_progress",
+              "description": "Identifies the status of the background job."
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at"
+              ],
+              "example": "created_at"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListPhoneNumberBlocksJobsResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/phone_number_blocks/jobs/delete_phone_number_block": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Deletes all numbers associated with a phone number block",
+        "description": "Creates a new background job to delete all the phone numbers associated with the given block. We will only consider the phone number block as deleted after all phone numbers associated with it are removed, so multiple executions of this job may be necessary in case some of the phone numbers present errors during the deletion process.",
+        "operationId": "createPhoneNumberBlocksJobDeletePhoneNumberBlock",
+        "tags": [
+          "Number Blocks Background Jobs"
+        ],
+        "x-group-parameters": "true",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneNumberBlocksJobDeletePhoneNumberBlockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Phone number blocks job delete phone numbers requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Phone Number Blocks Job Delete Phone Number Block",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PhoneNumberBlocksJob"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
+    "/phone_number_blocks/jobs/{id}": {
+      "get": {
+        "summary": "Retrieves a phone number blocks job",
+        "operationId": "retrievePhoneNumberBlocksJob",
+        "tags": [
+          "Number Blocks Background Jobs"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifies the Phone Number Blocks Job.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-group-parameters": "true",
+        "responses": {
+          "200": {
+            "description": "Phone number blocks job details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Phone Number Blocks Job",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PhoneNumberBlocksJob"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/phone_numbers": {
       "get": {
         "summary": "List phone numbers",
@@ -9296,8 +10091,7 @@
             "in": "query",
             "description": "Filter numbers via the customer_reference set.",
             "schema": {
-              "type": "string",
-              "example": "MY REF 001"
+              "type": "string"
             }
           },
           {
@@ -9707,7 +10501,7 @@
       "post": {
         "x-latency-category": "background",
         "summary": "Update a batch of numbers",
-        "description": "Creates a new background job to update a batch of numbers. At most one thousand numbers can be updated per API call. At least one of the updateable fields must be submitted",
+        "description": "Creates a new background job to update a batch of numbers. At most one thousand numbers can be updated per API call. At least one of the updateable fields must be submitted.",
         "operationId": "createPhoneNumbersJobUpdatePhoneNumber",
         "tags": [
           "Number Background Jobs"
@@ -10159,45 +10953,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PhoneNumberWithVoiceSettingsResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
-      }
-    },
-    "/phone_numbers_regulatory_requirements": {
-      "get": {
-        "summary": "List regulatory requirements per number",
-        "description": "Gets a paginated list of phone number regulatory requirements.",
-        "operationId": "listPhoneNumberRegulatoryRequirements",
-        "tags": [
-          "Number Order Regulatory Requirements"
-        ],
-        "x-group-parameters": "true",
-        "parameters": [
-          {
-            "name": "filter[phone_number]",
-            "in": "query",
-            "description": "The list of phone numbers to retrieve regulatory requirements for.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/ListPhoneNumberRegulatoryRequirementsResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -11219,88 +11974,6 @@
           }
         },
         "x-latency-category": "interactive"
-      }
-    },
-    "/regulatory_requirements": {
-      "get": {
-        "summary": "List number order regulatory requirements",
-        "description": "Gets a paginated list of number order regulatory requirements.",
-        "operationId": "listNumberOrderRegulatoryRequirements",
-        "tags": [
-          "Number Order Regulatory Requirements"
-        ],
-        "x-group-parameters": "true",
-        "parameters": [
-          {
-            "name": "filter[requirement_id]",
-            "in": "query",
-            "description": "Filter number order regulatory requirements by `requirement_id`.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[field_type]",
-            "in": "query",
-            "description": "Filter number order regulatory requirements by `field_type`.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[requirement_type]",
-            "in": "query",
-            "description": "Filter number order regulatory requirements by `requirement_type`.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/ListNumberOrderRegulatoryRequirementsResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
-      }
-    },
-    "/regulatory_requirements/{requirement_id}": {
-      "get": {
-        "summary": "Retrieve a number order regulatory requirement",
-        "description": "Gets a single number order regulatory requirement.",
-        "operationId": "retrieveNumberOrderRegulatoryRequirement",
-        "tags": [
-          "Number Order Regulatory Requirements"
-        ],
-        "parameters": [
-          {
-            "name": "requirement_id",
-            "in": "path",
-            "description": "The number order regulatory requirement ID.",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/NumberOrderRegulatoryRequirementResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
       }
     },
     "/reports/batch_mdr_reports": {
@@ -14090,6 +14763,153 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/WirelessConnectivityLogCollectionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sub_number_orders": {
+      "get": {
+        "summary": "List sub number orders",
+        "description": "Get a paginated list of sub number orders.",
+        "operationId": "listSubNumberOrders",
+        "tags": [
+          "Number Orders"
+        ],
+        "x-group-parameters": "true",
+        "parameters": [
+          {
+            "name": "filter[user_id]",
+            "in": "query",
+            "description": "User ID of the user who owns the sub number order",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "d70873cd-7c98-401a-81b6-b1ae08246995"
+            }
+          },
+          {
+            "name": "filter[order_request_id]",
+            "in": "query",
+            "description": "ID of the number order the sub number order belongs to",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "12ade33a-21c0-473b-b055-b3c836e1c293"
+            }
+          },
+          {
+            "name": "filter[country_code]",
+            "in": "query",
+            "description": "ISO alpha-2 country code.",
+            "schema": {
+              "type": "string",
+              "example": "US"
+            }
+          },
+          {
+            "name": "filter[phone_number_type]",
+            "in": "query",
+            "description": "Phone Number Type",
+            "schema": {
+              "type": "string",
+              "example": "local"
+            }
+          },
+          {
+            "name": "filter[phone_numbers_count]",
+            "in": "query",
+            "description": "Amount of numbers in the sub number order",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListSubNumberOrdersResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sub_number_orders/{sub_number_order_id}": {
+      "get": {
+        "summary": "Retrieve a sub number order",
+        "description": "Get an existing sub number order.",
+        "operationId": "retrieveSubNumberOrder",
+        "tags": [
+          "Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "sub_number_order_id",
+            "in": "path",
+            "description": "The sub number order ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter[include_phone_numbers]",
+            "in": "query",
+            "description": "Include the first 50 phone number objects in the results",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SubNumberOrderResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "patch": {
+        "summary": "Update a sub number order",
+        "description": "Updates a sub number order.",
+        "operationId": "updateSubNumberOrder",
+        "tags": [
+          "Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "sub_number_order_id",
+            "in": "path",
+            "description": "The sub number order ID.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubNumberOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SubNumberOrderResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -17156,6 +17976,28 @@
           }
         }
       },
+      "CommentResponse": {
+        "description": "A Comment Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Comment"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
       "ConferenceCommandResponse": {
         "description": "Successful response upon making a conference command.",
         "content": {
@@ -17988,6 +18830,27 @@
           }
         }
       },
+      "InventoryCoverageResponse": {
+        "description": "Successful response with a list of inventory coverage levels",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InventoryCoverage"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/InventoryCoverageMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
       "IpConnectionResponse": {
         "description": "Successful response with details about an IP connection.",
         "content": {
@@ -18014,6 +18877,28 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/Ip"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListAvailablePhoneNumbersBlockResponse": {
+        "description": "Successful response with a list of available phone numbers blocks.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Available Phone Numbers Blocks Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AvailablePhoneNumberBlock"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/AvailablePhoneNumbersMetadata"
                 }
               }
             }
@@ -18546,6 +19431,28 @@
           }
         }
       },
+      "ListNumberBlockOrdersResponse": {
+        "description": "Successful response with a list of number block orders.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Number Block Orders Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NumberBlockOrder"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListNumberOrderDocumentsResponse": {
         "description": "Successful response with a list of number order documents.",
         "content": {
@@ -18568,18 +19475,18 @@
           }
         }
       },
-      "ListNumberOrderRegulatoryRequirementsResponse": {
-        "description": "Successful response with a list of number order regulatory requirements.",
+      "ListNumberOrderPhoneNumbersResponse": {
+        "description": "Successful response with a list of number order phone numbers.",
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
-              "title": "List Number Order Regulatory Requirements Response",
+              "title": "List Number Order Phone Numbers Response",
               "properties": {
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/RegulatoryRequirement"
+                    "$ref": "#/components/schemas/NumberOrderPhoneNumber"
                   }
                 },
                 "meta": {
@@ -18678,18 +19585,18 @@
           }
         }
       },
-      "ListPhoneNumberRegulatoryRequirementsResponse": {
-        "description": "Successful response with a list of phone number regulatory requirements.",
+      "ListPhoneNumberBlocksJobsResponse": {
+        "description": "Successful response with a list of phone number blocks background jobs.",
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
-              "title": "List Phone Number Regulatory Requirements Response",
+              "title": "List Phone Number Blocks Background Jobs Response",
               "properties": {
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PhoneNumberRegulatoryGroup"
+                    "$ref": "#/components/schemas/PhoneNumberBlocksJob"
                   }
                 },
                 "meta": {
@@ -19037,6 +19944,28 @@
           }
         }
       },
+      "ListSubNumberOrdersResponse": {
+        "description": "Successful response with a list of sub number orders.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Sub Number Orders Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubNumberOrder"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListTagsResponse": {
         "description": "Successful response with multiple tags",
         "content": {
@@ -19199,6 +20128,22 @@
       "NotFoundResponse": {
         "description": "Conference does not exist"
       },
+      "NumberBlockOrderResponse": {
+        "description": "Successful response with details about a number block order.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Number Block Order Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/NumberBlockOrder"
+                }
+              }
+            }
+          }
+        }
+      },
       "NumberLookupResponse": {
         "description": "Successful response",
         "content": {
@@ -19231,16 +20176,16 @@
           }
         }
       },
-      "NumberOrderRegulatoryRequirementResponse": {
-        "description": "Successful response with details about a number order regulatory requirement.",
+      "NumberOrderPhoneNumberResponse": {
+        "description": "Successful response with details about a number order phone number.",
         "content": {
           "application/json": {
             "schema": {
               "type": "object",
-              "title": "Number Order Regulatory Requirement Response",
+              "title": "Number Order Phone Number Response",
               "properties": {
                 "data": {
-                  "$ref": "#/components/schemas/RegulatoryRequirement"
+                  "$ref": "#/components/schemas/NumberOrderPhoneNumber"
                 }
               }
             }
@@ -19256,7 +20201,7 @@
               "title": "Number Order Response",
               "properties": {
                 "data": {
-                  "$ref": "#/components/schemas/NumberOrder"
+                  "$ref": "#/components/schemas/NumberOrderWithPhoneNumbers"
                 }
               }
             }
@@ -19447,6 +20392,28 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ReadCommentResponse": {
+        "description": "A Comment Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ReadComment"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             }
@@ -19932,6 +20899,22 @@
           }
         }
       },
+      "SubNumberOrderResponse": {
+        "description": "Successful response with details about a sub number order.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Sub Number Order Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SubNumberOrder"
+                }
+              }
+            }
+          }
+        }
+      },
       "TelephonyCredentialResponse": {
         "description": "Successful response with details about a credential",
         "content": {
@@ -20172,6 +21155,27 @@
           }
         },
         "description": "Successful response"
+      },
+      "listCommentsResponse": {
+        "description": "An array of Comment Responses",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -20566,10 +21570,10 @@
           "cost_information": {
             "$ref": "#/components/schemas/CostInformation"
           },
-          "regulatory_requirements": {
+          "features": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/RegulatoryRequirement"
+              "$ref": "#/components/schemas/Feature"
             }
           }
         },
@@ -20591,12 +21595,71 @@
             "monthly_cost": "6.54",
             "currency": "USD"
           },
-          "regulatory_requirements": [
+          "features": [
             {
-              "requirement_type": "end user proof of address",
-              "label": "Proof of Address",
-              "field_type": "address",
-              "description": "Requirement for providing Proof of Address."
+              "name": "sms"
+            },
+            {
+              "name": "voice"
+            }
+          ]
+        }
+      },
+      "AvailablePhoneNumberBlock": {
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "available_phone_number_block",
+            "enum": [
+              "available_phone_number_block"
+            ]
+          },
+          "starting_number": {
+            "type": "string",
+            "example": "+19705555000"
+          },
+          "range": {
+            "type": "integer",
+            "example": 10
+          },
+          "region_information": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionInformation"
+            }
+          },
+          "cost_information": {
+            "$ref": "#/components/schemas/CostInformation"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feature"
+            }
+          }
+        },
+        "example": {
+          "record_type": "available_phone_number_block",
+          "phone_number": "+19705555000",
+          "range": 10,
+          "region_information": [
+            {
+              "region_type": "country_code",
+              "region_name": "US"
+            }
+          ],
+          "cost_information": {
+            "upfront_cost": "3.21",
+            "monthly_cost": "6.54",
+            "currency": "USD"
+          },
+          "features": [
+            {
+              "name": "sms"
+            },
+            {
+              "name": "voice"
             }
           ]
         }
@@ -23739,33 +24802,65 @@
         }
       },
       "Comment": {
-        "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid",
-            "example": "f1486bae-f067-460c-ad43-73a92848f902"
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292",
+            "readOnly": true
           },
           "body": {
             "type": "string",
-            "description": "Body of comment",
-            "example": "Great experience so far"
+            "example": "Hi there, ...."
           },
-          "porting_order_id": {
+          "commenter": {
+            "type": "string",
+            "example": "user@company.com",
+            "readOnly": true
+          },
+          "commenter_type": {
+            "type": "string",
+            "example": "user",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "readOnly": true
+          },
+          "comment_record_type": {
+            "type": "string",
+            "example": "sub_number_order",
+            "enum": [
+              "number_order",
+              "sub_number_order",
+              "number_order_phone_number"
+            ]
+          },
+          "comment_record_id": {
             "type": "string",
             "format": "uuid",
-            "example": "f1486bae-f067-460c-ad43-73a92848f902"
+            "example": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576"
           },
-          "user_id": {
+          "read_at": {
             "type": "string",
-            "description": "identifies the user who created the comment. Will be null if created by a Telnyx Admin",
-            "example": "f1486bae-f067-460c-ad43-73a92848f902"
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string for when the comment was read.",
+            "example": null,
+            "readOnly": true
           },
           "created_at": {
             "type": "string",
-            "format": "date-time",
-            "description": "ISO 8601 formatted date indicating when the resource was created.",
-            "example": "2021-03-19T10:07:15.527Z"
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string denoting when the comment was created.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string for when the comment was updated.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
           }
         }
       },
@@ -27301,6 +28396,99 @@
           }
         }
       },
+      "CreateNumberBlockOrderRequest": {
+        "required": [
+          "starting_number",
+          "range"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292",
+            "readOnly": true
+          },
+          "record_type": {
+            "type": "string",
+            "example": "number_block_order",
+            "readOnly": true
+          },
+          "starting_number": {
+            "type": "string",
+            "description": "Starting phone number block",
+            "format": "e164_phone_number",
+            "example": "+19705555000",
+            "writeOnly": true
+          },
+          "range": {
+            "type": "integer",
+            "description": "The phone number range included in the block.",
+            "example": 10,
+            "writeOnly": true
+          },
+          "phone_numbers_count": {
+            "type": "integer",
+            "description": "The count of phone numbers in the number order.",
+            "example": 10,
+            "readOnly": true
+          },
+          "connection_id": {
+            "type": "string",
+            "example": "346789098765567",
+            "description": "Identifies the connection associated with this phone number."
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "example": "abc85f64-5717-4562-b3fc-2c9600",
+            "description": "Identifies the messaging profile associated with the phone number."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure"
+            ],
+            "description": "The status of the order.",
+            "readOnly": true
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "A customer reference string for customer look ups.",
+            "example": "MY REF 001"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string denoting when the number order was created.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string for when the number order was updated.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "requirements_met": {
+            "type": "boolean",
+            "description": "True if all requirements are met for every phone number, false otherwise.",
+            "example": true,
+            "readOnly": true
+          },
+          "errors": {
+            "type": "string",
+            "description": "Errors the reservation could happen upon",
+            "example": "Number is already on hold",
+            "readOnly": true
+          }
+        },
+        "example": {
+          "starting_number": "+19705555000",
+          "range": 10
+        }
+      },
       "CreateNumberOrderDocumentRequest": {
         "properties": {
           "id": {
@@ -27404,6 +28592,7 @@
               "success",
               "failure"
             ],
+            "example": "success",
             "description": "The status of the order.",
             "readOnly": true
           },
@@ -27446,7 +28635,7 @@
                   "record_type": "phone_number_regulatory_requirement",
                   "requirement_id": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576",
                   "field_value": "45f45a04-b4be-4592-95b1-9306b9db2b21",
-                  "field_type": "address_id"
+                  "field_type": "address"
                 }
               ],
               "requirements_met": true,
@@ -30412,6 +31601,17 @@
           }
         }
       },
+      "Feature": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "sms"
+          }
+        },
+        "example": {
+          "name": "sms"
+        }
+      },
       "Filter": {
         "type": "object",
         "properties": {
@@ -31769,6 +32969,81 @@
         "format": "int64",
         "description": "Uniquely identifies the resource.",
         "example": "1293384261075731499"
+      },
+      "InventoryCoverage": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "example": "318"
+          },
+          "group_type": {
+            "type": "string",
+            "example": "npa"
+          },
+          "number_range": {
+            "type": "integer",
+            "example": 1
+          },
+          "number_type": {
+            "type": "string",
+            "enum": [
+              "did",
+              "toll-free"
+            ],
+            "example": "did"
+          },
+          "phone_number_type": {
+            "type": "string",
+            "enum": [
+              "local",
+              "toll_free",
+              "national",
+              "landline",
+              "shared_cost",
+              "mobile"
+            ],
+            "example": "local"
+          },
+          "coverage_type": {
+            "type": "string",
+            "enum": [
+              "number",
+              "block"
+            ],
+            "example": "number"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "inventory_coverage_group"
+          },
+          "count": {
+            "type": "integer",
+            "example": 3
+          }
+        },
+        "example": {
+          "group": "318",
+          "group_type": "npa",
+          "number_range": 1,
+          "number_type": "did",
+          "phone_number_type": "local",
+          "coverage_type": "number",
+          "record_type": "inventory_coverage_group",
+          "count": 3
+        }
+      },
+      "InventoryCoverageMetadata": {
+        "type": "object",
+        "example": {
+          "total_results": 25
+        },
+        "properties": {
+          "total_results": {
+            "type": "integer",
+            "example": 25
+          }
+        }
       },
       "Ip": {
         "type": "object",
@@ -34273,6 +35548,98 @@
           }
         }
       },
+      "NumberBlockOrder": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292",
+            "readOnly": true
+          },
+          "record_type": {
+            "type": "string",
+            "example": "number_block_order",
+            "readOnly": true
+          },
+          "starting_number": {
+            "type": "string",
+            "description": "Starting phone number block",
+            "format": "e164_phone_number",
+            "example": "+19705555000"
+          },
+          "range": {
+            "type": "integer",
+            "description": "The phone number range included in the block.",
+            "example": 10
+          },
+          "phone_numbers_count": {
+            "type": "integer",
+            "description": "The count of phone numbers in the number order.",
+            "example": 1,
+            "readOnly": true
+          },
+          "connection_id": {
+            "type": "string",
+            "example": "346789098765567",
+            "description": "Identifies the connection associated to all numbers in the phone number block."
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "example": "abc85f64-5717-4562-b3fc-2c9600",
+            "description": "Identifies the messaging profile associated to all numbers in the phone number block."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure"
+            ],
+            "example": "success",
+            "description": "The status of the order.",
+            "readOnly": true
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "A customer reference string for customer look ups.",
+            "example": "MY REF 001"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string denoting when the number order was created.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string for when the number order was updated.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "requirements_met": {
+            "type": "boolean",
+            "description": "True if all requirements are met for every phone number, false otherwise.",
+            "example": true,
+            "readOnly": true
+          }
+        },
+        "example": {
+          "id": "12ade33a-21c0-473b-b055-b3c836e1c292",
+          "starting_number": "+19705555000",
+          "range": 10,
+          "record_type": "number_block_order",
+          "connection_id": "346789098765567",
+          "messaging_profile_id": "abc85f64-5717-4562-b3fc-2c9600",
+          "phone_numbers_count": 10,
+          "status": "pending",
+          "customer_reference": "MY REF 001",
+          "created_at": "2018-01-01T00:00:00.000000Z",
+          "updated_at": "2018-01-01T00:00:00.000000Z",
+          "requirements_met": true
+        }
+      },
       "NumberHealthMetrics": {
         "type": "object",
         "nullable": false,
@@ -34364,13 +35731,6 @@
             "example": "number_order",
             "readOnly": true
           },
-          "phone_numbers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PhoneNumber"
-            },
-            "writeOnly": true
-          },
           "phone_numbers_count": {
             "type": "integer",
             "description": "The count of phone numbers in the number order.",
@@ -34427,37 +35787,15 @@
             "example": true,
             "readOnly": true
           }
-        },
-        "example": {
-          "id": "12ade33a-21c0-473b-b055-b3c836e1c292",
-          "phone_numbers": [
-            {
-              "id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
-              "record_type": "number_order_phone_number",
-              "phone_number": "+19705555098",
-              "regulatory_group_id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
-              "regulatory_requirements": [
-                {
-                  "record_type": "phone_number_regulatory_requirement",
-                  "requirement_id": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576",
-                  "field_value": "45f45a04-b4be-4592-95b1-9306b9db2b21",
-                  "field_type": "address_id"
-                }
-              ],
-              "requirements_met": true,
-              "status": "success"
-            }
-          ],
-          "record_type": "number_order",
-          "connection_id": "346789098765567",
-          "messaging_profile_id": "abc85f64-5717-4562-b3fc-2c9600",
-          "billing_group_id": "abc85f64-5717-4562-b3fc-2c9600",
-          "phone_numbers_count": 1,
-          "status": "pending",
-          "customer_reference": "MY REF 001",
-          "created_at": "2018-01-01T00:00:00.000000Z",
-          "updated_at": "2018-01-01T00:00:00.000000Z",
-          "requirements_met": true
+        }
+      },
+      "NumberOrderBlockEvent": {
+        "type": "object",
+        "title": "Number Order Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NumberBlockOrder"
+          }
         }
       },
       "NumberOrderDocument": {
@@ -34514,6 +35852,91 @@
           "requirement_type": "address_proof",
           "created_at": "2018-01-01T00:00:00.000000Z"
         }
+      },
+      "NumberOrderPhoneNumber": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
+            "readOnly": true
+          },
+          "record_type": {
+            "type": "string",
+            "example": "number_order_phone_number",
+            "readOnly": true
+          },
+          "phone_number": {
+            "type": "string",
+            "format": "e164_phone_number",
+            "example": "+19705555098"
+          },
+          "order_request_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "dc8e4d67-33a0-4cbb-af74-7b58f05bd495"
+          },
+          "sub_number_order_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "dc8e4d67-33a0-4cbb-af74-7b58f05bd496"
+          },
+          "country_code": {
+            "type": "string",
+            "example": "US"
+          },
+          "phone_number_type": {
+            "type": "string",
+            "example": "local",
+            "enum": [
+              "local",
+              "toll-free",
+              "mobile",
+              "national",
+              "shared-cost"
+            ]
+          },
+          "regulatory_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhoneNumberRegulatoryRequirement"
+            }
+          },
+          "requirements_met": {
+            "type": "boolean",
+            "description": "True if all requirements are met for a phone number, false otherwise.",
+            "example": true,
+            "readOnly": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failure"
+            ],
+            "description": "The status of the phone number in the order.",
+            "readOnly": true
+          }
+        }
+      },
+      "NumberOrderWithPhoneNumbers": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/NumberOrder"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "phone_numbers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PhoneNumber"
+                }
+              }
+            }
+          }
+        ]
       },
       "NumberOrdered": {
         "type": "object",
@@ -35651,11 +37074,141 @@
               "record_type": "phone_number_regulatory_requirement",
               "requirement_id": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576",
               "field_value": "45f45a04-b4be-4592-95b1-9306b9db2b21",
-              "field_type": "address_id"
+              "field_type": "address"
             }
           ],
           "requirements_met": true,
           "status": "success"
+        }
+      },
+      "PhoneNumberBlocksJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "42587e44-3a3e-46de-9255-0c9a7a1d1ec7",
+            "description": "Identifies the resource.",
+            "readOnly": true
+          },
+          "record_type": {
+            "type": "string",
+            "example": "phone_number_block_job",
+            "description": "Identifies the type of the resource.",
+            "readOnly": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed",
+              "failed"
+            ],
+            "default": "pending",
+            "example": "pending",
+            "description": "Indicates the completion status of the background operation.",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "delete_phone_number_block"
+            ],
+            "example": "delete_phone_number_block",
+            "description": "Identifies the type of the background job.",
+            "readOnly": true
+          },
+          "etc": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the estimated time of completion of the background job.",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "readOnly": true
+          },
+          "successful_operations": {
+            "type": "array",
+            "items": {
+              "description": "The phone numbers successfully updated.",
+              "$ref": "#/components/schemas/PhoneNumberBlocksJobSuccessfulOperation"
+            },
+            "readOnly": true
+          },
+          "failed_operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhoneNumberBlocksJobFailedOperation"
+            },
+            "readOnly": true
+          }
+        },
+        "example": {
+          "id": "42587e44-3a3e-46de-9255-0c9a7a1d1ec7",
+          "record_type": "phone_numbers_job",
+          "status": "pending",
+          "type": "delete_phone_number_block",
+          "etc": "2020-10-30T18:10:00.000Z",
+          "created_at": "2020-10-23T18:10:00.000Z",
+          "updated_at": "2020-10-23T18:10:01.000Z",
+          "successful_operations": [],
+          "failed_operations": []
+        }
+      },
+      "PhoneNumberBlocksJobDeletePhoneNumberBlockRequest": {
+        "type": "object",
+        "required": [
+          "phone_number_block_id"
+        ],
+        "properties": {
+          "phone_number_block_id": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "phone_number_block_id": "f3946371-7199-4261-9c3d-81a0d7935146"
+        }
+      },
+      "PhoneNumberBlocksJobFailedOperation": {
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number in e164 format.",
+            "format": "e164"
+          },
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "The phone number's ID"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "PhoneNumberBlocksJobSuccessfulOperation": {
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number in e164 format.",
+            "format": "e164"
+          },
+          "id": {
+            "type": "string",
+            "format": "int64",
+            "description": "The phone number's ID"
+          }
         }
       },
       "PhoneNumberDeletedDetailed": {
@@ -35683,6 +37236,7 @@
           "caller_id_name_enabled": true,
           "call_recording_enabled": true,
           "t38_fax_gateway_enabled": true,
+          "number_level_routing": "disabled",
           "phone_number_type": "longcode",
           "purchased_at": "2019-10-23T18:10:00.000Z",
           "created_at": "2019-10-23T18:10:00.000Z",
@@ -35735,14 +37289,14 @@
             "description": "The user-assigned name of the connection to be associated with this phone number.",
             "readOnly": true
           },
+          "connection_id": {
+            "type": "string",
+            "description": "Identifies the connection associated with the phone number."
+          },
           "customer_reference": {
             "type": "string",
             "description": "A customer reference string for customer look ups.",
             "example": "MY REF 001"
-          },
-          "connection_id": {
-            "type": "string",
-            "description": "Identifies the connection associated with the phone number."
           },
           "messaging_profile_id": {
             "type": "string",
@@ -35794,15 +37348,6 @@
             "description": "Indicates whether T38 Fax Gateway for inbound calls to this number.",
             "readOnly": true
           },
-          "phone_number_type": {
-            "type": "string",
-            "description": "The phone number's type.",
-            "enum": [
-              "longcode",
-              "tollfree"
-            ],
-            "readOnly": true
-          },
           "purchased_at": {
             "type": "string",
             "description": "ISO 8601 formatted date indicating the time the request was made to purchase the number.",
@@ -35816,6 +37361,24 @@
           "updated_at": {
             "type": "string",
             "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "readOnly": true
+          },
+          "number_level_routing": {
+            "type": "string",
+            "description": "Specifies whether the number can have overrides to the routing settings on itself (enabled) or if it uses the associated connection for all routing settings (disabled). Defaults to enabled but will be changed to disabled in the future. There are performance advantages to using disabled and setting all routing information at the connection level.",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled"
+          },
+          "phone_number_type": {
+            "type": "string",
+            "description": "The phone number's type.",
+            "enum": [
+              "longcode",
+              "tollfree"
+            ],
             "readOnly": true
           }
         }
@@ -35845,6 +37408,7 @@
           "caller_id_name_enabled": true,
           "call_recording_enabled": true,
           "t38_fax_gateway_enabled": true,
+          "number_level_routing": "disabled",
           "phone_number_type": "longcode",
           "purchased_at": "2019-10-23T18:10:00.000Z",
           "created_at": "2019-10-23T18:10:00.000Z",
@@ -35897,14 +37461,14 @@
             "description": "The user-assigned name of the connection to be associated with this phone number.",
             "readOnly": true
           },
+          "connection_id": {
+            "type": "string",
+            "description": "Identifies the connection associated with the phone number."
+          },
           "customer_reference": {
             "type": "string",
             "description": "A customer reference string for customer look ups.",
             "example": "MY REF 001"
-          },
-          "connection_id": {
-            "type": "string",
-            "description": "Identifies the connection associated with the phone number."
           },
           "messaging_profile_id": {
             "type": "string",
@@ -35923,17 +37487,6 @@
             "type": "boolean",
             "description": "Indicates whether emergency services are enabled for this number.",
             "readOnly": true
-          },
-          "emergency_status": {
-            "type": "string",
-            "description": "Represents the state of the number regarding emergency activation.",
-            "default": "disabled",
-            "enum": [
-              "disabled",
-              "active",
-              "provisioning",
-              "deprovisioning"
-            ]
           },
           "emergency_address_id": {
             "type": "string",
@@ -35967,15 +37520,6 @@
             "description": "Indicates whether T38 Fax Gateway for inbound calls to this number.",
             "readOnly": true
           },
-          "phone_number_type": {
-            "type": "string",
-            "description": "The phone number's type.",
-            "enum": [
-              "longcode",
-              "tollfree"
-            ],
-            "readOnly": true
-          },
           "purchased_at": {
             "type": "string",
             "description": "ISO 8601 formatted date indicating when the resource was purchased.",
@@ -35984,6 +37528,24 @@
           "created_at": {
             "type": "string",
             "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "readOnly": true
+          },
+          "number_level_routing": {
+            "type": "string",
+            "description": "Specifies whether the number can have overrides to the routing settings on itself (enabled) or if it uses the associated connection for all routing settings (disabled). Defaults to enabled but will be changed to disabled in the future. There are performance advantages to using disabled and setting all routing information at the connection level.",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled"
+          },
+          "phone_number_type": {
+            "type": "string",
+            "description": "The phone number's type.",
+            "enum": [
+              "longcode",
+              "tollfree"
+            ],
             "readOnly": true
           }
         }
@@ -36010,81 +37572,22 @@
           "emergency_address_id": "53829456729313"
         }
       },
-      "PhoneNumberRegulatoryGroup": {
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "example": "phone_number_regulatory_requirement",
-            "readOnly": true
-          },
-          "phone_number": {
-            "type": "string",
-            "format": "e164_phone_number",
-            "example": "+19705555098"
-          },
-          "regulatory_group_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "d70873cd-7c98-401a-81b6-b1ae08246995"
-          },
-          "regulatory_requirements": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RegulatoryRequirement"
-            }
-          }
-        },
-        "example": {
-          "record_type": "phone_number_regulatory_requirement",
-          "phone_number": "+19705555098",
-          "regulatory_group_id": "d70873cd-7c98-401a-81b6-b1ae08246995",
-          "regulatory_requirements": [
-            {
-              "record_type": "regulatory_requirement",
-              "requirement_type": "end user proof of address",
-              "label": "Proof of Address",
-              "field_type": "address",
-              "description": "Requirement for providing Proof of Address."
-            }
-          ]
-        }
-      },
       "PhoneNumberRegulatoryRequirement": {
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "example": "phone_number_regulatory_requirement",
-            "readOnly": true
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SubNumberOrderRegulatoryRequirement"
           },
-          "requirement_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Unique id for a requirement.",
-            "example": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576"
-          },
-          "field_value": {
-            "type": "string",
-            "description": "The value of the requirement, this could be an id to a resource or a string value.",
-            "example": "45f45a04-b4be-4592-95b1-9306b9db2b21"
-          },
-          "field_type": {
-            "type": "string",
-            "enum": [
-              "string",
-              "datetime",
-              "address_id",
-              "number_order_document_id"
-            ],
-            "example": "address_id",
-            "readOnly": true
+          {
+            "type": "object",
+            "properties": {
+              "field_value": {
+                "type": "string",
+                "description": "The value of the requirement, this could be an id to a resource or a string value.",
+                "example": "45f45a04-b4be-4592-95b1-9306b9db2b21"
+              }
+            }
           }
-        },
-        "example": {
-          "record_type": "phone_number_regulatory_requirement",
-          "requirement_id": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576",
-          "field_value": "45f45a04-b4be-4592-95b1-9306b9db2b21",
-          "field_type": "address_id"
-        }
+        ]
       },
       "PhoneNumberWithMessagingSettings": {
         "type": "object",
@@ -36285,7 +37788,7 @@
           "id": "1293384261075731499",
           "record_type": "voice_settings",
           "connection_id": "1d0e6cb8-8668-462e-94c6-49ae0f0ed48b",
-          "customer_reference": "customer_reference",
+          "customer_reference": "customer-reference",
           "tech_prefix_enabled": false,
           "translated_number": "+13035559999",
           "call_forwarding": {
@@ -36312,6 +37815,21 @@
             "inbound_call_recording_enabled": true,
             "inbound_call_recording_format": "wav",
             "inbound_call_recording_channels": "single"
+          }
+        }
+      },
+      "PhoneNumbersBulkUpdateError": {
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number in e164 format.",
+            "format": "e164"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Error"
+            }
           }
         }
       },
@@ -36372,13 +37890,6 @@
             "description": "ISO 8601 formatted date indicating when the resource was updated.",
             "readOnly": true
           },
-          "created_by": {
-            "type": "string",
-            "format": "uuid",
-            "example": "42587e44-3a3e-46de-9255-0c9a7a1d1ec7",
-            "description": "Identifies the user which created the resource.",
-            "readOnly": true
-          },
           "successful_operations": {
             "type": "array",
             "items": {
@@ -36411,21 +37922,20 @@
           "etc": "2020-10-30T18:10:00.000Z",
           "created_at": "2020-10-23T18:10:00.000Z",
           "updated_at": "2020-10-23T18:10:01.000Z",
-          "created_by": "015e81fc-11b7-4170-974d-5592ce987da7",
           "successful_operations": [
             {
               "id": "2637816387126861836",
               "phone_number": "+19705555098"
             },
             {
-              "id": "33081887126861837",
-              "phone_number": "+19715555099"
+              "id": "33081887126861836",
+              "phone_number": "+19715555098"
             }
           ],
           "pending_operations": [
             {
-              "id": "2637816387126861835",
-              "phone_number": "+19705555095"
+              "id": "2637816387126861837",
+              "phone_number": "+19705555099"
             }
           ],
           "failed_operations": [
@@ -37528,6 +39038,25 @@
           }
         }
       },
+      "ReadComment": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Comment"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "read_at": {
+                "type": "string",
+                "format": "datetime",
+                "description": "An ISO 8901 datetime string for when the comment was read.",
+                "example": "2018-01-01T00:00:00.000000Z",
+                "readOnly": true
+              }
+            }
+          }
+        ]
+      },
       "Recording": {
         "type": "object",
         "title": "Recording",
@@ -37753,75 +39282,6 @@
           "region_name": "US"
         }
       },
-      "RegulatoryRequirement": {
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "description": "Identifies the type of the resource.",
-            "example": "regulatory_requirement",
-            "readOnly": true
-          },
-          "requirement_type": {
-            "type": "string",
-            "enum": [
-              "end user proof of address",
-              "entity identification",
-              "end user address"
-            ]
-          },
-          "label": {
-            "type": "string",
-            "example": "Proof of Address"
-          },
-          "field_type": {
-            "type": "string",
-            "enum": [
-              "file upload",
-              "text field",
-              "address",
-              "datetime"
-            ]
-          },
-          "description": {
-            "type": "string",
-            "example": "Requirement for providing Proof of Address."
-          }
-        },
-        "example": {
-          "record_type": "regulatory_requirement",
-          "requirement_type": "end user proof of address",
-          "label": "Proof of Address",
-          "field_type": "address",
-          "description": "Requirement for providing Proof of Address."
-        }
-      },
-      "RegulatoryRequirementCriteria": {
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "example": "phone_number_regulatory_requirement_criteria",
-            "readOnly": true
-          },
-          "criteria_type": {
-            "type": "string",
-            "enum": [
-              "country",
-              "phone_number_type"
-            ],
-            "readOnly": true
-          },
-          "criteria_value": {
-            "type": "string",
-            "example": "AU",
-            "readOnly": true
-          }
-        },
-        "example": {
-          "record_type": "phone_number_regulatory_requirement_criteria",
-          "criteria_type": "country",
-          "criteria_value": "AU"
-        }
-      },
       "RejectRequest": {
         "type": "object",
         "title": "Reject Request",
@@ -37935,6 +39395,7 @@
               "failure"
             ],
             "description": "The status of the phone number's reservation.",
+            "example": "success",
             "readOnly": true
           },
           "created_at": {
@@ -37956,12 +39417,6 @@
             "format": "datetime",
             "description": "An ISO 8901 datetime string for when the individual number reservation is going to expire",
             "example": "2018-01-01T00:00:00.000000Z",
-            "readOnly": true
-          },
-          "errors": {
-            "type": "string",
-            "description": "Errors the reservation could happen upon",
-            "example": "Number is already on hold",
             "readOnly": true
           }
         },
@@ -39491,6 +40946,106 @@
         "example": {
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "SubNumberOrder": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292",
+            "readOnly": true
+          },
+          "order_request_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c293",
+            "readOnly": true
+          },
+          "country_code": {
+            "type": "string",
+            "example": "US",
+            "readOnly": true
+          },
+          "phone_number_type": {
+            "type": "string",
+            "example": "local",
+            "enum": [
+              "local",
+              "toll-free",
+              "mobile",
+              "national",
+              "shared-cost"
+            ]
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d70873cd-7c98-401a-81b6-b1ae08246995"
+          },
+          "regulatory_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubNumberOrderRegulatoryRequirement"
+            }
+          },
+          "record_type": {
+            "type": "string",
+            "example": "sub_number_order",
+            "readOnly": true
+          },
+          "phone_numbers_count": {
+            "type": "integer",
+            "description": "The count of phone numbers in the number order.",
+            "example": 1,
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string denoting when the number order was created.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "datetime",
+            "description": "An ISO 8901 datetime string for when the number order was updated.",
+            "example": "2018-01-01T00:00:00.000000Z",
+            "readOnly": true
+          },
+          "requirements_met": {
+            "type": "boolean",
+            "description": "True if all requirements are met for every phone number, false otherwise.",
+            "example": true,
+            "readOnly": true
+          }
+        }
+      },
+      "SubNumberOrderRegulatoryRequirement": {
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "phone_number_regulatory_requirement",
+            "readOnly": true
+          },
+          "requirement_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique id for a requirement.",
+            "example": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576"
+          },
+          "field_type": {
+            "type": "string",
+            "enum": [
+              "textual",
+              "datetime",
+              "address",
+              "document"
+            ],
+            "example": "address",
+            "readOnly": true
+          }
         }
       },
       "TelephonyCredential": {
@@ -41276,6 +42831,16 @@
           "created_at": "2018-01-01T00:00:00.000000Z"
         }
       },
+      "UpdateNumberOrderPhoneNumberRequest": {
+        "properties": {
+          "regulatory_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateRegulatoryRequirement"
+            }
+          }
+        }
+      },
       "UpdateNumberOrderRequest": {
         "properties": {
           "id": {
@@ -41351,7 +42916,7 @@
                   "record_type": "phone_number_regulatory_requirement",
                   "requirement_id": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576",
                   "field_value": "45f45a04-b4be-4592-95b1-9306b9db2b21",
-                  "field_type": "address_id"
+                  "field_type": "address"
                 }
               ],
               "requirements_met": true,
@@ -41523,6 +43088,15 @@
           "billing_group_id": {
             "type": "string",
             "description": "Identifies the billing group associated with the phone number."
+          },
+          "number_level_routing": {
+            "type": "string",
+            "description": "Specifies whether the number can have overrides to the routing settings on itself (enabled) or if it uses the associated connection for all routing settings (disabled). Defaults to enabled but will be changed to disabled in the future. There are performance advantages to using disabled and setting all routing information at the connection level.",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled"
           }
         },
         "example": {
@@ -41534,7 +43108,8 @@
           "external_pin": "1234",
           "customer_reference": "customer-reference",
           "connection_id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
-          "billing_group_id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494"
+          "billing_group_id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
+          "number_level_routing": "disabled"
         }
       },
       "UpdatePhoneNumberVoiceSettingsRequest": {
@@ -41636,6 +43211,21 @@
           }
         }
       },
+      "UpdateRegulatoryRequirement": {
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique id for a requirement.",
+            "example": "8ffb3622-7c6b-4ccc-b65f-7a3dc0099576"
+          },
+          "field_value": {
+            "type": "string",
+            "description": "The value of the requirement, this could be an id to a resource or a string value.",
+            "example": "45f45a04-b4be-4592-95b1-9306b9db2b21"
+          }
+        }
+      },
       "UpdateShortCodeRequest": {
         "type": "object",
         "required": [
@@ -41649,6 +43239,16 @@
         },
         "example": {
           "messaging_profile_id": "abc85f64-5717-4562-b3fc-2c9600000000"
+        }
+      },
+      "UpdateSubNumberOrderRequest": {
+        "properties": {
+          "regulatory_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpdateRegulatoryRequirement"
+            }
+          }
         }
       },
       "UpdateTexmlApplicationRequest": {
