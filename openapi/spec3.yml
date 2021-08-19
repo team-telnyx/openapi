@@ -689,6 +689,14 @@ components:
       schema:
         format: uuid
         type: string
+    PathPortingOrdersActivationJobID:
+      description: Activation Job Identifier
+      in: path
+      name: activationJobId
+      required: true
+      schema:
+        format: uuid
+        type: string
     PhoneNumber:
       description: The phone number to be looked up
       in: path
@@ -1604,19 +1612,6 @@ components:
             title: List Call Events Response
             type: object
       description: Successful response with a list of call events.
-    ListComments:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/Comment'
-                type: array
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: Successful response
     ListConferencesResponse:
       content:
         application/json:
@@ -2087,6 +2082,43 @@ components:
               data:
                 items:
                   $ref: '#/components/schemas/PortingOrder'
+                type: array
+            type: object
+      description: Successful response
+    ListPortingOrdersActivationJobs:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingOrdersActivationJob'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    ListPortingOrdersComments:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingOrdersComment'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    ListPortingOrdersExceptionTypes:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingOrdersExceptionType'
                 type: array
             type: object
       description: Successful response
@@ -2748,22 +2780,6 @@ components:
             title: Short Code Response
             type: object
       description: Successful response with details about a short code.
-    ShowComment:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/Comment'
-              meta:
-                properties:
-                  port_request_url:
-                    description: Link to show port request
-                    example: /porting_orders/?filter[id]=6dedc3d4-4db8-4b12-91bd-c0d28a9d955b
-                    type: string
-                type: object
-            type: object
-      description: Successful response
     ShowPhoneNumber:
       content:
         application/json:
@@ -2795,6 +2811,24 @@ components:
                     example: /porting_phone_numbers?filter[porting_order_id]=a700d03c-4062-4091-8189-1b75216cf7a2
                     type: string
                 type: object
+            type: object
+      description: Successful response
+    ShowPortingOrdersActivationJob:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingOrdersActivationJob'
+            type: object
+      description: Successful response
+    ShowPortingOrdersComment:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingOrdersComment'
             type: object
       description: Successful response
     SimCardGroupActionCollectionResponse:
@@ -9490,6 +9524,12 @@ components:
       required:
       - phone_numbers
       title: CreatePortingOrder
+      type: object
+    CreatePortingOrderComment:
+      properties:
+        body:
+          example: Please, let me know when the port completes
+          type: string
       type: object
     CreateRoomClientTokenRequest:
       properties:
@@ -17371,8 +17411,6 @@ components:
           format: date-time
           readOnly: true
           type: string
-        documents:
-          $ref: '#/components/schemas/PortingOrderDocuments'
         end_user:
           $ref: '#/components/schemas/PortingEndUser'
         id:
@@ -17400,6 +17438,11 @@ components:
           example: porting_order
           readOnly: true
           type: string
+        requirements:
+          description: List of documentation requirements for porting numbers.
+          items:
+            $ref: '#/components/schemas/PortingOrderRequirement'
+          type: array
         status:
           $ref: '#/components/schemas/PortingOrderStatus'
         support_key:
@@ -17444,17 +17487,6 @@ components:
           description: ISO 8601 formatted Date/Time requested for the FOC date
           example: '2021-03-19T10:07:15.527Z'
           format: date-time
-          type: string
-      type: object
-    PortingOrderDocuments:
-      properties:
-        invoice:
-          description: identifies the invoice document
-          example: 35146afd-df93-4963-b1e9-1a085e2ae874
-          type: string
-        loa:
-          description: identifies the loa document
-          example: f1486bae-f067-460c-ad43-73a92848f902
           type: string
       type: object
     PortingOrderEndUserAdmin:
@@ -17557,16 +17589,34 @@ components:
             type: string
           type: array
       type: object
+    PortingOrderRequirement:
+      properties:
+        field_type:
+          description: Type of value expected on field_value field
+          enum:
+          - document
+          example: document
+          type: string
+        field_value:
+          description: identifies the document that satisfies this requirement
+          example: 9787fb5f-cbe5-4de4-b765-3303774ee9fe
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_requirement
+          type: string
+        requirement_type_id:
+          description: Identifies the requirement type that meets this requirement
+          example: 59b0762a-b274-4f76-ac32-4d5cf0272e66
+          type: string
+      type: object
     PortingOrderStatus:
       description: Porting order status
       properties:
         details:
           description: A list of 0 or more details about this porting order's status
-          example:
-          - exception
-          - exception resolved
           items:
-            type: string
+            $ref: '#/components/schemas/PortingOrdersExceptionType'
           type: array
         value:
           description: The current status of the porting order
@@ -17601,6 +17651,107 @@ components:
             is canceled, the user may rate their experience
           example: 5
           type: integer
+      type: object
+    PortingOrdersActivationJob:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          description: Uniquely identifies this activation job
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_activation_job
+          readOnly: true
+          type: string
+        status:
+          description: Specifies the status of this activation job
+          enum:
+          - created
+          - in-process
+          - completed
+          - failed
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
+    PortingOrdersComment:
+      properties:
+        body:
+          description: Body of comment
+          example: Great experience so far
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          type: string
+        id:
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          format: uuid
+          type: string
+        porting_order_id:
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_comment
+          type: string
+        user_type:
+          description: Indicates whether this comment was created by a Telnyx Admin,
+            user, or system
+          enum:
+          - admin
+          - user
+          - system
+          example: user
+          type: string
+      type: object
+    PortingOrdersExceptionType:
+      properties:
+        code:
+          description: Identifier of an exception type
+          enum:
+          - ACCOUNT_NUMBER_MISMATCH
+          - AUTH_PERSON_MISMATCH
+          - BTN_ATN_MISMATCH
+          - ENTITY_NAME_MISMATCH
+          - FOC_EXPIRED
+          - FOC_REJECTED
+          - LOCATION_MISMATCH
+          - LSR_PENDING
+          - MAIN_BTN_PORTING
+          - OSP_IRRESPONSIVE
+          - OTHER
+          - PASSCODE_PIN_INVALID
+          - PHONE_NUMBER_HAS_SPECIAL_FEATURE
+          - PHONE_NUMBER_MISMATCH
+          - PHONE_NUMBER_NOT_PORTABLE
+          - PORT_TYPE_INCORRECT
+          - PORTING_ORDER_SPLIT_REQUIRED
+          - PORTING_ORDER_SPLIT_REQUIRED
+          - POSTAL_CODE_MISMATCH
+          - RATE_CENTER_NOT_PORTABLE
+          - SV_CONFLICT
+          - SV_UNKNOWN_FAILURE
+          example: ENTITY_NAME_MISMATCH
+          type: string
+        description:
+          description: Description of an exception type
+          example: Entity name does not match that on the CSR
+          type: string
       type: object
     PortoutComment:
       example:
@@ -21560,20 +21711,37 @@ components:
           type: object
         customer_reference:
           type: string
-        documents:
-          $ref: '#/components/schemas/PortingOrderDocuments'
         end_user:
           $ref: '#/components/schemas/PortingEndUser'
         misc:
           $ref: '#/components/schemas/PortingOrderMisc'
         phone_number_configuration:
           $ref: '#/components/schemas/PortingOrderPhoneNumberConfiguration'
+        requirements:
+          description: List of requirements for porting numbers.
+          items:
+            $ref: '#/components/schemas/UpdatePortingOrderRequirement'
+          type: array
         user_feedback:
           $ref: '#/components/schemas/PortingOrderUserFeedback'
         webhook_url:
           format: uri
           type: string
       title: UpdatePortingOrder
+      type: object
+    UpdatePortingOrderRequirement:
+      properties:
+        field_value:
+          description: identifies the document that satisfies this requirement
+          example: 9787fb5f-cbe5-4de4-b765-3303774ee9fe
+          type: string
+        requirement_type_id:
+          description: Identifies the requirement type that meets this requirement
+          example: 59b0762a-b274-4f76-ac32-4d5cf0272e66
+          type: string
+      required:
+      - field_value
+      - requirement_type_id
       type: object
     UpdateRegulatoryRequirement:
       properties:
@@ -30459,6 +30627,12 @@ paths:
         name: filter[customer_reference]
         schema:
           type: string
+      - description: Filter results by country ISO 3166-1 alpha-2 code
+        example: US
+        in: query
+        name: filter[phone_numbers][country_code]
+        schema:
+          type: string
       - description: Filter results by old service provider
         example: Telnyx
         in: query
@@ -30544,6 +30718,22 @@ paths:
       tags:
       - Porting Order
       x-latency-category: responsive
+  /porting_orders/exception_types:
+    get:
+      description: Returns a list of all possible exception types for a porting order.
+      operationId: listPortingOrdersExceptionTypes
+      parameters: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingOrdersExceptionTypes'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: List all exception types
+      tags:
+      - Porting Order
+      x-latency-category: responsive
   /porting_orders/{id}:
     delete:
       description: Request the cancellation of a porting order.
@@ -30601,6 +30791,23 @@ paths:
       tags:
       - Porting Order
       x-latency-category: responsive
+  /porting_orders/{id}/actions/activate:
+    post:
+      description: Activate every numbers of a porting order asynchronously.
+      operationId: activatePortingOrder
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      responses:
+        '202':
+          $ref: '#/components/responses/ShowPortingOrdersActivationJob'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Activates every number on a porting order.
+      tags:
+      - Porting Order
+      x-latency-category: responsive
   /porting_orders/{id}/actions/cancel:
     post:
       description: Cancel this porting order
@@ -30632,6 +30839,84 @@ paths:
         '422':
           description: Unprocessable entity. Check message field in response for details.
       summary: Confirms the porting order is ready to be actioned.
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting_orders/{id}/activation_jobs:
+    get:
+      description: Returns a list of your porting activation jobs.
+      operationId: listPortingOrdersActivationJobs
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingOrdersActivationJobs'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: List all porting activation jobs
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting_orders/{id}/activation_jobs/{activationJobId}:
+    get:
+      description: Returns a porting activation job.
+      operationId: getPortingOrdersActivationJob
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      - $ref: '#/components/parameters/PathPortingOrdersActivationJobID'
+      responses:
+        '200':
+          $ref: '#/components/responses/ShowPortingOrdersActivationJob'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Retrieve a porting activation job
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting_orders/{id}/comments:
+    get:
+      description: Returns a list of all comments of a porting order.
+      operationId: listPortingOrdersComments
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingOrdersComments'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: List all comments of a porting order
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+    post:
+      description: Creates a new comment for a porting order.
+      operationId: createPortingOrderComment
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePortingOrderComment'
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/ShowPortingOrdersComment'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Create a comment for a porting order
       tags:
       - Porting Order
       x-latency-category: responsive
