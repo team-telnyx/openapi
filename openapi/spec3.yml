@@ -216,12 +216,6 @@ components:
         - failed
         example: in-progress
         type: string
-    FilterByActivationStatus:
-      description: Filter results by activation status
-      in: query
-      name: filter[activation_status]
-      schema:
-        $ref: '#/components/schemas/ActivationStatus'
     FilterByPhoneNumber:
       description: Filter results by phone number
       in: query
@@ -234,6 +228,12 @@ components:
       name: filter[portability_status]
       schema:
         $ref: '#/components/schemas/PortabilityStatus'
+    FilterByPortingOrderActivationStatus:
+      description: Filter results by activation status
+      in: query
+      name: filter[activation_status]
+      schema:
+        $ref: '#/components/schemas/PortingOrderActivationStatus'
     FilterByPortingOrderID:
       description: Filter results by porting order id
       in: query
@@ -1991,19 +1991,6 @@ components:
             type: object
       description: Successful response with a list of phone number blocks background
         jobs.
-    ListPhoneNumbers:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/PhoneNumber'
-                type: array
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: Successful response
     ListPhoneNumbersJobsResponse:
       content:
         application/json:
@@ -2120,6 +2107,19 @@ components:
                 items:
                   $ref: '#/components/schemas/PortingOrdersExceptionType'
                 type: array
+            type: object
+      description: Successful response
+    ListPortingPhoneNumbers:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingPhoneNumber'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
     ListPortoutComments:
@@ -2780,23 +2780,6 @@ components:
             title: Short Code Response
             type: object
       description: Successful response with details about a short code.
-    ShowPhoneNumber:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/PhoneNumber'
-              meta:
-                properties:
-                  porting_order_url:
-                    description: Link to list porting order
-                    example: /porting_orders/a700d03c-4062-4091-8189-1b75216cf7a2
-                    format: uri
-                    type: string
-                type: object
-            type: object
-      description: Successful response
     ShowPortingOrder:
       content:
         application/json:
@@ -2829,6 +2812,23 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/PortingOrdersComment'
+            type: object
+      description: Successful response
+    ShowPortingPhoneNumber:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingPhoneNumber'
+              meta:
+                properties:
+                  porting_order_url:
+                    description: Link to list porting order
+                    example: /porting_orders/a700d03c-4062-4091-8189-1b75216cf7a2
+                    format: uri
+                    type: string
+                type: object
             type: object
       description: Successful response
     SimCardGroupActionCollectionResponse:
@@ -3029,24 +3029,6 @@ components:
             type: object
       description: An array of Comment Responses
   schemas:
-    ActivationStatus:
-      description: Activation status
-      enum:
-      - New
-      - Pending
-      - Conflict
-      - Cancel Pending
-      - Failed
-      - Concurred
-      - Activate RDY
-      - Disconnect Pending
-      - Concurrence Sent
-      - Old
-      - Sending
-      - Active
-      - Canceled
-      example: Active
-      type: string
     Address:
       properties:
         address_book:
@@ -17395,13 +17377,6 @@ components:
       - provisional
       example: confirmed
       type: string
-    PortingEndUser:
-      properties:
-        admin:
-          $ref: '#/components/schemas/PortingOrderEndUserAdmin'
-        location:
-          $ref: '#/components/schemas/PortingOrderEndUserLocation'
-      type: object
     PortingOrder:
       properties:
         activation_settings:
@@ -17413,7 +17388,7 @@ components:
           readOnly: true
           type: string
         end_user:
-          $ref: '#/components/schemas/PortingEndUser'
+          $ref: '#/components/schemas/PortingOrderEndUser'
         id:
           description: Uniquely identifies this porting order
           example: f1486bae-f067-460c-ad43-73a92848f902
@@ -17473,7 +17448,7 @@ components:
     PortingOrderActivationSettings:
       properties:
         activation_status:
-          $ref: '#/components/schemas/ActivationStatus'
+          $ref: '#/components/schemas/PortingOrderActivationStatus'
         fast_port_eligible:
           description: Indicates whether this porting order is eligible for FastPort
           example: true
@@ -17489,6 +17464,31 @@ components:
           example: '2021-03-19T10:07:15.527Z'
           format: date-time
           type: string
+      type: object
+    PortingOrderActivationStatus:
+      description: Activation status
+      enum:
+      - New
+      - Pending
+      - Conflict
+      - Cancel Pending
+      - Failed
+      - Concurred
+      - Activate RDY
+      - Disconnect Pending
+      - Concurrence Sent
+      - Old
+      - Sending
+      - Active
+      - Canceled
+      example: Active
+      type: string
+    PortingOrderEndUser:
+      properties:
+        admin:
+          $ref: '#/components/schemas/PortingOrderEndUserAdmin'
+        location:
+          $ref: '#/components/schemas/PortingOrderEndUserLocation'
       type: object
     PortingOrderEndUserAdmin:
       properties:
@@ -17561,7 +17561,14 @@ components:
             be one of the numbers remaining on that account.
           type: string
         remaining_numbers_action:
-          $ref: '#/components/schemas/RemainingNumbersAction'
+          description: Remaining numbers can be either kept with their current service
+            provider or disconnected. 'new_billing_telephone_number' is required when
+            'remaining_numbers_action' is 'keep'.
+          enum:
+          - keep
+          - disconnect
+          example: disconnect
+          type: string
         type:
           $ref: '#/components/schemas/PortingOrderType'
       type: object
@@ -17752,6 +17759,27 @@ components:
         description:
           description: Description of an exception type
           example: Entity name does not match that on the CSR
+          type: string
+      type: object
+    PortingPhoneNumber:
+      properties:
+        activation_status:
+          $ref: '#/components/schemas/PortingOrderActivationStatus'
+        phone_number:
+          description: E164 formatted phone number
+          example: 13035550987
+          type: string
+        portability_status:
+          $ref: '#/components/schemas/PortabilityStatus'
+        porting_order_id:
+          description: Identifies the associated port request
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_phone_number
+          readOnly: true
           type: string
       type: object
     PortoutComment:
@@ -18323,15 +18351,6 @@ components:
       - cause
       title: Reject Request
       type: object
-    RemainingNumbersAction:
-      description: Remaining numbers can be either kept with their current service
-        provider or disconnected. 'new_billing_telephone_number' is required when
-        'remaining_numbers_action' is 'keep'.
-      enum:
-      - keep
-      - disconnect
-      example: disconnect
-      type: string
     ReplacedLinkClick:
       example:
         message_id: 7ee4241c-f127-47e5-9c34-3aac291f8058
@@ -21713,7 +21732,7 @@ components:
         customer_reference:
           type: string
         end_user:
-          $ref: '#/components/schemas/PortingEndUser'
+          $ref: '#/components/schemas/PortingOrderEndUser'
         misc:
           $ref: '#/components/schemas/PortingOrderMisc'
         phone_number_configuration:
@@ -31025,17 +31044,17 @@ paths:
   /porting_phone_numbers:
     get:
       description: Returns a list of your porting phone numbers.
-      operationId: listPhoneNumbers
+      operationId: listPortingPhoneNumbers
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
       - $ref: '#/components/parameters/FilterByPortingOrderID'
       - $ref: '#/components/parameters/FilterByPhoneNumber'
-      - $ref: '#/components/parameters/FilterByActivationStatus'
+      - $ref: '#/components/parameters/FilterByPortingOrderActivationStatus'
       - $ref: '#/components/parameters/FilterByPortabilityStatus'
       responses:
         '200':
-          $ref: '#/components/responses/ListPhoneNumbers'
+          $ref: '#/components/responses/ListPortingPhoneNumbers'
         '401':
           description: Unauthorized
         '422':
