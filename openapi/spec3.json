@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "version": "2.0.0",
-    "x-endpoint-cost": "light",
     "title": "Telnyx API",
+    "x-endpoint-cost": "light",
     "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "license": {
       "name": "MIT"
@@ -20,7 +20,7 @@
   ],
   "security": [
     {
-      "BearerAuth": []
+      "bearerAuth": []
     }
   ],
   "tags": [
@@ -11679,28 +11679,6 @@
       }
     },
     "/porting_orders/{id}": {
-      "delete": {
-        "summary": "Request cancellation",
-        "tags": [
-          "Porting Order"
-        ],
-        "description": "Request the cancellation of a porting order.",
-        "operationId": "deletePortingOrder",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PathPortingOrderID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/ShowPortingOrder"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "x-latency-category": "responsive"
-      },
       "get": {
         "summary": "Retrieve a porting order",
         "tags": [
@@ -11901,6 +11879,30 @@
           },
           "422": {
             "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/porting_orders/{id}/allowed_foc_windows": {
+      "get": {
+        "summary": "List all the allowed foc windows",
+        "tags": [
+          "Porting Order"
+        ],
+        "description": "Returns a list of time windows that foc is allowed.",
+        "operationId": "listAllowedFocWindows",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PathPortingOrderID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListAllowedFocWindows"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
         "x-latency-category": "responsive"
@@ -17922,6 +17924,7 @@
       "FilterApplicationName": {
         "name": "filter[application_name][contains]",
         "in": "query",
+        "required": false,
         "description": "If present, applications with <code>application_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
@@ -18184,8 +18187,9 @@
         }
       },
       "FilterOutboundVoiceProfileId": {
-        "name": "filter[outbound_voice_profile_id]",
+        "name": "filter[outbound.outbound_voice_profile_id]",
         "in": "query",
+        "required": false,
         "description": "Identifies the associated outbound voice profile.",
         "schema": {
           "type": "string",
@@ -18288,12 +18292,13 @@
       },
       "Id": {
         "name": "id",
+        "description": "Identifies the resource.",
         "in": "path",
-        "description": "The id of the resource.",
         "required": true,
         "schema": {
+          "format": "uuid",
           "type": "string",
-          "format": "uuid"
+          "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
         }
       },
       "IncludeOTAUpdates": {
@@ -18474,7 +18479,7 @@
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
-        "description": "The page number to load.",
+        "description": "The page number to load",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -18484,7 +18489,7 @@
       "PageSize": {
         "name": "page[size]",
         "in": "query",
-        "description": "The size of the page.",
+        "description": "The size of the page",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -18650,6 +18655,7 @@
       "SortConnection": {
         "name": "sort",
         "in": "query",
+        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -19767,6 +19773,27 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/Ip"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListAllowedFocWindows": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortingOrdersAllowedFocWindow"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
             }
@@ -21882,7 +21909,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized response. Happens when the current user is not a manager account."
+        "description": "Unauthorized"
       },
       "UnprocessableEntity": {
         "description": "Unprocessable entity. Check the 'detail' field in response for details.",
@@ -31691,7 +31718,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "format": "int"
+            "format": "integer"
           },
           "title": {
             "type": "string"
@@ -34059,11 +34086,11 @@
         }
       },
       "IntId": {
-        "title": "Int ID",
         "type": "string",
         "format": "int64",
-        "description": "Uniquely identifies the resource.",
-        "example": "1293384261075731499"
+        "description": "Identifies the resource.",
+        "example": "1293384261075731499",
+        "readOnly": true
       },
       "InventoryCoverage": {
         "type": "object",
@@ -37981,18 +38008,22 @@
         "properties": {
           "total_pages": {
             "type": "integer",
+            "format": "int32",
             "example": 3
           },
           "total_results": {
             "type": "integer",
+            "format": "int32",
             "example": 55
           },
           "page_number": {
             "type": "integer",
+            "format": "int32",
             "example": 2
           },
           "page_size": {
             "type": "integer",
+            "format": "int32",
             "example": 25
           }
         }
@@ -39720,6 +39751,11 @@
             "type": "string",
             "description": "ISO3166-1 alpha-2 country code of billing address",
             "example": "US"
+          },
+          "premises": {
+            "type": "string",
+            "description": "Also known as house name for UK address. Only applies to UK porting.",
+            "example": "Mill House"
           }
         }
       },
@@ -39893,6 +39929,32 @@
             "format": "date-time",
             "description": "ISO 8601 formatted date indicating when the resource was created.",
             "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          }
+        }
+      },
+      "PortingOrdersAllowedFocWindow": {
+        "type": "object",
+        "title": "PortingOrdersAllowedFocWindow",
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating the start of the range of foc window.",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating the end of the range of foc window",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          },
+          "record_type": {
+            "type": "string",
+            "example": "porting_order",
+            "description": "Identifies the type of the resource.",
             "readOnly": true
           }
         }

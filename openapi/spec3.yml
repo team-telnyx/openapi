@@ -201,6 +201,7 @@ components:
         at least three characters.
       in: query
       name: filter[application_name][contains]
+      required: false
       schema:
         default: 'null'
         type: string
@@ -416,7 +417,8 @@ components:
     FilterOutboundVoiceProfileId:
       description: Identifies the associated outbound voice profile.
       in: query
-      name: filter[outbound_voice_profile_id]
+      name: filter[outbound.outbound_voice_profile_id]
+      required: false
       schema:
         example: '1293384261075731499'
         format: int64
@@ -502,11 +504,12 @@ components:
         format: int64
         type: string
     Id:
-      description: The id of the resource.
+      description: Identifies the resource.
       in: path
       name: id
       required: true
       schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
     IncludeOTAUpdates:
@@ -651,7 +654,7 @@ components:
       schema:
         type: string
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -659,7 +662,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The size of the page
       in: query
       name: page[size]
       schema:
@@ -823,6 +826,7 @@ components:
         \ in descending order."
       in: query
       name: sort
+      required: false
       schema:
         default: created_at
         enum:
@@ -1543,6 +1547,19 @@ components:
             title: Ip Response
             type: object
       description: Successful response with details about an IP.
+    ListAllowedFocWindows:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingOrdersAllowedFocWindow'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     ListAvailablePhoneNumbersBlockResponse:
       content:
         application/json:
@@ -2884,8 +2901,7 @@ components:
             type: object
       description: Successful response
     UnauthorizedResponse:
-      description: Unauthorized response. Happens when the current user is not a manager
-        account.
+      description: Unauthorized
     UnprocessableEntity:
       content:
         application/json:
@@ -11186,7 +11202,7 @@ components:
     Error:
       properties:
         code:
-          format: int
+          format: integer
           type: string
         detail:
           type: string
@@ -13207,10 +13223,10 @@ components:
           nullable: true
           type: string
     IntId:
-      description: Uniquely identifies the resource.
+      description: Identifies the resource.
       example: '1293384261075731499'
       format: int64
-      title: Int ID
+      readOnly: true
       type: string
     InventoryCoverage:
       example:
@@ -16457,15 +16473,19 @@ components:
       properties:
         page_number:
           example: 2
+          format: int32
           type: integer
         page_size:
           example: 25
+          format: int32
           type: integer
         total_pages:
           example: 3
+          format: int32
           type: integer
         total_results:
           example: 55
+          format: int32
           type: integer
       type: object
     PaginationMetaSimple:
@@ -17884,6 +17904,11 @@ components:
           description: Postal Code of billing address
           example: '60654'
           type: string
+        premises:
+          description: Also known as house name for UK address. Only applies to UK
+            porting.
+          example: Mill House
+          type: string
         street_address:
           description: First line of billing address
           example: 311 W. Superior St
@@ -18030,6 +18055,29 @@ components:
           format: date-time
           readOnly: true
           type: string
+      type: object
+    PortingOrdersAllowedFocWindow:
+      properties:
+        ended_at:
+          description: ISO 8601 formatted date indicating the end of the range of
+            foc window
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_order
+          readOnly: true
+          type: string
+        started_at:
+          description: ISO 8601 formatted date indicating the start of the range of
+            foc window.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+      title: PortingOrdersAllowedFocWindow
       type: object
     PortingOrdersComment:
       properties:
@@ -31800,20 +31848,6 @@ paths:
       - Porting Order
       x-latency-category: responsive
   /porting_orders/{id}:
-    delete:
-      description: Request the cancellation of a porting order.
-      operationId: deletePortingOrder
-      parameters:
-      - $ref: '#/components/parameters/PathPortingOrderID'
-      responses:
-        '200':
-          $ref: '#/components/responses/ShowPortingOrder'
-        '401':
-          description: Unauthorized
-      summary: Request cancellation
-      tags:
-      - Porting Order
-      x-latency-category: responsive
     get:
       description: Retrieves the details of an existing porting order.
       operationId: getPortingOrder
@@ -31941,6 +31975,21 @@ paths:
         '422':
           description: Unprocessable entity. Check message field in response for details.
       summary: Retrieve a porting activation job
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting_orders/{id}/allowed_foc_windows:
+    get:
+      description: Returns a list of time windows that foc is allowed.
+      operationId: listAllowedFocWindows
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListAllowedFocWindows'
+        '401':
+          description: Unauthorized
+      summary: List all the allowed foc windows
       tags:
       - Porting Order
       x-latency-category: responsive
@@ -35847,7 +35896,7 @@ paths:
       - Reporting
       x-latency-category: background
 security:
-- BearerAuth: []
+- bearerAuth: []
 servers:
 - description: Version 2.0.0 of the Telnyx API
   url: https://api.telnyx.com/v2
