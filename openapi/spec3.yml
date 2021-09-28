@@ -5006,7 +5006,7 @@ components:
           connection_id: 7267xxxxxxxxxxxxxx
           media_name: my_media_uploaded_to_media_storage_api
           overlay: false
-          status: valid
+          status: completed
         record_type: event
       properties:
         event_type:
@@ -5063,17 +5063,20 @@ components:
               example: http://example.com/audio.wav
               type: string
             overlay:
-              description: Whether the audio is going to be played in overlay mode
-                or not.
+              description: Whether the stopped audio was in overlay mode or not.
               example: false
               type: boolean
             status:
               description: Reflects how command ended.
               enum:
-              - valid
-              - invalid
+              - file_not_found
               - call_hangup
-              example: valid
+              - unknown
+              - failed
+              - cancelled_amd
+              - completed
+              - failed
+              example: completed
               type: string
           type: object
         record_type:
@@ -5881,10 +5884,11 @@ components:
               example: 7267xxxxxxxxxxxxxx
               type: string
             status:
-              description: Reflects how `speak` ended.
+              description: Reflects how the command ended.
               enum:
               - completed
               - call_hangup
+              - cancelled_amd
               example: completed
               type: string
           type: object
@@ -17739,8 +17743,7 @@ components:
           example: true
           type: boolean
         stop:
-          default: all
-          description: When specified, it stops the current audio being played.  Specify
+          description: When specified, it stops the current audio being played. Specify
             `current` to stop the current audio being played, and to play the next
             file in the queue. Specify `all` to stop the current audio file being
             played and to also clear all audio files from the queue.
@@ -17758,6 +17761,7 @@ components:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        overlay: false
         stop: all
       properties:
         client_state:
@@ -17770,10 +17774,17 @@ components:
             commands with the same `command_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        overlay:
+          default: false
+          description: When enabled, it stops the audio being played in the overlay
+            queue.
+          example: true
+          type: boolean
         stop:
           default: all
-          description: Use `current` to stop only the current audio or `all` to stop
-            all audios in the queue.
+          description: Use `current` to stop the current audio being played. Use `all`
+            to stop the current audio file being played and clear all audio files
+            from the queue.
           example: current
           type: string
       title: Playback Stop Request
@@ -20410,8 +20421,7 @@ components:
           example: premium
           type: string
         stop:
-          default: null
-          description: When specified, it stops the current audio being played.  Specify
+          description: When specified, it stops the current audio being played. Specify
             `current` to stop the current audio being played, and to play the next
             file in the queue. Specify `all` to stop the current audio file being
             played and to also clear all audio files from the queue.
