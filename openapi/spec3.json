@@ -5199,6 +5199,24 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/DocumentsFilenameContainsFilter"
+          },
+          {
+            "$ref": "#/components/parameters/DocumentsCustomerReferenceEqFilter"
+          },
+          {
+            "$ref": "#/components/parameters/DocumentsCustomerReferenceInFilter"
+          },
+          {
+            "$ref": "#/components/parameters/DocumentsCreatedAtGreaterThanFilter"
+          },
+          {
+            "$ref": "#/components/parameters/DocumentsCreatedAtLessThanFilter"
+          },
+          {
+            "$ref": "#/components/parameters/DocumentsSort"
+          },
+          {
             "$ref": "#/components/parameters/PageNumber"
           },
           {
@@ -12168,11 +12186,11 @@
     },
     "/porting_orders/{id}/actions/cancel": {
       "post": {
-        "summary": "Cancel this porting order",
+        "summary": "Cancel a porting order",
         "tags": [
           "Porting Order"
         ],
-        "description": "Cancel this porting order",
+        "description": "Cancel a porting order",
         "operationId": "cancelPortingOrder",
         "parameters": [
           {
@@ -12195,11 +12213,11 @@
     },
     "/porting_orders/{id}/actions/confirm": {
       "post": {
-        "summary": "Confirms the porting order is ready to be actioned.",
+        "summary": "Submit a porting order.",
         "tags": [
           "Porting Order"
         ],
-        "description": "Confirm your porting order.",
+        "description": "Confirm and submit your porting order.",
         "operationId": "confirmPortingOrder",
         "parameters": [
           {
@@ -12285,11 +12303,11 @@
     },
     "/porting_orders/{id}/allowed_foc_windows": {
       "get": {
-        "summary": "List all the allowed foc windows",
+        "summary": "List allowed FOC dates",
         "tags": [
           "Porting Order"
         ],
-        "description": "Returns a list of time windows that foc is allowed.",
+        "description": "Returns a list of allowed FOC dates for a porting order.",
         "operationId": "listAllowedFocWindows",
         "parameters": [
           {
@@ -12443,7 +12461,7 @@
     },
     "/portouts": {
       "get": {
-        "summary": "Retrieve a list of portout requests",
+        "summary": "List portout requests",
         "description": "Returns the portout requests according to filters",
         "operationId": "listPortoutRequest",
         "tags": [
@@ -12511,7 +12529,7 @@
     },
     "/portouts/{id}": {
       "get": {
-        "summary": "Retrieve a portout request",
+        "summary": "Get a portout request",
         "description": "Returns the portout request based on the ID provided",
         "operationId": "findPortoutRequest",
         "tags": [
@@ -12634,6 +12652,117 @@
         "x-latency-category": "responsive"
       }
     },
+    "/portouts/{id}/supporting_documents": {
+      "get": {
+        "summary": "List supporting documents on a portout request",
+        "description": "List every supporting documents for a portout request.",
+        "operationId": "getPortRequestSupportingDocuments",
+        "tags": [
+          "Number Portout"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Portout id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/PortOutListSupportingDocumentsResponse"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create a list of supporting documents on a portout request",
+        "description": "Creates a list of supporting documents on a portout request.",
+        "operationId": "postPortRequestSupportingDocuments",
+        "tags": [
+          "Number Portout"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Portout id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "type": "array",
+                    "description": "List of supporting documents parameters",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "document_id"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "loa",
+                            "invoice"
+                          ],
+                          "description": "Identifies the type of the document",
+                          "example": "loa"
+                        },
+                        "document_id": {
+                          "format": "uuid",
+                          "type": "string",
+                          "description": "Identifies the associated document",
+                          "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/CreatePortOutSupportingDocumentsResponse"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/portouts/{id}/{status}": {
       "patch": {
         "summary": "Update Status",
@@ -12662,8 +12791,26 @@
               "type": "string",
               "enum": [
                 "authorized",
-                "rejected"
+                "rejected-pending"
               ]
+            }
+          },
+          {
+            "name": "reason",
+            "description": "Provide a reason if rejecting the port out request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "foc_date",
+            "description": "Updated portout foc date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -18246,6 +18393,68 @@
           "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
         }
       },
+      "DocumentsCreatedAtGreaterThanFilter": {
+        "name": "filter[created_at][gt]",
+        "in": "query",
+        "description": "Filter by created at greater than provided value.",
+        "schema": {
+          "type": "string",
+          "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+          "example": "2021-04-09T22:25:27.521Z"
+        }
+      },
+      "DocumentsCreatedAtLessThanFilter": {
+        "name": "filter[created_at][lt]",
+        "in": "query",
+        "description": "Filter by created at less than provided value.",
+        "schema": {
+          "type": "string",
+          "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+          "example": "2021-04-09T22:25:27.521Z"
+        }
+      },
+      "DocumentsCustomerReferenceEqFilter": {
+        "name": "filter[customer_reference][eq]",
+        "in": "query",
+        "description": "Filter documents by a customer references.",
+        "schema": {
+          "type": "string",
+          "example": "MY REF 001"
+        }
+      },
+      "DocumentsCustomerReferenceInFilter": {
+        "name": "filter[customer_reference][in][]",
+        "in": "query",
+        "description": "Filter documents by a list of customer references.",
+        "schema": {
+          "type": "string",
+          "example": "MY REF 001"
+        }
+      },
+      "DocumentsFilenameContainsFilter": {
+        "name": "filter[filename][contains]",
+        "in": "query",
+        "description": "Filter by string matching part of filename.",
+        "schema": {
+          "type": "string",
+          "example": "invoice"
+        }
+      },
+      "DocumentsSort": {
+        "name": "sort[]",
+        "in": "query",
+        "description": "Specifies the sort order for results. If you want to sort by a field in ascending order, include it as a sort parameter. If you want to sort in descending order, prepend a `-` in front of the field name.",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "filename",
+            "created_at",
+            "updated_at"
+          ],
+          "example": "filename"
+        }
+      },
       "FilterAddressBook": {
         "name": "filter[address_book][eq]",
         "in": "query",
@@ -19378,6 +19587,24 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/LedgerBillingGroupReport"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreatePortOutSupportingDocumentsResponse": {
+        "description": "Portout Supporting Documents",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortOutSupportingDocument"
+                  }
                 }
               }
             }
@@ -21710,6 +21937,24 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/PhoneNumberWithVoiceSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "PortOutListSupportingDocumentsResponse": {
+        "description": "Portout Supporting Documents",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortOutSupportingDocument"
+                  }
                 }
               }
             }
@@ -30031,6 +30276,11 @@
             "description": "The file you are uploading.",
             "type": "string",
             "format": "binary"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Optional reference string for customer tracking.",
+            "example": "MY REF 001"
           }
         }
       },
@@ -31987,6 +32237,11 @@
                 "description": "The filename of the document.",
                 "type": "string",
                 "example": "test-document.pdf"
+              },
+              "customer_reference": {
+                "type": "string",
+                "description": "Optional reference string for customer tracking.",
+                "example": "MY REF 001"
               }
             }
           }
@@ -32037,6 +32292,16 @@
             "type": "string",
             "format": "byte",
             "example": "[Base64 encoded content]"
+          },
+          "filename": {
+            "description": "The filename of the document.",
+            "type": "string",
+            "example": "test-document.pdf"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "A customer reference string for customer look ups.",
+            "example": "MY REF 001"
           }
         },
         "required": [
@@ -32050,6 +32315,16 @@
             "description": "If the file is already hosted publicly, you can provide a URL and have the documents service fetch it for you.",
             "type": "string",
             "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+          },
+          "filename": {
+            "description": "The filename of the document.",
+            "type": "string",
+            "example": "test-document.pdf"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Optional reference string for customer tracking.",
+            "example": "MY REF 001"
           }
         },
         "required": [
@@ -40211,6 +40486,72 @@
           "stop": "all",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "PortOutSupportingDocument": {
+        "required": [
+          "id",
+          "record_type",
+          "type",
+          "portout_id",
+          "document_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "5a16902a-2ee9-4882-a247-420fc6627b62"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource.",
+            "readOnly": true,
+            "example": "supporting_document"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "loa",
+              "invoice"
+            ],
+            "description": "Identifies the type of the document",
+            "readOnly": true,
+            "example": "loa"
+          },
+          "portout_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identifies the associated port request",
+            "readOnly": true,
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0"
+          },
+          "document_id": {
+            "format": "uuid",
+            "type": "string",
+            "description": "Identifies the associated document",
+            "example": "f1c5e079-9d82-4f50-95bc-ae2f6b8d84d7"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "Supporting document creation timestamp in ISO 8601 format",
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Supporting document last changed timestamp in ISO 8601 format",
+            "example": "2018-02-02T22:25:27.521Z"
+          }
+        },
+        "example": {
+          "id": "5a16902a-2ee9-4882-a247-420fc6627b62",
+          "record_type": "supporting_document",
+          "type": "loa",
+          "portout_id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "document_id": "f1c5e079-9d82-4f50-95bc-ae2f6b8d84d7",
+          "created_at": "2018-02-02T22:25:27.521Z",
+          "updated_at": "2018-02-02T22:25:27.521Z"
         }
       },
       "Portability": {

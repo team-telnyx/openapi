@@ -133,6 +133,59 @@ components:
         example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
+    DocumentsCreatedAtGreaterThanFilter:
+      description: Filter by created at greater than provided value.
+      in: query
+      name: filter[created_at][gt]
+      schema:
+        description: ISO 8601 formatted date-time indicating when the resource was
+          created.
+        example: '2021-04-09T22:25:27.521Z'
+        type: string
+    DocumentsCreatedAtLessThanFilter:
+      description: Filter by created at less than provided value.
+      in: query
+      name: filter[created_at][lt]
+      schema:
+        description: ISO 8601 formatted date-time indicating when the resource was
+          created.
+        example: '2021-04-09T22:25:27.521Z'
+        type: string
+    DocumentsCustomerReferenceEqFilter:
+      description: Filter documents by a customer references.
+      in: query
+      name: filter[customer_reference][eq]
+      schema:
+        example: MY REF 001
+        type: string
+    DocumentsCustomerReferenceInFilter:
+      description: Filter documents by a list of customer references.
+      in: query
+      name: filter[customer_reference][in][]
+      schema:
+        example: MY REF 001
+        type: string
+    DocumentsFilenameContainsFilter:
+      description: Filter by string matching part of filename.
+      in: query
+      name: filter[filename][contains]
+      schema:
+        example: invoice
+        type: string
+    DocumentsSort:
+      description: Specifies the sort order for results. If you want to sort by a
+        field in ascending order, include it as a sort parameter. If you want to sort
+        in descending order, prepend a `-` in front of the field name.
+      in: query
+      name: sort[]
+      required: false
+      schema:
+        enum:
+        - filename
+        - created_at
+        - updated_at
+        example: filename
+        type: string
     FilterAddressBook:
       description: If present, only returns results with the <code>address_book</code>
         flag set to the given value.
@@ -1049,6 +1102,17 @@ components:
                 $ref: '#/components/schemas/LedgerBillingGroupReport'
             type: object
       description: Expected ledger billing group report response to a valid request
+    CreatePortOutSupportingDocumentsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortOutSupportingDocument'
+                type: array
+            type: object
+      description: Portout Supporting Documents
     CreatePrivateWirelessGatewayResponse:
       content:
         application/json:
@@ -2535,6 +2599,17 @@ components:
             type: object
       description: Successful response with details about a phone number including
         voice settings.
+    PortOutListSupportingDocumentsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortOutSupportingDocument'
+                type: array
+            type: object
+      description: Portout Supporting Documents
     PortabilityCheckResponse:
       content:
         application/json:
@@ -9422,6 +9497,10 @@ components:
       type: object
     CreateMultiPartDocServiceDocumentRequest:
       properties:
+        customer_reference:
+          description: Optional reference string for customer tracking.
+          example: MY REF 001
+          type: string
         file:
           description: The file you are uploading.
           format: binary
@@ -11043,6 +11122,10 @@ components:
             example: application/pdf
             readOnly: true
             type: string
+          customer_reference:
+            description: Optional reference string for customer tracking.
+            example: MY REF 001
+            type: string
           filename:
             description: The filename of the document.
             example: test-document.pdf
@@ -11111,16 +11194,32 @@ components:
         type: object
     DocServiceDocumentUploadInline:
       properties:
+        customer_reference:
+          description: A customer reference string for customer look ups.
+          example: MY REF 001
+          type: string
         file:
           description: The Base64 encoded contents of the file you are uploading.
           example: '[Base64 encoded content]'
           format: byte
+          type: string
+        filename:
+          description: The filename of the document.
+          example: test-document.pdf
           type: string
       required:
       - file
       type: object
     DocServiceDocumentUploadURL:
       properties:
+        customer_reference:
+          description: Optional reference string for customer tracking.
+          example: MY REF 001
+          type: string
+        filename:
+          description: The filename of the document.
+          example: test-document.pdf
+          type: string
         url:
           description: If the file is already hosted publicly, you can provide a URL
             and have the documents service fetch it for you.
@@ -17924,6 +18023,60 @@ components:
           type: string
       title: Playback Stop Request
       type: object
+    PortOutSupportingDocument:
+      example:
+        created_at: '2018-02-02T22:25:27.521Z'
+        document_id: f1c5e079-9d82-4f50-95bc-ae2f6b8d84d7
+        id: 5a16902a-2ee9-4882-a247-420fc6627b62
+        portout_id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        record_type: supporting_document
+        type: loa
+        updated_at: '2018-02-02T22:25:27.521Z'
+      properties:
+        created_at:
+          description: Supporting document creation timestamp in ISO 8601 format
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        document_id:
+          description: Identifies the associated document
+          example: f1c5e079-9d82-4f50-95bc-ae2f6b8d84d7
+          format: uuid
+          type: string
+        id:
+          example: 5a16902a-2ee9-4882-a247-420fc6627b62
+          format: uuid
+          type: string
+        portout_id:
+          description: Identifies the associated port request
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: supporting_document
+          readOnly: true
+          type: string
+        type:
+          description: Identifies the type of the document
+          enum:
+          - loa
+          - invoice
+          example: loa
+          readOnly: true
+          type: string
+        updated_at:
+          description: Supporting document last changed timestamp in ISO 8601 format
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      required:
+      - id
+      - record_type
+      - type
+      - portout_id
+      - document_id
+      - created_at
+      - updated_at
     Portability:
       properties:
         altspid:
@@ -28061,6 +28214,12 @@ paths:
       description: List all documents ordered by created_at descending.
       operationId: listDocuments
       parameters:
+      - $ref: '#/components/parameters/DocumentsFilenameContainsFilter'
+      - $ref: '#/components/parameters/DocumentsCustomerReferenceEqFilter'
+      - $ref: '#/components/parameters/DocumentsCustomerReferenceInFilter'
+      - $ref: '#/components/parameters/DocumentsCreatedAtGreaterThanFilter'
+      - $ref: '#/components/parameters/DocumentsCreatedAtLessThanFilter'
+      - $ref: '#/components/parameters/DocumentsSort'
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
       responses:
@@ -32620,7 +32779,7 @@ paths:
       x-latency-category: responsive
   /porting_orders/{id}/actions/cancel:
     post:
-      description: Cancel this porting order
+      description: Cancel a porting order
       operationId: cancelPortingOrder
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
@@ -32631,13 +32790,13 @@ paths:
           description: Unauthorized
         '422':
           description: Unprocessable entity. Check message field in response for details.
-      summary: Cancel this porting order
+      summary: Cancel a porting order
       tags:
       - Porting Order
       x-latency-category: responsive
   /porting_orders/{id}/actions/confirm:
     post:
-      description: Confirm your porting order.
+      description: Confirm and submit your porting order.
       operationId: confirmPortingOrder
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
@@ -32648,7 +32807,7 @@ paths:
           description: Unauthorized
         '422':
           description: Unprocessable entity. Check message field in response for details.
-      summary: Confirms the porting order is ready to be actioned.
+      summary: Submit a porting order.
       tags:
       - Porting Order
       x-latency-category: responsive
@@ -32691,7 +32850,7 @@ paths:
       x-latency-category: responsive
   /porting_orders/{id}/allowed_foc_windows:
     get:
-      description: Returns a list of time windows that foc is allowed.
+      description: Returns a list of allowed FOC dates for a porting order.
       operationId: listAllowedFocWindows
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
@@ -32700,7 +32859,7 @@ paths:
           $ref: '#/components/responses/ListAllowedFocWindows'
         '401':
           description: Unauthorized
-      summary: List all the allowed foc windows
+      summary: List allowed FOC dates
       tags:
       - Porting Order
       x-latency-category: responsive
@@ -32823,7 +32982,7 @@ paths:
           description: Resource not found
         '422':
           description: Unprocessable entity. Check message field in response for details.
-      summary: Retrieve a list of portout requests
+      summary: List portout requests
       tags:
       - Number Portout
       x-latency-category: responsive
@@ -32848,7 +33007,7 @@ paths:
           description: Resource not found
         '422':
           description: Unprocessable entity. Check message field in response for details.
-      summary: Retrieve a portout request
+      summary: Get a portout request
       tags:
       - Number Portout
       x-latency-category: responsive
@@ -32911,6 +33070,83 @@ paths:
       tags:
       - Number Portout
       x-latency-category: responsive
+  /portouts/{id}/supporting_documents:
+    get:
+      description: List every supporting documents for a portout request.
+      operationId: getPortRequestSupportingDocuments
+      parameters:
+      - description: Portout id
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '201':
+          $ref: '#/components/responses/PortOutListSupportingDocumentsResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: List supporting documents on a portout request
+      tags:
+      - Number Portout
+      x-latency-category: responsive
+    post:
+      description: Creates a list of supporting documents on a portout request.
+      operationId: postPortRequestSupportingDocuments
+      parameters:
+      - description: Portout id
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                documents:
+                  description: List of supporting documents parameters
+                  items:
+                    properties:
+                      document_id:
+                        description: Identifies the associated document
+                        example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+                        format: uuid
+                        type: string
+                      type:
+                        description: Identifies the type of the document
+                        enum:
+                        - loa
+                        - invoice
+                        example: loa
+                        type: string
+                    required:
+                    - type
+                    - document_id
+                    type: object
+                  maxItems: 10
+                  minItems: 1
+                  type: array
+              type: object
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatePortOutSupportingDocumentsResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Create a list of supporting documents on a portout request
+      tags:
+      - Number Portout
+      x-latency-category: responsive
   /portouts/{id}/{status}:
     patch:
       description: Authorize or reject portout request
@@ -32930,7 +33166,19 @@ paths:
         schema:
           enum:
           - authorized
-          - rejected
+          - rejected-pending
+          type: string
+      - description: Provide a reason if rejecting the port out request
+        in: path
+        name: reason
+        required: true
+        schema:
+          type: string
+      - description: Updated portout foc date
+        in: path
+        name: foc_date
+        required: true
+        schema:
           type: string
       responses:
         '200':
