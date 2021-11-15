@@ -471,6 +471,21 @@ components:
         example: '1293384261075731499'
         format: int64
         type: string
+    FilterIpAddressEquals:
+      description: Filter access control IPs via the ip_address sent.
+      in: query
+      name: filter[ip_address][eq]
+      required: false
+      schema:
+        type: string
+    FilterIpAddressTypeEquals:
+      description: If present, access control IPs with <code>ip_address_type</code>
+        matching the given value will be returned.
+      in: query
+      name: filter[ip_address_type][eq]
+      required: false
+      schema:
+        type: string
     FilterName:
       description: Filter by name
       in: query
@@ -951,6 +966,15 @@ components:
         type: string
   requestBodies: {}
   responses:
+    AccessControlIpResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/AccessControlIp'
+            type: object
+      description: Successful response
     ActionSuccessResponse:
       content:
         application/json:
@@ -1419,6 +1443,19 @@ components:
           schema:
             $ref: '#/components/schemas/Errors'
       description: Unexpected error
+    GetAllAccessControlIpResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/AccessControlIp'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     GetAllAddressResponse:
       content:
         application/json:
@@ -3228,6 +3265,48 @@ components:
             type: object
       description: An array of Regulatory Requiremenst Responses
   schemas:
+    AccessControlIp:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        id:
+          description: Uniquely identifies the access control IP.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        ip_address:
+          $ref: '#/components/schemas/access_control_ip_ip_address'
+        ip_address_type:
+          $ref: '#/components/schemas/access_control_ip_ip_address_type'
+        record_type:
+          description: Identifies the type of the resource.
+          example: access_control_ip
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      title: AccessControlIp
+      type: object
+    AccessControlIpCreate:
+      properties:
+        ip_address:
+          $ref: '#/components/schemas/access_control_ip_ip_address'
+        ip_address_type:
+          $ref: '#/components/schemas/access_control_ip_ip_address_type'
+      required:
+      - ip_address
+      - ip_address_type
+      type: object
+    AccessControlIpUpdate:
+      properties:
+        ip_address:
+          $ref: '#/components/schemas/access_control_ip_ip_address'
+        ip_address_type:
+          $ref: '#/components/schemas/access_control_ip_ip_address_type'
+      type: object
     ActionsParticipantsRequest:
       properties:
         exclude:
@@ -24886,6 +24965,20 @@ components:
           example: USD
           type: string
       type: object
+    access_control_ip_ip_address:
+      description: The IP address for which you are saving an access control IP record.
+        Must be a single IPv4 address. Cannot be a range of IP addresses or use CIDR
+        notation.
+      example: 100.101.102.103
+      type: string
+    access_control_ip_ip_address_type:
+      description: The type of the access control IP, must be either `media` or `signaling`.
+        Other values are not allowed.
+      enum:
+      - media
+      - signaling
+      example: signaling
+      type: string
     active:
       default: true
       description: The active status of the authentication provider
@@ -25254,6 +25347,135 @@ info:
   x-endpoint-cost: light
 openapi: 3.0.0
 paths:
+  /access_control_ips:
+    get:
+      description: Returns a list of your access control IPs.
+      operationId: findAccessControlIps
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/FilterIpAddressEquals'
+      - $ref: '#/components/parameters/FilterIpAddressTypeEquals'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetAllAccessControlIpResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Resource not found
+      summary: List all access control IPs
+      tags:
+      - Access Control IPs
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+    post:
+      description: Adds an access control IP.
+      operationId: CreateAccessControlIp
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessControlIpCreate'
+        description: Parameters that can be defined during access control IP creation
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessControlIpResponse'
+        '422':
+          description: Bad request
+      summary: Adds an access control IP
+      tags:
+      - Access Control IPs
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+  /access_control_ips/{id}:
+    delete:
+      description: Deletes an existing access control IP.
+      operationId: DeleteAccessControlIp
+      parameters:
+      - description: access control IP ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessControlIpResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Deletes an access control IP
+      tags:
+      - Access Control IPs
+      x-latency-category: responsive
+    get:
+      description: Retrieves the details of an existing access control IP.
+      operationId: getAccessControlIp
+      parameters:
+      - description: access control IP ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessControlIpResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Retrieve an access control IP
+      tags:
+      - Access Control IPs
+      x-latency-category: responsive
+    patch:
+      description: Updates an existing access control IP.
+      operationId: updateAccessControlIp
+      parameters:
+      - description: access control IP ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessControlIpUpdate'
+        description: Parameters to update on the access control IP record
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/AccessControlIpResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Resource not found
+        '422':
+          description: Bad request
+      summary: Update an access control IP
+      tags:
+      - Access Control IPs
+      x-latency-category: responsive
   /actions/bulk/telephony_credentials:
     delete:
       description: Delete several credentials in bulk.
@@ -37635,6 +37857,8 @@ servers:
 - description: Version 2.0.0 of the Telnyx API
   url: https://api.telnyx.com/v2
 tags:
+- description: Access Control IP operations
+  name: Access Control IPs
 - description: Access Tokens creation
   name: Access Tokens
 - description: Address operations
