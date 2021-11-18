@@ -65,6 +65,10 @@
       "description": "Call information"
     },
     {
+      "name": "Channel zones",
+      "description": "Channel zones"
+    },
+    {
       "name": "Conference Commands",
       "description": "Conference command operations"
     },
@@ -3583,6 +3587,183 @@
         },
         "x-latency-category": "interactive"
       }
+    },
+    "/channel_zones": {
+      "get": {
+        "summary": "Get list of channel zones",
+        "description": "List of channel zones with their countries",
+        "operationId": "getChannelZones",
+        "tags": [
+          "ChannelZones"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetGcbChannelZonesRequestResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/channel_zones/{channel_zone_id}": {
+      "get": {
+        "summary": "Get a specific channel zone",
+        "description": "Get a specific channel zone",
+        "operationId": "getChannelZone",
+        "tags": [
+          "ChannelZones"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetGcbChannelZoneRequestResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GcbChannelZoneId"
+        }
+      ],
+      "patch": {
+        "summary": "Patch a channel zone",
+        "description": "Change the amount of reserved channels at a given channel zone",
+        "operationId": "patchGroup",
+        "tags": [
+          "ChannelZones"
+        ],
+        "requestBody": {
+          "description": "Quantity of reserved channels",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PatchGcbChannelZoneRequestResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-codegen-request-body-name": "body",
+        "x-latency-category": "interactive"
+      }
+    },
+    "/channel_zones/{channel_zone_id}/channel_zone_phone_numbers": {
+      "get": {
+        "summary": "Get the list of phone numbers assigned to a channel zone",
+        "description": "Retrieve the assigned phone numbers in a channel zone. Phone numbers assigned to a channel zone can receive concurrent calls up to the quantity reserved in that channel zone. Additional concurrent calls are rejected with a busy signal.",
+        "operationId": "getPhoneNumbers",
+        "tags": [
+          "ChannelZones"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetGcbPhoneNumbersRequestResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GcbChannelZoneId"
+        }
+      ],
+      "post": {
+        "summary": "Assign a phone number to a channel zone",
+        "description": "You should own the phone number being assigned to the channel zone. Remember that you should reserve channels in this channel zone, otherwise you won't be able to receive incoming calls.",
+        "operationId": "assignPhoneNumber",
+        "tags": [
+          "ChannelZones"
+        ],
+        "requestBody": {
+          "description": "Phone number to assign to the channel zone. The phone number should be in E.164 format.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "phone_number"
+                ],
+                "type": "object",
+                "properties": {
+                  "phone_number": {
+                    "type": "string",
+                    "format": "+E.164",
+                    "example": "+15554441234"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PostGcbPhoneNumberRequestResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-codegen-request-body-name": "body",
+        "x-latency-category": "interactive"
+      }
+    },
+    "/channel_zones/{channel_zone_id}/channel_zone_phone_numbers/{phone_number}": {
+      "delete": {
+        "summary": "Unassign a phone number from a channel zone",
+        "operationId": "unassignPhoneNumber",
+        "tags": [
+          "ChannelZones"
+        ],
+        "responses": {
+          "200": {
+            "description": "The phone number is successfully deleted"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/GcbChannelZoneId"
+        },
+        {
+          "$ref": "#/components/parameters/GcbPhoneNumber"
+        }
+      ]
     },
     "/comments": {
       "get": {
@@ -19485,6 +19666,26 @@
           "example": "1517907029795014409"
         }
       },
+      "GcbChannelZoneId": {
+        "name": "channel_zone_id",
+        "in": "path",
+        "description": "Channel zone identifier",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "GcbPhoneNumber": {
+        "description": "The phone number to be looked up",
+        "in": "path",
+        "name": "phone_number",
+        "required": true,
+        "schema": {
+          "example": "+15554441234",
+          "format": "+E.164",
+          "type": "string"
+        }
+      },
       "Id": {
         "name": "id",
         "description": "Identifies the resource.",
@@ -20882,6 +21083,58 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/Fax"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GetGcbChannelZoneRequestResponse": {
+        "description": "Requested channel zone",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GcbChannelZone"
+            }
+          }
+        }
+      },
+      "GetGcbChannelZonesRequestResponse": {
+        "description": "A list of channel zones",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GcbChannelZone"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GetGcbPhoneNumbersRequestResponse": {
+        "description": "A list of phone numbers",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GcbPhoneNumber"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
             }
@@ -22570,6 +22823,16 @@
           }
         }
       },
+      "PatchGcbChannelZoneRequestResponse": {
+        "description": "Successfuly patched channel zone",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GcbChannelZone"
+            }
+          }
+        }
+      },
       "PhoneNumberResponse": {
         "description": "Successful response with details about a phone number.",
         "content": {
@@ -22680,6 +22943,16 @@
                   "$ref": "#/components/schemas/PortoutDetails"
                 }
               }
+            }
+          }
+        }
+      },
+      "PostGcbPhoneNumberRequestResponse": {
+        "description": "A new inserted phone number",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GcbPhoneNumber"
             }
           }
         }
@@ -35030,6 +35303,121 @@
           "inter_digit_timeout_millis": 10000,
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "GcbChannelZone": {
+        "title": "Channel zone object",
+        "required": [
+          "record_type",
+          "countries",
+          "id",
+          "name",
+          "channels"
+        ],
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "channel_zone"
+            ],
+            "example": "channel_zone"
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of countries (in ISO 3166-2, capitalized) members of the billing channel zone",
+            "example": [
+              "BE",
+              "EL",
+              "LT",
+              "PT",
+              "BG",
+              "ES",
+              "LU",
+              "RO",
+              "CZ",
+              "FR",
+              "HU",
+              "SI",
+              "DK",
+              "HR",
+              "MT",
+              "SK",
+              "DE",
+              "IT",
+              "NL",
+              "FI",
+              "EE",
+              "CY",
+              "AT",
+              "SE",
+              "IE",
+              "LV",
+              "PL"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "example": "1653e6a1-4bfd-4857-97c6-6a51e1c34477"
+          },
+          "name": {
+            "type": "string",
+            "example": "Euro channel zone"
+          },
+          "channels": {
+            "type": "integer",
+            "format": "int64",
+            "example": 7
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the channel zone was created",
+            "example": "2019-01-23T18:10:02.574Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the channel zone was updated",
+            "example": "2019-01-23T18:10:02.574Z"
+          }
+        }
+      },
+      "GcbPhoneNumber": {
+        "title": "Phone Number object",
+        "required": [
+          "record_type",
+          "channel_zone_id",
+          "phone_number"
+        ],
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "channel_zone_phone_number"
+            ],
+            "example": "channel_zone_phone_number"
+          },
+          "channel_zone_id": {
+            "type": "string",
+            "example": "1653e6a1-4bfd-4857-97c6-6a51e1c34477"
+          },
+          "id": {
+            "type": "string",
+            "example": "3da3c749-bb7d-4ad6-acae-ca0d415ae08b"
+          },
+          "phone_number": {
+            "type": "string",
+            "format": "+E.164",
+            "example": "+15554441234"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date of when the phone number was created",
+            "example": "2019-01-23T18:10:02.574Z"
+          }
         }
       },
       "HangupRequest": {

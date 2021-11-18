@@ -573,6 +573,22 @@ components:
         example: '1517907029795014409'
         format: int64
         type: string
+    GcbChannelZoneId:
+      description: Channel zone identifier
+      in: path
+      name: channel_zone_id
+      required: true
+      schema:
+        type: string
+    GcbPhoneNumber:
+      description: The phone number to be looked up
+      in: path
+      name: phone_number
+      required: true
+      schema:
+        example: '+15554441234'
+        format: +E.164
+        type: string
     Id:
       description: Identifies the resource.
       in: path
@@ -1565,6 +1581,38 @@ components:
             title: Get Fax Response
             type: object
       description: Get fax response
+    GetGcbChannelZoneRequestResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GcbChannelZone'
+      description: Requested channel zone
+    GetGcbChannelZonesRequestResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/GcbChannelZone'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: A list of channel zones
+    GetGcbPhoneNumbersRequestResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/GcbPhoneNumber'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: A list of phone numbers
     GetPrivateWirelessGatewayResponse:
       content:
         application/json:
@@ -2637,6 +2685,12 @@ components:
         \ ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates\
         \ node) will, by default, be the resource related to the operation, not all\
         \ of them."
+    PatchGcbChannelZoneRequestResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GcbChannelZone'
+      description: Successfuly patched channel zone
     PhoneNumberResponse:
       content:
         application/json:
@@ -2709,6 +2763,12 @@ components:
                 $ref: '#/components/schemas/PortoutDetails'
             type: object
       description: Portout Response
+    PostGcbPhoneNumberRequestResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GcbPhoneNumber'
+      description: A new inserted phone number
     QueueCallResponse:
       content:
         application/json:
@@ -12984,6 +13044,100 @@ components:
       - language
       - payload
       title: Gather Using Speak Request
+      type: object
+    GcbChannelZone:
+      properties:
+        channels:
+          example: 7
+          format: int64
+          type: integer
+        countries:
+          description: List of countries (in ISO 3166-2, capitalized) members of the
+            billing channel zone
+          example:
+          - BE
+          - EL
+          - LT
+          - PT
+          - BG
+          - ES
+          - LU
+          - RO
+          - CZ
+          - FR
+          - HU
+          - SI
+          - DK
+          - HR
+          - MT
+          - SK
+          - DE
+          - IT
+          - NL
+          - FI
+          - EE
+          - CY
+          - AT
+          - SE
+          - IE
+          - LV
+          - PL
+          items:
+            type: string
+          type: array
+        created_at:
+          description: ISO 8601 formatted date of when the channel zone was created
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        id:
+          example: 1653e6a1-4bfd-4857-97c6-6a51e1c34477
+          type: string
+        name:
+          example: Euro channel zone
+          type: string
+        record_type:
+          enum:
+          - channel_zone
+          example: channel_zone
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date of when the channel zone was updated
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+      required:
+      - record_type
+      - countries
+      - id
+      - name
+      - channels
+      title: Channel zone object
+      type: object
+    GcbPhoneNumber:
+      properties:
+        channel_zone_id:
+          example: 1653e6a1-4bfd-4857-97c6-6a51e1c34477
+          type: string
+        created_at:
+          description: ISO 8601 formatted date of when the phone number was created
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        id:
+          example: 3da3c749-bb7d-4ad6-acae-ca0d415ae08b
+          type: string
+        phone_number:
+          example: '+15554441234'
+          format: +E.164
+          type: string
+        record_type:
+          enum:
+          - channel_zone_phone_number
+          example: channel_zone_phone_number
+          type: string
+      required:
+      - record_type
+      - channel_zone_id
+      - phone_number
+      title: Phone Number object
       type: object
     HangupRequest:
       example:
@@ -27735,6 +27889,123 @@ paths:
       tags:
       - Call Commands
       x-latency-category: interactive
+  /channel_zones:
+    get:
+      description: List of channel zones with their countries
+      operationId: getChannelZones
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetGcbChannelZonesRequestResponse'
+      summary: Get list of channel zones
+      tags:
+      - ChannelZones
+      x-latency-category: interactive
+  /channel_zones/{channel_zone_id}:
+    get:
+      description: Get a specific channel zone
+      operationId: getChannelZone
+      responses:
+        '200':
+          $ref: '#/components/responses/GetGcbChannelZoneRequestResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get a specific channel zone
+      tags:
+      - ChannelZones
+      x-latency-category: interactive
+    parameters:
+    - $ref: '#/components/parameters/GcbChannelZoneId'
+    patch:
+      description: Change the amount of reserved channels at a given channel zone
+      operationId: patchGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                channels:
+                  format: int64
+                  type: integer
+              type: object
+        description: Quantity of reserved channels
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/PatchGcbChannelZoneRequestResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Patch a channel zone
+      tags:
+      - ChannelZones
+      x-codegen-request-body-name: body
+      x-latency-category: interactive
+  /channel_zones/{channel_zone_id}/channel_zone_phone_numbers:
+    get:
+      description: Retrieve the assigned phone numbers in a channel zone. Phone numbers
+        assigned to a channel zone can receive concurrent calls up to the quantity
+        reserved in that channel zone. Additional concurrent calls are rejected with
+        a busy signal.
+      operationId: getPhoneNumbers
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetGcbPhoneNumbersRequestResponse'
+      summary: Get the list of phone numbers assigned to a channel zone
+      tags:
+      - ChannelZones
+      x-latency-category: interactive
+    parameters:
+    - $ref: '#/components/parameters/GcbChannelZoneId'
+    post:
+      description: You should own the phone number being assigned to the channel zone.
+        Remember that you should reserve channels in this channel zone, otherwise
+        you won't be able to receive incoming calls.
+      operationId: assignPhoneNumber
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                phone_number:
+                  example: '+15554441234'
+                  format: +E.164
+                  type: string
+              required:
+              - phone_number
+              type: object
+        description: Phone number to assign to the channel zone. The phone number
+          should be in E.164 format.
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/PostGcbPhoneNumberRequestResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Assign a phone number to a channel zone
+      tags:
+      - ChannelZones
+      x-codegen-request-body-name: body
+      x-latency-category: interactive
+  /channel_zones/{channel_zone_id}/channel_zone_phone_numbers/{phone_number}:
+    delete:
+      operationId: unassignPhoneNumber
+      responses:
+        '200':
+          description: The phone number is successfully deleted
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Unassign a phone number from a channel zone
+      tags:
+      - ChannelZones
+      x-latency-category: interactive
+    parameters:
+    - $ref: '#/components/parameters/GcbChannelZoneId'
+    - $ref: '#/components/parameters/GcbPhoneNumber'
   /comments:
     get:
       operationId: listComments
@@ -37884,6 +38155,8 @@ tags:
   name: Call Control Applications
 - description: Call information
   name: Call Information
+- description: Channel zones
+  name: Channel zones
 - description: Conference command operations
   name: Conference Commands
 - description: Connections operations
