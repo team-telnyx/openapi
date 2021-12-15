@@ -269,6 +269,10 @@
       "description": "Rooms Client Tokens operations."
     },
     {
+      "name": "SIM Card Actions",
+      "description": "View SIM card actions, their progress and timestamps using the SIM Card Actions API"
+    },
+    {
       "name": "SIM Card Group Actions",
       "description": "SIM Card Group actions operations"
     },
@@ -16024,6 +16028,79 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sim_card_actions": {
+      "get": {
+        "operationId": "ListSIMCardActions",
+        "summary": "List SIM card actions",
+        "description": "This API lists a paginated collection of SIM card actions. It enables exploring a collection of existing asynchronous operations using specific filters.",
+        "tags": [
+          "SIM Card Actions"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "$ref": "#/components/parameters/FilterSIMCardId"
+          },
+          {
+            "$ref": "#/components/parameters/FilterBasicStatusLifecycle"
+          },
+          {
+            "name": "filter[action_type]",
+            "description": "Filter by action type.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "enable",
+                "enable_standby_sim_card",
+                "disable",
+                "set_standby"
+              ],
+              "example": "disable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SimCardActionCollectionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sim_card_actions/{id}": {
+      "get": {
+        "operationId": "SimCardActionGet",
+        "summary": "Get SIM card action details",
+        "description": "This API fetches detailed information about a SIM card action to follow-up on an existing asynchronous operation.",
+        "tags": [
+          "SIM Card Actions"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardActionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/sim_card_group_actions": {
       "get": {
         "operationId": "SimCardGroupActionsGet",
@@ -19785,6 +19862,16 @@
         },
         "in": "query"
       },
+      "FilterSIMCardId": {
+        "name": "filter[sim_card_id]",
+        "description": "A valid SIM card ID.",
+        "schema": {
+          "format": "uuid",
+          "type": "string",
+          "example": "47a1c2b0-cc7b-4ab1-bb98-b33fb0fc61b9"
+        },
+        "in": "query"
+      },
       "FilterSipUsername": {
         "name": "filter[sip_username]",
         "in": "query",
@@ -23458,6 +23545,21 @@
           }
         }
       },
+      "SIMCardActionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SIMCardAction"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
       "SIMCardGroupActionResponse": {
         "content": {
           "application/json": {
@@ -23708,6 +23810,27 @@
             }
           }
         }
+      },
+      "SimCardActionCollectionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SIMCardAction"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful response"
       },
       "SimCardGroupActionCollectionResponse": {
         "content": {
@@ -32886,10 +33009,10 @@
         }
       },
       "CreatedAt": {
-        "title": "Created At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was created.",
-        "example": "2020-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "CredentialConnection": {
         "type": "object",
@@ -35833,6 +35956,13 @@
             }
           ]
         }
+      },
+      "Id": {
+        "type": "string",
+        "format": "uuid",
+        "description": "Identifies the resource.",
+        "readOnly": true,
+        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
       },
       "Image": {
         "title": "Image",
@@ -44506,6 +44636,83 @@
           }
         }
       },
+      "SIMCardAction": {
+        "type": "object",
+        "title": "SIMCardAction",
+        "description": "This object represents a SIM card action. It allows tracking the current status of an operation that impacts the SIM card.",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "sim_card_action",
+            "readOnly": true
+          },
+          "sim_card_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The related SIM card identifier.",
+            "readOnly": true,
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "internal": {
+            "type": "boolean",
+            "description": "Indicate whether this is action was generated by the user or internally by the system.",
+            "default": false,
+            "readOnly": true,
+            "example": true
+          },
+          "action_type": {
+            "type": "string",
+            "description": "The operation type. It can be one of the following: <br/>\n<ul>\n <li><code>enable</code> - move the SIM card to the <code>enabled</code> status</li>\n <li><code>enable_standby_sim_card</code> - move a SIM card previously on the <code>standby</code> status to the <code>enabled</code> status after it consumes data.</li>\n <li><code>disable</code> - move the SIM card to the <code>disabled</code> status</li>\n <li><code>set_standby</code> - move the SIM card to the <code>standby</code> status</li>\n </ul>",
+            "enum": [
+              "enable",
+              "enable_standby_sim_card",
+              "disable",
+              "set_standby"
+            ],
+            "readOnly": true,
+            "example": "enable"
+          },
+          "status": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "description": "The current status of the SIM card action.",
+                "enum": [
+                  "in-progress",
+                  "completed",
+                  "failed",
+                  "interrupted"
+                ],
+                "readOnly": true,
+                "example": "completed"
+              },
+              "reason": {
+                "type": "string",
+                "description": "It describes why the SIM card action is in the current status. This will be <code>null</code> for self-explanatory statuses, such as <code>in-progress</code> and <code>completed</code> but will include further information on statuses like <code>interrupted</code> and <code>failed</code>.",
+                "readOnly": true,
+                "example": "The data limit was exceeded."
+              }
+            }
+          },
+          "settings": {
+            "type": "object",
+            "description": "A JSON object representation of the action params.",
+            "example": {},
+            "nullable": true,
+            "readOnly": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/CreatedAt"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/UpdatedAt"
+          }
+        }
+      },
       "SIMCardGroup": {
         "title": "SIMCardGroup",
         "type": "object",
@@ -48666,10 +48873,10 @@
         }
       },
       "UpdatedAt": {
-        "title": "Updated At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was updated.",
-        "example": "2020-02-03T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "UplinkData": {
         "type": "object",
