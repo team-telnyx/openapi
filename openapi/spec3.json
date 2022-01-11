@@ -1860,7 +1860,7 @@
     "/calls": {
       "post": {
         "summary": "Dial",
-        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was set to `detect_beep`, `greeting_end` or `detect_words`",
+        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was set to `detect_beep`, `greeting_end` or `detect_words`\n- `streaming.started` and `streaming.stopped` if `stream_url` was set\n",
         "operationId": "callDial",
         "tags": [
           "Call Commands"
@@ -1989,6 +1989,48 @@
                 }
               }
             }
+          },
+          "streamingStarted": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStartedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "streamingStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
           }
         },
         "x-latency-category": "interactive"
@@ -2021,7 +2063,7 @@
     "/calls/{call_control_id}/actions/answer": {
       "post": {
         "summary": "Answer call",
-        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks:**\n\n- `call.answered`\n",
+        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks:**\n\n- `call.answered`\n- `streaming.started` and `streaming.stopped` if `stream_url` was set",
         "operationId": "callAnswer",
         "tags": [
           "Call Commands"
@@ -2060,6 +2102,48 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallAnsweredEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "streamingStarted": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStartedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "streamingStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStoppedEvent"
                       }
                     }
                   }
@@ -3379,6 +3463,143 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallSpeakEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/streaming_start": {
+      "post": {
+        "summary": "Streaming start",
+        "description": "Start streaming the media from a call to a specific WebSocket address in near-realtime. \nAudio will be delivered as base64-encoded RTP packets, wrapped in JSON payloads. \n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3E6F995F-85F7-4705-9741-53B116D28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32DE0DEA-53CB-4B21-89A4-9E1819C043BC\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP packets as their payloads:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\"                        \n  },\n  \"stream_id\": \"32DE0DEA-53CB-4B21-89A4-9E1819C043BC\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3E6F995F-85F7-4705-9741-53B116D28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32DE0DEA-53CB-4B21-89A4-9E1819C043BC\" \n }\n```\n",
+        "operationId": "callStreamingStart",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Start streaming media request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartStreamingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callStreamingStarted": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStartedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callStreamingStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/streaming_stop": {
+      "post": {
+        "summary": "Streaming stop",
+        "description": "Stop streaming a call to a WebSocket.\n\n**Expected Webhooks:**\n\n- `streaming.stopped`\n",
+        "operationId": "callStreamingStop",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Stop streaming media request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopStreamingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callStreamingStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingStoppedEvent"
                       }
                     }
                   }
@@ -24624,6 +24845,22 @@
             "type": "string",
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
           },
+          "stream_url": {
+            "description": "The destination WebSocket address where the stream is going to be delivered.",
+            "type": "string",
+            "example": "wss://www.example.com/websocket"
+          },
+          "stream_track": {
+            "description": "Specifies which track should be streamed.",
+            "type": "string",
+            "enum": [
+              "inbound_track",
+              "outbound_track",
+              "both_tracks"
+            ],
+            "default": "inbound_track",
+            "example": "both_tracks"
+          },
           "webhook_url": {
             "description": "Use this field to override the URL for which Telnyx will send subsequent webhooks to for this call.",
             "type": "string",
@@ -27767,6 +28004,22 @@
             "description": "SIP Authentication password used for SIP challenges.",
             "type": "string"
           },
+          "stream_url": {
+            "description": "The destination WebSocket address where the stream is going to be delivered.",
+            "type": "string",
+            "example": "wss://www.example.com/websocket"
+          },
+          "stream_track": {
+            "description": "Specifies which track should be streamed.",
+            "type": "string",
+            "enum": [
+              "inbound_track",
+              "outbound_track",
+              "both_tracks"
+            ],
+            "default": "inbound_track",
+            "example": "both_tracks"
+          },
           "webhook_url": {
             "description": "Use this field to override the URL for which Telnyx will send subsequent webhooks to for this call.",
             "type": "string",
@@ -27964,6 +28217,190 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallSpeakStarted"
+          }
+        }
+      },
+      "CallStreamingStarted": {
+        "type": "object",
+        "title": "Streaming Started",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "streaming.started",
+            "enum": [
+              "streaming.started"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:06:32.059436Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "stream_url": {
+                "type": "string",
+                "example": "wss://www.example.com/websocket",
+                "description": "Destination WebSocket address where the stream is going to be delivered."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "streaming.started",
+          "id": "7d743d69-f7e8-4761-b7d4-8cacf9d3c031",
+          "occurred_at": "2021-12-15T14:06:32.059436Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "stream_url": "wss://www.example.com/websocket"
+          }
+        }
+      },
+      "CallStreamingStartedEvent": {
+        "type": "object",
+        "title": "Streaming Started Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallStreamingStarted"
+          }
+        }
+      },
+      "CallStreamingStopped": {
+        "type": "object",
+        "title": "Streaming Stopped",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "streaming.stopped",
+            "enum": [
+              "streaming.stopped"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:11:24.613295Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "stream_url": {
+                "type": "string",
+                "example": "wss://www.example.com/websocket",
+                "description": "Destination WebSocket address where the stream is going to be delivered."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "streaming.stopped",
+          "id": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+          "occurred_at": "2021-12-15T14:11:24.613295Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "stream_url": "wss://www.example.com/websocket"
+          }
+        }
+      },
+      "CallStreamingStoppedEvent": {
+        "type": "object",
+        "title": "Streaming Stopped Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallStreamingStopped"
           }
         }
       },
@@ -46260,6 +46697,44 @@
           "max_length": 0
         }
       },
+      "StartStreamingRequest": {
+        "type": "object",
+        "title": "Start Streaming Request",
+        "properties": {
+          "stream_url": {
+            "description": "The destination WebSocket address where the stream is going to be delivered.",
+            "type": "string",
+            "example": "wss://www.example.com/websocket"
+          },
+          "stream_track": {
+            "description": "Specifies which track should be streamed.",
+            "type": "string",
+            "enum": [
+              "inbound_track",
+              "outbound_track",
+              "both_tracks"
+            ],
+            "default": "inbound_track",
+            "example": "both_tracks"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "stream_url": "wss://www.example.com/websocket",
+          "stream_track": "both_tracks",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "StopForkingRequest": {
         "type": "object",
         "title": "Stop Forking Request",
@@ -46313,6 +46788,26 @@
       "StopRecordingRequest": {
         "type": "object",
         "title": "Stop Recording Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore commands with the same `command_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "StopStreamingRequest": {
+        "type": "object",
+        "title": "Stop Streaming Request",
         "properties": {
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
@@ -47042,7 +47537,9 @@
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "sip_auth_username": "username",
-          "sip_auth_password": "password"
+          "sip_auth_password": "password",
+          "stream_url": "wss://www.example.com/websocket",
+          "stream_track": "both_tracks"
         },
         "properties": {
           "to": {
