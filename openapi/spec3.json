@@ -93,6 +93,10 @@
       "description": "Credentials operations"
     },
     {
+      "name": "Customer Service Request",
+      "description": "Customer Service Request operations"
+    },
+    {
       "name": "Debugging",
       "description": "Call Control debugging"
     },
@@ -3786,7 +3790,7 @@
     "/calls/{call_control_id}/actions/transcription_start": {
       "post": {
         "summary": "Transcription start",
-        "description": "Start real-time transcription. Transcription will stop on call hang-up, or can be initiated via the Transcription stop command.",
+        "description": "Start real-time transcription. Transcription will stop on call hang-up, or can be initiated via the Transcription stop command.\n\n**Expected Webhooks:**\n\n- `call.transcription`\n",
         "operationId": "callTranscriptionStart",
         "tags": [
           "Call Commands"
@@ -5799,6 +5803,197 @@
           },
           "422": {
             "description": "Bad request"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/customer_service_requests": {
+      "get": {
+        "tags": [
+          "Customer Service Request"
+        ],
+        "summary": "List customer service requests",
+        "description": "List customer service requests.",
+        "operationId": "listCustomerServiceRequests",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "sort[]",
+            "in": "query",
+            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "-created_at"
+              ],
+              "example": "created_at"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PhoneNumberEqFilter"
+          },
+          {
+            "$ref": "#/components/parameters/PhoneNumberInFilter"
+          },
+          {
+            "$ref": "#/components/parameters/StatusEqFilter"
+          },
+          {
+            "$ref": "#/components/parameters/StatusInFilter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAtLtFilter"
+          },
+          {
+            "$ref": "#/components/parameters/CreatedAtGtFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListCustomerServiceRequests"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "tags": [
+          "Customer Service Request"
+        ],
+        "summary": "Create a customer service request",
+        "description": "Create a new customer service request for the provided phone number.",
+        "operationId": "createCustomerServiceRequest",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateCustomerServiceRequest"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ShowCustomerServiceRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedErrorResponse"
+          }
+        },
+        "callbacks": {
+          "CustomerServiceRequestStatusChanged": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "data": {
+                            "$ref": "#/components/schemas/CustomerServiceRequestStatusChangedEvent"
+                          },
+                          "meta": {
+                            "$ref": "#/components/schemas/CallbackWebhookMeta"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/customer_service_requests/phone_number_coverages": {
+      "post": {
+        "tags": [
+          "Customer Service Request"
+        ],
+        "summary": "Verify CSR phone number coverage",
+        "description": "Verify the coverage for a list of phone numbers.",
+        "operationId": "verifyPhoneNumberCoverage",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/VerifyCustomerServiceRequestPhoneNumberCoverage"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ListCustomerServiceRequestPhoneNumberCoverage"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/customer_service_requests/{customer_service_request_id}": {
+      "get": {
+        "tags": [
+          "Customer Service Request"
+        ],
+        "summary": "Get a customer service request",
+        "description": "Get a specific customer service request.",
+        "operationId": "getCustomerServiceRequest",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PathCustomerServiceRequestId"
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ShowCustomerServiceRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedErrorResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ResourceNotFoundErrorResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/UnexpectedErrorResponse"
           }
         },
         "x-latency-category": "responsive"
@@ -19878,6 +20073,26 @@
           "example": "webhook"
         }
       },
+      "CreatedAtGtFilter": {
+        "name": "filter[created_at][lt]",
+        "in": "query",
+        "description": "Filters records to those created after a specific date.",
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2020-01-01T00:00:00Z"
+        }
+      },
+      "CreatedAtLtFilter": {
+        "name": "filter[created_at][lt]",
+        "in": "query",
+        "description": "Filters records to those created before a specific date.",
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2020-01-01T00:00:00Z"
+        }
+      },
       "DocReqsActionFilter": {
         "name": "filter[action]",
         "in": "query",
@@ -20759,6 +20974,15 @@
           "type": "string"
         }
       },
+      "PathCustomerServiceRequestId": {
+        "name": "customer_service_request_id",
+        "in": "path",
+        "description": "The ID of the customer service request",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       "PathPhoneNumber": {
         "name": "phone_number",
         "in": "path",
@@ -20796,6 +21020,27 @@
         "schema": {
           "type": "string",
           "example": "+18665552368"
+        }
+      },
+      "PhoneNumberEqFilter": {
+        "name": "filter[phone_number][eq]",
+        "in": "query",
+        "description": "Filters records to those with a specified number.",
+        "schema": {
+          "type": "string",
+          "example": "+12441239999"
+        }
+      },
+      "PhoneNumberInFilter": {
+        "name": "filter[phone_number][in][]",
+        "in": "query",
+        "description": "Filters records to those with at least one number in the list.",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "+12441239999"
+          }
         }
       },
       "QueryIncludePhoneNumbers": {
@@ -20964,6 +21209,37 @@
           "example": "enable-received"
         }
       },
+      "StatusEqFilter": {
+        "name": "filter[status][eq]",
+        "in": "query",
+        "description": "Filters records to those with a specific status.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "completed",
+            "failed"
+          ],
+          "example": "pending"
+        }
+      },
+      "StatusInFilter": {
+        "name": "filter[status][in][]",
+        "in": "query",
+        "description": "Filters records to those with a least one status in the list.",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed"
+            ],
+            "example": "pending"
+          }
+        }
+      },
       "id": {
         "name": "id",
         "description": "Identifies the resource.",
@@ -20976,7 +21252,59 @@
         }
       }
     },
-    "requestBodies": {},
+    "requestBodies": {
+      "CreateCustomerServiceRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "phone_number"
+              ],
+              "properties": {
+                "phone_number": {
+                  "type": "string",
+                  "description": "A valid US phone number in E164 format.",
+                  "example": "+1234567890",
+                  "pattern": "^\\+1\\d{10}$"
+                },
+                "webhook_url": {
+                  "type": "string",
+                  "description": "Callback URL to receive webhook notifications.",
+                  "example": "https://example.com/webhook"
+                }
+              }
+            }
+          }
+        }
+      },
+      "VerifyCustomerServiceRequestPhoneNumberCoverage": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "phone_numbers"
+              ],
+              "properties": {
+                "phone_numbers": {
+                  "type": "array",
+                  "description": "The phone numbers list to be verified.",
+                  "items": {
+                    "type": "string",
+                    "description": "A valid US phone number in E164 format.",
+                    "example": "+1234567890",
+                    "pattern": "^\\+1\\d{10}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "responses": {
       "AccessControlIpResponse": {
         "description": "Successful response",
@@ -21719,6 +22047,23 @@
           }
         }
       },
+      "ForbiddenErrorResponse": {
+        "description": "You do not have permission to perform the requested action on the specified resource or resources.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ForbiddenError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
         "content": {
@@ -22457,6 +22802,45 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CsvDownload"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListCustomerServiceRequestPhoneNumberCoverage": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerServiceRequestPhoneNumberCoverage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListCustomerServiceRequests": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerServiceRequest"
                   }
                 },
                 "meta": {
@@ -24132,6 +24516,23 @@
           }
         }
       },
+      "ResourceNotFoundErrorResponse": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ResourceNotFoundError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "RetrieveBillingGroupResponse": {
         "description": "Expected billing group response to a valid request",
         "content": {
@@ -24394,6 +24795,21 @@
           }
         }
       },
+      "ShowCustomerServiceRequest": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/CustomerServiceRequest"
+                }
+              }
+            }
+          }
+        }
+      },
       "ShowPortingOrder": {
         "description": "Successful response",
         "content": {
@@ -24580,8 +24996,42 @@
           }
         }
       },
+      "UnauthorizedErrorResponse": {
+        "description": "The required authentication headers were either invalid or not included in the request.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnauthorizedError"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "UnauthorizedResponse": {
         "description": "Unauthorized"
+      },
+      "UnexpectedErrorResponse": {
+        "description": "An unexpected error occurred.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnexpectedError"
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "UnprocessableEntity": {
         "description": "Unprocessable entity. Check the 'detail' field in response for details.",
@@ -24589,6 +25039,23 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Errors"
+            }
+          }
+        }
+      },
+      "UnprocessableEntityErrorResponse": {
+        "description": "Unprocessable entity. Check the 'detail' field in response for details.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnprocessableEntityError"
+                  }
+                }
+              }
             }
           }
         }
@@ -28992,6 +29459,21 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallStreamingStopped"
+          }
+        }
+      },
+      "CallbackWebhookMeta": {
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "type": "integer",
+            "description": "The number of times the callback webhook has been attempted.",
+            "example": 1
+          },
+          "delivered_to": {
+            "type": "string",
+            "description": "The URL that the callback webhook was delivered to.",
+            "example": "https://example.com/webhook"
           }
         }
       },
@@ -34652,6 +35134,179 @@
           "value": "val_1"
         }
       },
+      "CustomerServiceRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Uniquely identifies this customer service request",
+            "type": "string",
+            "format": "uuid",
+            "example": "f1486bae-f067-460c-ad43-73a92848f902",
+            "readOnly": true
+          },
+          "phone_number": {
+            "description": "The phone number of the customer service request.",
+            "type": "string",
+            "example": "+12065551212"
+          },
+          "status": {
+            "description": "The status of the customer service request",
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "carrier_name": {
+            "description": "The name of the carrier that the customer service request is for.",
+            "type": "string",
+            "example": "ABC CARRIER, INC."
+          },
+          "name": {
+            "description": "The name of the customer service request.",
+            "type": "string",
+            "example": "John Doe"
+          },
+          "address": {
+            "description": "The address of the customer service request",
+            "type": "object",
+            "properties": {
+              "street_address": {
+                "description": "The street address",
+                "type": "string",
+                "example": "123 Main St"
+              },
+              "locality": {
+                "description": "The city of the address",
+                "type": "string",
+                "example": "New York"
+              },
+              "administrative_area": {
+                "description": "The state of the address",
+                "type": "string",
+                "example": "NY"
+              },
+              "postal_code": {
+                "description": "The zip code of the address",
+                "type": "string",
+                "example": "10001"
+              }
+            }
+          },
+          "record_type": {
+            "type": "string",
+            "example": "customer_service_request",
+            "description": "Identifies the type of the resource.",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          }
+        }
+      },
+      "CustomerServiceRequestPhoneNumberCoverage": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "The phone number that is being verified.",
+            "example": "+12223334444"
+          },
+          "has_csr_coverage": {
+            "type": "boolean",
+            "description": "Indicates whether the phone number is covered or not.",
+            "example": true
+          },
+          "reason": {
+            "type": "string",
+            "description": "The reason why the phone number is not covered. Only returned if `has_csr_coverage` is false.",
+            "example": "The phone number '+19999999999' is invalid."
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource.",
+            "example": "customer_service_request_phone_number_coverage"
+          }
+        }
+      },
+      "CustomerServiceRequestStatusChangedEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Uniquely identifies the callback event.",
+            "type": "string",
+            "format": "uuid",
+            "example": "d3c462b5-8afa-4d48-9af1-4f9b1f00e7bd"
+          },
+          "event_type": {
+            "description": "The type of the callback event.",
+            "type": "string",
+            "enum": [
+              "customer_service_request.status_changed"
+            ],
+            "example": "customer_service_request.status_changed"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Uniquely identifies the customer service request.",
+                "type": "string",
+                "format": "uuid",
+                "example": "f1486bae-f067-460c-ad43-73a92848f902"
+              },
+              "phone_number": {
+                "description": "The phone number of the customer service request.",
+                "type": "string",
+                "example": "+12065551212"
+              },
+              "status": {
+                "description": "The status of the customer service request",
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "completed",
+                  "failed"
+                ],
+                "example": "completed"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 formatted date indicating the last time where the resource was updated.",
+                "example": "2021-03-19T10:07:15.527Z"
+              }
+            }
+          },
+          "occurred_at": {
+            "description": "ISO 8601 formatted date indicating when the callback event occurred.",
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-03-19T10:07:15.527Z"
+          },
+          "record_type": {
+            "description": "Identifies the type of the resource.",
+            "type": "string",
+            "enum": [
+              "event"
+            ],
+            "example": "event"
+          }
+        }
+      },
       "DateTimeComponent": {
         "title": "Date Time by Component",
         "description": "Date/time by component",
@@ -36651,6 +37306,35 @@
         "default": 30,
         "example": 10
       },
+      "ForbiddenError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10010"
+              },
+              "title": {
+                "example": "Authorization failed"
+              },
+              "detail": {
+                "example": "You do not have permission to perform the requested action on the specified resource or resources."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10010"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
       "Fqdn": {
         "type": "object",
         "title": "Fqdn",
@@ -37229,6 +37913,37 @@
             "type": "string",
             "description": "ISO 8601 formatted date of when the phone number was created",
             "example": "2019-01-23T18:10:02.574Z"
+          }
+        }
+      },
+      "GenericError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "int"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "description": "JSON pointer (RFC6901) to the offending entity.",
+                "type": "string",
+                "format": "json-pointer"
+              },
+              "parameter": {
+                "description": "Indicates which query parameter caused the error.",
+                "type": "string"
+              }
+            }
+          },
+          "meta": {
+            "type": "object"
           }
         }
       },
@@ -45541,6 +46256,35 @@
           "expired_at": "2018-01-01T00:00:00.000000Z"
         }
       },
+      "ResourceNotFoundError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10005"
+              },
+              "title": {
+                "example": "Resource not found"
+              },
+              "detail": {
+                "example": "The requested resource or URL could not be found."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
       "ResumeRecordingRequest": {
         "type": "object",
         "title": "Pause Recording Request",
@@ -48679,40 +49423,101 @@
           }
         }
       },
-      "UnprocessableEntityError": {
-        "required": [
-          "code",
-          "title"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "format": "int"
+      "UnauthorizedError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
           },
-          "title": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "source": {
-            "type": "object",
+          {
             "properties": {
-              "pointer": {
-                "description": "JSON pointer (RFC6901) to the offending entity.",
-                "type": "string",
-                "format": "json-pointer"
+              "code": {
+                "example": "10009"
               },
-              "parameter": {
-                "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+              "title": {
+                "example": "Authentication failed"
+              },
+              "detail": {
+                "example": "The required authentication headers were either invalid or not included in the request."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10009"
+                  }
+                }
               }
             }
-          },
-          "meta": {
-            "type": "object"
           }
-        }
+        ]
+      },
+      "UnexpectedError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10007"
+              },
+              "title": {
+                "example": "Unexpected error"
+              },
+              "detail": {
+                "example": "An unexpected error occurred."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10007"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UnprocessableEntityError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10002"
+              },
+              "title": {
+                "example": "Invalid phone number"
+              },
+              "detail": {
+                "example": "The phone number is invalid."
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "pointer": {
+                    "type": "string",
+                    "example": "/phone_numbers"
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
+                  }
+                }
+              }
+            }
+          }
+        ]
       },
       "UpdateAuthenticationProviderRequest": {
         "type": "object",

@@ -41,6 +41,22 @@ components:
         - voice
         example: webhook
         type: string
+    CreatedAtGtFilter:
+      description: Filters records to those created after a specific date.
+      in: query
+      name: filter[created_at][lt]
+      schema:
+        example: '2020-01-01T00:00:00Z'
+        format: date-time
+        type: string
+    CreatedAtLtFilter:
+      description: Filters records to those created before a specific date.
+      in: query
+      name: filter[created_at][lt]
+      schema:
+        example: '2020-01-01T00:00:00Z'
+        format: date-time
+        type: string
     DocReqsActionFilter:
       description: Filters requirements to those applying to a specific action.
       in: query
@@ -771,6 +787,13 @@ components:
       required: true
       schema:
         type: string
+    PathCustomerServiceRequestId:
+      description: The ID of the customer service request
+      in: path
+      name: customer_service_request_id
+      required: true
+      schema:
+        type: string
     PathPhoneNumber:
       description: Phone number
       in: path
@@ -802,6 +825,22 @@ components:
       schema:
         example: '+18665552368'
         type: string
+    PhoneNumberEqFilter:
+      description: Filters records to those with a specified number.
+      in: query
+      name: filter[phone_number][eq]
+      schema:
+        example: '+12441239999'
+        type: string
+    PhoneNumberInFilter:
+      description: Filters records to those with at least one number in the list.
+      in: query
+      name: filter[phone_number][in][]
+      schema:
+        items:
+          example: '+12441239999'
+          type: string
+        type: array
     QueryIncludePhoneNumbers:
       description: Include the first 50 phone number objects in the results
       in: query
@@ -971,6 +1010,30 @@ components:
         - deleted
         example: enable-received
         type: string
+    StatusEqFilter:
+      description: Filters records to those with a specific status.
+      in: query
+      name: filter[status][eq]
+      schema:
+        enum:
+        - pending
+        - completed
+        - failed
+        example: pending
+        type: string
+    StatusInFilter:
+      description: Filters records to those with a least one status in the list.
+      in: query
+      name: filter[status][in][]
+      schema:
+        items:
+          enum:
+          - pending
+          - completed
+          - failed
+          example: pending
+          type: string
+        type: array
     id:
       description: Identifies the resource.
       in: path
@@ -980,7 +1043,42 @@ components:
         example: '1293384261075731499'
         format: int64
         type: string
-  requestBodies: {}
+  requestBodies:
+    CreateCustomerServiceRequest:
+      content:
+        application/json:
+          schema:
+            properties:
+              phone_number:
+                description: A valid US phone number in E164 format.
+                example: '+1234567890'
+                pattern: ^\+1\d{10}$
+                type: string
+              webhook_url:
+                description: Callback URL to receive webhook notifications.
+                example: https://example.com/webhook
+                type: string
+            required:
+            - phone_number
+            type: object
+      required: true
+    VerifyCustomerServiceRequestPhoneNumberCoverage:
+      content:
+        application/json:
+          schema:
+            properties:
+              phone_numbers:
+                description: The phone numbers list to be verified.
+                items:
+                  description: A valid US phone number in E164 format.
+                  example: '+1234567890'
+                  pattern: ^\+1\d{10}$
+                  type: string
+                type: array
+            required:
+            - phone_numbers
+            type: object
+      required: true
   responses:
     AccessControlIpResponse:
       content:
@@ -1448,6 +1546,17 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
       description: Forbidden
+    ForbiddenErrorResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/ForbiddenError'
+                type: array
+      description: You do not have permission to perform the requested action on the
+        specified resource or resources.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -1913,6 +2022,30 @@ components:
             title: List CSV Downloads Response
             type: object
       description: Successful response with a list of CSV downloads.
+    ListCustomerServiceRequestPhoneNumberCoverage:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/CustomerServiceRequestPhoneNumberCoverage'
+                type: array
+            type: object
+      description: Successful Response
+    ListCustomerServiceRequests:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/CustomerServiceRequest'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful Response
     ListDisplayProfilesResponse:
       content:
         application/json:
@@ -2978,6 +3111,16 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
       description: Resource not found
+    ResourceNotFoundErrorResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/ResourceNotFoundError'
+                type: array
+      description: Resource not found
     RetrieveBillingGroupResponse:
       content:
         application/json:
@@ -3138,6 +3281,15 @@ components:
             title: Short Code Response
             type: object
       description: Successful response with details about a short code.
+    ShowCustomerServiceRequest:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/CustomerServiceRequest'
+            type: object
+      description: Successful Response
     ShowPortingOrder:
       content:
         application/json:
@@ -3254,13 +3406,45 @@ components:
             title: Texml Application Response
             type: object
       description: Successful response
+    UnauthorizedErrorResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/UnauthorizedError'
+                type: array
+      description: The required authentication headers were either invalid or not
+        included in the request.
     UnauthorizedResponse:
       description: Unauthorized
+    UnexpectedErrorResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/UnexpectedError'
+                type: array
+      description: An unexpected error occurred.
     UnprocessableEntity:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Errors'
+      description: Unprocessable entity. Check the 'detail' field in response for
+        details.
+    UnprocessableEntityErrorResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              errors:
+                items:
+                  $ref: '#/components/schemas/UnprocessableEntityError'
+                type: array
       description: Unprocessable entity. Check the 'detail' field in response for
         details.
     UnprocessableEntityResponse:
@@ -6852,6 +7036,17 @@ components:
         data:
           $ref: '#/components/schemas/CallStreamingStopped'
       title: Streaming Stopped Event
+      type: object
+    CallbackWebhookMeta:
+      properties:
+        attempt:
+          description: The number of times the callback webhook has been attempted.
+          example: 1
+          type: integer
+        delivered_to:
+          description: The URL that the callback webhook was delivered to.
+          example: https://example.com/webhook
+          type: string
       type: object
     CallerName:
       properties:
@@ -11754,6 +11949,145 @@ components:
       - value
       title: Custom SIP Header
       type: object
+    CustomerServiceRequest:
+      properties:
+        address:
+          description: The address of the customer service request
+          properties:
+            administrative_area:
+              description: The state of the address
+              example: NY
+              type: string
+            locality:
+              description: The city of the address
+              example: New York
+              type: string
+            postal_code:
+              description: The zip code of the address
+              example: '10001'
+              type: string
+            street_address:
+              description: The street address
+              example: 123 Main St
+              type: string
+          type: object
+        carrier_name:
+          description: The name of the carrier that the customer service request is
+            for.
+          example: ABC CARRIER, INC.
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          description: Uniquely identifies this customer service request
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          format: uuid
+          readOnly: true
+          type: string
+        name:
+          description: The name of the customer service request.
+          example: John Doe
+          type: string
+        phone_number:
+          description: The phone number of the customer service request.
+          example: '+12065551212'
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: customer_service_request
+          readOnly: true
+          type: string
+        status:
+          description: The status of the customer service request
+          enum:
+          - pending
+          - completed
+          - failed
+          example: completed
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
+    CustomerServiceRequestPhoneNumberCoverage:
+      properties:
+        has_csr_coverage:
+          description: Indicates whether the phone number is covered or not.
+          example: true
+          type: boolean
+        phone_number:
+          description: The phone number that is being verified.
+          example: '+12223334444'
+          type: string
+        reason:
+          description: The reason why the phone number is not covered. Only returned
+            if `has_csr_coverage` is false.
+          example: The phone number '+19999999999' is invalid.
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: customer_service_request_phone_number_coverage
+          type: string
+      type: object
+    CustomerServiceRequestStatusChangedEvent:
+      properties:
+        event_type:
+          description: The type of the callback event.
+          enum:
+          - customer_service_request.status_changed
+          example: customer_service_request.status_changed
+          type: string
+        id:
+          description: Uniquely identifies the callback event.
+          example: d3c462b5-8afa-4d48-9af1-4f9b1f00e7bd
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 formatted date indicating when the callback event
+            occurred.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            id:
+              description: Uniquely identifies the customer service request.
+              example: f1486bae-f067-460c-ad43-73a92848f902
+              format: uuid
+              type: string
+            phone_number:
+              description: The phone number of the customer service request.
+              example: '+12065551212'
+              type: string
+            status:
+              description: The status of the customer service request
+              enum:
+              - pending
+              - completed
+              - failed
+              example: completed
+              type: string
+            updated_at:
+              description: ISO 8601 formatted date indicating the last time where
+                the resource was updated.
+              example: '2021-03-19T10:07:15.527Z'
+              format: date-time
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
     DateTimeComponent:
       description: Date/time by component
       example:
@@ -13357,6 +13691,23 @@ components:
       example: 10
       title: First Command Timeout Secs
       type: integer
+    ForbiddenError:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10010'
+          detail:
+            example: You do not have permission to perform the requested action on
+              the specified resource or resources.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10010
+                type: string
+            type: object
+          title:
+            example: Authorization failed
     Fqdn:
       example:
         connection_id: '1516447646313612565'
@@ -13884,6 +14235,27 @@ components:
       - phone_number
       title: Phone Number object
       type: object
+    GenericError:
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
     HangupRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -20843,6 +21215,22 @@ components:
           format: datetime
           readOnly: true
           type: string
+    ResourceNotFoundError:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10005'
+          detail:
+            example: The requested resource or URL could not be found.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10005
+                type: string
+            type: object
+          title:
+            example: Resource not found
     ResumeRecordingRequest:
       properties:
         client_state:
@@ -23577,30 +23965,61 @@ components:
       - to
       title: Transfer Call Request
       type: object
+    UnauthorizedError:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10009'
+          detail:
+            example: The required authentication headers were either invalid or not
+              included in the request.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10009
+                type: string
+            type: object
+          title:
+            example: Authentication failed
+    UnexpectedError:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10007'
+          detail:
+            example: An unexpected error occurred.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10007
+                type: string
+            type: object
+          title:
+            example: Unexpected error
     UnprocessableEntityError:
-      properties:
-        code:
-          format: int
-          type: string
-        detail:
-          type: string
-        meta:
-          type: object
-        source:
-          properties:
-            parameter:
-              description: Indicates which query parameter caused the error.
-              type: string
-            pointer:
-              description: JSON pointer (RFC6901) to the offending entity.
-              format: json-pointer
-              type: string
-          type: object
-        title:
-          type: string
-      required:
-      - code
-      - title
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10002'
+          detail:
+            example: The phone number is invalid.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10002
+                type: string
+            type: object
+          source:
+            properties:
+              pointer:
+                example: /phone_numbers
+                type: string
+            type: object
+          title:
+            example: Invalid phone number
     UpdateAuthenticationProviderRequest:
       example:
         active: true
@@ -29298,8 +29717,16 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-      description: Start real-time transcription. Transcription will stop on call
+      description: 'Start real-time transcription. Transcription will stop on call
         hang-up, or can be initiated via the Transcription stop command.
+
+
+        **Expected Webhooks:**
+
+
+        - `call.transcription`
+
+        '
       operationId: callTranscriptionStart
       parameters:
       - $ref: '#/components/parameters/CallControlId'
@@ -30665,6 +31092,125 @@ paths:
       summary: Update a credential connection
       tags:
       - Credential Connections
+      x-latency-category: responsive
+  /customer_service_requests:
+    get:
+      description: List customer service requests.
+      operationId: listCustomerServiceRequests
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by created_at in descending order.
+        in: query
+        name: sort[]
+        schema:
+          enum:
+          - created_at
+          - -created_at
+          example: created_at
+          type: string
+      - $ref: '#/components/parameters/PhoneNumberEqFilter'
+      - $ref: '#/components/parameters/PhoneNumberInFilter'
+      - $ref: '#/components/parameters/StatusEqFilter'
+      - $ref: '#/components/parameters/StatusInFilter'
+      - $ref: '#/components/parameters/CreatedAtLtFilter'
+      - $ref: '#/components/parameters/CreatedAtGtFilter'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListCustomerServiceRequests'
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+        '500':
+          $ref: '#/components/responses/UnexpectedErrorResponse'
+      summary: List customer service requests
+      tags:
+      - Customer Service Request
+      x-latency-category: responsive
+    post:
+      callbacks:
+        CustomerServiceRequestStatusChanged:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      properties:
+                        data:
+                          $ref: '#/components/schemas/CustomerServiceRequestStatusChangedEvent'
+                        meta:
+                          $ref: '#/components/schemas/CallbackWebhookMeta'
+                      type: object
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: Create a new customer service request for the provided phone number.
+      operationId: createCustomerServiceRequest
+      requestBody:
+        $ref: '#/components/requestBodies/CreateCustomerServiceRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ShowCustomerServiceRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+        '500':
+          $ref: '#/components/responses/UnexpectedErrorResponse'
+      summary: Create a customer service request
+      tags:
+      - Customer Service Request
+      x-latency-category: responsive
+  /customer_service_requests/phone_number_coverages:
+    post:
+      description: Verify the coverage for a list of phone numbers.
+      operationId: verifyPhoneNumberCoverage
+      requestBody:
+        $ref: '#/components/requestBodies/VerifyCustomerServiceRequestPhoneNumberCoverage'
+      responses:
+        '201':
+          $ref: '#/components/responses/ListCustomerServiceRequestPhoneNumberCoverage'
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+        '500':
+          $ref: '#/components/responses/UnexpectedErrorResponse'
+      summary: Verify CSR phone number coverage
+      tags:
+      - Customer Service Request
+      x-latency-category: responsive
+  /customer_service_requests/{customer_service_request_id}:
+    get:
+      description: Get a specific customer service request.
+      operationId: getCustomerServiceRequest
+      parameters:
+      - $ref: '#/components/parameters/PathCustomerServiceRequestId'
+      responses:
+        '201':
+          $ref: '#/components/responses/ShowCustomerServiceRequest'
+        '401':
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenErrorResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFoundErrorResponse'
+        '500':
+          $ref: '#/components/responses/UnexpectedErrorResponse'
+      summary: Get a customer service request
+      tags:
+      - Customer Service Request
       x-latency-category: responsive
   /detail_records:
     get:
@@ -40033,6 +40579,8 @@ tags:
   name: Credential Connections
 - description: Credentials operations
   name: Credentials
+- description: Customer Service Request operations
+  name: Customer Service Request
 - description: Call Control debugging
   name: Debugging
 - description: Detail Records operations
