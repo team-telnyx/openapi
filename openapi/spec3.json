@@ -69,6 +69,10 @@
       "description": "Call information"
     },
     {
+      "name": "Call Recordings API",
+      "description": "Call Recordings operations"
+    },
+    {
       "name": "Channel zones",
       "description": "Channel zones"
     },
@@ -6139,6 +6143,102 @@
           },
           "422": {
             "description": "Bad request"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/custom_storage_credentials/{connection_id}": {
+      "delete": {
+        "summary": "Deletes stored credentials",
+        "description": "Deletes a stored custom credentials configuration.",
+        "operationId": "deleteCredentials",
+        "tags": [
+          "Call Recordings API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConnectionId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The credentials configuration for connection_id was deleted successfully."
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "get": {
+        "summary": "Retrieve stored credentials",
+        "description": "Returns the information about custom storage credentials.",
+        "operationId": "getCredentials",
+        "tags": [
+          "Call Recordings API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConnectionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CredentialsResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Creates custom storage credentials",
+        "description": "Creates custom storage credentials configuration.",
+        "operationId": "createCredentials",
+        "tags": [
+          "Call Recordings API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConnectionId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateCredentialsRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CredentialsResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "put": {
+        "summary": "Update stored credentials",
+        "description": "Updates a stored custom credentials configuration.",
+        "operationId": "updateCredentials",
+        "tags": [
+          "Call Recordings API"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConnectionId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateCredentialsRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CredentialsResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
           }
         },
         "x-latency-category": "responsive"
@@ -20360,6 +20460,15 @@
           "example": "webhook"
         }
       },
+      "ConnectionId": {
+        "name": "connection_id",
+        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       "CreatedAtGtFilter": {
         "name": "filter[created_at][lt]",
         "in": "query",
@@ -21540,6 +21649,17 @@
       }
     },
     "requestBodies": {
+      "CreateCredentialsRequest": {
+        "description": "Creates new credentials resource for given connection_id.",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CredentialsResource"
+            }
+          }
+        }
+      },
       "CreateCustomerServiceRequest": {
         "required": true,
         "content": {
@@ -22049,6 +22169,16 @@
                   "$ref": "#/components/schemas/CredentialConnection"
                 }
               }
+            }
+          }
+        }
+      },
+      "CredentialsResponseBody": {
+        "description": "A response with credentials resource.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CredentialsResponse"
             }
           }
         }
@@ -26482,6 +26612,13 @@
           }
         }
       },
+      "Backend": {
+        "type": "string",
+        "description": "Defines backend storage provider to be used.",
+        "enum": [
+          "gcs"
+        ]
+      },
       "BillingGroup": {
         "type": "object",
         "properties": {
@@ -26579,6 +26716,10 @@
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "park_after_unbridge": "self"
         }
+      },
+      "Bucket": {
+        "description": "Name of the bucket to be used to store recording files",
+        "type": "string"
       },
       "BulkCredentialRequest": {
         "type": "object",
@@ -32317,6 +32458,15 @@
           ]
         }
       },
+      "ConfigurationData": {
+        "description": "Defines configuration object for given backend storage provider.",
+        "type": "object",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/GCSConfiguration"
+          }
+        ]
+      },
       "Connection": {
         "type": "object",
         "title": "Connection",
@@ -35459,6 +35609,47 @@
           }
         }
       },
+      "Credentials": {
+        "description": "Opaque credential token used to authenticate and authorize with storage provider",
+        "type": "string",
+        "format": "password"
+      },
+      "CredentialsResource": {
+        "type": "object",
+        "title": "Credentials Resource",
+        "required": [
+          "backend",
+          "configuration"
+        ],
+        "properties": {
+          "backend": {
+            "$ref": "#/components/schemas/Backend"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/ConfigurationData"
+          }
+        }
+      },
+      "CredentialsResponse": {
+        "type": "object",
+        "title": "CredentialsResponse",
+        "required": [
+          "data",
+          "connection_id",
+          "record_type"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CredentialsResource"
+          },
+          "connection_id": {
+            "$ref": "#/components/parameters/ConnectionId"
+          },
+          "record_type": {
+            "$ref": "#/components/schemas/RecordType"
+          }
+        }
+      },
       "CsvDownload": {
         "type": "object",
         "properties": {
@@ -37974,6 +38165,18 @@
           "TCP",
           "TLS"
         ]
+      },
+      "GCSConfiguration": {
+        "type": "object",
+        "title": "Google Cloud Storage Configuration",
+        "properties": {
+          "credentials": {
+            "$ref": "#/components/schemas/Credentials"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/Bucket"
+          }
+        }
       },
       "GatherUsingAudioRequest": {
         "type": "object",
@@ -46020,6 +46223,11 @@
             }
           }
         ]
+      },
+      "RecordType": {
+        "type": "string",
+        "description": "Identifies record type.",
+        "pattern": "custom_storage_credentials"
       },
       "Recording": {
         "type": "object",

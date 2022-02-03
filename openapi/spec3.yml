@@ -41,6 +41,14 @@ components:
         - voice
         example: webhook
         type: string
+    ConnectionId:
+      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
+        or Sip connection resource.
+      in: path
+      name: connection_id
+      required: true
+      schema:
+        type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
       in: query
@@ -1044,6 +1052,13 @@ components:
         format: int64
         type: string
   requestBodies:
+    CreateCredentialsRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CredentialsResource'
+      description: Creates new credentials resource for given connection_id.
+      required: true
     CreateCustomerServiceRequest:
       content:
         application/json:
@@ -1367,6 +1382,12 @@ components:
             title: Credential Connection Response
             type: object
       description: Successful response with details about a credential connection.
+    CredentialsResponseBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CredentialsResponse'
+      description: A response with credentials resource.
     CsvDownloadResponse:
       content:
         application/json:
@@ -4259,6 +4280,11 @@ components:
           example: 1
           type: integer
       type: object
+    Backend:
+      description: Defines backend storage provider to be used.
+      enum:
+      - gcs
+      type: string
     BillingGroup:
       example:
         created_at: '2019-10-15T10:07:15.527Z'
@@ -4346,6 +4372,9 @@ components:
       - call_control_id
       title: Bridge Request
       type: object
+    Bucket:
+      description: Name of the bucket to be used to store recording files
+      type: string
     BulkCredentialRequest:
       example:
         connection_id: '804252963366242252'
@@ -9169,6 +9198,11 @@ components:
           type: array
       title: Conference Unmute Request
       type: object
+    ConfigurationData:
+      description: Defines configuration object for given backend storage provider.
+      oneOf:
+      - $ref: '#/components/schemas/GCSConfiguration'
+      type: object
     Connection:
       example:
         active: true
@@ -11972,6 +12006,36 @@ components:
           type: string
       title: Credential Outbound
       type: object
+    Credentials:
+      description: Opaque credential token used to authenticate and authorize with
+        storage provider
+      format: password
+      type: string
+    CredentialsResource:
+      properties:
+        backend:
+          $ref: '#/components/schemas/Backend'
+        configuration:
+          $ref: '#/components/schemas/ConfigurationData'
+      required:
+      - backend
+      - configuration
+      title: Credentials Resource
+      type: object
+    CredentialsResponse:
+      properties:
+        connection_id:
+          $ref: '#/components/parameters/ConnectionId'
+        data:
+          $ref: '#/components/schemas/CredentialsResource'
+        record_type:
+          $ref: '#/components/schemas/RecordType'
+      required:
+      - data
+      - connection_id
+      - record_type
+      title: CredentialsResponse
+      type: object
     CsvDownload:
       example:
         id: 42587e44-3a3e-46de-9255-0c9a7a1d1ec7
@@ -13998,6 +14062,14 @@ components:
       - TCP
       - TLS
       type: string
+    GCSConfiguration:
+      properties:
+        bucket:
+          $ref: '#/components/schemas/Bucket'
+        credentials:
+          $ref: '#/components/schemas/Credentials'
+      title: Google Cloud Storage Configuration
+      type: object
     GatherUsingAudioRequest:
       example:
         audio_url: http://example.com/message.wav
@@ -20792,6 +20864,10 @@ components:
             readOnly: true
             type: string
         type: object
+    RecordType:
+      description: Identifies record type.
+      pattern: custom_storage_credentials
+      type: string
     Recording:
       example:
         call_leg_id: 11111111-5717-4562-b3fc-2c963f66afa6
@@ -31473,6 +31549,68 @@ paths:
       tags:
       - Credential Connections
       x-latency-category: responsive
+  /custom_storage_credentials/{connection_id}:
+    delete:
+      description: Deletes a stored custom credentials configuration.
+      operationId: deleteCredentials
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '204':
+          description: The credentials configuration for connection_id was deleted
+            successfully.
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Deletes stored credentials
+      tags:
+      - Call Recordings API
+      x-latency-category: responsive
+    get:
+      description: Returns the information about custom storage credentials.
+      operationId: getCredentials
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/CredentialsResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve stored credentials
+      tags:
+      - Call Recordings API
+      x-latency-category: responsive
+    post:
+      description: Creates custom storage credentials configuration.
+      operationId: createCredentials
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/CreateCredentialsRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CredentialsResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Creates custom storage credentials
+      tags:
+      - Call Recordings API
+      x-latency-category: responsive
+    put:
+      description: Updates a stored custom credentials configuration.
+      operationId: updateCredentials
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/CreateCredentialsRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CredentialsResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Update stored credentials
+      tags:
+      - Call Recordings API
+      x-latency-category: responsive
   /customer_service_requests:
     get:
       description: List customer service requests.
@@ -40907,6 +41045,8 @@ tags:
   name: Call Control Applications
 - description: Call information
   name: Call Information
+- description: Call Recordings operations
+  name: Call Recordings API
 - description: Channel zones
   name: Channel zones
 - description: Conference command operations
