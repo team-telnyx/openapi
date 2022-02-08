@@ -1345,6 +1345,15 @@ components:
                 $ref: '#/components/schemas/Room'
             type: object
       description: Create room response.
+    CreateSimCardDataUsageNotificationResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SimCardDataUsageNotification'
+            type: object
+      description: Successful response
     CreateSimCardGroupResponse:
       content:
         application/json:
@@ -1441,6 +1450,15 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/PrivateWirelessGateway'
+            type: object
+      description: Successful response
+    DeleteSimCardDataUsageNotificationResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SimCardDataUsageNotification'
             type: object
       description: Successful response
     DeleteSimCardGroupResponse:
@@ -1800,6 +1818,15 @@ components:
                 $ref: '#/components/schemas/RoomSession'
             type: object
       description: Get room session response.
+    GetSimCardDataUsageNotificationResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SimCardDataUsageNotification'
+            type: object
+      description: Successful response
     GetSimCardGroupResponse:
       content:
         application/json:
@@ -3353,6 +3380,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    SimCardDataUsageNotificationCollectionResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/SimCardDataUsageNotification'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     SimCardGroupActionCollectionResponse:
       content:
         application/json:
@@ -3478,6 +3518,15 @@ components:
                 $ref: '#/components/schemas/PortoutDetails'
             type: object
       description: Expected portout response to a valid request
+    UpdateSimCardDataUsageNotificationResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SimCardDataUsageNotification'
+            type: object
+      description: Successful response
     UpdateSimCardGroupResponse:
       content:
         application/json:
@@ -22790,6 +22839,55 @@ components:
       required:
       - messaging_profile_id
       type: object
+    SimCardDataUsageNotification:
+      description: The SIM card individual data usage notification information.
+      example:
+        created_at: '2018-02-02T22:25:27.521Z'
+        id: 79228acc-3f08-4e70-ac68-cb5aae8b537a
+        sim_card_id: b34c1683-cd85-4493-b9a5-315eb4bc5e19
+        threshold:
+          amount: '2048.0'
+          unit: MB
+        updated_at: '2018-02-02T22:25:27.521Z'
+      properties:
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        id:
+          description: Identifies the resource.
+          example: 79228acc-3f08-4e70-ac68-cb5aae8b537a
+          format: uuid
+          readOnly: true
+          type: string
+        sim_card_id:
+          description: The identification UUID of the related SIM card resource.
+          example: b34c1683-cd85-4493-b9a5-315eb4bc5e19
+          format: uuid
+          type: string
+        threshold:
+          description: Data usage threshold that will trigger the notification.
+          properties:
+            amount:
+              example: '2048.1'
+              format: decimal
+              type: string
+            unit:
+              enum:
+              - MB
+              - GB
+              example: MB
+              type: string
+          type: object
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      type: object
     SimCardOrderCreate:
       properties:
         address_id:
@@ -38886,6 +38984,116 @@ paths:
       tags:
       - SIM Card Actions
       x-latency-category: responsive
+  /sim_card_data_usage_notifications:
+    get:
+      description: Lists a paginated collection of SIM card data usage notifications.
+        It enables exploring the collection using specific filters.
+      operationId: ListSimCardDataUsageNotifications
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/FilterSIMCardId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SimCardDataUsageNotificationCollectionResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List SIM card data usage notifications
+      tags:
+      - SIM Cards
+      x-latency-category: background
+    post:
+      description: Creates a new SIM card data usage notification.
+      operationId: SimCardDataUsageNotificationsPost
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                sim_card_id:
+                  description: The identification UUID of the related SIM card resource.
+                  example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                  format: uuid
+                  type: string
+                threshold:
+                  description: Data usage threshold that will trigger the notification.
+                  properties:
+                    amount:
+                      example: '2048.1'
+                      format: decimal
+                      type: string
+                    unit:
+                      enum:
+                      - MB
+                      - GB
+                      example: MB
+                      type: string
+                  type: object
+              required:
+              - sim_card_id
+              - threshold
+              type: object
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/CreateSimCardDataUsageNotificationResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Create a new SIM card data usage notification
+      tags:
+      - SIM Cards
+      x-latency-category: background
+  /sim_card_data_usage_notifications/{id}:
+    delete:
+      description: Delete the SIM Card Data Usage Notification.
+      operationId: SimCardDataUsageNotificationsDelete
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          $ref: '#/components/responses/DeleteSimCardDataUsageNotificationResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete SIM card data usage notifications
+      tags:
+      - SIM Cards
+      x-latency-category: background
+    get:
+      description: Get a single SIM Card Data Usage Notification.
+      operationId: SimCardDataUsageNotificationsGet
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetSimCardDataUsageNotificationResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get a single SIM card data usage notification
+      tags:
+      - SIM Cards
+      x-latency-category: background
+    patch:
+      description: Updates information for a SIM Card Data Usage Notification.
+      operationId: SimCardDataUsageNotificationsPatch
+      parameters:
+      - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimCardDataUsageNotification'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/UpdateSimCardDataUsageNotificationResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Updates information for a SIM Card Data Usage Notification
+      tags:
+      - SIM Cards
+      x-latency-category: background
   /sim_card_group_actions:
     get:
       description: This API allows listing a paginated collection a SIM card group
