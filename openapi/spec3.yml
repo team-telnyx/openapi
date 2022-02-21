@@ -10503,7 +10503,9 @@ components:
       example:
         business_name: Larry's Cat Food Inc
         email: larry_cat_food@customer.org
+        managed_account_allow_custom_pricing: false
         password: 3jVjLq!tMuWKyWx4NN*CvhnB
+        rollup_billing: false
       properties:
         business_name:
           description: The name of the business for which the new managed account
@@ -10517,12 +10519,29 @@ components:
             manager account.
           example: new_managed_account@customer.org
           type: string
+        managed_account_allow_custom_pricing:
+          description: Boolean value that indicates if the managed account is able
+            to have custom pricing set for it or not. If false, uses the pricing of
+            the manager account. Defaults to false. This value may be changed after
+            creation, but there may be time lag between when the value is changed
+            and pricing changes take effect.
+          example: false
+          type: boolean
         password:
           description: Password for the managed account. If a password is not supplied,
             the account will not be able to be signed into directly. (A password reset
             may still be performed later to enable sign-in via password.)
           example: 3jVjLq!tMuWKyWx4NN*CvhnB
           type: string
+        rollup_billing:
+          description: Boolean value that indicates if the billing information and
+            charges to the managed account "roll up" to the manager account. If true,
+            the managed account will not have its own balance and will use the shared
+            balance with the manager account. This value cannot be changed after account
+            creation without going through Telnyx support as changes require manual
+            updates to the account ledger. Defaults to false.
+          example: false
+          type: boolean
       required:
       - business_name
       title: Create Managed Account Request
@@ -15794,6 +15813,13 @@ components:
           example: f65ceda4-6522-4ad6-aede-98de83385123
           format: UUID
           type: string
+        managed_account_allow_custom_pricing:
+          description: Boolean value that indicates if the managed account is able
+            to have custom pricing set for it or not. If false, uses the pricing of
+            the manager account. Defaults to false. There may be time lag between
+            when the value is changed and pricing changes take effect.
+          example: true
+          type: boolean
         manager_account_id:
           description: The ID of the manager account associated with the managed account.
           example: f65ceda4-6522-4ad6-aede-98de83385123
@@ -15808,6 +15834,15 @@ components:
           - managed_account
           example: managed_account
           type: string
+        rollup_billing:
+          description: Boolean value that indicates if the billing information and
+            charges to the managed account "roll up" to the manager account. If true,
+            the managed account will not have its own balance and will use the shared
+            balance with the manager account. This value cannot be changed after account
+            creation without going through Telnyx support as changes require manual
+            updates to the account ledger. Defaults to false.
+          example: false
+          type: boolean
         updated_at:
           description: ISO 8601 formatted date indicating when the resource was updated.
           example: '2018-02-02T22:25:27.521Z'
@@ -25005,6 +25040,19 @@ components:
       - ip_address
       title: Update Ip Request
       type: object
+    UpdateManagedAccountRequest:
+      example:
+        managed_account_allow_custom_pricing: true
+      properties:
+        managed_account_allow_custom_pricing:
+          description: Boolean value that indicates if the managed account is able
+            to have custom pricing set for it or not. If false, uses the pricing of
+            the manager account. Defaults to false. This value may be changed, but
+            there may be time lag between when the value is changed and pricing changes
+            take effect.
+          example: false
+          type: boolean
+      title: Update Managed Account Request
     UpdateMediaMultipartRequest:
       example:
         media: string($binary)
@@ -33478,6 +33526,36 @@ paths:
         '404':
           description: Resource not found
       summary: Retrieve a managed account
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+    patch:
+      description: Update a single managed account.
+      operationId: updateManagedAccount
+      parameters:
+      - description: Managed Account User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateManagedAccountRequest'
+        description: Parameters that define the updates to the managed account
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/ManagedAccountResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found
+        '422':
+          $ref: '#/components/responses/UnprocessableManagedAccountEntity'
+      summary: Update a managed account
       tags:
       - Managed Accounts
       x-latency-category: responsive
