@@ -1056,7 +1056,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/CredentialsResource'
+            $ref: '#/components/schemas/GCSConfiguration'
       description: Creates new credentials resource for given connection_id.
       required: true
     CreateCustomerServiceRequest:
@@ -4328,11 +4328,6 @@ components:
           example: 1
           type: integer
       type: object
-    Backend:
-      description: Defines backend storage provider to be used.
-      enum:
-      - gcs
-      type: string
     BillingGroup:
       example:
         created_at: '2019-10-15T10:07:15.527Z'
@@ -4422,6 +4417,7 @@ components:
       type: object
     Bucket:
       description: Name of the bucket to be used to store recording files
+      example: example-bucket
       type: string
     BulkCredentialRequest:
       example:
@@ -9246,11 +9242,6 @@ components:
           type: array
       title: Conference Unmute Request
       type: object
-    ConfigurationData:
-      description: Defines configuration object for given backend storage provider.
-      oneOf:
-      - $ref: '#/components/schemas/GCSConfiguration'
-      type: object
     Connection:
       example:
         active: true
@@ -12076,25 +12067,15 @@ components:
     Credentials:
       description: Opaque credential token used to authenticate and authorize with
         storage provider
+      example: OPAQUE_CREDENTIALS_TOKEN
       format: password
       type: string
-    CredentialsResource:
-      properties:
-        backend:
-          $ref: '#/components/schemas/Backend'
-        configuration:
-          $ref: '#/components/schemas/GCSConfiguration'
-      required:
-      - backend
-      - configuration
-      title: Credentials Resource
-      type: object
     CredentialsResponse:
       properties:
         connection_id:
           $ref: '#/components/parameters/ConnectionId'
         data:
-          $ref: '#/components/schemas/CredentialsResource'
+          $ref: '#/components/schemas/GCSConfiguration'
         record_type:
           $ref: '#/components/schemas/RecordType'
       required:
@@ -14132,10 +14113,16 @@ components:
       type: string
     GCSConfiguration:
       properties:
-        bucket:
-          $ref: '#/components/schemas/Bucket'
-        credentials:
-          $ref: '#/components/schemas/Credentials'
+        backend:
+          enum:
+          - gcs
+          example: gcs
+          type: string
+        configuration:
+          $ref: '#/components/schemas/GCSConfiguration'
+      required:
+      - backend
+      - configuration
       title: Google Cloud Storage Configuration
       type: object
     GatherUsingAudioRequest:
@@ -31787,7 +31774,7 @@ paths:
   /custom_storage_credentials/{connection_id}:
     delete:
       description: Deletes a stored custom credentials configuration.
-      operationId: deleteCredentials
+      operationId: deleteCustomStorageCredentials
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
       responses:
@@ -31802,7 +31789,7 @@ paths:
       x-latency-category: responsive
     get:
       description: Returns the information about custom storage credentials.
-      operationId: getCredentials
+      operationId: getCustomStorageCredentials
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
       responses:
@@ -31816,7 +31803,7 @@ paths:
       x-latency-category: responsive
     post:
       description: Creates custom storage credentials configuration.
-      operationId: createCredentials
+      operationId: createCustomStorageCredentials
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
       requestBody:
@@ -31832,7 +31819,7 @@ paths:
       x-latency-category: responsive
     put:
       description: Updates a stored custom credentials configuration.
-      operationId: updateCredentials
+      operationId: updateCustomStorageCredentials
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
       requestBody:
