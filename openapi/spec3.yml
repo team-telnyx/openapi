@@ -1336,6 +1336,15 @@ components:
                 type: object
             type: object
       description: Create room client token response.
+    CreateRoomCompositionResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/RoomComposition'
+            type: object
+      description: Create room composition response.
     CreateRoomResponse:
       content:
         application/json:
@@ -1782,6 +1791,15 @@ components:
                 $ref: '#/components/schemas/PrivateWirelessGateway'
             type: object
       description: Successful response
+    GetRoomCompositionResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/RoomComposition'
+            type: object
+      description: Get room composition response.
     GetRoomParticipantResponse:
       content:
         application/json:
@@ -2616,6 +2634,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListRoomCompositionsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/RoomComposition'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: List room compositions response.
     ListRoomParticipantsResponse:
       content:
         application/json:
@@ -7560,6 +7591,91 @@ components:
           type: string
       title: OTAUpdate
       type: object
+    CompositionCompleted:
+      example:
+        event_type: video.room.composition.completed
+        id: d51754fc-6888-4b0e-8f29-fc3ae41250cd
+        occurred_at: '2022-03-02 04:47:29.980874Z'
+        payload:
+          composition_id: 5970ce77-4aeb-4e18-ac8c-3effca0c145a
+          download_url: https://www.example.com
+          duration_secs: 53
+          format: mp4
+          resolution: 1280x720
+          room_id: 2fbf2c0d-b6aa-463f-aeed-83ce298be978
+          session_id: 7c4da191-2600-4df6-a35e-0ecae6caa5d3
+          size_mb: 2.6
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.composition.completed
+          example: video.room.composition.completed
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            composition_id:
+              description: Composition ID that identifies the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            download_url:
+              description: Url to download the room composition.
+              example: https://www.example.com
+              type: string
+            duration_secs:
+              description: Room composition duration in seconds.
+              example: 67
+              type: integer
+            format:
+              description: Format of the room composition.
+              example: mp4
+              type: string
+            resolution:
+              description: Format of the room composition.
+              example: 1280x720
+              type: string
+            room_id:
+              description: Room ID associated with the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID associated with the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            size_mb:
+              description: Room composition size in MB.
+              example: 10.5
+              format: float
+              type: number
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Composition Completed
+      type: object
+    CompositionCompletedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CompositionCompleted'
+      title: Composition Completed Event
+      type: object
     Conference:
       example:
         connection_id: 3fa85f64-9191-4567-b3fc-2c963f66afa6
@@ -11234,6 +11350,58 @@ components:
           example: 600
           maximum: 3600
           minimum: 10
+          type: integer
+      type: object
+    CreateRoomCompositionRequest:
+      properties:
+        format:
+          default: mp4
+          description: The desired format of the room composition.
+          example: mp4
+          nullable: true
+          type: string
+        resolution:
+          default: 1280x720
+          description: The desired resolution (width/height in pixels) of the resulting
+            video of the room composition. Both width and height are required to be
+            between 16 and 1280; and width * height should not exceed 1280 * 720
+          example: 800x600
+          nullable: true
+          type: string
+        session_id:
+          description: id of the room session associated with the room composition.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777b0
+          format: uuid
+          nullable: true
+          type: string
+        video_layout:
+          additionalProperties:
+            $ref: '#/components/schemas/VideoRegion'
+          description: Describes the video layout of the room composition in terms
+            of regions.
+          type: object
+        webhook_event_failover_url:
+          default: ''
+          description: The failover URL where webhooks related to this room composition
+            will be sent if sending to the primary URL fails. Must include a scheme,
+            such as 'https'.
+          example: https://failover.example.com
+          format: url
+          nullable: true
+          type: string
+        webhook_event_url:
+          description: The URL where webhooks related to this room composition will
+            be sent. Must include a scheme, such as 'https'.
+          example: https://example.com
+          format: url
+          type: string
+        webhook_timeout_secs:
+          default: null
+          description: Specifies how many seconds to wait before timing out a webhook.
+          example: 25
+          maximum: 30
+          minimum: 0
+          nullable: true
           type: integer
       type: object
     CreateRoomRequest:
@@ -18680,7 +18848,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -18757,7 +18925,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -21152,7 +21320,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -21225,7 +21393,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -21593,7 +21761,7 @@ components:
           example: true
           type: boolean
         id:
-          description: Identifies the room.
+          description: A unique identifier for the room.
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
@@ -21642,6 +21810,139 @@ components:
           nullable: true
           type: integer
       type: object
+    RoomComposition:
+      example:
+        completed_at: '2022-02-25T05:39:56.377426Z'
+        download_url: null
+        duration_secs: 84
+        ended_at: '2022-02-24T23:22:24.577677Z'
+        format: mp4
+        id: 7103dc53-ee59-4b54-a58b-c77d99ceb037
+        record_type: composition
+        resolution: 1280x720
+        room_id: f981dbb3-228a-44e9-ac54-e87f0e2658b0
+        session_id: 8f728d7b-00e2-4c59-8c27-f564b828df87
+        size_mb: 6
+        started_at: '2022-02-24T23:21:00.077209Z'
+        status: enqueued
+        user_id: 12a04ec9-0f91-4a91-9f3a-a19d9931182e
+        video_layout:
+          first:
+            height: 720
+            video_sources:
+            - '*'
+            width: 1280
+            x_pos: 0
+            y_pos: 0
+            z_pos: 0
+        webhook_event_url: https://webhook.site/544663ce-b692-4f9c-80ed-e5ad97cd5c02
+      properties:
+        completed_at:
+          description: ISO 8601 timestamp when the room composition has completed.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        created_at:
+          description: ISO 8601 timestamp when the room composition was created.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        download_url:
+          description: Url to download the composition.
+          example: https://www.example.com
+          type: string
+        duration_secs:
+          description: Shows the room composition duration in seconds.
+          example: 67
+          type: integer
+        ended_at:
+          description: ISO 8601 timestamp when the room composition has ended.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        format:
+          description: Shows format of the room composition.
+          enum:
+          - mp4
+          example: mp4
+          type: string
+        id:
+          description: A unique identifier for the room composition.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        record_type:
+          example: room_composition
+          readOnly: true
+          type: string
+        room_id:
+          description: Identify the room associated with the room composition.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777b0
+          format: uuid
+          type: string
+        session_id:
+          description: Identify the room session associated with the room composition.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777b0
+          format: uuid
+          type: string
+        size_mb:
+          description: Shows the room composition size in MB.
+          example: 10.5
+          format: float
+          type: number
+        started_at:
+          description: ISO 8601 timestamp when the room composition has stated.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        status:
+          description: Shows the room composition status.
+          enum:
+          - completed
+          - enqueued
+          - processing
+          example: completed
+          type: string
+        updated_at:
+          description: ISO 8601 timestamp when the room composition was updated.
+          example: '2021-03-26T17:51:59.588408Z'
+          format: datetime
+          type: string
+        user_id:
+          description: Identify the user associated with the room composition.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777b0
+          format: uuid
+          type: string
+        video_layout:
+          additionalProperties:
+            $ref: '#/components/schemas/VideoRegion'
+          description: Describes the video layout of the room composition in terms
+            of regions. Limited to 2 regions.
+          type: object
+        webhook_event_failover_url:
+          default: ''
+          description: The failover URL where webhooks related to this room composition
+            will be sent if sending to the primary URL fails. Must include a scheme,
+            such as 'https'.
+          example: https://failover.example.com
+          format: url
+          nullable: true
+          type: string
+        webhook_event_url:
+          description: The URL where webhooks related to this room composition will
+            be sent. Must include a scheme, such as 'https'.
+          example: https://example.com
+          format: url
+          type: string
+        webhook_timeout_secs:
+          default: null
+          description: Specifies how many seconds to wait before timing out a webhook.
+          example: 25
+          maximum: 30
+          minimum: 0
+          nullable: true
+          type: integer
+      type: object
     RoomParticipant:
       example:
         context: Alice
@@ -21658,7 +21959,7 @@ components:
           example: Alice
           type: string
         id:
-          description: Identifies the room participant.
+          description: A unique identifier for the room participant.
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
@@ -21734,7 +22035,7 @@ components:
           format: datetime
           type: string
         id:
-          description: Identifies the room recording.
+          description: A unique identifier for the room recording.
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
@@ -21813,7 +22114,7 @@ components:
           format: datetime
           type: string
         id:
-          description: Identifies the room session.
+          description: A unique identifier for the room session.
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
@@ -22769,7 +23070,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -22822,7 +23123,7 @@ components:
               type: string
           type: object
         record_type:
-          description: Identifies the type of the resource.
+          description: An identifier for the type of the resource.
           enum:
           - event
           example: event
@@ -26451,6 +26752,70 @@ components:
           example: http://www.example.com/file
           type: string
       title: Video
+      type: object
+    VideoRegion:
+      properties:
+        height:
+          description: Height of the video region
+          example: 360
+          minimum: 16
+          nullable: true
+          type: integer
+        max_columns:
+          description: Maximum number of columns of the region's placement grid. By
+            default, the region has as many columns as needed to layout all the specified
+            video sources.
+          example: 3
+          maximum: 1000
+          minimum: 1
+          nullable: true
+          type: integer
+        max_rows:
+          description: Maximum number of rows of the region's placement grid. By default,
+            the region has as many rows as needed to layout all the specified video
+            sources.
+          example: 3
+          maximum: 1000
+          minimum: 1
+          nullable: true
+          type: integer
+        video_sources:
+          description: Array of video recording ids to be composed in the region.
+            Can be "*" to specify all video recordings in the session
+          items:
+            example: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+            format: uuid
+            type: string
+          type: array
+        width:
+          description: Width of the video region
+          example: 480
+          minimum: 16
+          nullable: true
+          type: integer
+        x_pos:
+          default: 0
+          description: X axis value (in pixels) of the region's upper left corner
+            relative to the upper left corner of the whole room composition viewport.
+          example: 100
+          nullable: true
+          type: integer
+        y_pos:
+          default: 0
+          description: Y axis value (in pixels) of the region's upper left corner
+            relative to the upper left corner of the whole room composition viewport.
+          example: 100
+          nullable: true
+          type: integer
+        z_pos:
+          default: 0
+          description: Regions with higher z_pos values are stacked on top of regions
+            with lower z_pos values
+          example: 1
+          maximum: 99
+          minimum: -99
+          nullable: true
+          type: integer
       type: object
     WdrReport:
       properties:
@@ -38066,6 +38431,126 @@ paths:
       summary: Retrieve a document requirement
       tags:
       - Requirements
+      x-latency-category: responsive
+  /room_compositions:
+    get:
+      description: ''
+      operationId: ListRoomCompositions
+      parameters:
+      - description: ISO 8601 date for filtering room compositions created on that
+          date.
+        in: query
+        name: filter[date_created_at][eq]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering room compositions created after that
+          date.
+        in: query
+        name: filter[date_created_at][gte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: ISO 8601 date for filtering room compositions created before
+          that date.
+        in: query
+        name: filter[date_created_at][lte]
+        schema:
+          example: '2021-04-25'
+          format: date
+          type: string
+      - description: The session_id for filtering room compositions.
+        in: query
+        name: filter[session_id]
+        schema:
+          example: 92e7d459-bcc5-4386-9f5f-6dd14a82588d
+          format: uuid
+          type: string
+      - description: The status for filtering room compositions.
+        in: query
+        name: filter[status]
+        schema:
+          enum:
+          - completed
+          - processing
+          - enqueued
+          example: completed
+          type: string
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageNumber'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListRoomCompositionsResponse'
+      summary: View a list of room compositions.
+      tags:
+      - Room Compositions
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+    post:
+      description: Asynchronously create a room composition.
+      operationId: CreateRoomComposition
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoomCompositionRequest'
+        description: Parameters that can be defined during room composition creation.
+        required: true
+      responses:
+        '202':
+          $ref: '#/components/responses/CreateRoomCompositionResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Create a room composition.
+      tags:
+      - Room Compositions
+      x-endpoint-cost: heavy
+      x-latency-category: responsive
+  /room_compositions/{room_composition_id}:
+    delete:
+      description: Synchronously delete a room composition.
+      operationId: DeleteRoomComposition
+      parameters:
+      - description: The unique identifier of a room composition.
+        in: path
+        name: room_composition_id
+        required: true
+        schema:
+          example: 5219b3af-87c6-4c08-9b58-5a533d893e21
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      summary: Delete a room composition.
+      tags:
+      - Room Compositions
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+    get:
+      operationId: ViewRoomComposition
+      parameters:
+      - description: The unique identifier of a room composition.
+        in: path
+        name: room_composition_id
+        required: true
+        schema:
+          example: 5219b3af-87c6-4c08-9b58-5a533d893e21
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/GetRoomCompositionResponse'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+      summary: View a room composition.
+      tags:
+      - Room Compositions
+      x-endpoint-cost: light
       x-latency-category: responsive
   /room_participants:
     get:
