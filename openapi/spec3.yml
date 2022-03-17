@@ -13232,18 +13232,66 @@ components:
       allOf:
       - $ref: '#/components/schemas/PortingOrder'
       - properties:
-          parent_support_key:
-            example: null
-          status:
+          activation_settings:
             allOf:
-            - $ref: '#/components/schemas/PortingOrderStatus'
+            - $ref: '#/components/schemas/PortingOrderActivationSettings'
             - properties:
-                details:
-                  example: []
-                value:
-                  example: draft
-          support_key:
+                activation_status:
+                  description: Activation status
+                  enum:
+                  - New
+                  - Pending
+                  - Conflict
+                  - Cancel Pending
+                  - Failed
+                  - Concurred
+                  - Activate RDY
+                  - Disconnect Pending
+                  - Concurrence Sent
+                  - Old
+                  - Sending
+                  - Active
+                  - Canceled
+                  example: null
+                  type: string
+          parent_support_key:
+            description: A key to reference for the porting order group when contacting
+              Telnyx customer support. This information is not available for porting
+              orders in `draft` state
             example: null
+            readOnly: true
+            type: string
+          status:
+            description: Porting order status
+            properties:
+              details:
+                description: A list of 0 or more details about this porting order's
+                  status
+                example: []
+                items:
+                  $ref: '#/components/schemas/PortingOrdersExceptionType'
+                type: array
+              value:
+                description: The current status of the porting order
+                enum:
+                - draft
+                - in-process
+                - submitted
+                - exception
+                - foc-date-confirmed
+                - ported
+                - canceled
+                - cancel-pending
+                example: draft
+                type: string
+            type: object
+          support_key:
+            description: A key to reference this porting order when contacting Telnyx
+              customer support. This information is not available in draft porting
+              orders.
+            example: null
+            readOnly: true
+            type: string
     DtmfType:
       default: RFC 2833
       description: Sets the type of DTMF digits sent from Telnyx to this Connection.
@@ -20429,8 +20477,8 @@ components:
           type: string
         parent_support_key:
           description: A key to reference for the porting order group when contacting
-            Telnyx customer support. This information is not available in draft porting
-            orders.
+            Telnyx customer support. This information is not available for porting
+            orders in `draft` state
           example: pr_123abc
           readOnly: true
           type: string
@@ -20906,7 +20954,7 @@ components:
           readOnly: true
           type: string
         requirements_status:
-          description: The current requirement status for this porting order
+          description: The current status of the requirements in a INTL porting order
           enum:
           - requirement-info-pending
           - requirement-info-under-review
@@ -37328,8 +37376,8 @@ paths:
       x-latency-category: responsive
   /porting_orders/{id}:
     delete:
-      description: Deletes an existing porting order. This operation is restricted
-        to draft porting orders.
+      description: Deletes an existing porting order. This operation is restrict to
+        porting orders in draft state.
       operationId: deletePortingOrder
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
