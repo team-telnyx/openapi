@@ -13579,7 +13579,7 @@
         },
         "responses": {
           "201": {
-            "$ref": "#/components/responses/ListPortingOrderWithoutPagination"
+            "$ref": "#/components/responses/ListDraftPortingOrdersWithoutPagination"
           },
           "401": {
             "description": "Unauthorized"
@@ -13615,6 +13615,31 @@
       }
     },
     "/porting_orders/{id}": {
+      "delete": {
+        "summary": "Delete a porting order",
+        "tags": [
+          "Porting Order"
+        ],
+        "description": "Deletes an existing porting order. This operation is restricted to draft porting orders.",
+        "operationId": "deletePortingOrder",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PathPortingOrderID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      },
       "get": {
         "summary": "Retrieve a porting order",
         "tags": [
@@ -13912,6 +13937,67 @@
         "x-latency-category": "responsive"
       }
     },
+    "/porting_orders/{id}/documents": {
+      "get": {
+        "summary": "List all documents associated with a porting order",
+        "tags": [
+          "Porting Order"
+        ],
+        "description": "Returns a list of all documents associated with a porting order.",
+        "operationId": "listPortingOrderDocuments",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PathPortingOrderID"
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListPortingOrderDocuments"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Associate a list of documents with a porting order",
+        "tags": [
+          "Porting Order"
+        ],
+        "description": "Associate a list of documents with a porting order.",
+        "operationId": "uploadPortingOrderDocuments",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PathPortingOrderID"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreatePortingOrderDocuments"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/PortingOrderDocumentsCreated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/porting_orders/{id}/loa_template": {
       "get": {
         "summary": "Download a porting order loa template",
@@ -13957,7 +14043,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Unauthorized"
+            "description": "Porting Order not found"
           }
         },
         "x-latency-category": "responsive"
@@ -13982,7 +14068,38 @@
             "$ref": "#/components/parameters/FilterByPortingOrderID"
           },
           {
+            "$ref": "#/components/parameters/FilterByPortingOrderIdIn"
+          },
+          {
+            "$ref": "#/components/parameters/FilterBySupportKeyEq"
+          },
+          {
+            "$ref": "#/components/parameters/FilterBySupportKeyIn"
+          },
+          {
             "$ref": "#/components/parameters/FilterByPhoneNumber"
+          },
+          {
+            "$ref": "#/components/parameters/FilterByPhoneNumberIn"
+          },
+          {
+            "name": "filter[porting_order_status]",
+            "in": "query",
+            "description": "Filter results by porting order status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "in-process",
+                "submitted",
+                "exception",
+                "foc-date-confirmed",
+                "cancel-pending",
+                "ported",
+                "cancelled"
+              ],
+              "example": "in-process"
+            }
           },
           {
             "$ref": "#/components/parameters/FilterByPortingOrderActivationStatus"
@@ -21368,7 +21485,20 @@
         "in": "query",
         "description": "Filter results by phone number",
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "+12003151212"
+        }
+      },
+      "FilterByPhoneNumberIn": {
+        "name": "filter[phone_number][in][]",
+        "in": "query",
+        "description": "Filter results by a list of phone numbers",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "+12003151212"
+          }
         }
       },
       "FilterByPortabilityStatus": {
@@ -21393,7 +21523,21 @@
         "description": "Filter results by porting order id",
         "schema": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "example": "f3575e15-32ce-400e-a4c0-dd78800c20b0"
+        }
+      },
+      "FilterByPortingOrderIdIn": {
+        "name": "filter[porting_order_id][in][]",
+        "in": "query",
+        "description": "Filter results by a list of porting order ids",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "example": "f3575e15-32ce-400e-a4c0-dd78800c20b0"
+          }
         }
       },
       "FilterByPortingOrderStatus": {
@@ -21401,7 +21545,39 @@
         "in": "query",
         "description": "Filter results by status",
         "schema": {
-          "$ref": "#/components/schemas/PortingOrderStatus"
+          "type": "string",
+          "enum": [
+            "draft",
+            "in-process",
+            "submitted",
+            "exception",
+            "foc-date-confirmed",
+            "cancel-pending",
+            "ported",
+            "cancelled"
+          ],
+          "example": "in-process"
+        }
+      },
+      "FilterBySupportKeyEq": {
+        "name": "filter[support_key][eq]",
+        "in": "query",
+        "description": "Filter results by support key",
+        "schema": {
+          "type": "string",
+          "example": "sr_a12345"
+        }
+      },
+      "FilterBySupportKeyIn": {
+        "name": "filter[support_key][in][]",
+        "in": "query",
+        "description": "Filter results by a list of support keys",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "sr_a12345"
+          }
         }
       },
       "FilterCallEventStatus": {
@@ -22285,6 +22461,49 @@
                   "type": "string",
                   "description": "Callback URL to receive webhook notifications.",
                   "example": "https://example.com/webhook"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreatePortingOrderDocuments": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "documents"
+              ],
+              "properties": {
+                "documents": {
+                  "type": "array",
+                  "description": "A list of documents to be associated with a porting order.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "document_type",
+                      "document_id"
+                    ],
+                    "properties": {
+                      "document_type": {
+                        "type": "string",
+                        "description": "The type of the document.",
+                        "enum": [
+                          "loa",
+                          "invoice",
+                          "other"
+                        ],
+                        "example": "loa"
+                      },
+                      "document_id": {
+                        "type": "string",
+                        "description": "Uniquely identifies a document uploaded via the <code><a href=\"https://developers.telnyx.com/docs/api/v2/documents/Documents#createDocument\">/v2/documents</a></code> endpoint.",
+                        "example": "5f940c35-ef28-4408-bb95-af73b047d589"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -23997,6 +24216,24 @@
           }
         }
       },
+      "ListDraftPortingOrdersWithoutPagination": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DraftPortingOrder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "ListFaxesResponse": {
         "description": "List faxes response",
         "content": {
@@ -24570,7 +24807,7 @@
           }
         }
       },
-      "ListPortingOrderWithoutPagination": {
+      "ListPortingOrderDocuments": {
         "description": "Successful response",
         "content": {
           "application/json": {
@@ -24580,8 +24817,11 @@
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/PortingOrder"
+                    "$ref": "#/components/schemas/PortingOrderDocument"
                   }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
             }
@@ -24665,6 +24905,12 @@
                   "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
+            }
+          },
+          "text/csv": {
+            "schema": {
+              "type": "string",
+              "example": "phone_number,phone_number_type,porting_order_id,support_key,porting_order_status\r\n+12003155566,local,5f940c35-ef28-4408-bb95-af73b047d589,sr_a12345,draft\r\n"
             }
           }
         }
@@ -25372,6 +25618,24 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PortabilityCheckDetails"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "PortingOrderDocumentsCreated": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortingOrderDocument"
                   }
                 }
               }
@@ -37626,6 +37890,40 @@
           }
         }
       },
+      "DraftPortingOrder": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PortingOrder"
+          },
+          {
+            "properties": {
+              "status": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PortingOrderStatus"
+                  },
+                  {
+                    "properties": {
+                      "details": {
+                        "example": []
+                      },
+                      "value": {
+                        "example": "draft"
+                      }
+                    }
+                  }
+                ]
+              },
+              "support_key": {
+                "example": null
+              },
+              "parent_support_key": {
+                "example": null
+              }
+            }
+          }
+        ]
+      },
       "DtmfType": {
         "title": "DTMF Type",
         "type": "string",
@@ -46231,8 +46529,14 @@
           },
           "support_key": {
             "type": "string",
-            "description": "A key to reference this porting order when contacting Telnyx customer support",
-            "example": "123abc",
+            "description": "A key to reference this porting order when contacting Telnyx customer support. This information is not available in draft porting orders.",
+            "example": "sr_123abc",
+            "readOnly": true
+          },
+          "parent_support_key": {
+            "type": "string",
+            "description": "A key to reference for the porting order group when contacting Telnyx customer support. This information is not available in draft porting orders.",
+            "example": "pr_123abc",
             "readOnly": true
           },
           "porting_phone_numbers_count": {
@@ -46261,6 +46565,12 @@
           },
           "phone_number_configuration": {
             "$ref": "#/components/schemas/PortingOrderPhoneNumberConfiguration"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the porting order",
+            "example": "FP Telnyx",
+            "readOnly": true
           },
           "requirements": {
             "type": "array",
@@ -46335,6 +46645,44 @@
           "Canceled"
         ],
         "example": "Active"
+      },
+      "PortingOrderDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Uniquely identifies the document in the porting order",
+            "example": "64ffb720-04c7-455b-92d6-20fcca92e935"
+          },
+          "document_type": {
+            "type": "string",
+            "description": "The type of document",
+            "enum": [
+              "loa",
+              "invoice",
+              "other"
+            ],
+            "example": "loa"
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Uniquely identifies a document uploaded via the <code><a href=\"https://developers.telnyx.com/docs/api/v2/documents/Documents#createDocument\">/v2/documents</a></code> endpoint.",
+            "example": "ce74b771-d23d-4960-81ec-8741b3862146"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "porting_order_document",
+            "description": "Identifies the type of the resource."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date/time when document was associated for the porting order.",
+            "example": "2020-03-19T10:07:15.527Z"
+          }
+        }
       },
       "PortingOrderDocuments": {
         "type": "object",
@@ -46722,6 +47070,34 @@
       "PortingPhoneNumber": {
         "type": "object",
         "properties": {
+          "porting_order_status": {
+            "type": "string",
+            "description": "The current status of the porting order",
+            "enum": [
+              "draft",
+              "in-process",
+              "submitted",
+              "exception",
+              "foc-date-confirmed",
+              "cancel-pending",
+              "ported",
+              "cancelled"
+            ],
+            "example": "in-process"
+          },
+          "phone_number_type": {
+            "type": "string",
+            "description": "The type of the phone number",
+            "enum": [
+              "landline",
+              "local",
+              "mobile",
+              "national",
+              "shared_cost",
+              "toll_free"
+            ],
+            "example": "local"
+          },
           "phone_number": {
             "type": "string",
             "description": "E164 formatted phone number",
@@ -46733,11 +47109,27 @@
             "description": "Identifies the associated port request",
             "example": "f1486bae-f067-460c-ad43-73a92848f902"
           },
+          "support_key": {
+            "type": "string",
+            "description": "A key to reference this porting order when contacting Telnyx customer support",
+            "example": "sr_a12345"
+          },
           "activation_status": {
             "$ref": "#/components/schemas/PortingOrderActivationStatus"
           },
           "portability_status": {
             "$ref": "#/components/schemas/PortabilityStatus"
+          },
+          "requirements_status": {
+            "type": "string",
+            "description": "The current requirement status for this porting order",
+            "enum": [
+              "requirement-info-pending",
+              "requirement-info-under-review",
+              "requirement-info-exception",
+              "approved"
+            ],
+            "example": "approved"
           },
           "record_type": {
             "type": "string",

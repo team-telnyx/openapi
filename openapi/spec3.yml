@@ -299,7 +299,17 @@ components:
       in: query
       name: filter[phone_number]
       schema:
+        example: '+12003151212'
         type: string
+    FilterByPhoneNumberIn:
+      description: Filter results by a list of phone numbers
+      in: query
+      name: filter[phone_number][in][]
+      schema:
+        items:
+          example: '+12003151212'
+          type: string
+        type: array
     FilterByPortabilityStatus:
       description: Filter results by portability status
       in: query
@@ -317,14 +327,51 @@ components:
       in: query
       name: filter[porting_order_id]
       schema:
+        example: f3575e15-32ce-400e-a4c0-dd78800c20b0
         format: uuid
         type: string
+    FilterByPortingOrderIdIn:
+      description: Filter results by a list of porting order ids
+      in: query
+      name: filter[porting_order_id][in][]
+      schema:
+        items:
+          example: f3575e15-32ce-400e-a4c0-dd78800c20b0
+          format: uuid
+          type: string
+        type: array
     FilterByPortingOrderStatus:
       description: Filter results by status
       in: query
       name: filter[status]
       schema:
-        $ref: '#/components/schemas/PortingOrderStatus'
+        enum:
+        - draft
+        - in-process
+        - submitted
+        - exception
+        - foc-date-confirmed
+        - cancel-pending
+        - ported
+        - cancelled
+        example: in-process
+        type: string
+    FilterBySupportKeyEq:
+      description: Filter results by support key
+      in: query
+      name: filter[support_key][eq]
+      schema:
+        example: sr_a12345
+        type: string
+    FilterBySupportKeyIn:
+      description: Filter results by a list of support keys
+      in: query
+      name: filter[support_key][in][]
+      schema:
+        items:
+          example: sr_a12345
+          type: string
+        type: array
     FilterCallEventStatus:
       description: Event status
       in: query
@@ -1075,6 +1122,38 @@ components:
                 type: string
             required:
             - phone_number
+            type: object
+      required: true
+    CreatePortingOrderDocuments:
+      content:
+        application/json:
+          schema:
+            properties:
+              documents:
+                description: A list of documents to be associated with a porting order.
+                items:
+                  properties:
+                    document_id:
+                      description: Uniquely identifies a document uploaded via the
+                        <code><a href="https://developers.telnyx.com/docs/api/v2/documents/Documents#createDocument">/v2/documents</a></code>
+                        endpoint.
+                      example: 5f940c35-ef28-4408-bb95-af73b047d589
+                      type: string
+                    document_type:
+                      description: The type of the document.
+                      enum:
+                      - loa
+                      - invoice
+                      - other
+                      example: loa
+                      type: string
+                  required:
+                  - document_type
+                  - document_id
+                  type: object
+                type: array
+            required:
+            - documents
             type: object
       required: true
     VerifyCustomerServiceRequestPhoneNumberCoverage:
@@ -2141,6 +2220,17 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListDraftPortingOrdersWithoutPagination:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/DraftPortingOrder'
+                type: array
+            type: object
+      description: Successful response
     ListFaxesResponse:
       content:
         application/json:
@@ -2508,15 +2598,17 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
-    ListPortingOrderWithoutPagination:
+    ListPortingOrderDocuments:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/PortingOrder'
+                  $ref: '#/components/schemas/PortingOrderDocument'
                 type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
     ListPortingOrdersActivationJobs:
@@ -2568,6 +2660,12 @@ components:
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
+        text/csv:
+          schema:
+            example: "phone_number,phone_number_type,porting_order_id,support_key,porting_order_status\r\
+              \n+12003155566,local,5f940c35-ef28-4408-bb95-af73b047d589,sr_a12345,draft\r\
+              \n"
+            type: string
       description: Successful response
     ListPortoutComments:
       content:
@@ -3028,6 +3126,17 @@ components:
                 type: array
             type: object
       description: PortabilityCheck Response
+    PortingOrderDocumentsCreated:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingOrderDocument'
+                type: array
+            type: object
+      description: Successful response
     PortoutCommentResponse:
       content:
         application/json:
@@ -13119,6 +13228,22 @@ components:
           - MB
           type: string
       type: object
+    DraftPortingOrder:
+      allOf:
+      - $ref: '#/components/schemas/PortingOrder'
+      - properties:
+          parent_support_key:
+            example: null
+          status:
+            allOf:
+            - $ref: '#/components/schemas/PortingOrderStatus'
+            - properties:
+                details:
+                  example: []
+                value:
+                  example: draft
+          support_key:
+            example: null
     DtmfType:
       default: RFC 2833
       description: Sets the type of DTMF digits sent from Telnyx to this Connection.
@@ -20280,6 +20405,11 @@ components:
           format: date-time
           readOnly: true
           type: string
+        description:
+          description: A description of the porting order
+          example: FP Telnyx
+          readOnly: true
+          type: string
         documents:
           $ref: '#/components/schemas/PortingOrderDocuments'
         end_user:
@@ -20295,6 +20425,13 @@ components:
         old_service_provider_ocn:
           description: Identifies the old service provider
           example: Unreal Communications
+          readOnly: true
+          type: string
+        parent_support_key:
+          description: A key to reference for the porting order group when contacting
+            Telnyx customer support. This information is not available in draft porting
+            orders.
+          example: pr_123abc
           readOnly: true
           type: string
         phone_number_configuration:
@@ -20318,8 +20455,8 @@ components:
           $ref: '#/components/schemas/PortingOrderStatus'
         support_key:
           description: A key to reference this porting order when contacting Telnyx
-            customer support
-          example: 123abc
+            customer support. This information is not available in draft porting orders.
+          example: sr_123abc
           readOnly: true
           type: string
         updated_at:
@@ -20378,6 +20515,38 @@ components:
       - Canceled
       example: Active
       type: string
+    PortingOrderDocument:
+      properties:
+        created_at:
+          description: ISO 8601 formatted date/time when document was associated for
+            the porting order.
+          example: '2020-03-19T10:07:15.527Z'
+          format: date-time
+          type: string
+        document_id:
+          description: Uniquely identifies a document uploaded via the <code><a href="https://developers.telnyx.com/docs/api/v2/documents/Documents#createDocument">/v2/documents</a></code>
+            endpoint.
+          example: ce74b771-d23d-4960-81ec-8741b3862146
+          format: uuid
+          type: string
+        document_type:
+          description: The type of document
+          enum:
+          - loa
+          - invoice
+          - other
+          example: loa
+          type: string
+        id:
+          description: Uniquely identifies the document in the porting order
+          example: 64ffb720-04c7-455b-92d6-20fcca92e935
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_order_document
+          type: string
+      type: object
     PortingOrderDocuments:
       properties:
         invoice:
@@ -20700,6 +20869,17 @@ components:
           description: E164 formatted phone number
           example: 13035550987
           type: string
+        phone_number_type:
+          description: The type of the phone number
+          enum:
+          - landline
+          - local
+          - mobile
+          - national
+          - shared_cost
+          - toll_free
+          example: local
+          type: string
         portability_status:
           $ref: '#/components/schemas/PortabilityStatus'
         porting_order_id:
@@ -20707,10 +20887,37 @@ components:
           example: f1486bae-f067-460c-ad43-73a92848f902
           format: uuid
           type: string
+        porting_order_status:
+          description: The current status of the porting order
+          enum:
+          - draft
+          - in-process
+          - submitted
+          - exception
+          - foc-date-confirmed
+          - cancel-pending
+          - ported
+          - cancelled
+          example: in-process
+          type: string
         record_type:
           description: Identifies the type of the resource.
           example: porting_phone_number
           readOnly: true
+          type: string
+        requirements_status:
+          description: The current requirement status for this porting order
+          enum:
+          - requirement-info-pending
+          - requirement-info-under-review
+          - requirement-info-exception
+          - approved
+          example: approved
+          type: string
+        support_key:
+          description: A key to reference this porting order when contacting Telnyx
+            customer support
+          example: sr_a12345
           type: string
       type: object
     PortoutComment:
@@ -37094,7 +37301,7 @@ paths:
         required: true
       responses:
         '201':
-          $ref: '#/components/responses/ListPortingOrderWithoutPagination'
+          $ref: '#/components/responses/ListDraftPortingOrdersWithoutPagination'
         '401':
           description: Unauthorized
         '422':
@@ -37120,6 +37327,23 @@ paths:
       - Porting Order
       x-latency-category: responsive
   /porting_orders/{id}:
+    delete:
+      description: Deletes an existing porting order. This operation is restricted
+        to draft porting orders.
+      operationId: deletePortingOrder
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      responses:
+        '204':
+          description: No content
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Delete a porting order
+      tags:
+      - Porting Order
+      x-latency-category: responsive
     get:
       description: Retrieves the details of an existing porting order.
       operationId: getPortingOrder
@@ -37306,6 +37530,43 @@ paths:
       tags:
       - Porting Order
       x-latency-category: responsive
+  /porting_orders/{id}/documents:
+    get:
+      description: Returns a list of all documents associated with a porting order.
+      operationId: listPortingOrderDocuments
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingOrderDocuments'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: List all documents associated with a porting order
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+    post:
+      description: Associate a list of documents with a porting order.
+      operationId: uploadPortingOrderDocuments
+      parameters:
+      - $ref: '#/components/parameters/PathPortingOrderID'
+      requestBody:
+        $ref: '#/components/requestBodies/CreatePortingOrderDocuments'
+      responses:
+        '201':
+          $ref: '#/components/responses/PortingOrderDocumentsCreated'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Associate a list of documents with a porting order
+      tags:
+      - Porting Order
+      x-latency-category: responsive
   /porting_orders/{id}/loa_template:
     get:
       description: Download a porting order loa template
@@ -37333,7 +37594,7 @@ paths:
         '401':
           description: Unauthorized
         '404':
-          description: Unauthorized
+          description: Porting Order not found
       summary: Retrieve the associated V1 sub_request_id and port_request_id
       tags:
       - Porting Order
@@ -37346,7 +37607,26 @@ paths:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
       - $ref: '#/components/parameters/FilterByPortingOrderID'
+      - $ref: '#/components/parameters/FilterByPortingOrderIdIn'
+      - $ref: '#/components/parameters/FilterBySupportKeyEq'
+      - $ref: '#/components/parameters/FilterBySupportKeyIn'
       - $ref: '#/components/parameters/FilterByPhoneNumber'
+      - $ref: '#/components/parameters/FilterByPhoneNumberIn'
+      - description: Filter results by porting order status
+        in: query
+        name: filter[porting_order_status]
+        schema:
+          enum:
+          - draft
+          - in-process
+          - submitted
+          - exception
+          - foc-date-confirmed
+          - cancel-pending
+          - ported
+          - cancelled
+          example: in-process
+          type: string
       - $ref: '#/components/parameters/FilterByPortingOrderActivationStatus'
       - $ref: '#/components/parameters/FilterByPortabilityStatus'
       responses:
