@@ -1989,6 +1989,70 @@
         "x-latency-category": "responsive"
       }
     },
+    "/bulk_sim_card_actions": {
+      "get": {
+        "operationId": "ListBulkSIMCardActions",
+        "summary": "List bulk SIM card actions",
+        "description": "This API lists a paginated collection of bulk SIM card actions. A bulk SIM card action contains details about a collection of individual SIM card actions.",
+        "tags": [
+          "SIM Card Actions"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "filter[action_type]",
+            "description": "Filter by action type.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bulk_set_public_ips"
+              ],
+              "example": "bulk_set_public_ips"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BulkSIMCardActionCollectionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/bulk_sim_card_actions/{id}": {
+      "get": {
+        "operationId": "BulkSimCardActionGet",
+        "summary": "Get bulk SIM card action details",
+        "description": "This API fetches information about a bulk SIM card action. A bulk SIM card action contains details about a collection of individual SIM card actions.",
+        "tags": [
+          "SIM Card Actions"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BulkSIMCardActionDetailedResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/business_identities": {
       "get": {
         "summary": "Lists the Business Identities owned by the current user/organization",
@@ -18253,6 +18317,48 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sim_cards/actions/bulk_set_public_ips": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Request bulk setting SIM card public IPs.",
+        "description": "This API triggers an asynchronous operation to set a public IP for each of the specified SIM cards.<br/>\nFor each SIM Card a SIM Card Action will be generated. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
+        "operationId": "BulkSetPublicIPs",
+        "tags": [
+          "SIM Cards"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sim_card_ids"
+                ],
+                "properties": {
+                  "sim_card_ids": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Id"
+                    },
+                    "example": [
+                      "6b14e151-8493-4fa1-8664-1cc4e6d14158"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/BulkSIMCardActionResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
+      }
+    },
     "/sim_cards/actions/validate_registration_codes": {
       "post": {
         "summary": "Validate SIM cards registration codes",
@@ -22652,6 +22758,57 @@
             }
           }
         }
+      },
+      "BulkSIMCardActionCollectionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BulkSIMCardAction"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful response"
+      },
+      "BulkSIMCardActionDetailedResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/BulkSIMCardActionDetailed"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "BulkSIMCardActionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/BulkSIMCardAction"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
       },
       "BulkSIMCardNetworkPreferenceResponse": {
         "description": "",
@@ -27837,6 +27994,81 @@
           "name": "Default Name",
           "tag": "My Credentials",
           "connection_id": "804252963366242252"
+        }
+      },
+      "BulkSIMCardAction": {
+        "type": "object",
+        "description": "This object represents a bulk SIM card action. It groups SIM card actions created through a bulk endpoint under a single resource for further lookup.",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "bulk_sim_card_action",
+            "readOnly": true
+          },
+          "action_type": {
+            "type": "string",
+            "description": "The operation type. It can be one of the following: <br/>\n<ul>\n<li><code>bulk_set_public_ips</code> - set a public IP for each specified SIM card</li>\n</ul>",
+            "enum": [
+              "bulk_set_public_ips"
+            ],
+            "readOnly": true,
+            "example": "bulk_set_public_ips"
+          },
+          "settings": {
+            "type": "object",
+            "description": "A JSON object representation of the bulk action payload.",
+            "example": {},
+            "readOnly": true
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/CreatedAt"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/UpdatedAt"
+          }
+        }
+      },
+      "BulkSIMCardActionDetailed": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Id"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "bulk_sim_card_action",
+            "readOnly": true
+          },
+          "action_type": {
+            "type": "string",
+            "description": "The operation type. It can be one of the following: <br/>\n<ul>\n<li><code>bulk_set_public_ips</code> - set a public IP for each specified SIM card</li>\n</ul>",
+            "enum": [
+              "bulk_set_public_ips"
+            ],
+            "readOnly": true,
+            "example": "bulk_set_public_ips"
+          },
+          "settings": {
+            "type": "object",
+            "description": "A JSON object representation of the bulk action payload.",
+            "example": {},
+            "readOnly": true
+          },
+          "sim_card_actions_summary": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SIMCardActionsSummary"
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/CreatedAt"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/UpdatedAt"
+          }
         }
       },
       "BusinessIdentity": {
@@ -48940,6 +49172,24 @@
           },
           "updated_at": {
             "$ref": "#/components/schemas/UpdatedAt"
+          }
+        }
+      },
+      "SIMCardActionsSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "in-progress",
+              "completed",
+              "failed",
+              "interrupted"
+            ],
+            "example": "in-progress"
+          },
+          "count": {
+            "type": "integer"
           }
         }
       },
