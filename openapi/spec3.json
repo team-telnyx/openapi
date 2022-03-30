@@ -7745,6 +7745,43 @@
         "x-latency-category": "responsive"
       }
     },
+    "/faxes/{id}/actions/cancel": {
+      "post": {
+        "summary": "Cancel a fax",
+        "description": "Cancel the outbound fax that is in one of the following states: `queued`, `media.processed`, `originated` or `sending` ",
+        "operationId": "CancelFax",
+        "tags": [
+          "Programmable Fax Commands"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The unique identifier of a fax.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/CancelFaxResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/faxes/{id}/actions/refresh": {
       "post": {
         "summary": "Refresh a fax",
@@ -22899,6 +22936,28 @@
           }
         }
       },
+      "CancelFaxResponse": {
+        "description": "Successful response upon accepting cancel fax command",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Successful response upon accepting cancel fax command",
+              "example": {
+                "data": {
+                  "result": "ok"
+                }
+              },
+              "properties": {
+                "result": {
+                  "type": "string",
+                  "example": "ok"
+                }
+              }
+            }
+          }
+        }
+      },
       "CheckContactResponse": {
         "description": "Successful response with details about WhatsApp contact(s).",
         "content": {
@@ -34030,6 +34089,11 @@
         "default": true,
         "example": false
       },
+      "ConnectionId": {
+        "description": "The ID of the connection used to send the fax.",
+        "type": "string",
+        "example": "234423"
+      },
       "ConnectionName": {
         "title": "Connection Name",
         "type": "string",
@@ -34194,6 +34258,11 @@
             }
           ]
         }
+      },
+      "Contents": {
+        "description": "The file you want to upload. The maximum allowed size is 20 MB. contents and media_name/media_url can't be submitted together.",
+        "type": "string",
+        "format": "binary"
       },
       "CostInformation": {
         "type": "object",
@@ -37613,6 +37682,15 @@
           }
         }
       },
+      "Direction": {
+        "description": "The direction of the fax.",
+        "type": "string",
+        "example": "outbound",
+        "enum": [
+          "inbound",
+          "outbound"
+        ]
+      },
       "DocReqsRequirement": {
         "type": "object",
         "properties": {
@@ -38438,50 +38516,28 @@
             ]
           },
           "id": {
-            "description": "Identifies the fax.",
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0"
+            "$ref": "#/components/schemas/Id"
           },
           "connection_id": {
-            "description": "The connection ID to send the fax with.",
-            "type": "string",
-            "example": "234423"
+            "$ref": "#/components/schemas/ConnectionId"
           },
           "direction": {
-            "description": "The direction of the fax.",
-            "type": "string",
-            "example": "outbound",
-            "enum": [
-              "inbound",
-              "outbound"
-            ]
+            "$ref": "#/components/schemas/Direction"
           },
           "media_url": {
-            "description": "The URL to the PDF used for the fax's media. If media_name was supplied, this is omitted.",
-            "type": "string",
-            "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+            "$ref": "#/components/schemas/MediaUrl"
           },
           "media_name": {
-            "description": "The media_name of a file used for the fax's media.",
-            "type": "string",
-            "example": "my_media_uploaded_to_media_storage_api"
+            "$ref": "#/components/schemas/MediaName"
           },
           "to": {
-            "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-            "type": "string",
-            "example": "+13127367276"
+            "$ref": "#/components/schemas/To"
           },
           "from": {
-            "description": "The phone number, in E.164 format, the fax will be sent from.",
-            "type": "string",
-            "example": "+13125790015"
+            "$ref": "#/components/schemas/From"
           },
           "quality": {
-            "description": "The quality of the fax. Can be normal, high, very_high",
-            "type": "string",
-            "example": "high",
-            "default": "high"
+            "$ref": "#/components/schemas/Quality"
           },
           "status": {
             "description": "Status of the fax",
@@ -38490,6 +38546,7 @@
             "enum": [
               "queued",
               "media.processed",
+              "originated",
               "sending",
               "delivered",
               "failed",
@@ -38508,7 +38565,7 @@
             "type": "string"
           },
           "store_media": {
-            "description": "Should fax media be stored on temporary URL.",
+            "description": "Should fax media be stored on temporary URL. It does not support media_name.",
             "type": "boolean"
           },
           "stored_media_url": {
@@ -38672,18 +38729,10 @@
         },
         "properties": {
           "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
+            "$ref": "#/components/schemas/RecordType"
           },
           "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
+            "$ref": "#/components/schemas/Id"
           },
           "event_type": {
             "type": "string",
@@ -38702,50 +38751,28 @@
                 "example": 25
               },
               "connection_id": {
-                "description": "The ID of the connection that was used to send the fax.",
-                "type": "string",
-                "example": "234423"
+                "$ref": "#/components/schemas/ConnectionId"
               },
               "direction": {
-                "description": "The direction of the fax.",
-                "type": "string",
-                "example": "outbound",
-                "enum": [
-                  "inbound",
-                  "outbound"
-                ]
+                "$ref": "#/components/schemas/Direction"
               },
               "fax_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-                "description": "Identifies the fax."
+                "$ref": "#/components/schemas/FaxId"
               },
               "original_media_url": {
-                "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
-                "type": "string",
-                "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                "$ref": "#/components/schemas/OriginalMediaUrl"
               },
               "media_name": {
-                "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization",
-                "type": "string",
-                "example": "my_media_uploaded_to_media_storage_api"
+                "$ref": "#/components/schemas/MediaName"
               },
               "to": {
-                "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-                "type": "string",
-                "example": "+13127367276"
+                "$ref": "#/components/schemas/To"
               },
               "from": {
-                "description": "The phone number, in E.164 format, the fax will be sent from.",
-                "type": "string",
-                "example": "+13125790015"
+                "$ref": "#/components/schemas/From"
               },
               "user_id": {
-                "description": "Identifier of the user to whom the fax belongs",
-                "type": "string",
-                "format": "uuid",
-                "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
+                "$ref": "#/components/schemas/UserId"
               },
               "page_count": {
                 "description": "Number of transferred pages",
@@ -38796,18 +38823,10 @@
         },
         "properties": {
           "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
+            "$ref": "#/components/schemas/RecordType"
           },
           "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
+            "$ref": "#/components/schemas/Id"
           },
           "event_type": {
             "type": "string",
@@ -38821,50 +38840,28 @@
             "type": "object",
             "properties": {
               "connection_id": {
-                "description": "The ID of the connection that was used to send the fax.",
-                "type": "string",
-                "example": "234423"
+                "$ref": "#/components/schemas/ConnectionId"
               },
               "direction": {
-                "description": "The direction of the fax.",
-                "type": "string",
-                "example": "outbound",
-                "enum": [
-                  "inbound",
-                  "outbound"
-                ]
+                "$ref": "#/components/schemas/Direction"
               },
               "fax_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-                "description": "Identifies the fax."
+                "$ref": "#/components/schemas/FaxId"
               },
               "original_media_url": {
-                "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
-                "type": "string",
-                "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                "$ref": "#/components/schemas/OriginalMediaUrl"
               },
               "media_name": {
-                "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization",
-                "type": "string",
-                "example": "my_media_uploaded_to_media_storage_api"
+                "$ref": "#/components/schemas/MediaName"
               },
               "to": {
-                "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-                "type": "string",
-                "example": "+13127367276"
+                "$ref": "#/components/schemas/To"
               },
               "from": {
-                "description": "The phone number, in E.164 format, the fax will be sent from.",
-                "type": "string",
-                "example": "+13125790015"
+                "$ref": "#/components/schemas/From"
               },
               "user_id": {
-                "description": "Identifier of the user to whom the fax belongs",
-                "type": "string",
-                "format": "uuid",
-                "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
+                "$ref": "#/components/schemas/UserId"
               },
               "failure_reason": {
                 "type": "string",
@@ -38884,6 +38881,12 @@
             }
           }
         }
+      },
+      "FaxId": {
+        "type": "string",
+        "format": "uuid",
+        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+        "description": "Identifies the fax."
       },
       "FaxMediaProcessed": {
         "type": "object",
@@ -38907,18 +38910,10 @@
         },
         "properties": {
           "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
+            "$ref": "#/components/schemas/RecordType"
           },
           "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
+            "$ref": "#/components/schemas/Id"
           },
           "event_type": {
             "type": "string",
@@ -38932,50 +38927,28 @@
             "type": "object",
             "properties": {
               "connection_id": {
-                "description": "The ID of the connection that was used to send the fax.",
-                "type": "string",
-                "example": "234423"
+                "$ref": "#/components/schemas/ConnectionId"
               },
               "direction": {
-                "description": "The direction of the fax.",
-                "type": "string",
-                "example": "outbound",
-                "enum": [
-                  "inbound",
-                  "outbound"
-                ]
+                "$ref": "#/components/schemas/Direction"
               },
               "fax_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-                "description": "Identifies the fax."
+                "$ref": "#/components/schemas/FaxId"
               },
               "original_media_url": {
-                "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
-                "type": "string",
-                "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                "$ref": "#/components/schemas/OriginalMediaUrl"
               },
               "media_name": {
-                "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization",
-                "type": "string",
-                "example": "my_media_uploaded_to_media_storage_api"
+                "$ref": "#/components/schemas/MediaName"
               },
               "to": {
-                "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-                "type": "string",
-                "example": "+13127367276"
+                "$ref": "#/components/schemas/To"
               },
               "from": {
-                "description": "The phone number, in E.164 format, the fax will be sent from.",
-                "type": "string",
-                "example": "+13125790015"
+                "$ref": "#/components/schemas/From"
               },
               "user_id": {
-                "description": "Identifier of the user to whom the fax belongs",
-                "type": "string",
-                "format": "uuid",
-                "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
+                "$ref": "#/components/schemas/UserId"
               },
               "status": {
                 "type": "string",
@@ -39011,18 +38984,10 @@
         },
         "properties": {
           "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
+            "$ref": "#/components/schemas/RecordType"
           },
           "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
+            "$ref": "#/components/schemas/Id"
           },
           "event_type": {
             "type": "string",
@@ -39036,50 +39001,28 @@
             "type": "object",
             "properties": {
               "connection_id": {
-                "description": "The ID of the connection that was used to send the fax.",
-                "type": "string",
-                "example": "234423"
+                "$ref": "#/components/schemas/ConnectionId"
               },
               "direction": {
-                "description": "The direction of the fax.",
-                "type": "string",
-                "example": "outbound",
-                "enum": [
-                  "inbound",
-                  "outbound"
-                ]
+                "$ref": "#/components/schemas/Direction"
               },
               "fax_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-                "description": "Identifies the fax."
+                "$ref": "#/components/schemas/FaxId"
               },
               "original_media_url": {
-                "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
-                "type": "string",
-                "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                "$ref": "#/components/schemas/OriginalMediaUrl"
               },
               "media_name": {
-                "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization",
-                "type": "string",
-                "example": "my_media_uploaded_to_media_storage_api"
+                "$ref": "#/components/schemas/MediaName"
               },
               "to": {
-                "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-                "type": "string",
-                "example": "+13127367276"
+                "$ref": "#/components/schemas/To"
               },
               "from": {
-                "description": "The phone number, in E.164 format, the fax will be sent from.",
-                "type": "string",
-                "example": "+13125790015"
+                "$ref": "#/components/schemas/From"
               },
               "user_id": {
-                "description": "Identifier of the user to whom the fax belongs",
-                "type": "string",
-                "format": "uuid",
-                "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
+                "$ref": "#/components/schemas/UserId"
               },
               "status": {
                 "type": "string",
@@ -39115,18 +39058,10 @@
         },
         "properties": {
           "record_type": {
-            "type": "string",
-            "example": "event",
-            "enum": [
-              "event"
-            ],
-            "description": "Identifies the type of the resource."
+            "$ref": "#/components/schemas/RecordType"
           },
           "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "description": "Identifies the type of resource."
+            "$ref": "#/components/schemas/Id"
           },
           "event_type": {
             "type": "string",
@@ -39140,50 +39075,28 @@
             "type": "object",
             "properties": {
               "connection_id": {
-                "description": "The ID of the connection that was used to send the fax.",
-                "type": "string",
-                "example": "234423"
+                "$ref": "#/components/schemas/ConnectionId"
               },
               "direction": {
-                "description": "The direction of the fax.",
-                "type": "string",
-                "example": "outbound",
-                "enum": [
-                  "inbound",
-                  "outbound"
-                ]
+                "$ref": "#/components/schemas/Direction"
               },
               "fax_id": {
-                "type": "string",
-                "format": "uuid",
-                "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-                "description": "Identifies the fax."
+                "$ref": "#/components/schemas/FaxId"
               },
               "original_media_url": {
-                "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
-                "type": "string",
-                "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+                "$ref": "#/components/schemas/OriginalMediaUrl"
               },
               "media_name": {
-                "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization",
-                "type": "string",
-                "example": "my_media_uploaded_to_media_storage_api"
+                "$ref": "#/components/schemas/MediaName"
               },
               "to": {
-                "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
-                "type": "string",
-                "example": "+13127367276"
+                "$ref": "#/components/schemas/To"
               },
               "from": {
-                "description": "The phone number, in E.164 format, the fax will be sent from.",
-                "type": "string",
-                "example": "+13125790015"
+                "$ref": "#/components/schemas/From"
               },
               "user_id": {
-                "description": "Identifier of the user to whom the fax belongs",
-                "type": "string",
-                "format": "uuid",
-                "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
+                "$ref": "#/components/schemas/UserId"
               },
               "status": {
                 "type": "string",
@@ -39507,6 +39420,11 @@
           "TCP",
           "TLS"
         ]
+      },
+      "From": {
+        "description": "The phone number, in E.164 format, the fax will be sent from.",
+        "type": "string",
+        "example": "+13125790015"
       },
       "GCSConfiguration": {
         "type": "object",
@@ -40058,9 +39976,8 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "description": "Identifies the resource.",
-        "readOnly": true,
-        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+        "description": "Identifies the type of resource."
       },
       "Image": {
         "title": "Image",
@@ -42127,6 +42044,11 @@
           "t38_fax_gateway_enabled": true
         }
       },
+      "MediaName": {
+        "description": "The media_name used for the fax's media. Must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization. media_name and media_url/contents can't be submitted together.",
+        "type": "string",
+        "example": "my_media_uploaded_to_media_storage_api"
+      },
       "MediaRequestBody": {
         "title": "Media Request Body",
         "description": "",
@@ -42272,6 +42194,11 @@
         "required": [
           "record_type"
         ]
+      },
+      "MediaUrl": {
+        "description": "The URL to the PDF used for the fax's media. media_url and media_name/contents can't be submitted together.",
+        "type": "string",
+        "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
       },
       "Message": {
         "title": "Message",
@@ -43103,6 +43030,11 @@
             ]
           }
         }
+      },
+      "Monochrome": {
+        "description": "The flag to enable monochrome, true black and white fax results.",
+        "type": "boolean",
+        "default": false
       },
       "Name": {
         "title": "Name",
@@ -44029,6 +43961,11 @@
           "department": "Design",
           "title": "Manager"
         }
+      },
+      "OriginalMediaUrl": {
+        "description": "The original URL to the PDF used for the fax's media. If media_name was supplied, this is omitted",
+        "type": "string",
+        "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
       },
       "OutboundCallRecording": {
         "type": "object",
@@ -47532,6 +47469,12 @@
           }
         }
       },
+      "Quality": {
+        "description": "The quality of the fax. Can be normal, high, very_high",
+        "type": "string",
+        "example": "high",
+        "default": "high"
+      },
       "Queue": {
         "type": "object",
         "title": "Queue",
@@ -47711,8 +47654,11 @@
       },
       "RecordType": {
         "type": "string",
-        "description": "Identifies record type.",
-        "pattern": "custom_storage_credentials"
+        "example": "event",
+        "enum": [
+          "event"
+        ],
+        "description": "Identifies the type of the resource."
       },
       "Recording": {
         "type": "object",
@@ -49862,45 +49808,30 @@
         ],
         "properties": {
           "connection_id": {
-            "description": "The connection ID to send the fax with.",
-            "type": "string",
-            "example": "234423"
+            "$ref": "#/components/schemas/ConnectionId"
           },
           "contents": {
-            "description": "The file you want to upload. The maximum allowed size is 20 MB.",
+            "description": "The file you want to upload. The maximum allowed size is 20 MB. contents and media_name/media_url can't be submitted together.",
             "type": "string",
             "format": "binary"
           },
           "to": {
-            "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI.",
-            "type": "string",
-            "example": "+13127367276"
+            "$ref": "#/components/schemas/To"
           },
           "from": {
-            "description": "The phone number, in E.164 format, the fax will be sent from.",
-            "type": "string",
-            "example": "+13125790015"
+            "$ref": "#/components/schemas/From"
           },
           "quality": {
-            "description": "The quality of the fax. Can be normal, high, very_high.",
-            "type": "string",
-            "example": "high",
-            "default": "high"
+            "$ref": "#/components/schemas/Quality"
           },
           "t38_enabled": {
-            "description": "The flag to disable the T.38 protocol.",
-            "type": "boolean",
-            "default": true
+            "$ref": "#/components/schemas/T38Enabled"
           },
           "monochrome": {
-            "description": "The flag to enable monochrome, true black and white fax results.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/Monochrome"
           },
           "store_media": {
-            "description": "Should fax media be stored on temporary URL.",
-            "type": "boolean",
-            "default": false
+            "$ref": "#/components/schemas/StoreMedia"
           }
         }
       },
@@ -49919,30 +49850,19 @@
             "example": "234423"
           },
           "media_url": {
-            "description": "The URL to the PDF used for the fax's media. media_url and media_name can't be submitted together.",
-            "type": "string",
-            "example": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+            "$ref": "#/components/schemas/MediaUrl"
           },
           "media_name": {
-            "description": "The media_name of a file to be used for the fax's media. The media_name must point to a file previously uploaded to api.telnyx.com/v2/media by the same user/organization. media_url and media_name can't be submitted together.",
-            "type": "string",
-            "example": "my_media_uploaded_to_media_storage_api"
+            "$ref": "#/components/schemas/MediaName"
           },
           "to": {
-            "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI.",
-            "type": "string",
-            "example": "+13127367276"
+            "$ref": "#/components/schemas/To"
           },
           "from": {
-            "description": "The phone number, in E.164 format, the fax will be sent from.",
-            "type": "string",
-            "example": "+13125790015"
+            "$ref": "#/components/schemas/From"
           },
           "quality": {
-            "description": "The quality of the fax. Can be normal, high, very_high.",
-            "type": "string",
-            "example": "high",
-            "default": "high"
+            "$ref": "#/components/schemas/Quality"
           },
           "t38_enabled": {
             "description": "The flag to disable the T.38 protocol.",
@@ -50934,6 +50854,16 @@
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
         }
       },
+      "StoreMedia": {
+        "description": "Should fax media be stored on temporary URL. It does not support media_name, they can't be submitted together.",
+        "type": "boolean",
+        "default": false
+      },
+      "StoredMedia": {
+        "description": "Should fax media be stored on temporary URL. It does not support media_name, they can't be submitted together.",
+        "type": "boolean",
+        "default": false
+      },
       "SubNumberOrder": {
         "properties": {
           "id": {
@@ -51034,6 +50964,11 @@
             "readOnly": true
           }
         }
+      },
+      "T38Enabled": {
+        "description": "The flag to disable the T.38 protocol.",
+        "type": "boolean",
+        "default": true
       },
       "TelephonyCredential": {
         "type": "object",
@@ -51415,6 +51350,11 @@
         "example": {
           "body": "<Message Text>"
         }
+      },
+      "To": {
+        "description": "The phone number, in E.164 format, the fax will be sent to or SIP URI",
+        "type": "string",
+        "example": "+13127367276"
       },
       "ToNumber": {
         "type": "string",
@@ -53911,6 +53851,12 @@
           "available_credit": "400.00",
           "currency": "USD"
         }
+      },
+      "UserId": {
+        "description": "Identifier of the user to whom the fax belongs",
+        "type": "string",
+        "format": "uuid",
+        "example": "yfff7c54-4df3-4bca-a65a-3da1ecc777f0"
       },
       "ValidateAddress": {
         "type": "object",
