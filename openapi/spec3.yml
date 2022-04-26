@@ -4948,6 +4948,65 @@ components:
           maximum: 2
           type: array
       type: object
+    Button:
+      properties:
+        index:
+          description: Position index of the button. You can have up to 3 buttons
+            using index values of 0-2.
+          title: Index
+          type: integer
+        parameters:
+          description: The parameters for the button, which are set at creation time
+            in your Business Manager.
+          items:
+            $ref: '#/components/schemas/ButtonParameter'
+          title: Parameters
+          type: array
+        sub_type:
+          description: Type of button being created.
+      required:
+      - sub_type
+      - index
+      - parameters
+      title: Button
+      type: object
+    ButtonComponentType:
+      description: An enumeration.
+      enum:
+      - button
+      title: ButtonComponentType
+      type: string
+    ButtonParameter:
+      properties:
+        payload:
+          description: Developer-defined payload that will be returned when the button
+            is clicked in addition to the display text on the button. Required for
+            quick_reply buttons.
+          title: Payload
+        text:
+          description: Developer provided suffix that will be appended to a previously
+            created dynamic URL button. Required for url buttons.
+          title: Text
+        type:
+          description: Indicates the type of parameter for the button.
+      required:
+      - type
+      title: ButtonParameter
+      type: object
+    ButtonParameterType:
+      description: An enumeration.
+      enum:
+      - payload
+      - text
+      title: ButtonParameterType
+      type: string
+    ButtonSubtype:
+      description: An enumeration.
+      enum:
+      - quick_reply
+      - url
+      title: ButtonSubtype
+      type: string
     Call:
       example:
         call_control_id: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
@@ -12220,15 +12279,8 @@ components:
       properties:
         audio:
           $ref: '#/components/schemas/Audio'
-        contacts:
-          description: ''
-          items:
-            $ref: '#/components/schemas/Contact'
-          type: array
         document:
           $ref: '#/components/schemas/Document'
-        hsm:
-          $ref: '#/components/schemas/Hsm'
         image:
           $ref: '#/components/schemas/Image'
         location:
@@ -14881,41 +14933,6 @@ components:
           - successful
           type: string
       type: object
-    Hsm:
-      description: "The containing element for the message content \u2014 Indicates\
-        \ that the message is highly structured. Parameters contained within provide\
-        \ the structure."
-      example:
-        element_name: hello_world
-        language:
-          code: en
-          policy: deterministic
-        localizable_params:
-        - default: '1234'
-        namespace: business_a_namespace
-      properties:
-        element_name:
-          description: The element name that indicates which template to use within
-            the namespace
-          type: string
-        language:
-          $ref: '#/components/schemas/Language'
-        localizable_params:
-          description: This field is an array of values to apply to variables in the
-            template
-          items:
-            $ref: '#/components/schemas/LocalizableParam'
-          type: array
-        namespace:
-          description: The namespace that will be used
-          type: string
-      required:
-      - namespace
-      - element_name
-      - language
-      - localizable_params
-      title: Hsm
-      type: object
     Id:
       description: Identifies the type of resource.
       example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
@@ -15551,6 +15568,236 @@ components:
       format: int64
       title: Int ID
       type: string
+    Interactive:
+      properties:
+        action:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveAction'
+          description: Action you want the user to perform after reading the message.
+          title: Action
+        body:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveBody'
+          description: The body of the message. Emojis and markdown are supported.
+            Optional for type product. Required for other message types.
+          title: Body
+        footer:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveFooter'
+          description: The footer of the message. Emojis and markdown are supported.
+          title: Footer
+        header:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveHeader'
+          description: Header content displayed on top of a message. See header object
+            for more information. You cannot set a header if your interactive object
+            is of product type. Required for type product_list. Optional for other
+            types.
+          title: Header
+        type:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveType'
+          description: The type of interactive message you want to send.
+      required:
+      - type
+      - action
+      title: Interactive
+      type: object
+    InteractiveAction:
+      properties:
+        button:
+          description: Button content. It cannot be an empty string and must be unique
+            within the message. Emojis are supported, markdown is not. Required for
+            List Messages.
+          title: Button
+          type: string
+        buttons:
+          description: A list of buttons. Required for Reply Button Messages.
+          items:
+            $ref: '#/components/schemas/InteractiveButton'
+          title: Buttons
+          type: array
+        catalog_id:
+          description: Unique identifier of the Facebook catalog linked to your WhatsApp
+            Business Account. This ID can be retrieved via Commerce Manager. Required
+            for Single Product Messages and Multi-Product Messages.
+          title: Catalog Id
+          type: string
+        product_retailer_id:
+          description: Unique identifier of the product in a catalog. To get this
+            ID, go to Commerce Manager, select your Facebook Business account, and
+            you will see a list of shops connected to your account. Click the shop
+            you want to use. On the left-side panel, click Catalog > Items, and find
+            the item you want to mention. The ID for that item is displayed under
+            the item's name.
+          title: Product Retailer Id
+          type: string
+        sections:
+          description: Array of section objects. Required for List Messages and Multi-Product
+            Messages.
+          items:
+            $ref: '#/components/schemas/InteractiveSection'
+          title: Sections
+          type: array
+      title: InteractiveAction
+      type: object
+    InteractiveBody:
+      properties:
+        text:
+          description: The body content of the message. Emojis and markdown are supported.
+            Links are supported.
+          title: Text
+          type: string
+      required:
+      - text
+      title: InteractiveBody
+      type: object
+    InteractiveButton:
+      properties:
+        reply:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveButtonReply'
+          description: Reply button details.
+          title: Reply
+        type:
+          allOf:
+          - $ref: '#/components/schemas/InteractiveButtonType'
+          default: reply
+          description: The only supported type is reply (for Reply Button Messages).
+      required:
+      - reply
+      title: InteractiveButton
+      type: object
+    InteractiveButtonReply:
+      properties:
+        id:
+          description: Unique identifier for your button. This ID is returned in the
+            webhook when the button is clicked by the user. You cannot have leading
+            or trailing spaces when setting the ID.
+          title: Id
+          type: string
+        title:
+          description: Button title. It cannot be an empty string and must be unique
+            within the message. Emojis are supported, markdown is not.
+          title: Title
+          type: string
+      required:
+      - title
+      - id
+      title: InteractiveButtonReply
+      type: object
+    InteractiveButtonType:
+      description: An enumeration.
+      enum:
+      - reply
+      title: InteractiveButtonType
+      type: string
+    InteractiveFooter:
+      properties:
+        text:
+          description: The footer content. Emojis and markdown are supported. Links
+            are supported.
+          title: Text
+          type: string
+      required:
+      - text
+      title: InteractiveFooter
+      type: object
+    InteractiveHeader:
+      properties:
+        document:
+          allOf:
+          - $ref: '#/components/schemas/Document'
+          description: Contains the media object for this document.
+          title: Document
+        image:
+          allOf:
+          - $ref: '#/components/schemas/Image'
+          description: Contains the media object for this image.
+          title: Image
+        text:
+          description: Text for the header. Formatting allows emojis, but not markdown.
+          title: Text
+          type: string
+        type:
+          description: The header type you would like to use.
+          title: Type
+          type: string
+        video:
+          allOf:
+          - $ref: '#/components/schemas/Video'
+          description: Contains the media object for this video.
+          title: Video
+      required:
+      - type
+      title: InteractiveHeader
+      type: object
+    InteractiveProduct:
+      properties:
+        product_retailer_id:
+          description: Unique identifier of the product in a catalog. To get this
+            ID, go to Commerce Manager, select your Facebook Business account, and
+            you will see a list of shops connected to your account. Click the shop
+            you want to use. On the left-side panel, click Catalog > Items, and find
+            the item you want to mention. The ID for that item is displayed under
+            the item's name.
+          title: Product Retailer Id
+          type: string
+      required:
+      - product_retailer_id
+      title: InteractiveProduct
+      type: object
+    InteractiveSection:
+      properties:
+        product_items:
+          description: Array of product objects. There is a minimum of 1 product per
+            section. There is a maximum of 30 products across all sections.
+          items:
+            $ref: '#/components/schemas/InteractiveProduct'
+          title: Product Items
+          type: array
+        rows:
+          description: Contains a list of rows. Limited to 10 rows across all sections.
+            Required for List Messages.
+          items:
+            $ref: '#/components/schemas/InteractiveSectionRow'
+          title: Rows
+          type: array
+        title:
+          description: Title of the section. Required if the message has more than
+            one section.
+          title: Title
+          type: string
+      title: InteractiveSection
+      type: object
+    InteractiveSectionRow:
+      properties:
+        description:
+          description: 'Maximum length: 72 characters'
+          title: Description
+          type: string
+        id:
+          description: 'Maximum length: 200 characters'
+          title: Id
+          type: string
+        title:
+          description: 'Maximum length: 24 characters'
+          title: Title
+          type: string
+      required:
+      - id
+      - title
+      title: InteractiveSectionRow
+      type: object
+    InteractiveType:
+      description: An enumeration.
+      enum:
+      - list
+      - button
+      - product
+      - product_list
+      title: InteractiveType
+      type: string
     InventoryCoverage:
       example:
         count: 3
@@ -16062,21 +16309,6 @@ components:
       - data
       - meta
       title: ListVerifyProfilesResponse
-      type: object
-    LocalizableParam:
-      example:
-        default: <param value>
-      properties:
-        currency:
-          $ref: '#/components/schemas/Currency'
-        date_time:
-          $ref: '#/components/schemas/DateTimeObject'
-        default:
-          description: Default text if localization fails
-          type: string
-      required:
-      - default
-      title: LocalizableParam
       type: object
     Location:
       example:
@@ -16968,7 +17200,6 @@ components:
       - audio
       - contacts
       - document
-      - hsm
       - image
       - location
       - template
@@ -24331,8 +24562,84 @@ components:
       - language
       title: Template
       type: object
+    TemplateButtonComponent:
+      properties:
+        index:
+          description: Position index of the button. You can have up to 3 buttons
+            using index values of 0-2.
+          title: Index
+          type: integer
+        parameters:
+          allOf:
+          - $ref: '#/components/schemas/TemplateButtonParameters'
+          description: The parameters for the button, which are set at creation time
+            in your Business Manager.
+          title: Parameters
+        sub_type:
+          allOf:
+          - $ref: '#/components/schemas/ButtonSubtype'
+          description: Used when type is set to button.
+        type:
+          allOf:
+          - $ref: '#/components/schemas/ButtonComponentType'
+          description: Describes the component type.
+      required:
+      - type
+      - sub_type
+      - index
+      - parameters
+      title: TemplateButtonComponent
+      type: object
+    TemplateButtonParameter:
+      properties:
+        payload:
+          description: Required for quick_reply buttons. Developer-defined payload
+            that will be returned when the button is clicked in addition to the display
+            text on the button.
+          title: Payload
+          type: string
+        text:
+          description: Required for url buttons. Developer provided suffix that will
+            be appended to a previously created dynamic URL button.
+          title: Text
+          type: string
+        type:
+          allOf:
+          - $ref: '#/components/schemas/ButtonParameterType'
+          description: Indicates the type of parameter for the button.
+      required:
+      - type
+      title: TemplateButtonParameter
+      type: object
+    TemplateButtonParameters:
+      items:
+        $ref: '#/components/schemas/TemplateButtonParameter'
+      title: TemplateButtonParameters
+      type: array
+    TemplateComponent:
+      properties:
+        parameters:
+          $ref: '#/components/schemas/TemplateParameters'
+        type:
+          allOf:
+          - $ref: '#/components/schemas/TemplateComponentType'
+          description: Describes the component type.
+      required:
+      - type
+      title: TemplateComponent
+      type: object
+    TemplateComponentType:
+      description: An enumeration.
+      enum:
+      - header
+      - body
+      title: TemplateComponentType
+      type: string
     TemplateComponents:
       items:
+        anyOf:
+        - $ref: '#/components/schemas/TemplateComponent'
+        - $ref: '#/components/schemas/TemplateButtonComponent'
         description: ''
         properties:
           parameters:
