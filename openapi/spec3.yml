@@ -6196,6 +6196,7 @@ components:
               - call_hangup
               - cancelled
               - cancelled_amd
+              - timeout
               example: valid
               type: string
             to:
@@ -14799,6 +14800,63 @@ components:
         credentials:
           $ref: '#/components/schemas/Credentials'
       title: Google Cloud Storage Configuration Data
+      type: object
+    GatherDTMFRequest:
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        initial_timeout_millis:
+          default: 5000
+          description: The number of milliseconds to wait for the first DTMF.
+          example: 10000
+          format: int32
+          type: integer
+        inter_digit_timeout_millis:
+          default: 5000
+          description: The number of milliseconds to wait for input between digits.
+          example: 10000
+          format: int32
+          type: integer
+        maximum_digits:
+          default: 128
+          description: The maximum number of digits to fetch. This parameter has a
+            maximum value of 128.
+          example: 10
+          format: int32
+          type: integer
+        minimum_digits:
+          default: 1
+          description: The minimum number of digits to fetch. This parameter has a
+            minimum value of 1.
+          example: 1
+          format: int32
+          type: integer
+        terminating_digit:
+          default: '#'
+          description: The digit used to terminate input if fewer than `maximum_digits`
+            digits have been gathered.
+          example: '#'
+          type: string
+        timeout_millis:
+          default: 60000
+          description: The number of milliseconds to wait to complete the request.
+          example: 60000
+          format: int32
+          type: integer
+        valid_digits:
+          default: 0123456789#*
+          description: A list of all digits accepted as valid.
+          example: '123'
+          type: string
+      title: Gather DTMF
       type: object
     GatherUsingAudioRequest:
       example:
@@ -31367,6 +31425,69 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Forking stop
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/gather_dtmf:
+    post:
+      callbacks:
+        callDtmfReceived:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallDtmfReceivedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callGatherEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallGatherEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: 'Gather DTMF signals to build interactive menus.
+
+
+        You can pass a list of valid digits. The [Answer](/docs/api/v2/call-control/Call-Commands#CallControlAnswer)
+        command must be issued before the `gather_dtmf` command.
+
+
+        **Expected Webhooks:**
+
+
+        - `call.dtmf.received` (you may receive many of these webhooks)
+
+        - `call.gather.ended`
+
+        '
+      operationId: callGatherDTMF
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatherDTMFRequest'
+        description: Gather DTMF
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Gather DTMF
       tags:
       - Call Commands
       x-latency-category: interactive

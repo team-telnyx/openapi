@@ -3104,6 +3104,85 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/gather_dtmf": {
+      "post": {
+        "summary": "Gather DTMF",
+        "description": "Gather DTMF signals to build interactive menus.\n\nYou can pass a list of valid digits. The [Answer](/docs/api/v2/call-control/Call-Commands#CallControlAnswer) command must be issued before the `gather_dtmf` command.\n\n**Expected Webhooks:**\n\n- `call.dtmf.received` (you may receive many of these webhooks)\n- `call.gather.ended`\n",
+        "operationId": "callGatherDTMF",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Gather DTMF",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatherDTMFRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callDtmfReceived": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallDtmfReceivedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callGatherEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallGatherEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/gather_stop": {
       "post": {
         "summary": "Gather stop",
@@ -30196,7 +30275,8 @@
                   "invalid",
                   "call_hangup",
                   "cancelled",
-                  "cancelled_amd"
+                  "cancelled_amd",
+                  "timeout"
                 ],
                 "example": "valid",
                 "description": "Reflects how command ended."
@@ -40370,6 +40450,69 @@
           },
           "bucket": {
             "$ref": "#/components/schemas/Bucket"
+          }
+        }
+      },
+      "GatherDTMFRequest": {
+        "type": "object",
+        "title": "Gather DTMF",
+        "properties": {
+          "minimum_digits": {
+            "description": "The minimum number of digits to fetch. This parameter has a minimum value of 1.",
+            "default": 1,
+            "type": "integer",
+            "example": 1,
+            "format": "int32"
+          },
+          "maximum_digits": {
+            "description": "The maximum number of digits to fetch. This parameter has a maximum value of 128.",
+            "default": 128,
+            "type": "integer",
+            "example": 10,
+            "format": "int32"
+          },
+          "timeout_millis": {
+            "description": "The number of milliseconds to wait to complete the request.",
+            "default": 60000,
+            "type": "integer",
+            "example": 60000,
+            "format": "int32"
+          },
+          "inter_digit_timeout_millis": {
+            "description": "The number of milliseconds to wait for input between digits.",
+            "default": 5000,
+            "type": "integer",
+            "example": 10000,
+            "format": "int32"
+          },
+          "initial_timeout_millis": {
+            "description": "The number of milliseconds to wait for the first DTMF.",
+            "default": 5000,
+            "type": "integer",
+            "example": 10000,
+            "format": "int32"
+          },
+          "terminating_digit": {
+            "description": "The digit used to terminate input if fewer than `maximum_digits` digits have been gathered.",
+            "default": "#",
+            "type": "string",
+            "example": "#"
+          },
+          "valid_digits": {
+            "description": "A list of all digits accepted as valid.",
+            "default": "0123456789#*",
+            "type": "string",
+            "example": "123"
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
           }
         }
       },
