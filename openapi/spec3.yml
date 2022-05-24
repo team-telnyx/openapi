@@ -1174,6 +1174,14 @@ components:
             - documents
             type: object
       required: true
+    DialogflowConnectionRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DialogflowConnection'
+      description: The params expected to create/update a Dialogflow ES Connection
+        for given connection_id.
+      required: true
     VerifyCustomerServiceRequestPhoneNumberCoverage:
       content:
         application/json:
@@ -1785,6 +1793,13 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
+    DialogflowConnectionResponseBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DialogflowConnectionResponse'
+      description: Return details of the Dialogflow ES connection associated with
+        the given CallControl connection.
     DocReqsListRequirementTypesResponse:
       content:
         application/json:
@@ -7335,6 +7350,9 @@ components:
           value: val_1
         - name: head_2
           value: val_2
+        dialogflow_config:
+          analyze_sentiment: false
+        enable_dialogflow: false
         from: '+18005550101'
         from_display_name: Company Name
         link_to: ilditnZK_eVysupV21KzmzN_sM29ygfauQojpm4BgFtfX5hXAcjotg==
@@ -7471,6 +7489,14 @@ components:
           items:
             $ref: '#/components/schemas/CustomSipHeader'
           type: array
+        dialogflow_config:
+          $ref: '#/components/schemas/DialogflowConfig'
+        enable_dialogflow:
+          default: false
+          description: Enables Dialogflow for the current call. The default value
+            is false.
+          example: true
+          type: boolean
         from:
           description: The `from` number to be used as the caller id presented to
             the destination (`to` number). The number should be in +E164 format. This
@@ -13407,6 +13433,51 @@ components:
           type: array
         meta:
           $ref: '#/components/schemas/PaginationMeta'
+      type: object
+    DialogflowConfig:
+      properties:
+        analyze_sentiment:
+          default: false
+          description: Enable sentiment analysis from Dialogflow.
+          example: 'true'
+          type: boolean
+      title: Dialogflow Config
+      type: object
+    DialogflowConnection:
+      example:
+        service_account: '{"type":"service_account","project_id":"dialogflow-init-123-456789","private_key_id":"9a66104a-4f71-45fb-a3c4-b256a2223882","private_key":"-----BEGIN
+          PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"235914430018928359003","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}'
+      properties:
+        service_account:
+          description: The JSON map to connect your Dialoglow account.
+          example: '{"service_account":{"type":"service_account","project_id":"dialogflow-init-123-456789","private_key_id":"9a66104a-4f71-45fb-a3c4-b256a2223882","private_key":"-----BEGIN
+            PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"235914430018928359003","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}}'
+          type: object
+      required:
+      - service_account
+      type: object
+    DialogflowConnectionResponse:
+      properties:
+        data:
+          properties:
+            connection_id:
+              example: '1234541231'
+              type: string
+            record_type:
+              example: dialogflow_connections
+              type: string
+            service_account:
+              example: '****'
+              type: string
+          required:
+          - record_type
+          - connection_id
+          - service_account
+          title: Dialogflow ES Connection Storaged
+          type: object
+      required:
+      - data
+      title: Dialogflow ES Connection Response
       type: object
     Direction:
       description: The direction of the fax.
@@ -24843,6 +24914,9 @@ components:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        dialogflow_config:
+          analyze_sentiment: false
+        enable_dialogflow: false
         stream_track: both_tracks
         stream_url: wss://www.example.com/websocket
       properties:
@@ -24856,6 +24930,14 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        dialogflow_config:
+          $ref: '#/components/schemas/DialogflowConfig'
+        enable_dialogflow:
+          default: false
+          description: Enables Dialogflow for the current call. The default value
+            is false.
+          example: true
+          type: boolean
         stream_track:
           default: inbound_track
           description: Specifies which track should be streamed.
@@ -34218,6 +34300,70 @@ paths:
       tags:
       - Detail Records
       x-latency-category: interactive
+  /dialogflow_connections/{connection_id}:
+    delete:
+      description: Deletes a stored Dialogflow ES Connection.
+      operationId: deleteDialogflowConnection
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '204':
+          description: The Dialogflow ES Connection for connection_id was deleted
+            successfully.
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete stored Dialogflow ES Connection
+      tags:
+      - Dialogflow ES Integration
+      x-latency-category: responsive
+    get:
+      description: Return details of the Dialogflow connection associated with the
+        given CallControl connection.
+      operationId: getDialogflowConnection
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve stored Dialogflow Connection
+      tags:
+      - Dialogflow Integration
+      x-latency-category: responsive
+    post:
+      description: Save Dialogflow Credentiails to Telnyx, so it can be used with
+        other Telnyx services.
+      operationId: createDialogflowConnection
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/DialogflowConnectionRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Create a Dialogflow Connection
+      tags:
+      - Dialogflow ES Integration
+      x-latency-category: responsive
+    put:
+      description: Updates a stored Dialogflow ES Connection.
+      operationId: updateDialogflowConnection
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        $ref: '#/components/requestBodies/DialogflowConnectionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Update stored Dialogflow ES Connection
+      tags:
+      - Dialogflow ES Integration
+      x-latency-category: responsive
   /document_links:
     get:
       description: List all documents links ordered by created_at descending.
@@ -44234,6 +44380,8 @@ tags:
   name: Debugging
 - description: Detail Records operations
   name: Detail Records
+- description: Dialogflow Connection Operations.
+  name: Dialogflow ES Integration
 - description: Documents
   name: Documents
 - description: Dynamic emergency address operations
