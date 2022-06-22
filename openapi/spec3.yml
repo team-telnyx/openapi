@@ -29,6 +29,13 @@ components:
       required: true
       schema:
         type: string
+    CallSid:
+      description: The CallSid that identifies the call to update.
+      in: path
+      name: call_sid
+      required: true
+      schema:
+        type: string
     ChannelTypeId:
       description: Filter by the id of a channel type
       in: query
@@ -4034,6 +4041,16 @@ components:
                 $ref: '#/components/schemas/SIMCard'
             type: object
       description: Successful response
+    UpdateTeXmlCallResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/UpdateCommandResult'
+            title: TeXml REST Command Response
+            type: object
+      description: Successful response upon updating a TeXml call.
     UploadMediaResponse:
       content:
         application/json:
@@ -26319,6 +26336,70 @@ components:
       - webhook_event_url
       title: Update Call Control Application Request
       type: object
+    UpdateCallRequest:
+      example:
+        Status: completed
+      properties:
+        FallbackMethod:
+          description: HTTP request type used for `FallbackUrl`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        FallbackUrl:
+          description: A failover URL for which Telnyx will retrieve the TeXML call
+            instructions if the Url is not responding.
+          example: https://www.example.com/intruction-c.xml
+          type: string
+        Method:
+          description: HTTP request type used for `Url`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        Status:
+          description: The value to set the call status to. Setting the status to
+            completed ends the call.
+          example: completed
+          type: string
+        StatusCallback:
+          description: URL destination for Telnyx to send status callback events to
+            for the call.
+          example: https://www.example.com/callback
+          type: string
+        StatusCallbackMethod:
+          description: HTTP request type used for `StatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        Texml:
+          description: TeXml to replace the current one with.
+          example: <?xml version="1.0" encoding="UTF-8"?><Response><Say>Hello</Say></Response>
+          type: string
+        Url:
+          description: The URL where TeXML will make a request to retrieve a new set
+            of TeXML instructions to continue the call flow.
+          example: https://www.example.com/intruction-b.xml
+          type: string
+      title: Update Call Request
+      type: object
+    UpdateCommandResult:
+      example:
+        sid: c46e06d7-b78f-4b13-96b6-c576af9640ff
+        status: accepted
+      properties:
+        sid:
+          example: c46e06d7-b78f-4b13-96b6-c576af9640ff
+          type: string
+        status:
+          example: accepted
+          type: string
+      title: TeXml REST Update Command Result
+      type: object
     UpdateConferenceRequest:
       example:
         call_control_id: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
@@ -43312,6 +43393,27 @@ paths:
       tags:
       - Access Tokens
       x-latency-category: responsive
+  /texml/{call_sid}/update:
+    post:
+      description: Update TeXml call
+      operationId: UpdateTeXmlCall
+      parameters:
+      - $ref: '#/components/parameters/CallSid'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCallRequest'
+        description: Update Call request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/UpdateTeXmlCallResponse'
+      summary: Update call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
   /texml_applications:
     get:
       description: Returns a list of your TeXML Applications.
@@ -45494,6 +45596,8 @@ tags:
   name: Short Codes
 - description: TeXML Applications operations
   name: TeXML Applications
+- description: TeXML REST Commands
+  name: TeXML REST Commands
 - description: Verified Calls Display Profile related endpoints
   name: Verified Calls Display Profile
 - description: Two factor authentication API
