@@ -1115,8 +1115,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/DialogflowConnection'
-      description: The params expected to create/update a Dialogflow ES Connection
-        for given connection_id.
+      description: The params expected to create/update a Dialogflow Connection for
+        given connection_id.
       required: true
     VerifyCustomerServiceRequestPhoneNumberCoverage:
       content:
@@ -1716,8 +1716,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/DialogflowConnectionResponse'
-      description: Return details of the Dialogflow ES connection associated with
-        the given CallControl connection.
+      description: Return details of the Dialogflow connection associated with the
+        given CallControl connection.
     DocReqsListRequirementTypesResponse:
       content:
         application/json:
@@ -7321,6 +7321,7 @@ components:
           value: val_2
         dialogflow_config:
           analyze_sentiment: false
+          partial_automated_agent_reply: false
         enable_dialogflow: false
         from: '+18005550101'
         from_display_name: Company Name
@@ -13465,43 +13466,82 @@ components:
           description: Enable sentiment analysis from Dialogflow.
           example: 'true'
           type: boolean
+        partial_automated_agent_reply:
+          default: false
+          description: Enable partial automated agent reply from Dialogflow.
+          example: true
+          type: boolean
       title: Dialogflow Config
       type: object
     DialogflowConnection:
       example:
-        service_account: '{"type":"service_account","project_id":"dialogflow-init-123-456789","private_key_id":"9a66104a-4f71-45fb-a3c4-b256a2223882","private_key":"-----BEGIN
-          PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"235914430018928359003","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}'
+        conversation_profile_id: a-VMHLWzTmKjiJw5S6O0-w
+        dialogflow_api: cx
+        environment: development
+        location: global
+        service_Account: '{"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key","private_key":"-----BEGIN
+          PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"your-client-id","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}'
       properties:
+        conversation_profile_id:
+          description: The id of a configured conversation profile on your Dialogflow
+            account. (If you use Dialogflow CX, this param is required)
+          example: a-VMHLWzTmKjiJw5S6O0-w
+          type: string
+        dialogflow_api:
+          default: es
+          description: Determin which Dialogflow will be used.
+          enum:
+          - cx
+          - es
+          example: cx
+          type: string
+        environment:
+          description: Which Dialogflow environment will be used.
+          example: development
+          type: string
+        location:
+          description: The region of your agent is. (If you use Dialogflow CX, this
+            param is required)
+          example: global
+          type: string
         service_account:
           description: The JSON map to connect your Dialoglow account.
-          example: '{"service_account":{"type":"service_account","project_id":"dialogflow-init-123-456789","private_key_id":"9a66104a-4f71-45fb-a3c4-b256a2223882","private_key":"-----BEGIN
-            PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"235914430018928359003","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}}'
+          example: '{"service_account":{"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key","private_key":"-----BEGIN
+            PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"your-client-id","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}}'
           type: object
       required:
       - service_account
+      title: Dialogflow Connection Params
       type: object
     DialogflowConnectionResponse:
       properties:
         data:
           properties:
             connection_id:
+              description: Uniquely identifies a Telnyx application (Call Control).
               example: '1234541231'
+              type: string
+            conversation_profile_id:
+              description: The id of a configured conversation profile on your Dialogflow
+                account. (If you use Dialogflow CX, this param is required)
+              example: a-VMHLWzTmKjiJw5S6O0-w
+              type: string
+            environment:
+              description: Which Dialogflow environment will be used.
+              example: development
               type: string
             record_type:
               example: dialogflow_connections
               type: string
             service_account:
+              description: The JSON map to connect your Dialoglow account.
               example: '****'
               type: string
-          required:
-          - record_type
-          - connection_id
-          - service_account
-          title: Dialogflow ES Connection Storaged
+          title: Dialogflow Connection
           type: object
       required:
       - data
-      title: Dialogflow ES Connection Response
+      title: Dialogflow Connection Response
       type: object
     Direction:
       description: The direction of the fax.
@@ -25178,6 +25218,7 @@ components:
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
         dialogflow_config:
           analyze_sentiment: false
+          partial_automated_agent_reply: false
         enable_dialogflow: false
         stream_track: both_tracks
         stream_url: wss://www.example.com/websocket
@@ -34723,19 +34764,18 @@ paths:
       x-latency-category: interactive
   /dialogflow_connections/{connection_id}:
     delete:
-      description: Deletes a stored Dialogflow ES Connection.
+      description: Deletes a stored Dialogflow Connection.
       operationId: deleteDialogflowConnection
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
       responses:
         '204':
-          description: The Dialogflow ES Connection for connection_id was deleted
-            successfully.
+          description: The Dialogflow Connection for connection_id was deleted successfully.
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Delete stored Dialogflow ES Connection
+      summary: Delete stored Dialogflow Connection
       tags:
-      - Dialogflow ES Integration
+      - Dialogflow Integration
       x-latency-category: responsive
     get:
       description: Return details of the Dialogflow connection associated with the
@@ -34767,10 +34807,10 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Create a Dialogflow Connection
       tags:
-      - Dialogflow ES Integration
+      - Dialogflow Integration
       x-latency-category: responsive
     put:
-      description: Updates a stored Dialogflow ES Connection.
+      description: Updates a stored Dialogflow Connection.
       operationId: updateDialogflowConnection
       parameters:
       - $ref: '#/components/parameters/ConnectionId'
@@ -34781,9 +34821,9 @@ paths:
           $ref: '#/components/responses/DialogflowConnectionResponseBody'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Update stored Dialogflow ES Connection
+      summary: Update stored Dialogflow Connection
       tags:
-      - Dialogflow ES Integration
+      - Dialogflow Integration
       x-latency-category: responsive
   /document_links:
     get:
@@ -45526,7 +45566,7 @@ tags:
 - description: Detail Records operations
   name: Detail Records
 - description: Dialogflow Connection Operations.
-  name: Dialogflow ES Integration
+  name: Dialogflow Integration
 - description: Documents
   name: Documents
 - description: Dynamic emergency address operations
