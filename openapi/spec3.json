@@ -2376,7 +2376,7 @@
     "/calls": {
       "post": {
         "summary": "Dial",
-        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was set to `detect_beep`, `greeting_end` or `detect_words`\n- `streaming.started` and `streaming.stopped` if `stream_url` was set\n",
+        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was requested to detect the end of machine greeting\n- `call.machine.premium.detection.ended` if `answering_machine_detection=premium` was requested\n- `call.machine.premium.greeting.ended` if `answering_machine_detection=premium` was requested and a beep was detected\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n",
         "operationId": "callDial",
         "tags": [
           "Call Commands"
@@ -2547,6 +2547,27 @@
                 }
               }
             }
+          },
+          "streamingFailed": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingFailedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
           }
         },
         "x-latency-category": "interactive"
@@ -2610,7 +2631,7 @@
     "/calls/{call_control_id}/actions/answer": {
       "post": {
         "summary": "Answer call",
-        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks:**\n\n- `call.answered`\n- `streaming.started` and `streaming.stopped` if `stream_url` was set",
+        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks:**\n\n- `call.answered`\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n",
         "operationId": "callAnswer",
         "tags": [
           "Call Commands"
@@ -2691,6 +2712,27 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallStreamingStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "streamingFailed": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingFailedEvent"
                       }
                     }
                   }
@@ -4129,7 +4171,7 @@
     "/calls/{call_control_id}/actions/streaming_start": {
       "post": {
         "summary": "Streaming start",
-        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n",
+        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n",
         "tags": [
           "Call Commands"
         ],
@@ -4188,6 +4230,27 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallStreamingStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callStreamingFailed": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallStreamingFailedEvent"
                       }
                     }
                   }
@@ -32919,6 +32982,141 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallSpeakStarted"
+          }
+        }
+      },
+      "CallStreamingFailed": {
+        "type": "object",
+        "title": "Streaming Failed",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "streaming.failed",
+            "enum": [
+              "streaming.failed"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:11:24.613295Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "failure_reason": {
+                "type": "string",
+                "example": "connection_failed",
+                "description": "A short description explaning why the media streaming failed."
+              },
+              "stream_id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "1edb94f9-7ef0-4150-b502-e0ebadfd9491",
+                "description": "Identifies the streaming."
+              },
+              "stream_params": {
+                "type": "object",
+                "description": "Streaming parameters as they were originally given to the Call Control API.",
+                "properties": {
+                  "stream_url": {
+                    "type": "string",
+                    "example": "wss://www.example.com/websocket",
+                    "description": "The destination WebSocket address where the stream is going to be delivered."
+                  },
+                  "track": {
+                    "description": "Specifies which track should be streamed.",
+                    "type": "string",
+                    "enum": [
+                      "inbound_track",
+                      "outbound_track",
+                      "both_tracks"
+                    ],
+                    "default": "inbound_track",
+                    "example": "inbound_track"
+                  }
+                }
+              },
+              "stream_type": {
+                "type": "string",
+                "example": "websocket",
+                "enum": [
+                  "websocket",
+                  "dialogflow"
+                ],
+                "description": "The type of stream connection the stream is performing."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "streaming.failed",
+          "id": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+          "occurred_at": "2021-12-15T14:11:24.613295Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "failure_reason": "connection_failed",
+            "stream_id": "1edb94f9-7ef0-4150-b502-e0ebadfd9491",
+            "stream_params": {
+              "stream_url": "wss://www.example.com/websocket",
+              "stream_track": "inbound_track"
+            },
+            "stream_type": "websocket"
+          }
+        }
+      },
+      "CallStreamingFailedEvent": {
+        "type": "object",
+        "title": "Streaming Failed Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallStreamingFailed"
           }
         }
       },

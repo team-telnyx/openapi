@@ -7776,6 +7776,118 @@ components:
           $ref: '#/components/schemas/CallSpeakStarted'
       title: Call Speak Started Event
       type: object
+    CallStreamingFailed:
+      example:
+        event_type: streaming.failed
+        id: 25dc3731-e51e-4927-a50d-a61cc25984b1
+        occurred_at: '2021-12-15T14:11:24.613295Z'
+        payload:
+          call_control_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_leg_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_session_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          failure_reason: connection_failed
+          stream_id: 1edb94f9-7ef0-4150-b502-e0ebadfd9491
+          stream_params:
+            stream_track: inbound_track
+            stream_url: wss://www.example.com/websocket
+          stream_type: websocket
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - streaming.failed
+          example: streaming.failed
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 25dc3731-e51e-4927-a50d-a61cc25984b1
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2021-12-15T14:11:24.613295Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            failure_reason:
+              description: A short description explaning why the media streaming failed.
+              example: connection_failed
+              type: string
+            stream_id:
+              description: Identifies the streaming.
+              example: 1edb94f9-7ef0-4150-b502-e0ebadfd9491
+              format: uuid
+              type: string
+            stream_params:
+              description: Streaming parameters as they were originally given to the
+                Call Control API.
+              properties:
+                stream_url:
+                  description: The destination WebSocket address where the stream
+                    is going to be delivered.
+                  example: wss://www.example.com/websocket
+                  type: string
+                track:
+                  default: inbound_track
+                  description: Specifies which track should be streamed.
+                  enum:
+                  - inbound_track
+                  - outbound_track
+                  - both_tracks
+                  example: inbound_track
+                  type: string
+              type: object
+            stream_type:
+              description: The type of stream connection the stream is performing.
+              enum:
+              - websocket
+              - dialogflow
+              example: websocket
+              type: string
+          type: object
+        record_type:
+          description: Identifies the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Streaming Failed
+      type: object
+    CallStreamingFailedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallStreamingFailed'
+      title: Streaming Failed Event
+      type: object
     CallStreamingStarted:
       example:
         event_type: streaming.started
@@ -31475,6 +31587,19 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
+        streamingFailed:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallStreamingFailedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
         streamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -31515,10 +31640,17 @@ paths:
 
         - `call.machine.detection.ended` if `answering_machine_detection` was requested
 
-        - `call.machine.greeting.ended` if `answering_machine_detection` was set to
-        `detect_beep`, `greeting_end` or `detect_words`
+        - `call.machine.greeting.ended` if `answering_machine_detection` was requested
+        to detect the end of machine greeting
 
-        - `streaming.started` and `streaming.stopped` if `stream_url` was set
+        - `call.machine.premium.detection.ended` if `answering_machine_detection=premium`
+        was requested
+
+        - `call.machine.premium.greeting.ended` if `answering_machine_detection=premium`
+        was requested and a beep was detected
+
+        - `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url`
+        was set
 
         '
       operationId: callDial
@@ -31592,6 +31724,19 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
+        streamingFailed:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallStreamingFailedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
         streamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -31627,7 +31772,10 @@ paths:
 
         - `call.answered`
 
-        - `streaming.started` and `streaming.stopped` if `stream_url` was set'
+        - `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url`
+        was set
+
+        '
       operationId: callAnswer
       parameters:
       - $ref: '#/components/parameters/CallControlId'
@@ -32773,6 +32921,19 @@ paths:
   /calls/{call_control_id}/actions/streaming_start:
     post:
       callbacks:
+        callStreamingFailed:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallStreamingFailedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
         callStreamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -32819,12 +32980,12 @@ paths:
         , \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\"\
         : true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start\
         \ \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n\
-        \n**WebSocket events**\n\nWhen the WebSocket connection is established, the\
-        \ following event is being sent over it:\n```\n{\n  \"event\": \"connected\"\
-        ,\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event\
-        \ which contains information about the encoding and `stream_id` that identifies\
-        \ a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\"\
-        : \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\"\
+        - `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection\
+        \ is established, the following event is being sent over it:\n```\n{\n  \"\
+        event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call\
+        \ is started, an event which contains information about the encoding and `stream_id`\
+        \ that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n\
+        \  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\"\
         ,\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\
         , \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\"\
         : {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n\
