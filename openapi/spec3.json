@@ -4175,7 +4175,7 @@
     "/calls/{call_control_id}/actions/streaming_start": {
       "post": {
         "summary": "Streaming start",
-        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n\n```\n{\n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n }\n```\n\n**Bidirectional Media Streaming**\n\nMedia can be sent back to the call through the websocket as well. This is done in a way very similar to the [playback_start](https://developers.telnyx.com/docs/api/v2/call-control/Call-Commands#callPlaybackStart)\ncommand, when using a base64 encoded mp3 file in the payload. Simply send a packet to the websocket connection as follows:\n\n```\n{\n  \"event\": \"media\",\n  \"media\": {\n    \"payload\" : <your base64 encoded mp3 file>\n  }\n}\n```\n\nThe payload, which is a base64-encoded mp3 file, will be played on the call.\n\nSome limitations to be aware of:\n\n- Media payloads can only be submitted once per second.\n- Media _must_ be base64 encoded mp3\n\n**Stream Errors**\n\nAny errors in the media packet, including when a rate limit is reached, will result in an error frame being\nsent to your websocket server. The error frame will appear as follows:\n\n```\n{\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\",\n  \"event\": \"error\",\n  \"sequence_number\": \"6\",\n  \"error\": {\n    \"title\": \"rate_limit_reached\",\n    \"code\": \"100005\",\n    \"detail\": \"Too many requests\"\n  }\n}\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"`\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"`\n- Error 100005: `\"rate_limit_reached\"`\n",
+        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n\n**Bidirectional Media Streaming**\n\nMedia can be sent back to the call through the websocket as well. This is done in a way very similar to the [playback_start](https://developers.telnyx.com/docs/api/v2/call-control/Call-Commands#callPlaybackStart)\ncommand, when using a base64 encoded mp3 file in the payload. Simply send a packet to the websocket connection as follows:\n\n```\n{\n  \"event\": \"media\",\n  \"media\": {\n    \"payload\" : <your base64 encoded mp3 file>\n  }\n}\n```\n\nThe payload, which is a base64-encoded mp3 file, will be played on the call.\n\nSome limitations to be aware of:\n\n- Media payloads can only be submitted once per second.\n- Media _must_ be base64 encoded mp3\n\n**Stream Errors**\n\nAny errors in the media packet, including when a rate limit is reached, will result in an error frame being\nsent to your websocket server. The error frame will appear as follows:\n\n```\n{\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\",\n  \"event\": \"error\",\n  \"sequence_number\": \"6\",\n  \"error\": {\n    \"title\": \"rate_limit_reached\",\n    \"code\": \"100005\",\n    \"detail\": \"Too many requests\"\n  }\n}\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"`\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"`\n- Error 100005: `\"rate_limit_reached\"`\n",
         "tags": [
           "Call Commands"
         ],
@@ -29768,7 +29768,7 @@
           "call_control_id": {
             "description": "The Call Control ID of the call you want to bridge with.",
             "type": "string",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           },
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
@@ -29792,7 +29792,7 @@
           }
         },
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "park_after_unbridge": "self"
@@ -30194,7 +30194,7 @@
           "record_type"
         ],
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "call_leg_id": "2dc6fc34-f9e0-11ea-b68e-02420a0f7768",
           "call_session_id": "2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768",
           "is_alive": false,
@@ -30221,7 +30221,7 @@
           "call_control_id": {
             "description": "Unique identifier and token for controlling the call.",
             "type": "string",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           },
           "is_alive": {
             "description": "Indicates whether the call is alive or not. For Dial command it will always be `false` (dialing is asynchronous).",
@@ -30267,7 +30267,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -30317,7 +30317,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -30374,7 +30374,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -30424,7 +30424,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -30703,7 +30703,7 @@
               },
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "call_leg_id": {
@@ -30821,7 +30821,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -30868,7 +30868,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -30925,7 +30925,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -30967,7 +30967,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -31309,7 +31309,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -31369,7 +31369,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -31427,7 +31427,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -31513,7 +31513,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -31574,7 +31574,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -31634,7 +31634,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -31692,7 +31692,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -31746,7 +31746,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -31803,7 +31803,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -31911,7 +31911,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -32018,7 +32018,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -32079,7 +32079,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -32136,7 +32136,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -32183,7 +32183,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -32357,7 +32357,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -33067,7 +33067,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -33109,7 +33109,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -33164,7 +33164,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -33196,7 +33196,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34270,7 +34270,7 @@
           }
         },
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "hold": true,
@@ -34311,7 +34311,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34348,7 +34348,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -34512,7 +34512,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -34564,7 +34564,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34593,7 +34593,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34630,7 +34630,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call Control ID of the new speaker."
               },
               "connection_id": {
@@ -34692,7 +34692,7 @@
         },
         "example": {
           "call_control_ids": [
-            "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           ],
           "audio_url": "http://example.com/message.wav"
         }
@@ -34711,7 +34711,7 @@
         },
         "example": {
           "call_control_ids": [
-            "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           ]
         }
       },
@@ -34847,7 +34847,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -34884,7 +34884,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34911,7 +34911,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -34953,7 +34953,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
@@ -35003,7 +35003,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -35042,7 +35042,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Participant's call ID used to issue commands via Call Control API."
               },
               "call_leg_id": {
@@ -35113,7 +35113,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -35152,7 +35152,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Participant's call ID used to issue commands via Call Control API."
               },
               "call_leg_id": {
@@ -35223,7 +35223,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -35261,7 +35261,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Participant's call ID used to issue commands via Call Control API."
               },
               "call_leg_id": {
@@ -35322,7 +35322,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "connection_id": "7267xxxxxxxxxxxxxx",
             "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -35360,7 +35360,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Participant's call ID used to issue commands via Call Control API."
               },
               "call_leg_id": {
@@ -35625,7 +35625,7 @@
           "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
           "occurred_at": "2018-02-02T22:25:27.521992Z",
           "payload": {
-            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
             "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
             "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
             "channels": "single",
@@ -35673,7 +35673,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Participant's call ID used to issue commands via Call Control API."
               },
               "call_session_id": {
@@ -35941,7 +35941,7 @@
         },
         "example": {
           "call_control_ids": [
-            "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           ],
           "payload": "Say this to participants",
           "payload_type": "text",
@@ -36055,7 +36055,7 @@
         },
         "example": {
           "call_control_ids": [
-            "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           ]
         }
       },
@@ -36073,7 +36073,7 @@
         },
         "example": {
           "call_control_ids": [
-            "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           ]
         }
       },
@@ -36579,7 +36579,7 @@
           }
         },
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "name": "Business",
           "beep_enabled": "always",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
@@ -43862,7 +43862,7 @@
           }
         },
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "end_conference_on_exit": true,
@@ -47605,7 +47605,7 @@
           "status": "joining",
           "muted": false,
           "on_hold": true,
-          "call_control_id": "v2:v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "whisper_call_control_ids": [
             "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
             "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
@@ -50592,7 +50592,7 @@
           "queue_id"
         ],
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "call_leg_id": "2dc6fc34-f9e0-11ea-b68e-02420a0f7768",
           "call_session_id": "2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768",
           "record_type": "queue_call",
@@ -50625,7 +50625,7 @@
           "call_control_id": {
             "description": "Unique identifier and token for controlling the call.",
             "type": "string",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+            "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           },
           "connection_id": {
             "type": "string",
@@ -55042,7 +55042,7 @@
               "call_control_id": {
                 "description": "Unique identifier and token for controlling the call.",
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ"
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
               },
               "call_leg_id": {
                 "type": "string",
@@ -55814,7 +55814,7 @@
           }
         },
         "example": {
-          "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
           "supervisor_role": "whisper",
           "whisper_call_control_ids": [
@@ -60326,7 +60326,7 @@
             "properties": {
               "call_control_id": {
                 "type": "string",
-                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
                 "description": "Call ID used to issue commands via Call Control API."
               },
               "connection_id": {
