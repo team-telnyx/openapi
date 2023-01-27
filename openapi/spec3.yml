@@ -854,10 +854,10 @@ components:
       required: true
       schema:
         type: string
-    PathCustomerServiceRequestId:
-      description: The ID of the customer service request
+    PathCustomerServiceRecordId:
+      description: The ID of the customer service record
       in: path
-      name: customer_service_request_id
+      name: customer_service_record_id
       required: true
       schema:
         type: string
@@ -1095,11 +1095,13 @@ components:
             $ref: '#/components/schemas/GCSConfiguration'
       description: Creates new credentials resource for given connection_id.
       required: true
-    CreateCustomerServiceRequest:
+    CreateCustomerServiceRecord:
       content:
         application/json:
           schema:
             properties:
+              additional_data:
+                $ref: '#/components/schemas/CustomerServiceRecordAdditionalData'
               phone_number:
                 description: A valid US phone number in E164 format.
                 example: '+1234567890'
@@ -1153,7 +1155,7 @@ components:
       description: The params expected to create/update a Dialogflow Connection for
         given connection_id.
       required: true
-    VerifyCustomerServiceRequestPhoneNumberCoverage:
+    VerifyCustomerServiceRecordPhoneNumberCoverage:
       content:
         application/json:
           schema:
@@ -1523,6 +1525,25 @@ components:
                 $ref: '#/components/schemas/BillingGroup'
             type: object
       description: Expected billing group response to a valid request
+    CreateCustomerServiceRecord:
+      content:
+        application/json:
+          schema:
+            example:
+              data:
+                created_at: '2023-01-01T00:00:00Z'
+                error_message: null
+                id: db7cebdb-21a8-4e89-8f51-e03ba6b799bb
+                phone_number: '+2003271000'
+                result: null
+                status: pending
+                updated_at: '2023-01-01T00:00:00Z'
+                webhook_url: https://example.com/webhook
+            properties:
+              data:
+                $ref: '#/components/schemas/CustomerServiceRecord'
+            type: object
+      description: Successful Response
     CreateLedgerBillingGroupReportResponse:
       content:
         application/json:
@@ -2307,25 +2328,25 @@ components:
             title: List CSV Downloads Response
             type: object
       description: Successful response with a list of CSV downloads.
-    ListCustomerServiceRequestPhoneNumberCoverage:
+    ListCustomerServiceRecordPhoneNumberCoverage:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/CustomerServiceRequestPhoneNumberCoverage'
+                  $ref: '#/components/schemas/CustomerServiceRecordPhoneNumberCoverage'
                 type: array
             type: object
       description: Successful Response
-    ListCustomerServiceRequests:
+    ListCustomerServiceRecords:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/CustomerServiceRequest'
+                  $ref: '#/components/schemas/CustomerServiceRecord'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
@@ -3765,13 +3786,13 @@ components:
             title: Short Code Response
             type: object
       description: Successful response with details about a short code.
-    ShowCustomerServiceRequest:
+    ShowCustomerServiceRecord:
       content:
         application/json:
           schema:
             properties:
               data:
-                $ref: '#/components/schemas/CustomerServiceRequest'
+                $ref: '#/components/schemas/CustomerServiceRecord'
             type: object
       description: Successful Response
     ShowPortingOrder:
@@ -14443,60 +14464,97 @@ components:
           type: string
       title: CustomerFacingFQDNsResponseSchema
       type: object
-    CustomerServiceRequest:
+    CustomerServiceRecord:
       properties:
-        address:
-          description: The address of the customer service request
-          properties:
-            administrative_area:
-              description: The state of the address
-              example: NY
-              type: string
-            locality:
-              description: The city of the address
-              example: New York
-              type: string
-            postal_code:
-              description: The zip code of the address
-              example: '10001'
-              type: string
-            street_address:
-              description: The street address
-              example: 123 Main St
-              type: string
-          type: object
-        carrier_name:
-          description: The name of the carrier that the customer service request is
-            for.
-          example: ABC CARRIER, INC.
-          type: string
         created_at:
           description: ISO 8601 formatted date indicating when the resource was created.
           example: '2021-03-19T10:07:15.527Z'
           format: date-time
           readOnly: true
           type: string
+        error_message:
+          description: The error message in case status is `failed`. This field would
+            be null in case of `pending` or `completed` status.
+          example: CSR information not available.
+          type: string
         id:
-          description: Uniquely identifies this customer service request
+          description: Uniquely identifies this customer service record
           example: f1486bae-f067-460c-ad43-73a92848f902
           format: uuid
           readOnly: true
           type: string
-        name:
-          description: The name of the customer service request.
-          example: John Doe
-          type: string
         phone_number:
-          description: The phone number of the customer service request.
+          description: The phone number of the customer service record.
           example: '+12065551212'
           type: string
         record_type:
           description: Identifies the type of the resource.
-          example: customer_service_request
+          example: customer_service_record
           readOnly: true
           type: string
+        result:
+          description: The result of the CSR request. This field would be null in
+            case of `pending` or `failed` status.
+          properties:
+            address:
+              description: The address of the customer service record
+              properties:
+                administrative_area:
+                  description: The state of the address
+                  example: NY
+                  type: string
+                full_address:
+                  description: The full address
+                  example: 123 Main St; New York; NY; 10001
+                  type: string
+                locality:
+                  description: The city of the address
+                  example: New York
+                  type: string
+                postal_code:
+                  description: The zip code of the address
+                  example: '10001'
+                  type: string
+                street_address:
+                  description: The street address
+                  example: 123 Main St
+                  type: string
+              type: object
+            admin:
+              description: The admin of the customer service record.
+              properties:
+                account_number:
+                  description: The account number of the customer service record.
+                  example: '1234567890'
+                  type: string
+                authorized_person_name:
+                  description: The authorized person name of the customer service
+                    record.
+                  example: John Doe
+                  type: string
+                billing_phone_number:
+                  description: The billing phone number of the customer service record.
+                  example: '+12065551212'
+                  type: string
+                name:
+                  description: The name of the customer service record.
+                  example: John Doe
+                  type: string
+              type: object
+            associated_phone_numbers:
+              description: The associated phone numbers of the customer service record.
+              items:
+                example: '+12065551212'
+                type: string
+              type: array
+            carrier_name:
+              description: The name of the carrier that the customer service record
+                is for.
+              example: ABC CARRIER, INC.
+              type: string
+          type: object
         status:
-          description: The status of the customer service request
+          description: The status of the customer service record
           enum:
           - pending
           - completed
@@ -14510,8 +14568,74 @@ components:
           readOnly: true
           type: string
       type: object
-    CustomerServiceRequestPhoneNumberCoverage:
+    CustomerServiceRecordAdditionalData:
       properties:
+        account_number:
+          description: The account number of the customer service record.
+          example: '123456789'
+          type: string
+        address_line_1:
+          description: The first line of the address of the customer service record.
+          example: 123 Main St
+          type: string
+        authorized_person_name:
+          description: The name of the authorized person.
+          example: John Doe
+          type: string
+        billing_phone_number:
+          description: The billing phone number of the customer service record.
+          example: '+12065551212'
+          pattern: ^\+1\d{10}$
+          type: string
+        city:
+          description: The city of the customer service record.
+          example: New York
+          type: string
+        customer_code:
+          description: The customer code of the customer service record.
+          example: '123456789'
+          type: string
+        name:
+          description: The name of the administrator of CSR.
+          example: Entity Inc.
+          type: string
+        pin:
+          description: The PIN of the customer service record.
+          example: '1234'
+          type: string
+        state:
+          description: The state of the customer service record.
+          example: NY
+          maxLength: 2
+          pattern: ^[A-Z]{2}$
+          type: string
+        zip_code:
+          description: The zip code of the customer service record.
+          example: '10001'
+          maxLength: 5
+          pattern: ^\d{5}$
+          type: string
+      type: object
+    CustomerServiceRecordPhoneNumberCoverage:
+      properties:
+        additional_data_required:
+          description: Additional data required to perform CSR for the phone number.
+            Only returned if `has_csr_coverage` is true.
+          items:
+            enum:
+            - name
+            - authorized_person_name
+            - account_number
+            - customer_code
+            - pin
+            - address_line_1
+            - city
+            - state
+            - zip_code
+            - billing_phone_number
+            example: name
+            type: string
+          type: array
         has_csr_coverage:
           description: Indicates whether the phone number is covered or not.
           example: true
@@ -14527,16 +14651,16 @@ components:
           type: string
         record_type:
           description: Identifies the type of the resource.
-          example: customer_service_request_phone_number_coverage
+          example: customer_service_record_phone_number_coverage
           type: string
       type: object
-    CustomerServiceRequestStatusChangedEvent:
+    CustomerServiceRecordStatusChangedEvent:
       properties:
         event_type:
           description: The type of the callback event.
           enum:
-          - customer_service_request.status_changed
-          example: customer_service_request.status_changed
+          - customer_service_record.status_changed
+          example: customer_service_record.status_changed
           type: string
         id:
           description: Uniquely identifies the callback event.
@@ -14552,16 +14676,16 @@ components:
         payload:
           properties:
             id:
-              description: Uniquely identifies the customer service request.
+              description: Uniquely identifies the customer service record.
               example: f1486bae-f067-460c-ad43-73a92848f902
               format: uuid
               type: string
             phone_number:
-              description: The phone number of the customer service request.
+              description: The phone number of the customer service record.
               example: '+12065551212'
               type: string
             status:
-              description: The status of the customer service request
+              description: The status of the customer service record
               enum:
               - pending
               - completed
@@ -37923,10 +38047,10 @@ paths:
       tags:
       - Call Recordings
       x-latency-category: responsive
-  /customer_service_requests:
+  /customer_service_records:
     get:
-      description: List customer service requests.
-      operationId: listCustomerServiceRequests
+      description: List customer service records.
+      operationId: listCustomerServiceRecords
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
@@ -37948,7 +38072,7 @@ paths:
       - $ref: '#/components/parameters/CreatedAtGtFilter'
       responses:
         '200':
-          $ref: '#/components/responses/ListCustomerServiceRequests'
+          $ref: '#/components/responses/ListCustomerServiceRecords'
         '401':
           $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
@@ -37957,13 +38081,13 @@ paths:
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         '500':
           $ref: '#/components/responses/UnexpectedErrorResponse'
-      summary: List customer service requests
+      summary: List customer service records
       tags:
-      - Customer Service Request
+      - Customer Service Record
       x-latency-category: responsive
     post:
       callbacks:
-        CustomerServiceRequestStatusChanged:
+        CustomerServiceRecordStatusChanged:
           '{$request.body#/webhook_url}':
             post:
               requestBody:
@@ -37972,7 +38096,7 @@ paths:
                     schema:
                       properties:
                         data:
-                          $ref: '#/components/schemas/CustomerServiceRequestStatusChangedEvent'
+                          $ref: '#/components/schemas/CustomerServiceRecordStatusChangedEvent'
                         meta:
                           $ref: '#/components/schemas/CallbackWebhookMeta'
                       type: object
@@ -37981,13 +38105,13 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-      description: Create a new customer service request for the provided phone number.
-      operationId: createCustomerServiceRequest
+      description: Create a new customer service record for the provided phone number.
+      operationId: createCustomerServiceRecord
       requestBody:
-        $ref: '#/components/requestBodies/CreateCustomerServiceRequest'
+        $ref: '#/components/requestBodies/CreateCustomerServiceRecord'
       responses:
         '201':
-          $ref: '#/components/responses/ShowCustomerServiceRequest'
+          $ref: '#/components/responses/CreateCustomerServiceRecord'
         '401':
           $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
@@ -37996,19 +38120,19 @@ paths:
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         '500':
           $ref: '#/components/responses/UnexpectedErrorResponse'
-      summary: Create a customer service request
+      summary: Create a customer service record
       tags:
-      - Customer Service Request
+      - Customer Service Record
       x-latency-category: responsive
-  /customer_service_requests/phone_number_coverages:
+  /customer_service_records/phone_number_coverages:
     post:
       description: Verify the coverage for a list of phone numbers.
       operationId: verifyPhoneNumberCoverage
       requestBody:
-        $ref: '#/components/requestBodies/VerifyCustomerServiceRequestPhoneNumberCoverage'
+        $ref: '#/components/requestBodies/VerifyCustomerServiceRecordPhoneNumberCoverage'
       responses:
         '201':
-          $ref: '#/components/responses/ListCustomerServiceRequestPhoneNumberCoverage'
+          $ref: '#/components/responses/ListCustomerServiceRecordPhoneNumberCoverage'
         '401':
           $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
@@ -38019,17 +38143,17 @@ paths:
           $ref: '#/components/responses/UnexpectedErrorResponse'
       summary: Verify CSR phone number coverage
       tags:
-      - Customer Service Request
+      - Customer Service Record
       x-latency-category: responsive
-  /customer_service_requests/{customer_service_request_id}:
+  /customer_service_records/{customer_service_record_id}:
     get:
-      description: Get a specific customer service request.
-      operationId: getCustomerServiceRequest
+      description: Get a specific customer service record.
+      operationId: getCustomerServiceRecord
       parameters:
-      - $ref: '#/components/parameters/PathCustomerServiceRequestId'
+      - $ref: '#/components/parameters/PathCustomerServiceRecordId'
       responses:
         '201':
-          $ref: '#/components/responses/ShowCustomerServiceRequest'
+          $ref: '#/components/responses/ShowCustomerServiceRecord'
         '401':
           $ref: '#/components/responses/UnauthorizedErrorResponse'
         '403':
@@ -38038,9 +38162,9 @@ paths:
           $ref: '#/components/responses/ResourceNotFoundErrorResponse'
         '500':
           $ref: '#/components/responses/UnexpectedErrorResponse'
-      summary: Get a customer service request
+      summary: Get a customer service record
       tags:
-      - Customer Service Request
+      - Customer Service Record
       x-latency-category: responsive
   /detail_records:
     get:
@@ -49691,8 +49815,8 @@ tags:
   name: Credential Connections
 - description: Credentials operations
   name: Credentials
-- description: Customer Service Request operations
-  name: Customer Service Request
+- description: Customer Service Record operations
+  name: Customer Service Record
 - description: Call Control debugging
   name: Debugging
 - description: Detail Records operations
