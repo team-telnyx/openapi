@@ -3246,6 +3246,12 @@ components:
                 $ref: '#/components/schemas/Network'
             type: object
       description: Successful response
+    NotFoundErrorResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Resource Not Found
     NotFoundResponse:
       description: Fax does not exist
     NumberBlockOrderResponse:
@@ -3944,6 +3950,12 @@ components:
                 type: array
       description: The required authentication headers were either invalid or not
         included in the request.
+    UnauthorizedRequestErrorResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Unauthorized Request
     UnauthorizedResponse:
       description: Unauthorized response. Happens when the current user is not a manager
         account.
@@ -13723,6 +13735,16 @@ components:
       - business_identity_id
       - name
       type: object
+    CreateVerifiedNumberResponse:
+      properties:
+        phone_number:
+          example: '+15551234567'
+          type: string
+        verification_method:
+          example: sms
+          type: string
+      title: CreateVerifiedNumberResponse
+      type: object
     CreateVerifyProfileCallRequest:
       properties:
         default_call_timeout_secs:
@@ -18415,6 +18437,20 @@ components:
       - data
       - meta
       title: ListVerificationsResponse
+      type: object
+    ListVerifiedNumbersResponse:
+      description: A paginated list of Verified Numbers
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/VerifiedNumberResponse'
+          type: array
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - meta
+      title: ListVerifiedNumbersResponse
       type: object
     ListVerifyProfilesResponse:
       description: A paginated list of Verify profiles
@@ -30999,6 +31035,32 @@ components:
           format: datetime
           readOnly: true
           type: string
+      type: object
+    VerifiedNumberRecordType:
+      description: The possible verified numbers record types.
+      enum:
+      - verified_number
+      example: verified_number
+      title: VerifiedNumberRecordType
+      type: string
+    VerifiedNumberResponse:
+      properties:
+        phone_number:
+          example: '+15551234567'
+          type: string
+        record_type:
+          $ref: '#/components/schemas/VerifiedNumberRecordType'
+        verified_at:
+          example: '2020-09-14T17:03:32.965812'
+          type: string
+      title: VerifiedNumberResponse
+      type: object
+    VerifiedNumberResponseDataWrapper:
+      properties:
+        data:
+          $ref: '#/components/schemas/VerifiedNumberResponse'
+          type: object
+      title: VerifiedNumberResponseDataWrapper
       type: object
     VerifyDetailRecord:
       properties:
@@ -47896,6 +47958,185 @@ paths:
       tags:
       - Verified Calls Display Profile
       x-latency-category: responsive
+  /verified_numbers:
+    get:
+      description: Gets a paginated list of Verified Numbers.
+      operationId: listVerifiedNumbers
+      parameters:
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 25
+          title: page[size]
+          type: integer
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          title: page[number]
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListVerifiedNumbersResponse'
+          description: Expected response to a valid request.
+        '400':
+          $ref: '#/components/responses/GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedRequestErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+      summary: List all Verified Numbers
+      tags:
+      - Verified Numbers
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+    post:
+      description: Initiates phone number verification procedure.
+      operationId: createVerifiedNumber
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                phone_number:
+                  example: '+15551234567'
+                  type: string
+                verification_method:
+                  description: Verification method.
+                  enum:
+                  - sms
+                  - call
+                  example: sms
+                  type: string
+              required:
+              - phone_number
+              - verification_method
+              title: Create Verified Number Request
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVerifiedNumberResponse'
+          description: Expected response to a valid request.
+        '400':
+          $ref: '#/components/responses/GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedRequestErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+      summary: Request phone number verification
+      tags:
+      - Verified Numbers
+      x-latency-category: responsive
+  /verified_numbers/{phone_number}:
+    delete:
+      operationId: deleteVerifiedNumber
+      parameters:
+      - description: The phone number being deleted.
+        in: path
+        name: phone_number
+        required: true
+        schema:
+          description: +E164 formatted phone number.
+          example: '+15551234567'
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiedNumberResponseDataWrapper'
+          description: Expected verifications response to a valid request.
+        '400':
+          $ref: '#/components/responses/GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedRequestErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundErrorResponse'
+      summary: Delete a verified number
+      tags:
+      - Verified Numbers
+      x-latency-category: responsive
+    get:
+      operationId: retrieveVerifiedNumber
+      parameters:
+      - description: The phone number being requested.
+        in: path
+        name: phone_number
+        required: true
+        schema:
+          description: +E164 formatted phone number.
+          example: '+15551234567'
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiedNumberResponseDataWrapper'
+          description: Expected verifications response to a valid request.
+        '400':
+          $ref: '#/components/responses/GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedRequestErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundErrorResponse'
+      summary: Retrieve a verified number
+      tags:
+      - Verified Numbers
+      x-latency-category: responsive
+  /verified_numbers/{phone_number}/actions/verify:
+    post:
+      operationId: verifyVerificationCode
+      parameters:
+      - description: The phone number being verified.
+        in: path
+        name: phone_number
+        required: true
+        schema:
+          description: +E164 formatted phone number.
+          example: '+15551234567'
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                verification_code:
+                  example: '123456'
+                  type: string
+              required:
+              - verification_code
+              title: Verify Verification Code Request
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiedNumberResponseDataWrapper'
+          description: Expected response to a valid request.
+        '400':
+          $ref: '#/components/responses/GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedRequestErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityErrorResponse'
+      summary: Submit verification code
+      tags:
+      - Verified Numbers
+      x-latency-category: responsive
   /verify_profiles:
     get:
       description: Gets a paginated list of Verify profiles.
@@ -49976,6 +50217,8 @@ tags:
   name: TeXML REST Commands
 - description: Verified Calls Display Profile related endpoints
   name: Verified Calls Display Profile
+- description: ''
+  name: Verified Numbers
 - description: Two factor authentication API
   name: Verify
 - description: Virtual Cross Connect operations
