@@ -22352,6 +22352,39 @@
         "x-latency-category": "responsive"
       }
     },
+    "/texml/calls/{application_id}": {
+      "post": {
+        "summary": "Initiate an outbound call",
+        "description": "Initiate an outbound TeXML call. Telnyx will request TeXML from the XML Request URL configured for the connection in the Mission Control Portal.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "UpdateTeXMLCall",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ApplicationId"
+          }
+        ],
+        "requestBody": {
+          "description": "Iniatiate Call request object",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateCallRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InitiateCallResponse"
+          }
+        }
+      }
+    },
     "/texml/calls/{call_sid}/update": {
       "post": {
         "summary": "Update call",
@@ -26132,6 +26165,15 @@
     "headers": {},
     "links": {},
     "parameters": {
+      "ApplicationId": {
+        "name": "application_id",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the TeXML application used for the call.",
+        "schema": {
+          "type": "string"
+        }
+      },
       "AssociatedRecordType": {
         "name": "filter[associated_record_type][eq]",
         "in": "query",
@@ -29070,6 +29112,22 @@
                   "items": {
                     "$ref": "#/components/schemas/WdrReport"
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "InitiateCallResponse": {
+        "description": "Successful response upon initiating a TeXML call.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Initiate TeXML Call Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/InitiateCallResult"
                 }
               }
             }
@@ -49096,6 +49154,102 @@
           "completed_at": null,
           "valid_until": null,
           "errors": []
+        }
+      },
+      "InitiateCallRequest": {
+        "type": "object",
+        "title": "Initiate Call Request",
+        "required": [
+          "To",
+          "From"
+        ],
+        "properties": {
+          "To": {
+            "description": "The phone number of the called party. Phone numbers are formatted with a `+` and country code.",
+            "example": "+16175551212",
+            "type": "string"
+          },
+          "From": {
+            "description": "The phone number of the party that initiated the call. Phone numbers are formatted with a `+` and country code.",
+            "example": "+16175551212",
+            "type": "string"
+          },
+          "Url": {
+            "description": "The URL from which Telnyx will retrieve the TeXML call instructions.",
+            "example": "https://www.example.com/instructions.xml",
+            "type": "string"
+          },
+          "UrlMethod": {
+            "description": "HTTP request type used for `Url`. The default value is inherited from TeXML Application setting.",
+            "example": "GET",
+            "default": "POST",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "FallbackUrl": {
+            "description": "A failover URL for which Telnyx will retrieve the TeXML call instructions if the `Url` is not responding.",
+            "example": "https://www.example.com/instructions-fallback.xml",
+            "type": "string"
+          },
+          "StatusCallback": {
+            "description": "URL destination for Telnyx to send status callback events to for the call.",
+            "example": "https://www.example.com/callback",
+            "type": "string"
+          },
+          "StatusCallbackMethod": {
+            "description": "HTTP request type used for `StatusCallback`.",
+            "example": "GET",
+            "default": "POST",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          },
+          "StatusCallbackEvent": {
+            "description": "The call events for which Telnyx should send a webhook. Multiple events can be defined when separated by a space.",
+            "example": "iniated ringing",
+            "default": "completed",
+            "type": "string",
+            "enum": [
+              "initiated",
+              "ringing",
+              "answered",
+              "completed"
+            ]
+          }
+        },
+        "example": {
+          "To": "+13121230000",
+          "From": "+13120001234",
+          "Url": "https://www.example.com/texml.xml",
+          "StatusCallback": "https://www.example.com/statuscallback-listener"
+        }
+      },
+      "InitiateCallResult": {
+        "type": "object",
+        "title": "Initaite TeXML Call Result",
+        "example": {
+          "from": "+13120001234",
+          "to": "+13121230000",
+          "status": "queued"
+        },
+        "properties": {
+          "from": {
+            "type": "string",
+            "example": "+13120001234"
+          },
+          "to": {
+            "type": "string",
+            "example": "+13120000000"
+          },
+          "status": {
+            "type": "string",
+            "example": "accepted"
+          }
         }
       },
       "IntId": {

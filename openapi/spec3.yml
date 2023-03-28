@@ -4,6 +4,13 @@ components:
   headers: {}
   links: {}
   parameters:
+    ApplicationId:
+      description: The ID of the TeXML application used for the call.
+      in: path
+      name: application_id
+      required: true
+      schema:
+        type: string
     AssociatedRecordType:
       description: Filter by the associated record type
       in: query
@@ -2154,6 +2161,16 @@ components:
                 type: array
             type: object
       description: Successful response
+    InitiateCallResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/InitiateCallResult'
+            title: Initiate TeXML Call Response
+            type: object
+      description: Successful response upon initiating a TeXML call.
     InventoryCoverageResponse:
       content:
         application/json:
@@ -18220,6 +18237,87 @@ components:
           format: url
           nullable: true
           type: string
+    InitiateCallRequest:
+      example:
+        From: '+13120001234'
+        StatusCallback: https://www.example.com/statuscallback-listener
+        To: '+13121230000'
+        Url: https://www.example.com/texml.xml
+      properties:
+        FallbackUrl:
+          description: A failover URL for which Telnyx will retrieve the TeXML call
+            instructions if the `Url` is not responding.
+          example: https://www.example.com/instructions-fallback.xml
+          type: string
+        From:
+          description: The phone number of the party that initiated the call. Phone
+            numbers are formatted with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        StatusCallback:
+          description: URL destination for Telnyx to send status callback events to
+            for the call.
+          example: https://www.example.com/callback
+          type: string
+        StatusCallbackEvent:
+          default: completed
+          description: The call events for which Telnyx should send a webhook. Multiple
+            events can be defined when separated by a space.
+          enum:
+          - initiated
+          - ringing
+          - answered
+          - completed
+          example: iniated ringing
+          type: string
+        StatusCallbackMethod:
+          default: POST
+          description: HTTP request type used for `StatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        To:
+          description: The phone number of the called party. Phone numbers are formatted
+            with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        Url:
+          description: The URL from which Telnyx will retrieve the TeXML call instructions.
+          example: https://www.example.com/instructions.xml
+          type: string
+        UrlMethod:
+          default: POST
+          description: HTTP request type used for `Url`. The default value is inherited
+            from TeXML Application setting.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+      required:
+      - To
+      - From
+      title: Initiate Call Request
+      type: object
+    InitiateCallResult:
+      example:
+        from: '+13120001234'
+        status: queued
+        to: '+13121230000'
+      properties:
+        from:
+          example: '+13120001234'
+          type: string
+        status:
+          example: accepted
+          type: string
+        to:
+          example: '+13120000000'
+          type: string
+      title: Initaite TeXML Call Result
+      type: object
     IntId:
       description: Uniquely identifies the resource.
       example: '1293384261075731499'
@@ -49080,6 +49178,28 @@ paths:
       summary: Create an Access Token.
       tags:
       - Access Tokens
+      x-latency-category: responsive
+  /texml/calls/{application_id}:
+    post:
+      description: Initiate an outbound TeXML call. Telnyx will request TeXML from
+        the XML Request URL configured for the connection in the Mission Control Portal.
+      operationId: UpdateTeXMLCall
+      parameters:
+      - $ref: '#/components/parameters/ApplicationId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateCallRequest'
+        description: Iniatiate Call request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InitiateCallResponse'
+      summary: Initiate an outbound call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/calls/{call_sid}/update:
     post:
