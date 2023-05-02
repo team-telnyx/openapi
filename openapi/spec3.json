@@ -5821,6 +5821,29 @@
           }
         },
         "description": "Before creating a campaign, use the [Qualify By Usecase endpoint](https://developers.telnyx.com/docs/api/v2/10dlc/Campaign#qualify_by_usecase_campaignBuilder_brand__brand_id__usecase__usecase__get) to ensure that the brand you want to assign a new campaign to is qualified for the desired use case of that campaign. **Please note:** After campaign creation, you'll only be able to edit the campaign's sample messages. Creating a campaign will entail an upfront, non-refundable three month's cost that will depend on the campaign's use case ([see 10DLC Costs section for details](https://developers.telnyx.com/docs/api/v2/10dlc)).",
+        "callbacks": {
+          "campaignStatusUpdate": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CampaignStatusUpdateEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return a HTTP 200, otherwise we will reattempt to deliver the webhook to the failover URL."
+                  }
+                }
+              }
+            }
+          }
+        },
         "x-latency-category": "responsive"
       }
     },
@@ -15272,7 +15295,17 @@
         ],
         "summary": "Create New Phone Number Campaign",
         "operationId": "create_new_phone_number_campaign_phoneNumberCampaign__phoneNumber__put",
-        "parameters": [],
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Phonenumber",
+              "type": "string"
+            },
+            "name": "phoneNumber",
+            "in": "path"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15646,7 +15679,17 @@
         ],
         "summary": "Create New Phone Number Campaign",
         "operationId": "create_new_phone_number_campaign_phone_number_campaigns__phoneNumber__put",
-        "parameters": [],
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Phonenumber",
+              "type": "string"
+            },
+            "name": "phoneNumber",
+            "in": "path"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -39449,6 +39492,39 @@
         "title": "CampaignStatus",
         "type": "object"
       },
+      "CampaignStatusUpdateEvent": {
+        "title": "Campaign Status Update Event",
+        "type": "object",
+        "properties": {
+          "brandId": {
+            "title": "Brandid",
+            "type": "string",
+            "description": "Brand ID associated with the campaign.",
+            "example": "d88dd2aa-1bb9-4ef0-9ec8-1752b80316a5"
+          },
+          "campaignId": {
+            "title": "Campaignid",
+            "type": "string",
+            "description": "The ID of the campaign.",
+            "example": "4b300178-131c-d902-d54e-72d90ba1620j"
+          },
+          "createDate": {
+            "title": "CreateDate",
+            "type": "string",
+            "description": "Unix timestamp when campaign was created."
+          },
+          "cspId": {
+            "title": "Cspid",
+            "type": "string",
+            "description": "Alphanumeric identifier of the CSP associated with this campaign."
+          },
+          "isTMobileRegistered": {
+            "title": "IsTMobileRegistered",
+            "type": "boolean",
+            "description": "Indicates whether the campaign is registered with T-Mobile."
+          }
+        }
+      },
       "Campaign_CSP": {
         "title": "Campaign_CSP",
         "required": [
@@ -61209,27 +61285,27 @@
           "brandId": {
             "title": "Brandid",
             "type": "string",
-            "description": "\"Alphanumeric identifier of the brand associated with this campaign."
+            "description": "Alphanumeric identifier of the brand associated with this campaign."
           },
           "campaignId": {
             "title": "Campaignid",
             "type": "string",
-            "description": "\"Alphanumeric identifier assigned by the registry for a campaign. This identifier is required by the NetNumber OSR SMS enabling process of 10DLC."
+            "description": "Alphanumeric identifier assigned by the registry for a campaign. This identifier is required by the NetNumber OSR SMS enabling process of 10DLC."
           },
           "createDate": {
             "title": "Createdate",
             "type": "string",
-            "description": "\"Unix timestamp when campaign was created."
+            "description": "Unix timestamp when campaign was created."
           },
           "status": {
             "title": "Status",
             "type": "string",
-            "description": "\"Current campaign status. Possible values: ACTIVE, EXPIRED. A newly created campaign defaults to ACTIVE status. "
+            "description": "Current campaign status. Possible values: ACTIVE, EXPIRED. A newly created campaign defaults to ACTIVE status. "
           },
           "usecase": {
             "title": "Usecase",
             "type": "string",
-            "description": "\"Campaign usecase. Must be of defined valid types. Use `/registry/enum/usecase` operation to retrieve usecases available for given brand."
+            "description": "Campaign usecase. Must be of defined valid types. Use `/registry/enum/usecase` operation to retrieve usecases available for given brand."
           }
         },
         "description": "Campaign is generated by the 10DLC registry once the corresponding campaign request is approved. Each campaign is assigned a unique identifier - **campaignId**. Once a campaign is activated, limited information is published to the NetNumber OSR service for consumption by members of the ecosystem. When a campaign is suspended(reversible) or expired(non-reversible), campaign data is deleted from the OSR service. Most attributes of campaignare immutable, including **usecase**, **vertical**, **brandId** and **cspId**."
@@ -66411,37 +66487,37 @@
           "annualFee": {
             "title": "Annualfee",
             "type": "number",
-            "description": "\"Campaign annual subscription fee"
+            "description": "Campaign annual subscription fee"
           },
           "maxSubUsecases": {
             "title": "Maxsubusecases",
             "type": "integer",
-            "description": "\"Maximum number of sub-usecases declaration required."
+            "description": "Maximum number of sub-usecases declaration required."
           },
           "minSubUsecases": {
             "title": "Minsubusecases",
             "type": "integer",
-            "description": "\"Minimum number of sub-usecases declaration required."
+            "description": "Minimum number of sub-usecases declaration required."
           },
           "mnoMetadata": {
             "title": "Mnometadata",
             "type": "object",
-            "description": "\"Map of usecase metadata for each MNO. Key is the network ID of the MNO (e.g. 10017), Value is the mno metadata for the usecase."
+            "description": "Map of usecase metadata for each MNO. Key is the network ID of the MNO (e.g. 10017), Value is the mno metadata for the usecase."
           },
           "monthlyFee": {
             "title": "Monthlyfee",
             "type": "number",
-            "description": "\"Campaign monthly subscription fee"
+            "description": "Campaign monthly subscription fee"
           },
           "quarterlyFee": {
             "title": "Quarterlyfee",
             "type": "number",
-            "description": "\"Campaign quarterly subscription fee"
+            "description": "Campaign quarterly subscription fee"
           },
           "usecase": {
             "title": "Usecase",
             "type": "string",
-            "description": "\"Campaign usecase"
+            "description": "Campaign usecase"
           }
         }
       },
