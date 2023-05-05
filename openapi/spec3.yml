@@ -65,11 +65,12 @@ components:
         format: uuid
         type: string
     ConnectionId:
-      description: Uniquely identifies a Telnyx application (Call Control).
+      description: Telnyx connection id
       in: path
       name: connection_id
       required: true
       schema:
+        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -838,6 +839,29 @@ components:
       name: filter[tag]
       schema:
         type: string
+    PageAfter:
+      description: Opaque identifier of next page
+      in: query
+      name: page[after]
+      schema:
+        default: 'null'
+        type: string
+    PageBefore:
+      description: Opaque identifier of previous page
+      in: query
+      name: page[before]
+      schema:
+        default: 'null'
+        type: string
+    PageLimit:
+      description: Limit of records per single page
+      in: query
+      name: page[limit]
+      schema:
+        default: 20
+        maximum: 250
+        minimum: 1
+        type: integer
     PageNumber:
       description: The page number to load
       in: query
@@ -1212,6 +1236,20 @@ components:
                 type: object
             type: object
       description: Success Action Response
+    ActiveCallsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/ActiveCall'
+                type: array
+              meta:
+                $ref: '#/components/schemas/CursorPaginationMeta'
+            title: Active Calls Response
+            type: object
+      description: Successful response with list of details about active calls.
     AuthenticationProviderResponse:
       content:
         application/json:
@@ -4660,6 +4698,53 @@ components:
               type: string
             type: array
       type: object
+    ActiveCall:
+      example:
+        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+        call_duration: 50
+        call_leg_id: 2dc6fc34-f9e0-11ea-b68e-02420a0f7768
+        call_session_id: 2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        record_type: call
+      properties:
+        call_control_id:
+          description: Unique identifier and token for controlling the call.
+          example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+          type: string
+        call_duration:
+          description: Indicates the duration of the call in seconds
+          example: 50
+          type: integer
+        call_leg_id:
+          description: ID that is unique to the call and can be used to correlate
+            webhook events
+          example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          type: string
+        call_session_id:
+          description: ID that is unique to the call session and can be used to correlate
+            webhook events. Call session is a group of related call legs that logically
+            belong to the same phone call, e.g. an inbound and outbound leg of a transferred
+            call
+          example: 428c31b6-7af4-4bcb-b68e-5013ef9657c1
+          type: string
+        client_state:
+          description: State received from a command.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        record_type:
+          enum:
+          - call
+          example: call
+          type: string
+      required:
+      - call_control_id
+      - call_leg_id
+      - call_session_id
+      - client_state
+      - record_type
+      - call_duration
+      title: Active Call
+      type: object
     AltBusinessIdType:
       description: An enumeration.
       enum:
@@ -5708,7 +5793,8 @@ components:
         park_after_unbridge: self
       properties:
         call_control_id:
-          description: The Call Control ID of the call you want to bridge with.
+          description: The Call Control ID of the call you want to bridge with, can't
+            be used together with queue parameter or video_room_id parameter.
           example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
           type: string
         client_state:
@@ -5730,11 +5816,24 @@ components:
           type: string
         queue:
           description: The name of the queue you want to bridge with, can't be used
-            together with call_control_id parameter. Bridging with a queue means bridging
-            with the first call in the queue. The call will always be removed from
-            the queue regardless of whether bridging succeeds. Returns an error when
-            the queue is empty.
+            together with call_control_id parameter or video_room_id parameter. Bridging
+            with a queue means bridging with the first call in the queue. The call
+            will always be removed from the queue regardless of whether bridging succeeds.
+            Returns an error when the queue is empty.
           example: support
+          type: string
+        video_room_context:
+          description: The additional parameter that will be passed to the video conference.
+            It is a text field and the user can decide how to use it. For example,
+            you can set the participant name or pass JSON text. It can be used only
+            with video_room_id parameter.
+          example: Alice
+          type: string
+        video_room_id:
+          description: The ID of the video room you want to bridge with, can't be
+            used together with call_control_id parameter or queue parameter.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
           type: string
       required:
       - call_control_id
@@ -6397,6 +6496,7 @@ components:
         id: '1293384261075731499'
         inbound:
           channel_limit: 10
+          shaken_stir_enabled: true
           sip_subdomain: example
           sip_subdomain_receive_settings: only_my_connections
         outbound:
@@ -6516,6 +6616,12 @@ components:
             to phone numbers associated with this connection.
           example: 10
           type: integer
+        shaken_stir_enabled:
+          default: false
+          description: Specifies if SHAKEN/STIR settings are enabled for the Call
+            Control application or not.
+          example: false
+          type: boolean
         sip_subdomain:
           default: null
           description: 'Specifies a subdomain that can be used to receive Inbound
@@ -6819,7 +6925,8 @@ components:
               example: aGF2ZSBhIG5pY2UgZGF5ID1d
               type: string
             connection_id:
-              description: Telnyx connection ID used in the call.
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
             current_position:
@@ -7470,7 +7577,8 @@ components:
               example: aGF2ZSBhIG5pY2UgZGF5ID1d
               type: string
             connection_id:
-              description: Telnyx connection ID used in the call.
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
             queue:
@@ -7682,6 +7790,184 @@ components:
         data:
           $ref: '#/components/schemas/CallMachineGreetingEnded'
       title: Call Machine Greeting Ended Event
+      type: object
+    CallMachinePremiumDetectionEnded:
+      example:
+        event_type: call.machine.premium.detection.ended
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          from: '+35319605860'
+          result: machine
+          to: '+35319605860'
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.machine.premium.detection.ended
+          example: call.machine.premium.detection.ended
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            from:
+              description: Number or SIP URI placing the call.
+              example: '+35319605860'
+              type: string
+            result:
+              description: Premium Answering Machine Detection result.
+              enum:
+              - human_residence
+              - human_business
+              - machine
+              - silence
+              - fax_detected
+              example: machine
+              type: string
+            to:
+              description: Destination number or SIP URI of the call.
+              example: '+13129457420'
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call Machine Premium Detection Ended
+      type: object
+    CallMachinePremiumDetectionEndedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallMachinePremiumDetectionEnded'
+      title: Call Machine Premium Detection Ended Event
+      type: object
+    CallMachinePremiumGreetingEnded:
+      example:
+        event_type: call.machine.premium.greeting.ended
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          from: '+35319605860'
+          result: beep_detected
+          to: '+35319605860'
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.machine.premium.greeting.ended
+          example: call.machine.premium.greeting.ended
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            from:
+              description: Number or SIP URI placing the call.
+              example: '+35319605860'
+              type: string
+            result:
+              description: Premium Answering Machine Greeting Ended result.
+              enum:
+              - beep_detected
+              example: beep_detected
+              type: string
+            to:
+              description: Destination number or SIP URI of the call.
+              example: '+13129457420'
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call Machine Premium Greeting Ended
+      type: object
+    CallMachinePremiumGreetingEndedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallMachinePremiumGreetingEnded'
+      title: Call Machine Premium Greeting Ended Event
       type: object
     CallPlaybackEnded:
       example:
@@ -8108,7 +8394,7 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/CallReferCompleted'
-      title: Call Recording Saved Event
+      title: Call Refer Completed Event
       type: object
     CallReferFailed:
       example:
@@ -8193,7 +8479,7 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/CallReferFailed'
-      title: Call Recording Saved Event
+      title: Call Refer Failed Event
       type: object
     CallReferStarted:
       example:
@@ -8316,6 +8602,8 @@ components:
         sip_headers:
         - name: User-to-User
           value: '12345'
+        stream_track: both_tracks
+        stream_url: wss://www.example.com/websocket
         timeout_limit_secs: 60
         timeout_secs: 60
         to: +18005550100 or sip:username@sip.telnyx.com
@@ -8324,15 +8612,24 @@ components:
       properties:
         answering_machine_detection:
           default: disabled
-          description: Enables Answering Machine Detection. When a call is answered,
-            Telnyx runs real-time detection to determine if it was picked up by a
-            human or a machine and sends an `call.machine.detection.ended` webhook
-            with the analysis result. If 'greeting_end' or 'detect_words' is used
-            and a 'machine' is detected, you will receive another 'call.machine.greeting.ended'
+          description: 'Enables Answering Machine Detection. Telnyx offers Premium
+            and Standard detections. With Premium detection, when a call is answered,
+            Telnyx runs real-time detection and sends a `call.machine.premium.detection.ended`
+            webhook with one of the following results: `human_residence`, `human_business`,
+            `machine`, `silence` or `fax_detected`. If we detect a beep, we also send
+            a `call.machine.premium.greeting.ended` webhook with the result of `beep_detected`.
+            If we detect a beep before `call.machine.premium.detection.ended` we only
+            send `call.machine.premium.greeting.ended`, and if we detect a beep after
+            `call.machine.premium.detection.ended`, we send both webhooks. With Standard
+            detection, when a call is answered, Telnyx runs real-time detection to
+            determine if it was picked up by a human or a machine and sends an `call.machine.detection.ended`
+            webhook with the analysis result. If `greeting_end` or `detect_words`
+            is used and a `machine` is detected, you will receive another `call.machine.greeting.ended`
             webhook when the answering machine greeting ends with a beep or silence.
-            If `detect_beep` is used, you will only receive 'call.machine.greeting.ended'
-            if a beep is detected.
+            If `detect_beep` is used, you will only receive `call.machine.greeting.ended`
+            if a beep is detected.'
           enum:
+          - premium
           - detect
           - detect_beep
           - detect_words
@@ -10320,8 +10617,7 @@ components:
         updated_at: '2019-01-23T18:10:02.574Z'
       properties:
         connection_id:
-          description: Identifies the connection (Call Control App) associated with
-            the conference
+          description: Identifies the connection associated with the conference
           example: 3fa85f64-9191-4567-b3fc-2c963f66afa6
           type: string
         created_at:
@@ -10787,7 +11083,8 @@ components:
               example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
               type: string
             connection_id:
-              description: Telnyx connection ID used in the call.
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
             occurred_at:
@@ -12372,6 +12669,7 @@ components:
         first_command_timeout_secs: 10
         inbound:
           channel_limit: 10
+          shaken_stir_enabled: true
           sip_subdomain: example
           sip_subdomain_receive_settings: only_my_connections
         outbound:
@@ -15172,6 +15470,17 @@ components:
       - currency_code
       title: Currency
       type: object
+    Cursor:
+      properties:
+        after:
+          description: Opaque identifier of next page.
+          example: v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          type: string
+        before:
+          description: Opaque identifier of previous page.
+          example: v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          type: string
+      type: object
     CursorPagination:
       example:
         cursors:
@@ -15195,6 +15504,23 @@ components:
         previous:
           description: A URL to the previous page of results.
           type: string
+      type: object
+    CursorPaginationMeta:
+      properties:
+        cursors:
+          $ref: '#/components/schemas/Cursor'
+        next:
+          description: Path to next page.
+          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          type: string
+        previous:
+          description: Path to previous page.
+          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          type: string
+        total_items:
+          example: 50
+          type: integer
+      title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
       example:
@@ -15728,7 +16054,7 @@ components:
         analyze_sentiment:
           default: false
           description: Enable sentiment analysis from Dialogflow.
-          example: 'true'
+          example: true
           type: boolean
         partial_automated_agent_reply:
           default: false
@@ -25397,7 +25723,8 @@ components:
           example: 428c31b6-7af4-4bcb-b68e-5013ef9657c1
           type: string
         connection_id:
-          description: Telnyx connection ID used in the call.
+          description: Call Control App ID (formerly Telnyx connection ID) used in
+            the call.
           example: 7267xxxxxxxxxxxxxx
           type: string
         enqueued_at:
@@ -28429,6 +28756,33 @@ components:
       - language
       title: Speak Request
       type: object
+    StartConferenceRecordingRequest:
+      example:
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        format: wav
+        play_beep: true
+      properties:
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `conference_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        format:
+          description: The audio file format used when storing the conference recording.
+            Can be either `mp3` or `wav`.
+          enum:
+          - wav
+          - mp3
+          example: mp3
+          type: string
+        play_beep:
+          description: If enabled, a beep sound will be played at the start of a recording.
+          example: true
+          type: boolean
+      required:
+      - format
+      title: Start Conference Recording Request
+      type: object
     StartForkingRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -29571,7 +29925,8 @@ components:
               example: aGF2ZSBhIG5pY2UgZGF5ID1d
               type: string
             connection_id:
-              description: Telnyx connection ID used in the call.
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
             transcription_data:
@@ -29713,6 +30068,7 @@ components:
             If `detect_beep` is used, you will only receive 'call.machine.greeting.ended'
             if a beep is detected.
           enum:
+          - premium
           - detect
           - detect_beep
           - detect_words
@@ -29886,9 +30242,15 @@ components:
           format: int32
           type: integer
         to:
-          description: The DID or SIP URI to dial out and bridge to the given call.
-          example: +18005550100 or sip:username@sip.telnyx.com
-          type: string
+          description: The DID or SIP URI to dial out to. Multiple DID or SIP URIs
+            can be provided using an array of strings
+          oneOf:
+          - example: +18005550100 or sip:username@sip.telnyx.com
+            type: string
+          - example: '["+18005550100", "sip:username@sip.telnyx.com"]'
+            items:
+              type: string
+            type: array
         webhook_url:
           description: Use this field to override the URL for which Telnyx will send
             subsequent webhooks to for this call.
@@ -30338,6 +30700,7 @@ components:
         first_command_timeout_secs: 10
         inbound:
           channel_limit: 10
+          shaken_stir_enabled: true
           sip_subdomain: example
           sip_subdomain_receive_settings: only_my_connections
         outbound:
@@ -34566,7 +34929,8 @@ components:
               example: aGF2ZSBhIG5pY2UgZGF5ID1d
               type: string
             connection_id:
-              description: Telnyx connection ID used in the call.
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
               example: 7267xxxxxxxxxxxxxx
               type: string
             reason:
@@ -36729,6 +37093,32 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
+        callMachinePremiumDetectionEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachinePremiumDetectionEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callMachinePremiumGreetingEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachinePremiumGreetingEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
         streamingFailed:
           '{$request.body#/webhook_url}':
             post:
@@ -38162,6 +38552,7 @@ paths:
         }\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"\
         `\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"\
         `\n- Error 100005: `\"rate_limit_reached\"`\n"
+      operationId: callStreamingStart
       parameters:
       - $ref: '#/components/parameters/CallControlId'
       requestBody:
@@ -38346,6 +38737,58 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
+        callMachineDetectionEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachineDetectionEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callMachineGreetingEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachineGreetingEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callMachinePremiumDetectionEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachinePremiumDetectionEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callMachinePremiumGreetingEnded:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallMachinePremiumGreetingEndedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
       description: 'Transfer a call to a new destination. If the transfer is unsuccessful,
         a `call.hangup` webhook for the other call (Leg B) will be sent indicating
         that the transfer could not be completed. The original call will remain active
@@ -38364,8 +38807,16 @@ paths:
 
         - `call.machine.detection.ended` if `answering_machine_detection` was requested
 
-        - `call.machine.greeting.ended` if `answering_machine_detection` was set to
-        `detect_beep`, `greeting_end` or `detect_words`'
+        - `call.machine.greeting.ended` if `answering_machine_detection` was requested
+        to detect the end of machine greeting
+
+        - `call.machine.premium.detection.ended` if `answering_machine_detection=premium`
+        was requested
+
+        - `call.machine.premium.greeting.ended` if `answering_machine_detection=premium`
+        was requested and a beep was detected
+
+        '
       operationId: callTransfer
       parameters:
       - $ref: '#/components/parameters/CallControlId'
@@ -39161,7 +39612,6 @@ paths:
       summary: List conference participants
       tags:
       - Conference Commands
-      x-group-parameters: 'true'
       x-latency-category: interactive
   /conferences/{id}:
     get:
@@ -39617,7 +40067,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StartRecordingRequest'
+              $ref: '#/components/schemas/StartConferenceRecordingRequest'
         required: true
       responses:
         '200':
@@ -39925,6 +40375,29 @@ paths:
       tags:
       - Connections
       x-endpoint-cost: medium
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /connections/{connection_id}/active_calls:
+    get:
+      description: 'Lists all active calls for given connection. Acceptable connections
+        are either SIP connections with webhook_url or xml_request_url, call control
+        or texml. Returned results are cursor paginated.
+
+        '
+      operationId: listConnectionActiveCalls
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/PageLimit'
+      - $ref: '#/components/parameters/PageAfter'
+      - $ref: '#/components/parameters/PageBefore'
+      responses:
+        '200':
+          $ref: '#/components/responses/ActiveCallsResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all active calls for given connection
+      tags:
+      - Call information
       x-group-parameters: 'true'
       x-latency-category: responsive
   /connections/{id}:

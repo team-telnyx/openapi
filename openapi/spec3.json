@@ -3222,6 +3222,48 @@
               }
             }
           },
+          "callMachinePremiumDetectionEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachinePremiumDetectionEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callMachinePremiumGreetingEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachinePremiumGreetingEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
           "callMachineDetectionEnded": {
             "{$request.body#/webhook_url}": {
               "post": {
@@ -4930,6 +4972,7 @@
       "post": {
         "summary": "Streaming start",
         "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n\n**Bidirectional Media Streaming**\n\nMedia can be sent back to the call through the websocket as well. This is done in a way very similar to the [playback_start](https://developers.telnyx.com/docs/api/v2/call-control/Call-Commands#callPlaybackStart)\ncommand, when using a base64 encoded mp3 file in the payload. Simply send a packet to the websocket connection as follows:\n\n```\n{\n  \"event\": \"media\",\n  \"media\": {\n    \"payload\" : <your base64 encoded mp3 file>\n  }\n}\n```\n\nThe payload, which is a base64-encoded mp3 file, will be played on the call.\n\nSome limitations to be aware of:\n\n- Media payloads can only be submitted once per second.\n- Media _must_ be base64 encoded mp3\n\n**Stream Errors**\n\nAny errors in the media packet, including when a rate limit is reached, will result in an error frame being\nsent to your websocket server. The error frame will appear as follows:\n\n```\n{\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\",\n  \"event\": \"error\",\n  \"sequence_number\": \"6\",\n  \"error\": {\n    \"title\": \"rate_limit_reached\",\n    \"code\": \"100005\",\n    \"detail\": \"Too many requests\"\n  }\n}\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"`\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"`\n- Error 100005: `\"rate_limit_reached\"`\n",
+        "operationId": "callStreamingStart",
         "tags": [
           "Call Commands"
         ],
@@ -5179,7 +5222,7 @@
     "/calls/{call_control_id}/actions/transfer": {
       "post": {
         "summary": "Transfer call",
-        "description": "Transfer a call to a new destination. If the transfer is unsuccessful, a `call.hangup` webhook for the other call (Leg B) will be sent indicating that the transfer could not be completed. The original call will remain active and may be issued additional commands, potentially transfering the call to an alternate destination.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.bridged` to Leg B\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was set to `detect_beep`, `greeting_end` or `detect_words`",
+        "description": "Transfer a call to a new destination. If the transfer is unsuccessful, a `call.hangup` webhook for the other call (Leg B) will be sent indicating that the transfer could not be completed. The original call will remain active and may be issued additional commands, potentially transfering the call to an alternate destination.\n\n**Expected Webhooks:**\n\n- `call.initiated`\n- `call.bridged` to Leg B\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was requested to detect the end of machine greeting\n- `call.machine.premium.detection.ended` if `answering_machine_detection=premium` was requested\n- `call.machine.premium.greeting.ended` if `answering_machine_detection=premium` was requested and a beep was detected\n",
         "operationId": "callTransfer",
         "tags": [
           "Call Commands"
@@ -5281,6 +5324,90 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallHangupEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callMachinePremiumDetectionEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachinePremiumDetectionEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callMachinePremiumGreetingEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachinePremiumGreetingEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callMachineDetectionEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachineDetectionEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callMachineGreetingEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallMachineGreetingEndedEvent"
                       }
                     }
                   }
@@ -6203,6 +6330,7 @@
     },
     "/conferences": {
       "get": {
+        "x-group-parameters": "true",
         "x-latency-category": "responsive",
         "description": "Lists conferences. Conferences are created on demand, and will expire after all participants have left the conference or after 4 hours regardless of the number of active participants. Conferences are listed in descending order by `expires_at`.",
         "summary": "List conferences",
@@ -6210,7 +6338,6 @@
         "tags": [
           "Conference Commands"
         ],
-        "x-group-parameters": "true",
         "parameters": [
           {
             "$ref": "#/components/parameters/FilterConferenceName"
@@ -6384,7 +6511,6 @@
         "tags": [
           "Conference Commands"
         ],
-        "x-group-parameters": "true",
         "parameters": [
           {
             "name": "conference_id",
@@ -7101,7 +7227,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/StartRecordingRequest"
+                "$ref": "#/components/schemas/StartConferenceRecordingRequest"
               }
             }
           }
@@ -7572,6 +7698,40 @@
           }
         },
         "x-latency-category": "responsive"
+      }
+    },
+    "/connections/{connection_id}/active_calls": {
+      "get": {
+        "summary": "List all active calls for given connection",
+        "description": "Lists all active calls for given connection. Acceptable connections are either SIP connections with webhook_url or xml_request_url, call control or texml. Returned results are cursor paginated.\n",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "listConnectionActiveCalls",
+        "tags": [
+          "Call information"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ConnectionId"
+          },
+          {
+            "$ref": "#/components/parameters/PageLimit"
+          },
+          {
+            "$ref": "#/components/parameters/PageAfter"
+          },
+          {
+            "$ref": "#/components/parameters/PageBefore"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ActiveCallsResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
       }
     },
     "/connections/{id}": {
@@ -26728,11 +26888,12 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Uniquely identifies a Telnyx application (Call Control).",
+        "description": "Telnyx connection id",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "1293384261075731461"
         }
       },
       "CreatedAtGtFilter": {
@@ -27667,6 +27828,35 @@
           "type": "string"
         }
       },
+      "PageAfter": {
+        "name": "page[after]",
+        "in": "query",
+        "description": "Opaque identifier of next page",
+        "schema": {
+          "type": "string",
+          "default": "null"
+        }
+      },
+      "PageBefore": {
+        "name": "page[before]",
+        "in": "query",
+        "description": "Opaque identifier of previous page",
+        "schema": {
+          "type": "string",
+          "default": "null"
+        }
+      },
+      "PageLimit": {
+        "name": "page[limit]",
+        "in": "query",
+        "description": "Limit of records per single page",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 250,
+          "default": 20
+        }
+      },
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
@@ -28115,6 +28305,28 @@
                       "example": "ok"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ActiveCallsResponse": {
+        "description": "Successful response with list of details about active calls.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Active Calls Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActiveCall"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/CursorPaginationMeta"
                 }
               }
             }
@@ -33498,6 +33710,60 @@
           }
         }
       },
+      "ActiveCall": {
+        "type": "object",
+        "title": "Active Call",
+        "required": [
+          "call_control_id",
+          "call_leg_id",
+          "call_session_id",
+          "client_state",
+          "record_type",
+          "call_duration"
+        ],
+        "example": {
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+          "call_leg_id": "2dc6fc34-f9e0-11ea-b68e-02420a0f7768",
+          "call_session_id": "2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "call_duration": 50,
+          "record_type": "call"
+        },
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "call"
+            ],
+            "example": "call"
+          },
+          "call_session_id": {
+            "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b68e-5013ef9657c1"
+          },
+          "call_leg_id": {
+            "description": "ID that is unique to the call and can be used to correlate webhook events",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+          },
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call.",
+            "type": "string",
+            "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
+          },
+          "client_state": {
+            "description": "State received from a command.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "call_duration": {
+            "description": "Indicates the duration of the call in seconds",
+            "type": "integer",
+            "example": 50
+          }
+        }
+      },
       "AltBusinessIdType": {
         "title": "AltBusinessIdType",
         "enum": [
@@ -33668,13 +33934,13 @@
               "$ref": "#/components/schemas/SipHeader"
             }
           },
+          "sound_modifications": {
+            "$ref": "#/components/schemas/SoundModifications"
+          },
           "stream_url": {
             "description": "The destination WebSocket address where the stream is going to be delivered.",
             "type": "string",
             "example": "wss://www.example.com/websocket"
-          },
-          "sound_modifications": {
-            "$ref": "#/components/schemas/SoundModifications"
           },
           "stream_track": {
             "description": "Specifies which track should be streamed.",
@@ -34811,7 +35077,7 @@
         ],
         "properties": {
           "call_control_id": {
-            "description": "The Call Control ID of the call you want to bridge with.",
+            "description": "The Call Control ID of the call you want to bridge with, can't be used together with queue parameter or video_room_id parameter.",
             "type": "string",
             "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
           },
@@ -34826,9 +35092,20 @@
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
           },
           "queue": {
-            "description": "The name of the queue you want to bridge with, can't be used together with call_control_id parameter. Bridging with a queue means bridging with the first call in the queue. The call will always be removed from the queue regardless of whether bridging succeeds. Returns an error when the queue is empty.",
+            "description": "The name of the queue you want to bridge with, can't be used together with call_control_id parameter or video_room_id parameter. Bridging with a queue means bridging with the first call in the queue. The call will always be removed from the queue regardless of whether bridging succeeds. Returns an error when the queue is empty.",
             "type": "string",
             "example": "support"
+          },
+          "video_room_id": {
+            "description": "The ID of the video room you want to bridge with, can't be used together with call_control_id parameter or queue parameter.",
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0"
+          },
+          "video_room_context": {
+            "description": "The additional parameter that will be passed to the video conference. It is a text field and the user can decide how to use it. For example, you can set the participant name or pass JSON text. It can be used only with video_room_id parameter.",
+            "type": "string",
+            "example": "Alice"
           },
           "park_after_unbridge": {
             "description": "Specifies behavior after the bridge ends (i.e. the opposite leg either hangs up or is transferred). If supplied with the value `self`, the current leg will be parked after unbridge. If not set, the default behavior is to hang up the leg.",
@@ -35756,6 +36033,7 @@
           "id": "1293384261075731499",
           "inbound": {
             "channel_limit": 10,
+            "shaken_stir_enabled": true,
             "sip_subdomain": "example",
             "sip_subdomain_receive_settings": "only_my_connections"
           },
@@ -35780,6 +36058,12 @@
             "description": "When set, this will limit the total number of inbound calls to phone numbers associated with this connection.",
             "example": 10,
             "default": null
+          },
+          "shaken_stir_enabled": {
+            "type": "boolean",
+            "description": "Specifies if SHAKEN/STIR settings are enabled for the Call Control application or not.",
+            "default": false,
+            "example": false
           },
           "sip_subdomain": {
             "type": "string",
@@ -36122,7 +36406,7 @@
               "connection_id": {
                 "type": "string",
                 "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
               "call_leg_id": {
                 "type": "string",
@@ -36906,7 +37190,7 @@
               "connection_id": {
                 "type": "string",
                 "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
               "call_leg_id": {
                 "type": "string",
@@ -37186,6 +37470,222 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallMachineGreetingEnded"
+          }
+        }
+      },
+      "CallMachinePremiumDetectionEnded": {
+        "type": "object",
+        "title": "Call Machine Premium Detection Ended",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.machine.premium.detection.ended",
+            "enum": [
+              "call.machine.premium.detection.ended"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "from": {
+                "type": "string",
+                "example": "+35319605860",
+                "description": "Number or SIP URI placing the call."
+              },
+              "to": {
+                "type": "string",
+                "example": "+13129457420",
+                "description": "Destination number or SIP URI of the call."
+              },
+              "result": {
+                "type": "string",
+                "example": "machine",
+                "enum": [
+                  "human_residence",
+                  "human_business",
+                  "machine",
+                  "silence",
+                  "fax_detected"
+                ],
+                "description": "Premium Answering Machine Detection result."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.machine.premium.detection.ended",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "from": "+35319605860",
+            "to": "+35319605860",
+            "result": "machine"
+          }
+        }
+      },
+      "CallMachinePremiumDetectionEndedEvent": {
+        "type": "object",
+        "title": "Call Machine Premium Detection Ended Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallMachinePremiumDetectionEnded"
+          }
+        }
+      },
+      "CallMachinePremiumGreetingEnded": {
+        "type": "object",
+        "title": "Call Machine Premium Greeting Ended",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.machine.premium.greeting.ended",
+            "enum": [
+              "call.machine.premium.greeting.ended"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "from": {
+                "type": "string",
+                "example": "+35319605860",
+                "description": "Number or SIP URI placing the call."
+              },
+              "to": {
+                "type": "string",
+                "example": "+13129457420",
+                "description": "Destination number or SIP URI of the call."
+              },
+              "result": {
+                "type": "string",
+                "example": "beep_detected",
+                "enum": [
+                  "beep_detected"
+                ],
+                "description": "Premium Answering Machine Greeting Ended result."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.machine.premium.greeting.ended",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "from": "+35319605860",
+            "to": "+35319605860",
+            "result": "beep_detected"
+          }
+        }
+      },
+      "CallMachinePremiumGreetingEndedEvent": {
+        "type": "object",
+        "title": "Call Machine Premium Greeting Ended Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallMachinePremiumGreetingEnded"
           }
         }
       },
@@ -37689,7 +38189,7 @@
       },
       "CallReferCompletedEvent": {
         "type": "object",
-        "title": "Call Recording Saved Event",
+        "title": "Call Refer Completed Event",
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallReferCompleted"
@@ -37792,7 +38292,7 @@
       },
       "CallReferFailedEvent": {
         "type": "object",
-        "title": "Call Recording Saved Event",
+        "title": "Call Refer Failed Event",
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallReferFailed"
@@ -37955,6 +38455,8 @@
               "value": "12345"
             }
           ],
+          "stream_url": "wss://www.example.com/websocket",
+          "stream_track": "both_tracks",
           "enable_dialogflow": false,
           "dialogflow_config": {
             "analyze_sentiment": false,
@@ -38024,10 +38526,11 @@
             "maximum": 14400
           },
           "answering_machine_detection": {
-            "description": "Enables Answering Machine Detection. When a call is answered, Telnyx runs real-time detection to determine if it was picked up by a human or a machine and sends an `call.machine.detection.ended` webhook with the analysis result. If 'greeting_end' or 'detect_words' is used and a 'machine' is detected, you will receive another 'call.machine.greeting.ended' webhook when the answering machine greeting ends with a beep or silence. If `detect_beep` is used, you will only receive 'call.machine.greeting.ended' if a beep is detected.",
+            "description": "Enables Answering Machine Detection. Telnyx offers Premium and Standard detections. With Premium detection, when a call is answered, Telnyx runs real-time detection and sends a `call.machine.premium.detection.ended` webhook with one of the following results: `human_residence`, `human_business`, `machine`, `silence` or `fax_detected`. If we detect a beep, we also send a `call.machine.premium.greeting.ended` webhook with the result of `beep_detected`. If we detect a beep before `call.machine.premium.detection.ended` we only send `call.machine.premium.greeting.ended`, and if we detect a beep after `call.machine.premium.detection.ended`, we send both webhooks. With Standard detection, when a call is answered, Telnyx runs real-time detection to determine if it was picked up by a human or a machine and sends an `call.machine.detection.ended` webhook with the analysis result. If `greeting_end` or `detect_words` is used and a `machine` is detected, you will receive another `call.machine.greeting.ended` webhook when the answering machine greeting ends with a beep or silence. If `detect_beep` is used, you will only receive `call.machine.greeting.ended` if a beep is detected.",
             "default": "disabled",
             "type": "string",
             "enum": [
+              "premium",
               "detect",
               "detect_beep",
               "detect_words",
@@ -40345,7 +40848,7 @@
           },
           "connection_id": {
             "type": "string",
-            "description": "Identifies the connection (Call Control App) associated with the conference",
+            "description": "Identifies the connection associated with the conference",
             "example": "3fa85f64-9191-4567-b3fc-2c963f66afa6"
           }
         },
@@ -40818,7 +41321,7 @@
               "connection_id": {
                 "type": "string",
                 "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
               "call_leg_id": {
                 "type": "string",
@@ -42847,6 +43350,7 @@
           "first_command_timeout_secs": 10,
           "inbound": {
             "channel_limit": 10,
+            "shaken_stir_enabled": true,
             "sip_subdomain": "example",
             "sip_subdomain_receive_settings": "only_my_connections"
           },
@@ -45927,6 +46431,21 @@
           "amount_1000": 100990
         }
       },
+      "Cursor": {
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "string",
+            "description": "Opaque identifier of next page.",
+            "example": "v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+          },
+          "before": {
+            "type": "string",
+            "description": "Opaque identifier of previous page.",
+            "example": "v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+          }
+        }
+      },
       "CursorPagination": {
         "type": "object",
         "properties": {
@@ -45959,6 +46478,29 @@
           },
           "next": "/v2/whatsapp_business_accounts/4444451-4222-9222-3bd5555501c0/whatsapp_message_templates?page[after]=MQZDZD&page[limit]=1",
           "previous": "/v2/whatsapp_business_accounts/4444451-4222-9222-3bd5555501c0/whatsapp_message_templates?page[before]=MQZDZD&page[limit]=1"
+        }
+      },
+      "CursorPaginationMeta": {
+        "type": "object",
+        "title": "Cursor Pagination Meta",
+        "properties": {
+          "cursors": {
+            "$ref": "#/components/schemas/Cursor"
+          },
+          "total_items": {
+            "type": "integer",
+            "example": 50
+          },
+          "next": {
+            "type": "string",
+            "description": "Path to next page.",
+            "example": "/v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+          },
+          "previous": {
+            "type": "string",
+            "description": "Path to previous page.",
+            "example": "/v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+          }
         }
       },
       "CustomSipHeader": {
@@ -46658,7 +47200,7 @@
           "analyze_sentiment": {
             "description": "Enable sentiment analysis from Dialogflow.",
             "type": "boolean",
-            "example": "true",
+            "example": true,
             "default": false
           },
           "partial_automated_agent_reply": {
@@ -56903,8 +57445,8 @@
           "stop": {
             "description": "Use `current` to stop the current audio being played. Use `all` to stop the current audio file being played and clear all audio files from the queue.",
             "type": "string",
-            "default": "all",
-            "example": "current"
+            "example": "current",
+            "default": "all"
           },
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
@@ -58489,7 +59031,7 @@
           "connection_id": {
             "type": "string",
             "example": "7267xxxxxxxxxxxxxx",
-            "description": "Telnyx connection ID used in the call."
+            "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
           },
           "from": {
             "type": "string",
@@ -62081,6 +62623,39 @@
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
         }
       },
+      "StartConferenceRecordingRequest": {
+        "type": "object",
+        "title": "Start Conference Recording Request",
+        "required": [
+          "format"
+        ],
+        "properties": {
+          "format": {
+            "description": "The audio file format used when storing the conference recording. Can be either `mp3` or `wav`.",
+            "type": "string",
+            "enum": [
+              "wav",
+              "mp3"
+            ],
+            "example": "mp3"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `conference_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          },
+          "play_beep": {
+            "description": "If enabled, a beep sound will be played at the start of a recording.",
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "example": {
+          "format": "wav",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "play_beep": true
+        }
+      },
       "StartForkingRequest": {
         "type": "object",
         "title": "Start Forking Request",
@@ -62215,6 +62790,15 @@
             "default": "inbound_track",
             "example": "both_tracks"
           },
+          "enable_dialogflow": {
+            "description": "Enables Dialogflow for the current call. The default value is false.",
+            "type": "boolean",
+            "default": false,
+            "example": true
+          },
+          "dialogflow_config": {
+            "$ref": "#/components/schemas/DialogflowConfig"
+          },
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
             "type": "string",
@@ -62224,15 +62808,6 @@
             "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
             "type": "string",
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
-          },
-          "enable_dialogflow": {
-            "description": "Enables Dialogflow for the current call. The default value is false.",
-            "type": "boolean",
-            "default": false,
-            "example": true
-          },
-          "dialogflow_config": {
-            "$ref": "#/components/schemas/DialogflowConfig"
           }
         },
         "example": {
@@ -63467,7 +64042,7 @@
               "connection_id": {
                 "type": "string",
                 "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
               "transcription_data": {
                 "type": "object",
@@ -63641,9 +64216,20 @@
         },
         "properties": {
           "to": {
-            "description": "The DID or SIP URI to dial out and bridge to the given call.",
-            "type": "string",
-            "example": "+18005550100 or sip:username@sip.telnyx.com"
+            "description": "The DID or SIP URI to dial out to. Multiple DID or SIP URIs can be provided using an array of strings",
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "+18005550100 or sip:username@sip.telnyx.com"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": "[\"+18005550100\", \"sip:username@sip.telnyx.com\"]"
+              }
+            ]
           },
           "from": {
             "description": "The `from` number to be used as the caller id presented to the destination (`to` number). The number should be in +E164 format. This attribute will default to the `to` number of the original call if omitted.",
@@ -63686,6 +64272,7 @@
             "default": "disabled",
             "type": "string",
             "enum": [
+              "premium",
               "detect",
               "detect_beep",
               "detect_words",
@@ -64495,6 +65082,7 @@
           "first_command_timeout_secs": 10,
           "inbound": {
             "channel_limit": 10,
+            "shaken_stir_enabled": true,
             "sip_subdomain": "example",
             "sip_subdomain_receive_settings": "only_my_connections"
           },
@@ -69405,7 +69993,7 @@
               "connection_id": {
                 "type": "string",
                 "example": "7267xxxxxxxxxxxxxx",
-                "description": "Telnyx connection ID used in the call."
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
               "call_leg_id": {
                 "type": "string",
