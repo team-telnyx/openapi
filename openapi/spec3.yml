@@ -948,6 +948,13 @@ components:
       schema:
         default: true
         type: boolean
+    RecordingId:
+      description: Uniquely identifies the recording by id.
+      in: path
+      name: recording_id
+      required: true
+      schema:
+        type: string
     RequiredTag:
       description: Filter by tag, required by bulk operations.
       in: query
@@ -1196,6 +1203,16 @@ components:
             required:
             - documents
             type: object
+      required: true
+    DeleteRecordingsRequest:
+      content:
+        application/json:
+          schema:
+            description: List of Call Recordings IDs to delete.
+            items:
+              type: string
+            type: array
+      description: Deletes recordings for given ids.
       required: true
     DialogflowConnectionRequest:
       content:
@@ -3721,6 +3738,22 @@ components:
             title: Get Recording Response
             type: object
       description: Successful response with details about a recording.
+    RecordingResponseBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RecordingResponse'
+      description: A response with recording resource.
+    RecordingsResponseBody:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/RecordingResponse'
+                type: array
+      description: A response with recordings.
     RefreshFaxResponse:
       content:
         application/json:
@@ -5326,11 +5359,11 @@ components:
           type: integer
       type: object
     AwsAccessKeyId:
-      description: AWS credentials access key id
+      description: AWS credentials access key id.
       example: AKIAIOSFODNN7EXAMPLE
       type: string
     AwsSecretAccessKey:
-      description: AWS secret access key
+      description: AWS secret access key.
       example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       type: string
     BillingGroup:
@@ -5840,7 +5873,7 @@ components:
       title: Bridge Request
       type: object
     Bucket:
-      description: Name of the bucket to be used to store recording files
+      description: Name of the bucket to be used to store recording files.
       example: example-bucket
       type: string
     BulkCreationDetailedStatusResponse:
@@ -15390,7 +15423,7 @@ components:
       type: object
     Credentials:
       description: Opaque credential token used to authenticate and authorize with
-        storage provider
+        storage provider.
       example: OPAQUE_CREDENTIALS_TOKEN
       format: password
       type: string
@@ -26016,6 +26049,98 @@ components:
         data:
           $ref: '#/components/schemas/RecordingCompleted'
       title: Recording Completed Event
+      type: object
+    RecordingResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/RecordingResponseData'
+      title: RecordingResponse
+      type: object
+    RecordingResponseData:
+      properties:
+        call_control_id:
+          description: Unique identifier and token for controlling the call.
+          example: v3:e-31OnvjEM7Y4wvxr3TKNk8M3QyLcGZPiUIzCGtwQtOtEjY-B0urkw
+          type: string
+        call_leg_id:
+          description: ID that is unique to the call and can be used to correlate
+            webhook events.
+          example: 84a97d76-e40f-11ed-9074-02420a0daa69
+          type: string
+        call_session_id:
+          description: ID that is unique to the call session and can be used to correlate
+            webhook events. Call session is a group of related call legs that logically
+            belong to the same phone call, e.g. an inbound and outbound leg of a transferred
+            call.
+          example: 84a97d76-e40f-11ed-9074-02420a0daa69
+          type: string
+        channels:
+          description: When `dual`, final audio file has the first leg on channel
+            A, and the rest on channel B.
+          enum:
+          - single
+          - dual
+          example: dual
+          type: string
+        conference_id:
+          description: Uniquely identifies the conference.
+          example: 84a97d76-e40f-11ed-9074-02420a0daa69
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        download_urls:
+          description: The links to download the recording files.
+          properties:
+            mp3:
+              description: Link to download the recording in mp3 format.
+              type: string
+            wav:
+              description: Link to download the recording in wav format.
+              type: string
+          type: object
+        duration_millis:
+          description: The duration of the recording in milliseconds.
+          example: 60000
+          format: int32
+          type: integer
+        id:
+          description: Uniquely identifies the recording.
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
+        record_type:
+          enum:
+          - recording
+          example: recording
+          type: string
+        recording_ended_at:
+          description: ISO 8601 formatted date of when the recording ended.
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        recording_started_at:
+          description: ISO 8601 formatted date of when the recording started.
+          example: '2019-01-23T18:10:02.574Z'
+          type: string
+        source:
+          description: The kind of event that led to this recording being created.
+          enum:
+          - conference
+          - call
+          example: conference
+          type: string
+        status:
+          description: The status of the recording. Only resources for `completed`
+            recordings are currently supported.
+          enum:
+          - completed
+          example: completed
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      title: RecordingResponseData
       type: object
     RecordingStarted:
       example:
@@ -47490,6 +47615,19 @@ paths:
       - Recordings Commands
       x-group-parameters: 'true'
       x-latency-category: interactive
+  /recordings/actions/delete:
+    description: Permanently deletes a list of call recordings.
+    operationId: deleteRecordings
+    requestBody:
+      $ref: '#/components/requestBodies/DeleteRecordingsRequest'
+    responses:
+      '204':
+        description: The recordings have been successfully deleted.
+      default:
+        $ref: '#/components/responses/GenericErrorResponse'
+    summary: Deletes a list of call recordings
+    tags:
+    - Call Recordings
   /recordings/{id}:
     get:
       description: Retrieve a recording from the authenticated user's recordings
@@ -47512,6 +47650,35 @@ paths:
       tags:
       - Recordings Commands
       x-latency-category: interactive
+  /recordings/{recording_id}:
+    delete:
+      description: Permanently deletes a call recording.
+      operationId: deleteRecording
+      parameters:
+      - $ref: '#/components/parameters/RecordingId'
+      responses:
+        '200':
+          $ref: '#/components/responses/RecordingResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete a call recording
+      tags:
+      - Call Recordings
+      x-latency-category: responsive
+    get:
+      description: Retrieves the details of an existing call recording.
+      operationId: getRecording
+      parameters:
+      - $ref: '#/components/parameters/RecordingId'
+      responses:
+        '200':
+          $ref: '#/components/responses/RecordingResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve call recording
+      tags:
+      - Call Recordings
+      x-latency-category: responsive
   /regions:
     get:
       description: List all regions and the interfaces that region supports
@@ -53207,7 +53374,7 @@ tags:
   name: Call Control Applications
 - description: Call information
   name: Call Information
-- description: Call Recordings operations
+- description: Call Recordings operations.
   name: Call Recordings
 - description: Campaign operations
   name: Campaign
