@@ -10414,7 +10414,7 @@
           {
             "name": "filter[features]",
             "in": "query",
-            "description": "Filter if the phone number should be used for voice, fax, mms, sms, emergency. Returns features in the response when used",
+            "description": "Filter if the phone number should be used for voice, fax, mms, sms, emergency. Returns features in the response when used.",
             "schema": {
               "type": "array",
               "items": {
@@ -14622,6 +14622,80 @@
         "x-latency-category": "responsive"
       }
     },
+    "/numbers_features": {
+      "post": {
+        "summary": "Retrieve the features for a list of numbers",
+        "description": "Retrieve the features for a list of numbers",
+        "operationId": "numbersFeatures",
+        "tags": [
+          "numbers features"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone_numbers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "phone"
+                    }
+                  }
+                },
+                "required": [
+                  "phone_numbers"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "phone_number": {
+                            "type": "string",
+                            "format": "phone"
+                          },
+                          "features": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "phone_number",
+                          "features"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-latency-category": "responsive"
+      }
+    },
     "/ota_updates": {
       "get": {
         "summary": "List OTA updates",
@@ -16214,6 +16288,72 @@
           "200": {
             "$ref": "#/components/responses/ListPhoneNumbersJobsResponse"
           },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Invalid sorting value": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid sorting value",
+                          "detail": "The value provided for sorting is not valid. Check the value used and try again.",
+                          "source": {
+                            "pointer": "/sort"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "Invalid page size": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid pagination",
+                          "detail": "The provided 'page' parameter is invalid. It must be an object with 'size' and/or 'number' with numeric values.",
+                          "source": {
+                            "pointer": "page/size"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "Invalid page number": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid pagination",
+                          "detail": "The provided 'page' parameter is invalid. It must be an object with 'size' and/or 'number' with numeric values.",
+                          "source": {
+                            "pointer": "page/number"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
           }
@@ -16258,6 +16398,42 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Phone numbers must be present": {
+                    "$ref": "#/components/examples/PhoneNumbersMustBePresent"
+                  },
+                  "Maximum allowed phone numbers": {
+                    "$ref": "#/components/examples/MaximumAllowedPhoneNumbers"
+                  },
+                  "Minimum allowed phone numbers": {
+                    "$ref": "#/components/examples/MinimumAllowedPhoneNumbers"
+                  },
+                  "Mixed IDs and E164 values": {
+                    "$ref": "#/components/examples/MixedIdsAndE164Values"
+                  },
+                  "Phone number ownership": {
+                    "$ref": "#/components/examples/PhoneNumberOwnership"
+                  },
+                  "Maximum jobs allowed": {
+                    "$ref": "#/components/examples/Maximum20JobsAllowed"
+                  }
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
           }
@@ -16294,6 +16470,56 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/PhoneNumbersJob"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Phone numbers must be present": {
+                    "$ref": "#/components/examples/PhoneNumbersMustBePresent"
+                  },
+                  "Maximum allowed phone numbers": {
+                    "$ref": "#/components/examples/MaximumAllowedPhoneNumbers"
+                  },
+                  "Minimum allowed phone numbers": {
+                    "$ref": "#/components/examples/MinimumAllowedPhoneNumbers"
+                  },
+                  "Mixed IDs and E164 values": {
+                    "$ref": "#/components/examples/MixedIdsAndE164Values"
+                  },
+                  "Phone number ownership": {
+                    "$ref": "#/components/examples/PhoneNumberOwnership"
+                  },
+                  "Maximum jobs allowed": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Bad Request",
+                          "detail": "You can have at most 500 pending or in progress jobs",
+                          "source": {
+                            "pointer": "/base"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -16343,6 +16569,88 @@
               }
             }
           },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Not authorized": {
+                    "$ref": "#/components/examples/NotAuthorized"
+                  },
+                  "Billing group not authorized": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10010",
+                          "title": "Authorization Failed",
+                          "detail": "The specified billing group either does not exist or is not part of your account",
+                          "source": {
+                            "pointer": "/billing_group_id"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10010"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Phone numbers must be present": {
+                    "$ref": "#/components/examples/PhoneNumbersMustBePresent"
+                  },
+                  "Maximum allowed phone numbers": {
+                    "$ref": "#/components/examples/MaximumAllowedPhoneNumbers"
+                  },
+                  "Minimum allowed phone numbers": {
+                    "$ref": "#/components/examples/MinimumAllowedPhoneNumbers"
+                  },
+                  "Mixed IDs and E164 values": {
+                    "$ref": "#/components/examples/MixedIdsAndE164Values"
+                  },
+                  "Phone number ownership": {
+                    "$ref": "#/components/examples/PhoneNumberOwnership"
+                  },
+                  "Minimum updateable field": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Bad Request",
+                          "detail": "You must provide at least 1 updateable field.",
+                          "source": {
+                            "pointer": "/updateable_fields"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "Maximum jobs allowed": {
+                    "$ref": "#/components/examples/Maximum20JobsAllowed"
+                  }
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
           }
@@ -16379,6 +16687,38 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/PhoneNumbersJob"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                },
+                "examples": {
+                  "Resource not found": {
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10005",
+                          "title": "Resource not found",
+                          "detail": "The requested resource or URL could not be found.",
+                          "source": {
+                            "pointer": "/base"
+                          },
+                          "meta": {
+                            "url": "https://developers.telnyx.com/docs/overview/errors/10005"
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -22477,6 +22817,16 @@
               "type": "integer",
               "example": 1
             }
+          },
+          {
+            "name": "filter[include_phone_numbers]",
+            "in": "query",
+            "description": "Include the first 50 phone number objects for each sub order in the results. Note: use of this filter could produce unexpected results due to payload size.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -26690,7 +27040,124 @@
   },
   "components": {
     "callbacks": {},
-    "examples": {},
+    "examples": {
+      "Maximum20JobsAllowed": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "You can have at most 20 pending or in progress jobs",
+              "source": {
+                "pointer": "/base"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      },
+      "MaximumAllowedPhoneNumbers": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "1000 numbers is the maximum allowed.",
+              "source": {
+                "pointer": "/phone_numbers"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      },
+      "MinimumAllowedPhoneNumbers": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "You must provide at least 1 phone number.",
+              "source": {
+                "pointer": "/phone_numbers"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      },
+      "MixedIdsAndE164Values": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "You must specify either all phone numbers in the e164 format or all as phone number ids",
+              "source": {
+                "pointer": "/phone_numbers"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      },
+      "NotAuthorized": {
+        "value": {
+          "errors": [
+            {
+              "code": "10006",
+              "title": "Not authorized",
+              "detail": "You are not authorized to access the requested resource.",
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10006"
+              }
+            }
+          ]
+        }
+      },
+      "PhoneNumberOwnership": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "You must own every number in the bulk request",
+              "source": {
+                "pointer": "/phone_numbers"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      },
+      "PhoneNumbersMustBePresent": {
+        "value": {
+          "errors": [
+            {
+              "code": "10015",
+              "title": "Bad Request",
+              "detail": "must be present",
+              "source": {
+                "pointer": "/phone_numbers"
+              },
+              "meta": {
+                "url": "https://developers.telnyx.com/docs/overview/errors/10015"
+              }
+            }
+          ]
+        }
+      }
+    },
     "headers": {},
     "links": {},
     "parameters": {
@@ -29254,6 +29721,21 @@
                     "$ref": "#/components/schemas/ForbiddenError"
                   }
                 }
+              }
+            }
+          }
+        }
+      },
+      "ForbiddenResponse": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "examples": {
+              "Not authorized": {
+                "$ref": "#/components/examples/NotAuthorized"
               }
             }
           }
@@ -44431,6 +44913,13 @@
             "example": 1,
             "readOnly": true
           },
+          "sub_number_order_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Sub Number Order ID"
+            }
+          },
           "connection_id": {
             "type": "string",
             "example": "346789098765567",
@@ -44490,8 +44979,8 @@
               "id": "dc8e4d67-33a0-4cbb-af74-7b58f05bd494",
               "record_type": "number_order_phone_number",
               "phone_number": "+19705555098",
-              "phone_number_type": "local",
               "bundle_id": "bc8e4d67-33a0-4cbb-af74-7b58f05bd494",
+              "phone_number_type": "local",
               "regulatory_requirements": [
                 {
                   "record_type": "phone_number_regulatory_requirement",
@@ -44504,9 +44993,6 @@
               "requirements_met": true,
               "status": "success"
             }
-          ],
-          "sub_number_orders_ids": [
-            "dc8e4d67-33a0-4cbb-af74-7b58f05bd494"
           ],
           "record_type": "number_order",
           "phone_numbers_count": 1,
@@ -54266,13 +54752,6 @@
             "example": 1,
             "readOnly": true
           },
-          "sub_number_order_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "description": "Sub Number Order ID"
-            }
-          },
           "connection_id": {
             "type": "string",
             "example": "346789098765567",
@@ -56382,6 +56861,7 @@
           "t38_fax_gateway_enabled": true,
           "number_level_routing": "disabled",
           "phone_number_type": "local",
+          "inbound_call_screening": "disabled",
           "purchased_at": "2019-10-23T18:10:00.000Z",
           "created_at": "2019-10-23T18:10:00.000Z",
           "updated_at": "2019-10-24T18:10:00.000Z"
@@ -56523,6 +57003,16 @@
               "landline"
             ],
             "readOnly": true
+          },
+          "inbound_call_screening": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "reject_calls",
+              "flag_calls"
+            ],
+            "default": "disabled",
+            "description": "The inbound_call_screening setting is a phone number configuration option variable that allows users to configure their settings to block or flag fraudulent calls. It can be set to disabled, reject_calls, or flag_calls. This feature has an additional per-number monthly cost associated with it."
           }
         }
       },
@@ -56813,6 +57303,16 @@
           },
           "call_recording": {
             "$ref": "#/components/schemas/CallRecording"
+          },
+          "inbound_call_screening": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "reject_calls",
+              "flag_calls"
+            ],
+            "default": "disabled",
+            "description": "The inbound_call_screening setting is a phone number configuration option variable that allows users to configure their settings to block or flag fraudulent calls. It can be set to disabled, reject_calls, or flag_calls. This feature has an additional per-number monthly cost associated with it."
           }
         },
         "example": {
@@ -56845,7 +57345,8 @@
             "inbound_call_recording_enabled": true,
             "inbound_call_recording_format": "wav",
             "inbound_call_recording_channels": "single"
-          }
+          },
+          "inbound_call_screening": "disabled"
         }
       },
       "PhoneNumbersBulkUpdateError": {
@@ -66033,6 +66534,9 @@
               "status": "success"
             }
           ],
+          "sub_number_orders_ids": [
+            "dc8e4d67-33a0-4cbb-af74-7b58f05bd494"
+          ],
           "record_type": "number_order",
           "phone_numbers_count": 1,
           "status": "pending",
@@ -66254,6 +66758,16 @@
           },
           "call_recording": {
             "$ref": "#/components/schemas/CallRecording"
+          },
+          "inbound_call_screening": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "reject_calls",
+              "flag_calls"
+            ],
+            "default": "disabled",
+            "description": "The inbound_call_screening setting is a phone number configuration option variable that allows users to configure their settings to block or flag fraudulent calls. It can be set to disabled, reject_calls, or flag_calls. This feature has an additional per-number monthly cost associated with it."
           }
         },
         "example": {
@@ -66278,7 +66792,8 @@
             "inbound_call_recording_enabled": true,
             "inbound_call_recording_format": "wav",
             "inbound_call_recording_channels": "single"
-          }
+          },
+          "inbound_call_screening": "disabled"
         }
       },
       "UpdatePortingOrder": {
