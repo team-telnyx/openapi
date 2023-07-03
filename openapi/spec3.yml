@@ -73,6 +73,13 @@ components:
   headers: {}
   links: {}
   parameters:
+    AccountSid:
+      description: The id of the account the resource belongs to.
+      in: path
+      name: account_sid
+      required: true
+      schema:
+        type: string
     ApplicationId:
       description: The ID of the TeXML application used for the call.
       in: path
@@ -301,6 +308,15 @@ components:
         - created_at
         - updated_at
         example: filename
+        type: string
+    EndTime:
+      description: Filters calls by their end date. Expected format is YYYY-MM-DD.
+        Also accepts inequality operators, e.g. EndTime>=2023-05-22.
+      example: '>=2023-05-22'
+      in: query
+      name: EndTime
+      required: false
+      schema:
         type: string
     FilterAddressByAdministrativeArea:
       description: Filter by state or province where the address is located.
@@ -733,6 +749,14 @@ components:
         example: '1517907029795014409'
         format: int64
         type: string
+    From:
+      description: Filters calls by the from number.
+      example: '+1312345678'
+      in: query
+      name: From
+      required: false
+      schema:
+        type: string
     GcbChannelZoneId:
       description: Channel zone identifier
       in: path
@@ -908,6 +932,15 @@ components:
       name: filter[tag]
       schema:
         type: string
+    Page:
+      description: The number of the page to be displayed, zero-indexed, should be
+        used in conjuction with PageToken.
+      example: 1
+      in: query
+      name: Page
+      required: false
+      schema:
+        type: integer
     PageAfter:
       description: Opaque identifier of next page
       in: query
@@ -948,6 +981,13 @@ components:
         maximum: 250
         minimum: 1
         type: integer
+    PageToken:
+      description: Used to request the next page of results.
+      in: query
+      name: PageToken
+      required: false
+      schema:
+        type: string
     PathCommentID:
       description: Comment id
       in: path
@@ -1146,21 +1186,28 @@ components:
         - -usage_payment_method
         example: name
         type: string
-    Status:
-      description: The status of a notification setting
+    StartTime:
+      description: Filters calls by the start date. Expected format is YYYY-MM-DD.
+        Also accepts inequality operators, e.g. StartTime>=2023-05-22.
+      example: '>=2023-05-22'
       in: query
-      name: filter[status][eq]
+      name: StartTime
+      required: false
+      schema:
+        type: string
+    Status:
+      description: Filters calls by status.
+      example: no-answer
+      in: query
+      name: Status
+      required: false
       schema:
         enum:
-        - enabled
-        - enable-received
-        - enable-pending
-        - enable-submtited
-        - delete-received
-        - delete-pending
-        - delete-submitted
-        - deleted
-        example: enable-received
+        - canceled
+        - completed
+        - failed
+        - busy
+        - no-answer
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -1203,6 +1250,14 @@ components:
       schema:
         example: '2019-01-01T00:00:00.000Z'
         format: date-time
+        type: string
+    To:
+      description: Filters calls by the to number.
+      example: '+1312345678'
+      in: query
+      name: To
+      required: false
+      schema:
         type: string
     id:
       description: Identifies the resource.
@@ -2128,6 +2183,26 @@ components:
             title: Get All Texml Applications Response
             type: object
       description: Successful response
+    GetCallResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/CallResource'
+            title: Call resource
+            type: object
+      description: Call resource.
+    GetCallsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/CallResourceIndex'
+            title: Multiple call resources
+            type: object
+      description: Multiple call resources.
     GetFaxResponse:
       content:
         application/json:
@@ -8989,6 +9064,163 @@ components:
       - to
       - from
       title: Dial Request
+      type: object
+    CallResource:
+      example:
+        account_sid: 61bf923e-5e4d-4595-a110-56190ea18a1b
+        answered_by: null
+        caller_name: '+13122010094'
+        date_created: Thu, 15 Jun 2023 09:56:45 +0000
+        date_updated: Thu, 15 Jun 2023 09:56:56 +0000
+        direction: inbound
+        duration: '11'
+        end_time: Thu, 15 Jun 2023 09:56:56 +0000
+        from: '+13123456789'
+        from_formatted: (312) 345-6789
+        price: null
+        price_unit: null
+        sid: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
+        start_time: Thu, 15 Jun 2023 09:56:45 +0000
+        status: completed
+        to: '+13987654321'
+        to_formatted: (398) 765-4321
+        uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA.json
+      properties:
+        account_sid:
+          description: The id of the account the resource belongs to.
+          example: 61bf923e-5e4d-4595-a110-56190ea18a1b
+          type: string
+        answered_by:
+          description: The value of the answering machine detection result, if this
+            feature was enabled for the call.
+          enum:
+          - human
+          - machine
+          - not_sure
+          example: human
+          type: string
+        caller_name:
+          description: Caller ID, if present.
+          example: CALLER
+          type: string
+        date_created:
+          description: The timestamp of when the resource was created.
+          example: Thu, 15 Jun 2023 09:56:45 +0000
+          type: string
+        date_updated:
+          description: The timestamp of when the resource was last updated.
+          example: Thu, 15 Jun 2023 09:56:45 +0000
+          type: string
+        direction:
+          description: The direction of this call.
+          enum:
+          - inbound
+          - outbound
+          example: inbound
+          type: string
+        duration:
+          description: The duration of this call, given in seconds.
+          example: '12'
+          type: string
+        end_time:
+          description: The end time of this call.
+          example: Thu, 15 Jun 2023 09:56:45 +0000
+          type: string
+        from:
+          description: The phone number or SIP address that made this call.
+          example: '+13123456789'
+          type: string
+        from_formatted:
+          description: The from number formatted for display.
+          example: (312) 345-6789
+          type: string
+        price:
+          description: The price of this call, the currency is specified in the price_unit
+            field. Only populated when the call cost feature is enabled for the account.
+          example: '0.10'
+          type: string
+        price_unit:
+          description: The unit in which the price is given.
+          example: USD
+          type: string
+        sid:
+          description: The identifier of this call.
+          example: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
+          type: string
+        start_time:
+          description: The start time of this call.
+          example: Thu, 15 Jun 2023 09:56:45 +0000
+          type: string
+        status:
+          description: The status of this call.
+          enum:
+          - ringing
+          - in-progress
+          - canceled
+          - completed
+          - failed
+          - busy
+          - no-answer
+          example: completed'
+          type: string
+        to:
+          description: The phone number or SIP address that received this call.
+          example: '+13987654321'
+          type: string
+        to_formatted:
+          description: The to number formatted for display.
+          example: (398) 765-4321
+          type: string
+        uri:
+          description: The relative URI for this call.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA.json
+          type: string
+      title: Call resource
+      type: object
+    CallResourceIndex:
+      example:
+        calls: []
+        end: 0
+        first_page_uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1
+        next_page_uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=1&PageSize=1&PageToken=MTY4AjgyNDkwNzIxMQ
+        page: 0
+        page_size: 1
+        start: 0
+        uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1
+      properties:
+        calls:
+          items:
+            $ref: '#/components/schemas/CallResource'
+          type: array
+        end:
+          description: The number of the last element on the page, zero-indexed.
+          example: 19
+          type: integer
+        first_page_uri:
+          description: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1
+          example: accepted
+          type: string
+        next_page_uri:
+          description: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=1&PageSize=1&PageToken=MTY4AjgyNDkwNzIxMQ
+          example: accepted
+          type: string
+        page:
+          description: Current page number, zero-indexed.
+          example: 0
+          type: integer
+        page_size:
+          description: The number of items on the page
+          example: 20
+          type: integer
+        start:
+          description: The number of the first element on the page, zero-indexed.
+          example: 0
+          type: integer
+        uri:
+          description: The URI of the current page.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1
+          type: string
+      title: Multiple call resources
       type: object
     CallSpeakEnded:
       example:
@@ -50855,6 +51087,69 @@ paths:
       summary: Create an Access Token.
       tags:
       - Access Tokens
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls:
+    get:
+      description: Returns multiple call resouces for an account. This endpoint is
+        eventually consistent.
+      operationId: GetTeXMLCalls
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageToken'
+      - $ref: '#/components/parameters/To'
+      - $ref: '#/components/parameters/From'
+      - $ref: '#/components/parameters/Status'
+      - $ref: '#/components/parameters/StartTime'
+      - $ref: '#/components/parameters/EndTime'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetCallsResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch multiple call resources
+      tags:
+      - TeXML REST Commands
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}:
+    get:
+      description: Returns an individual call identified by its CallSid. This endpoint
+        is eventually consistent.
+      operationId: GetTeXMLCall
+      parameters:
+      - $ref: '#/components/parameters/CallSid'
+      - $ref: '#/components/parameters/AccountSid'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetCallResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch a call
+      tags:
+      - TeXML REST Commands
+      x-latency-category: responsive
+    post:
+      description: Update TeXML call. Please note that the keys present in the payload
+        MUST BE formatted in CamelCase as specified in the example.
+      operationId: UpdateTeXMLCall
+      parameters:
+      - $ref: '#/components/parameters/CallSid'
+      - $ref: '#/components/parameters/AccountSid'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCallRequest'
+        description: Update Call request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/GetCallResponse'
+      summary: Update call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/calls/{application_id}:
     post:
