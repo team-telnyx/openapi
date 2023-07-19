@@ -197,8 +197,8 @@
       "description": "Messaging URL Domains"
     },
     {
-      "name": "Mobile Operator Networks",
-      "description": "Mobile operator networks operations"
+      "name": "Mobile Network Operators",
+      "description": "Mobile network operators operations"
     },
     {
       "name": "Networks",
@@ -1183,8 +1183,8 @@
                       "6b14e151-8493-4fa1-8664-1cc4e6d14158"
                     ]
                   },
-                  "mobile_operator_networks_preferences": {
-                    "$ref": "#/components/schemas/MobileOperatorNetworksPreferencesRequest"
+                  "mobile_network_operators_preferences": {
+                    "$ref": "#/components/schemas/MobileNetworkOperatorsPreferencesRequest"
                   }
                 }
               }
@@ -1197,6 +1197,32 @@
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
+      }
+    },
+    "/actions/purchase/esims": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Purchase eSIMs",
+        "description": "Purchases and registers the specified amount of eSIMs to the current user's account.<br/><br/>\nIf <code>sim_card_group_id</code> is provided, the eSIMs will be associated with that group. Otherwise, the default group for the current user will be used.<br/><br/>\n",
+        "operationId": "ESimPurchaseRegister",
+        "tags": [
+          "SIM Cards"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ESimPurchase"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/RegisterSimCardsResponse"
           }
         }
       }
@@ -12747,13 +12773,13 @@
         "x-latency-category": "responsive"
       }
     },
-    "/mobile_operator_networks": {
+    "/mobile_network_operators": {
       "get": {
-        "summary": "List mobile operator networks",
+        "summary": "List mobile network operators",
         "description": "Telnyx has a set of GSM mobile operators partners that are available through our mobile network roaming. This resource is entirely managed by Telnyx and may change over time. That means that this resource won't allow any write operations for it. Still, it's available so it can be used as a support resource that can be related to other resources or become a configuration option.",
-        "operationId": "MobileOperatorNetworksGet",
+        "operationId": "MobileNetworkOperatorsGet",
         "tags": [
-          "Mobile Operator Networks"
+          "Mobile Network Operators"
         ],
         "parameters": [
           {
@@ -12831,11 +12857,21 @@
               "type": "string",
               "example": "USACG"
             }
+          },
+          {
+            "name": "filter[network_preferences_enabled]",
+            "description": "Filter by network_preferences_enabled.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "example": true
+            }
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/SearchMobileOperatorNetworksResponse"
+            "$ref": "#/components/responses/SearchMobileNetworkOperatorsResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -22352,6 +22388,19 @@
                 ]
               }
             }
+          },
+          {
+            "name": "sort",
+            "description": "Sorts SIM cards by the given field. Defaults to ascending order unless field is prefixed with a minus sign.",
+            "in": "query",
+            "required": false,
+            "example": "-current_billing_period_consumed_data.amount",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "current_billing_period_consumed_data.amount"
+              ]
+            }
           }
         ],
         "responses": {
@@ -22365,11 +22414,53 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sim_cards/actions/bulk_set_network_preferences": {
+      "post": {
+        "x-latency-category": "background",
+        "summary": "Request bulk setting of network preferences for SIM cards.",
+        "description": "This API triggers an asynchronous operation to set network preferences for each of the specified SIM cards.<br/>\nFor each SIM Card a SIM Card Action will be generated. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
+        "operationId": "BulkSetNetworkPreferences",
+        "tags": [
+          "SIM Cards"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sim_card_ids"
+                ],
+                "properties": {
+                  "sim_card_ids": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Id"
+                    },
+                    "example": [
+                      "6b14e151-8493-4fa1-8664-1cc4e6d14158"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/BulkSIMCardActionResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
+      }
+    },
     "/sim_cards/actions/bulk_set_public_ips": {
       "post": {
         "x-latency-category": "background",
         "summary": "Request bulk setting SIM card public IPs.",
-        "description": "This API triggers an asynchronous operation to set a public IP for each of the specified SIM cards.<br/>\nFor each SIM Card a SIM Card Action will be generated. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
+        "description": "This API triggers an asynchronous operation to set a public IP for each of the specified SIM cards.<br/>\nFor each SIM Card a SIM Card Action will be generated. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
         "operationId": "BulkSetPublicIPs",
         "tags": [
           "SIM Cards"
@@ -22543,7 +22634,7 @@
       "post": {
         "x-latency-category": "background",
         "summary": "Delete network preferences for a SIM card",
-        "description": "This API deletes network preferences for a SIM card.<br/>\nThe API will trigger an asynchronous operation called a SIM Card Action. Creating network preferences may take a period of time. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
+        "description": "This API deletes network preferences for a SIM card.<br/>\nThe API will trigger an asynchronous operation called a SIM Card Action. Creating network preferences may take a period of time. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
         "operationId": "DeleteNetworkPreference",
         "tags": [
           "SIM Cards"
@@ -22645,7 +22736,7 @@
       "post": {
         "x-latency-category": "background",
         "summary": "Create or update network preferences for a SIM card",
-        "description": "This API sets network preferences for a SIM card.<br/>\nEvery SIM card has default network preferences defined on Telnyx. These preferences will determine how a SIMCard will connect to the network by considering a list of preferable operators.<br/><br/>\nThe SIM card needs to be attached to the network so this can connect and SMS must be available, otherwise, the operation will fail. This preference will only be respected if the network is available, otherwise the strongest signal will be used. <br/><br/>\nThe API will trigger an asynchronous operation called a SIM Card Action. Creating network preferences may take a period of time. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
+        "description": "This API sets network preferences for a SIM card.<br/>\nEvery SIM card has default network preferences defined on Telnyx. These preferences will determine how a SIMCard will connect to the network by considering a list of preferable operators.<br/><br/>\nThe SIM card needs to be attached to the network so this can connect and SMS must be available, otherwise, the operation will fail. This preference will only be respected if the network is available, otherwise the strongest signal will be used. <br/><br/>\nThe API will trigger an asynchronous operation called a SIM Card Action. Creating network preferences may take a period of time. The status of the SIM Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions) API.\n",
         "operationId": "SetNetworkPreference",
         "tags": [
           "SIM Cards"
@@ -22714,6 +22805,30 @@
             "$ref": "#/components/responses/GenericErrorResponse"
           }
         }
+      }
+    },
+    "/sim_cards/{sim_card_id}/activation_code": {
+      "get": {
+        "summary": "Get activation QR code for an eSIM",
+        "description": "It returns the contents for the activation QR code for an eSIM.<br/><br/>\n This API is only available for eSIMs. If the given SIM is a physical SIM card, or has already been installed, an error will be returned.\n",
+        "operationId": "SIMCardActivationCodeGet",
+        "tags": [
+          "SIM Cards"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SIMCardId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardActivationCodeResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
       }
     },
     "/sim_cards/{sim_card_id}/device_details": {
@@ -22806,11 +22921,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "mobile_operator_networks_preferences": {
+                  "mobile_network_operators_preferences": {
                     "type": "array",
-                    "description": "A list of mobile operator networks and the priority that should be applied when the SIM is connecting to the network.",
+                    "description": "A list of mobile network operators and the priority that should be applied when the SIM is connecting to the network.",
                     "items": {
-                      "$ref": "#/components/schemas/MobileOperatorNetworkPreferencesRequest"
+                      "$ref": "#/components/schemas/MobileNetworkOperatorPreferencesRequest"
                     }
                   }
                 }
@@ -32604,7 +32719,7 @@
         }
       },
       "PUTSIMCardNetworkPreferenceResponse": {
-        "description": "A successful network preferences definition response. <br/><br/>\nThe sent mobile_operator_networks_preferences parameter won't be applied to the main resource right away - this is an asynchronous operation. While interacting with this API, you will face the following scenarios:\n\n  * The first request for this API will return an empty mobile_operator_networks_preferences with an in-progress OTA update resource in the ota_updates node containing the exact sent parameters to indicate the operation progress. The value will be applied to the principal object when the OTA update finishes its processing, thus indicating the SIM card network preference current state. \n  * The subsequent requests will contain the current state, that is what's applied to the SIM card settings, and return the related OTA update in the ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates node) will, by default, be the resource related to the operation, not all of them.",
+        "description": "A successful network preferences definition response. <br/><br/>\nThe sent mobile_network_operators_preferences parameter won't be applied to the main resource right away - this is an asynchronous operation. While interacting with this API, you will face the following scenarios:\n\n  * The first request for this API will return an empty mobile_network_operators_preferences with an in-progress OTA update resource in the ota_updates node containing the exact sent parameters to indicate the operation progress. The value will be applied to the principal object when the OTA update finishes its processing, thus indicating the SIM card network preference current state. \n  * The subsequent requests will contain the current state, that is what's applied to the SIM card settings, and return the related OTA update in the ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates node) will, by default, be the resource related to the operation, not all of them.",
         "content": {
           "application/json": {
             "schema": {
@@ -33150,6 +33265,21 @@
         },
         "description": "Successful Response"
       },
+      "SIMCardActivationCodeResponse": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SIMCardActivationCode"
+                }
+              }
+            }
+          }
+        }
+      },
       "SIMCardDeviceDetailsResponse": {
         "description": "Successful response",
         "content": {
@@ -33240,7 +33370,7 @@
           }
         }
       },
-      "SearchMobileOperatorNetworksResponse": {
+      "SearchMobileNetworkOperatorsResponse": {
         "description": "Successful response",
         "content": {
           "application/json": {
@@ -33250,7 +33380,7 @@
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/MobileOperatorNetwork"
+                    "$ref": "#/components/schemas/MobileNetworkOperator"
                   }
                 },
                 "meta": {
@@ -41560,8 +41690,8 @@
             "type": "object",
             "description": "A JSON object representation of the operation. The information present here will relate directly to the source of the OTA request.",
             "properties": {
-              "mobile_operator_networks_preferences": {
-                "$ref": "#/components/schemas/MobileOperatorNetworksPreferencesResponse"
+              "mobile_network_operators_preferences": {
+                "$ref": "#/components/schemas/MobileNetworkOperatorsPreferencesResponse"
               }
             }
           },
@@ -41583,10 +41713,10 @@
           "id": "6a09cdc3-8948-47f0-aa62-74ac943d6c58",
           "record_type": "ota_update",
           "settings": {
-            "mobile_operator_networks_preferences": [
+            "mobile_network_operators_preferences": [
               {
-                "mobile_operator_network_id": "6a09cdc3-8948-47f0-aa62-74ac943d6c58",
-                "mobile_operator_network_name": "AT&T Mobility (USACG)",
+                "mobile_network_operator_id": "6a09cdc3-8948-47f0-aa62-74ac943d6c58",
+                "mobile_network_operator_name": "AT&T Mobility (USACG)",
                 "priority": 0
               }
             ]
@@ -48790,6 +48920,50 @@
           "caller_name"
         ]
       },
+      "ESimPurchase": {
+        "title": "SIMCardRegistration",
+        "type": "object",
+        "properties": {
+          "sim_card_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The group SIMCardGroup identification. This attribute can be <code>null</code> when it's present in an associated resource.",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "tags": {
+            "type": "array",
+            "description": "Searchable tags associated with the SIM cards",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "personal",
+              "customers",
+              "active-customers"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "description": "The amount of eSIMs to be purchased.",
+            "example": 10,
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Status on which the SIM cards will be set after being successfully registered.",
+            "enum": [
+              "enabled",
+              "disabled",
+              "standby"
+            ],
+            "example": "standby",
+            "default": "enabled"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
       "Email": {
         "title": "Email",
         "required": [
@@ -54774,9 +54948,9 @@
           }
         }
       },
-      "MobileOperatorNetwork": {
+      "MobileNetworkOperator": {
         "type": "object",
-        "title": "MobileOperatorNetwork",
+        "title": "MobileNetworkOperator",
         "properties": {
           "id": {
             "type": "string",
@@ -54789,10 +54963,10 @@
             "type": "string",
             "description": "Identifies the type of the resource.",
             "readOnly": true,
-            "example": "mobile_operator_network"
+            "example": "mobile_network_operator"
           },
           "name": {
-            "description": "The operator network name.",
+            "description": "The network operator name.",
             "type": "string",
             "example": "AT&T Mobility (USACG)"
           },
@@ -54815,60 +54989,66 @@
             "type": "string",
             "description": "MNC stands for Mobile Network Code. It's a two to three decimal digits that identify a network.<br/><br/>\n This code is commonly seen joined with a Mobile Country Code (MCC) in a tuple that allows identifying a carrier known as PLMN (Public Land Mobile Network) code.",
             "example": "410"
+          },
+          "network_preferences_enabled": {
+            "type": "boolean",
+            "description": "Indicate whether the mobile network operator can be set as preferred in the Network Preferences API.",
+            "readOnly": true,
+            "example": true
           }
         }
       },
-      "MobileOperatorNetworkPreferencesRequest": {
+      "MobileNetworkOperatorPreferencesRequest": {
         "description": "",
         "type": "object",
         "properties": {
-          "mobile_operator_network_id": {
+          "mobile_network_operator_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The mobile operator network resource identification UUID.",
+            "description": "The mobile network operator resource identification UUID.",
             "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
           },
           "priority": {
             "type": "integer",
-            "description": "It determines what is the priority of a specific operator network that should be assumed by a SIM card when connecting to a network. The highest priority is 0, the second highest is 1 and so on.",
+            "description": "It determines what is the priority of a specific network operator that should be assumed by a SIM card when connecting to a network. The highest priority is 0, the second highest is 1 and so on.",
             "example": 0
           }
         }
       },
-      "MobileOperatorNetworkPreferencesResponse": {
+      "MobileNetworkOperatorPreferencesResponse": {
         "description": "",
         "type": "object",
         "properties": {
-          "mobile_operator_network_id": {
+          "mobile_network_operator_id": {
             "type": "string",
             "format": "uuid",
-            "description": "The mobile operator network resource identification UUID.",
+            "description": "The mobile network operator resource identification UUID.",
             "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
           },
-          "mobile_operator_network_name": {
+          "mobile_network_operator_name": {
             "type": "string",
-            "description": "The mobile operator network resource name.",
+            "description": "The mobile network operator resource name.",
             "example": "AT&T Mobility (USACG)"
           },
           "priority": {
             "type": "integer",
-            "description": "It determines what is the priority of a specific operator network that should be assumed by a SIM card when connecting to a network. The highest priority is 0, the second highest is 1 and so on.",
+            "description": "It determines what is the priority of a specific network operator that should be assumed by a SIM card when connecting to a network. The highest priority is 0, the second highest is 1 and so on.",
             "example": 0
           }
         }
       },
-      "MobileOperatorNetworksPreferencesRequest": {
+      "MobileNetworkOperatorsPreferencesRequest": {
         "type": "array",
-        "description": "A list of mobile operator networks and the priority that should be applied when the SIM is connecting to the network.",
+        "description": "A list of mobile network operators and the priority that should be applied when the SIM is connecting to the network.",
         "items": {
-          "$ref": "#/components/schemas/MobileOperatorNetworkPreferencesRequest"
+          "$ref": "#/components/schemas/MobileNetworkOperatorPreferencesRequest"
         }
       },
-      "MobileOperatorNetworksPreferencesResponse": {
+      "MobileNetworkOperatorsPreferencesResponse": {
         "type": "array",
-        "description": "A list of mobile operator networks and the priority that should be applied when the SIM is connecting to the network.",
+        "description": "A list of mobile network operators and the priority that should be applied when the SIM is connecting to the network.",
         "items": {
-          "$ref": "#/components/schemas/MobileOperatorNetworkPreferencesResponse"
+          "$ref": "#/components/schemas/MobileNetworkOperatorPreferencesResponse"
         }
       },
       "Money": {
@@ -61658,6 +61838,16 @@
           "status": {
             "$ref": "#/components/schemas/SIMCardStatus"
           },
+          "type": {
+            "type": "string",
+            "description": "The type of SIM card",
+            "readOnly": true,
+            "example": "physical",
+            "enum": [
+              "physical",
+              "esim"
+            ]
+          },
           "iccid": {
             "type": "string",
             "description": "The ICCID is the identifier of the specific SIM card/chip. Each SIM is internationally identified by its integrated circuit card identifier (ICCID). ICCIDs are stored in the SIM card's memory and are also engraved or printed on the SIM card body during a process called personalization.\n",
@@ -61666,7 +61856,7 @@
           },
           "imsi": {
             "type": "string",
-            "description": "SIM cards are identified on their individual operator networks by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
+            "description": "SIM cards are identified on their individual network operators by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
             "readOnly": true,
             "example": "081932214823362973"
           },
@@ -61693,6 +61883,26 @@
               "customers",
               "active-customers"
             ]
+          },
+          "authorized_imeis": {
+            "type": "array",
+            "description": "List of IMEIs authorized to use a given SIM card.",
+            "items": {
+              "type": "string",
+              "format": "int64"
+            },
+            "example": [
+              "106516771852751",
+              "534051870479563",
+              "508821468377961"
+            ]
+          },
+          "current_imei": {
+            "type": "string",
+            "format": "int64",
+            "description": "IMEI of the device where a given SIM card is currently being used.",
+            "readOnly": true,
+            "example": "457032284023794"
           },
           "data_limit": {
             "type": "object",
@@ -61730,25 +61940,12 @@
               }
             }
           },
-          "authorized_imeis": {
-            "type": "array",
-            "description": "List of IMEIs authorized to use a given SIM card.",
-            "items": {
-              "type": "string",
-              "format": "int64"
-            },
-            "example": [
-              "106516771852751",
-              "534051870479563",
-              "508821468377961"
-            ]
-          },
-          "current_imei": {
-            "type": "string",
-            "format": "int64",
-            "description": "IMEI of the device where a given SIM card is currently being used.",
+          "actions_in_progress": {
+            "type": "boolean",
+            "description": "Indicate whether the SIM card has any pending (in-progress) actions.",
             "readOnly": true,
-            "example": "457032284023794"
+            "example": true,
+            "default": false
           },
           "created_at": {
             "type": "string",
@@ -61910,6 +62107,23 @@
           },
           "count": {
             "type": "integer"
+          }
+        }
+      },
+      "SIMCardActivationCode": {
+        "type": "object",
+        "title": "SIMCardActivationCode",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "sim_card_activation_code",
+            "readOnly": true
+          },
+          "activation_code": {
+            "type": "string",
+            "description": "Contents of the eSIM activation QR code.",
+            "example": "LPA:1$....",
+            "readOnly": true
           }
         }
       },
@@ -62158,8 +62372,8 @@
             "format": "uuid",
             "example": "6b14e151-8493-4fa1-8664-1cc4e6d14158"
           },
-          "mobile_operator_networks_preferences": {
-            "$ref": "#/components/schemas/MobileOperatorNetworksPreferencesResponse"
+          "mobile_network_operators_preferences": {
+            "$ref": "#/components/schemas/MobileNetworkOperatorsPreferencesResponse"
           },
           "created_at": {
             "type": "string",
@@ -62189,8 +62403,8 @@
             "format": "uuid",
             "example": "6b14e151-8493-4fa1-8664-1cc4e6d14158"
           },
-          "mobile_operator_networks_preferences": {
-            "$ref": "#/components/schemas/MobileOperatorNetworksPreferencesResponse"
+          "mobile_network_operators_preferences": {
+            "$ref": "#/components/schemas/MobileNetworkOperatorsPreferencesResponse"
           },
           "ota_updates": {
             "type": "array",
@@ -63284,6 +63498,16 @@
           "status": {
             "$ref": "#/components/schemas/SIMCardStatus"
           },
+          "type": {
+            "type": "string",
+            "description": "The type of SIM card",
+            "readOnly": true,
+            "example": "physical",
+            "enum": [
+              "physical",
+              "esim"
+            ]
+          },
           "iccid": {
             "type": "string",
             "description": "The ICCID is the identifier of the specific SIM card/chip. Each SIM is internationally identified by its integrated circuit card identifier (ICCID). ICCIDs are stored in the SIM card's memory and are also engraved or printed on the SIM card body during a process called personalization.\n",
@@ -63292,7 +63516,7 @@
           },
           "imsi": {
             "type": "string",
-            "description": "SIM cards are identified on their individual operator networks by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
+            "description": "SIM cards are identified on their individual network operators by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
             "readOnly": true,
             "example": "081932214823362973"
           },
@@ -63356,6 +63580,13 @@
                 "default": "MB"
               }
             }
+          },
+          "actions_in_progress": {
+            "type": "boolean",
+            "description": "Indicate whether the SIM card has any pending (in-progress) actions.",
+            "readOnly": true,
+            "example": true,
+            "default": false
           },
           "created_at": {
             "type": "string",
@@ -70972,7 +71203,7 @@
           },
           "imsi": {
             "type": "string",
-            "description": "SIM cards are identified on their individual operator networks by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
+            "description": "SIM cards are identified on their individual network operators by a unique International Mobile Subscriber Identity (IMSI). <br/>\nMobile network operators connect mobile phone calls and communicate with their market SIM cards using their IMSIs. The IMSI is stored in the Subscriber  Identity Module (SIM) inside the device and is sent by the device to the appropriate network. It is used to acquire the details of the device in the Home  Location Register (HLR) or the Visitor Location Register (VLR).\n",
             "readOnly": true,
             "example": "081932214823362973"
           },

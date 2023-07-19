@@ -3694,10 +3694,10 @@ components:
                 $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
             type: object
       description: "A successful network preferences definition response. <br/><br/>\n\
-        The sent mobile_operator_networks_preferences parameter won't be applied to\
+        The sent mobile_network_operators_preferences parameter won't be applied to\
         \ the main resource right away - this is an asynchronous operation. While\
         \ interacting with this API, you will face the following scenarios:\n\n  *\
-        \ The first request for this API will return an empty mobile_operator_networks_preferences\
+        \ The first request for this API will return an empty mobile_network_operators_preferences\
         \ with an in-progress OTA update resource in the ota_updates node containing\
         \ the exact sent parameters to indicate the operation progress. The value\
         \ will be applied to the principal object when the OTA update finishes its\
@@ -4036,6 +4036,15 @@ components:
                 $ref: '#/components/schemas/SIMCardAction'
             type: object
       description: Successful Response
+    SIMCardActivationCodeResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SIMCardActivationCode'
+            type: object
+      description: Successful response
     SIMCardDeviceDetailsResponse:
       content:
         application/json:
@@ -4090,14 +4099,14 @@ components:
                 $ref: '#/components/schemas/SIMCardPublicIP'
             type: object
       description: Successful response
-    SearchMobileOperatorNetworksResponse:
+    SearchMobileNetworkOperatorsResponse:
       content:
         application/json:
           schema:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/MobileOperatorNetwork'
+                  $ref: '#/components/schemas/MobileNetworkOperator'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
@@ -10805,9 +10814,9 @@ components:
         id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         record_type: ota_update
         settings:
-          mobile_operator_networks_preferences:
-          - mobile_operator_network_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-            mobile_operator_network_name: AT&T Mobility (USACG)
+          mobile_network_operators_preferences:
+          - mobile_network_operator_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+            mobile_network_operator_name: AT&T Mobility (USACG)
             priority: 0
         sim_card_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         status: in-progress
@@ -10834,8 +10843,8 @@ components:
           description: A JSON object representation of the operation. The information
             present here will relate directly to the source of the OTA request.
           properties:
-            mobile_operator_networks_preferences:
-              $ref: '#/components/schemas/MobileOperatorNetworksPreferencesResponse'
+            mobile_network_operators_preferences:
+              $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesResponse'
           type: object
         sim_card_id:
           description: The identification UUID of the related SIM card resource.
@@ -16906,6 +16915,42 @@ components:
       - callback_number
       - caller_name
       type: object
+    ESimPurchase:
+      properties:
+        amount:
+          description: The amount of eSIMs to be purchased.
+          example: 10
+          minimum: 1
+          type: integer
+        sim_card_group_id:
+          description: The group SIMCardGroup identification. This attribute can be
+            <code>null</code> when it's present in an associated resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        status:
+          default: enabled
+          description: Status on which the SIM cards will be set after being successfully
+            registered.
+          enum:
+          - enabled
+          - disabled
+          - standby
+          example: standby
+          type: string
+        tags:
+          description: Searchable tags associated with the SIM cards
+          example:
+          - personal
+          - customers
+          - active-customers
+          items:
+            type: string
+          type: array
+      required:
+      - amount
+      title: SIMCardRegistration
+      type: object
     Email:
       example:
         email: <Contact's Email>
@@ -21771,7 +21816,7 @@ components:
       - osrBitmaskIndex
       title: Mno
       type: object
-    MobileOperatorNetwork:
+    MobileNetworkOperator:
       properties:
         country_code:
           description: The mobile operator two-character (ISO 3166-1 alpha-2) origin
@@ -21801,12 +21846,18 @@ components:
           example: '410'
           type: string
         name:
-          description: The operator network name.
+          description: The network operator name.
           example: AT&T Mobility (USACG)
           type: string
+        network_preferences_enabled:
+          description: Indicate whether the mobile network operator can be set as
+            preferred in the Network Preferences API.
+          example: true
+          readOnly: true
+          type: boolean
         record_type:
           description: Identifies the type of the resource.
-          example: mobile_operator_network
+          example: mobile_network_operator
           readOnly: true
           type: string
         tadig:
@@ -21815,53 +21866,53 @@ components:
             networks.
           example: USACG
           type: string
-      title: MobileOperatorNetwork
+      title: MobileNetworkOperator
       type: object
-    MobileOperatorNetworkPreferencesRequest:
+    MobileNetworkOperatorPreferencesRequest:
       description: ''
       properties:
-        mobile_operator_network_id:
-          description: The mobile operator network resource identification UUID.
+        mobile_network_operator_id:
+          description: The mobile network operator resource identification UUID.
           example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
           format: uuid
           type: string
         priority:
-          description: It determines what is the priority of a specific operator network
+          description: It determines what is the priority of a specific network operator
             that should be assumed by a SIM card when connecting to a network. The
             highest priority is 0, the second highest is 1 and so on.
           example: 0
           type: integer
       type: object
-    MobileOperatorNetworkPreferencesResponse:
+    MobileNetworkOperatorPreferencesResponse:
       description: ''
       properties:
-        mobile_operator_network_id:
-          description: The mobile operator network resource identification UUID.
+        mobile_network_operator_id:
+          description: The mobile network operator resource identification UUID.
           example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
           format: uuid
           type: string
-        mobile_operator_network_name:
-          description: The mobile operator network resource name.
+        mobile_network_operator_name:
+          description: The mobile network operator resource name.
           example: AT&T Mobility (USACG)
           type: string
         priority:
-          description: It determines what is the priority of a specific operator network
+          description: It determines what is the priority of a specific network operator
             that should be assumed by a SIM card when connecting to a network. The
             highest priority is 0, the second highest is 1 and so on.
           example: 0
           type: integer
       type: object
-    MobileOperatorNetworksPreferencesRequest:
-      description: A list of mobile operator networks and the priority that should
+    MobileNetworkOperatorsPreferencesRequest:
+      description: A list of mobile network operators and the priority that should
         be applied when the SIM is connecting to the network.
       items:
-        $ref: '#/components/schemas/MobileOperatorNetworkPreferencesRequest'
+        $ref: '#/components/schemas/MobileNetworkOperatorPreferencesRequest'
       type: array
-    MobileOperatorNetworksPreferencesResponse:
-      description: A list of mobile operator networks and the priority that should
+    MobileNetworkOperatorsPreferencesResponse:
+      description: A list of mobile network operators and the priority that should
         be applied when the SIM is connecting to the network.
       items:
-        $ref: '#/components/schemas/MobileOperatorNetworkPreferencesResponse'
+        $ref: '#/components/schemas/MobileNetworkOperatorPreferencesResponse'
       type: array
     Money:
       properties:
@@ -27425,6 +27476,13 @@ components:
       type: object
     SIMCard:
       properties:
+        actions_in_progress:
+          default: false
+          description: Indicate whether the SIM card has any pending (in-progress)
+            actions.
+          example: true
+          readOnly: true
+          type: boolean
         authorized_imeis:
           description: List of IMEIs authorized to use a given SIM card.
           example:
@@ -27533,7 +27591,7 @@ components:
           readOnly: true
           type: string
         imsi:
-          description: 'SIM cards are identified on their individual operator networks
+          description: 'SIM cards are identified on their individual network operators
             by a unique International Mobile Subscriber Identity (IMSI). <br/>
 
             Mobile network operators connect mobile phone calls and communicate with
@@ -27606,6 +27664,14 @@ components:
           items:
             type: string
           type: array
+        type:
+          description: The type of SIM card
+          enum:
+          - physical
+          - esim
+          example: physical
+          readOnly: true
+          type: string
         updated_at:
           description: ISO 8601 formatted date-time indicating when the resource was
             updated.
@@ -27692,6 +27758,19 @@ components:
           - interrupted
           example: in-progress
           type: string
+      type: object
+    SIMCardActivationCode:
+      properties:
+        activation_code:
+          description: Contents of the eSIM activation QR code.
+          example: LPA:1$....
+          readOnly: true
+          type: string
+        record_type:
+          example: sim_card_activation_code
+          readOnly: true
+          type: string
+      title: SIMCardActivationCode
       type: object
     SIMCardDeviceDetails:
       properties:
@@ -27894,8 +27973,8 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
-        mobile_operator_networks_preferences:
-          $ref: '#/components/schemas/MobileOperatorNetworksPreferencesResponse'
+        mobile_network_operators_preferences:
+          $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesResponse'
         record_type:
           example: sim_card_network_preferences
           readOnly: true
@@ -27920,8 +27999,8 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
-        mobile_operator_networks_preferences:
-          $ref: '#/components/schemas/MobileOperatorNetworksPreferencesResponse'
+        mobile_network_operators_preferences:
+          $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesResponse'
         ota_updates:
           items:
             $ref: '#/components/schemas/CompleteOTAUpdate'
@@ -28816,6 +28895,13 @@ components:
       type: object
     SimpleSIMCard:
       properties:
+        actions_in_progress:
+          default: false
+          description: Indicate whether the SIM card has any pending (in-progress)
+            actions.
+          example: true
+          readOnly: true
+          type: boolean
         created_at:
           description: ISO 8601 formatted date-time indicating when the resource was
             created.
@@ -28868,7 +28954,7 @@ components:
           readOnly: true
           type: string
         imsi:
-          description: 'SIM cards are identified on their individual operator networks
+          description: 'SIM cards are identified on their individual network operators
             by a unique International Mobile Subscriber Identity (IMSI). <br/>
 
             Mobile network operators connect mobile phone calls and communicate with
@@ -28913,6 +28999,14 @@ components:
           items:
             type: string
           type: array
+        type:
+          description: The type of SIM card
+          enum:
+          - physical
+          - esim
+          example: physical
+          readOnly: true
+          type: string
         updated_at:
           description: ISO 8601 formatted date-time indicating when the resource was
             updated.
@@ -35288,7 +35382,7 @@ components:
           readOnly: true
           type: string
         imsi:
-          description: 'SIM cards are identified on their individual operator networks
+          description: 'SIM cards are identified on their individual network operators
             by a unique International Mobile Subscriber Identity (IMSI). <br/>
 
             Mobile network operators connect mobile phone calls and communicate with
@@ -36306,8 +36400,8 @@ paths:
           application/json:
             schema:
               properties:
-                mobile_operator_networks_preferences:
-                  $ref: '#/components/schemas/MobileOperatorNetworksPreferencesRequest'
+                mobile_network_operators_preferences:
+                  $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesRequest'
                 sim_card_ids:
                   example:
                   - 6b14e151-8493-4fa1-8664-1cc4e6d14158
@@ -36323,6 +36417,30 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
       summary: Bulk Network Preferences for SIM cards
+      tags:
+      - SIM Cards
+      x-latency-category: background
+  /actions/purchase/esims:
+    post:
+      description: 'Purchases and registers the specified amount of eSIMs to the current
+        user''s account.<br/><br/>
+
+        If <code>sim_card_group_id</code> is provided, the eSIMs will be associated
+        with that group. Otherwise, the default group for the current user will be
+        used.<br/><br/>
+
+        '
+      operationId: ESimPurchaseRegister
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ESimPurchase'
+        required: true
+      responses:
+        '202':
+          $ref: '#/components/responses/RegisterSimCardsResponse'
+      summary: Purchase eSIMs
       tags:
       - SIM Cards
       x-latency-category: background
@@ -44309,14 +44427,14 @@ paths:
       - Messaging URL Domains
       x-group-parameters: 'true'
       x-latency-category: responsive
-  /mobile_operator_networks:
+  /mobile_network_operators:
     get:
       description: Telnyx has a set of GSM mobile operators partners that are available
         through our mobile network roaming. This resource is entirely managed by Telnyx
         and may change over time. That means that this resource won't allow any write
         operations for it. Still, it's available so it can be used as a support resource
         that can be related to other resources or become a configuration option.
-      operationId: MobileOperatorNetworksGet
+      operationId: MobileNetworkOperatorsGet
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
@@ -44369,14 +44487,21 @@ paths:
         schema:
           example: USACG
           type: string
+      - description: Filter by network_preferences_enabled.
+        in: query
+        name: filter[network_preferences_enabled]
+        required: false
+        schema:
+          example: true
+          type: boolean
       responses:
         '200':
-          $ref: '#/components/responses/SearchMobileOperatorNetworksResponse'
+          $ref: '#/components/responses/SearchMobileNetworkOperatorsResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: List mobile operator networks
+      summary: List mobile network operators
       tags:
-      - Mobile Operator Networks
+      - Mobile Network Operators
       x-latency-category: responsive
   /mobile_push_credentials:
     get:
@@ -50655,6 +50780,16 @@ paths:
             - unauthorized_imei
             type: string
           type: array
+      - description: Sorts SIM cards by the given field. Defaults to ascending order
+          unless field is prefixed with a minus sign.
+        example: -current_billing_period_consumed_data.amount
+        in: query
+        name: sort
+        required: false
+        schema:
+          enum:
+          - current_billing_period_consumed_data.amount
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/SearchSimCardsResponse'
@@ -50664,13 +50799,47 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
+  /sim_cards/actions/bulk_set_network_preferences:
+    post:
+      description: 'This API triggers an asynchronous operation to set network preferences
+        for each of the specified SIM cards.<br/>
+
+        For each SIM Card a SIM Card Action will be generated. The status of the SIM
+        Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
+        API.
+
+        '
+      operationId: BulkSetNetworkPreferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                sim_card_ids:
+                  example:
+                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
+                  items:
+                    $ref: '#/components/schemas/Id'
+                  type: array
+              required:
+              - sim_card_ids
+              type: object
+      responses:
+        '202':
+          $ref: '#/components/responses/BulkSIMCardActionResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Request bulk setting of network preferences for SIM cards.
+      tags:
+      - SIM Cards
+      x-latency-category: background
   /sim_cards/actions/bulk_set_public_ips:
     post:
       description: 'This API triggers an asynchronous operation to set a public IP
         for each of the specified SIM cards.<br/>
 
         For each SIM Card a SIM Card Action will be generated. The status of the SIM
-        Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
+        Card Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
         API.
 
         '
@@ -50796,7 +50965,7 @@ paths:
 
         The API will trigger an asynchronous operation called a SIM Card Action. Creating
         network preferences may take a period of time. The status of the SIM Card
-        Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
+        Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
         API.
 
         '
@@ -50898,7 +51067,7 @@ paths:
 
         The API will trigger an asynchronous operation called a SIM Card Action. Creating
         network preferences may take a period of time. The status of the SIM Card
-        Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
+        Action can be followed through the [List SIM Card Action](https://developers.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
         API.
 
         '
@@ -50962,6 +51131,23 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: background
+  /sim_cards/{sim_card_id}/activation_code:
+    get:
+      description: "It returns the contents for the activation QR code for an eSIM.<br/><br/>\n\
+        \ This API is only available for eSIMs. If the given SIM is a physical SIM\
+        \ card, or has already been installed, an error will be returned.\n"
+      operationId: SIMCardActivationCodeGet
+      parameters:
+      - $ref: '#/components/parameters/SIMCardId'
+      responses:
+        '200':
+          $ref: '#/components/responses/SIMCardActivationCodeResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get activation QR code for an eSIM
+      tags:
+      - SIM Cards
+      x-latency-category: responsive
   /sim_cards/{sim_card_id}/device_details:
     get:
       description: 'It returns the device details where a SIM card is currently being
@@ -51038,11 +51224,11 @@ paths:
           application/json:
             schema:
               properties:
-                mobile_operator_networks_preferences:
-                  description: A list of mobile operator networks and the priority
+                mobile_network_operators_preferences:
+                  description: A list of mobile network operators and the priority
                     that should be applied when the SIM is connecting to the network.
                   items:
-                    $ref: '#/components/schemas/MobileOperatorNetworkPreferencesRequest'
+                    $ref: '#/components/schemas/MobileNetworkOperatorPreferencesRequest'
                   type: array
               type: object
       responses:
@@ -54149,8 +54335,8 @@ tags:
   name: Messaging Tollfree Verification
 - description: Messaging URL Domains
   name: Messaging URL Domains
-- description: Mobile operator networks operations
-  name: Mobile Operator Networks
+- description: Mobile network operators operations
+  name: Mobile Network Operators
 - description: Network operations
   name: Networks
 - description: Notification settings operations
