@@ -141,12 +141,11 @@ components:
         format: uuid
         type: string
     ConnectionId:
-      description: Telnyx connection id
+      description: Uniquely identifies a Telnyx application (Call Control).
       in: path
       name: connection_id
       required: true
       schema:
-        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -774,12 +773,11 @@ components:
         format: +E.164
         type: string
     Id:
-      description: Identifies the resource.
+      description: The id of the resource.
       in: path
       name: id
       required: true
       schema:
-        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
     IncludeCancelledAccounts:
@@ -1531,6 +1529,7 @@ components:
                 old_service_provider_ocn: Unreal Communications
                 parent_support_key: pr_4bec1a
                 phone_number_configuration:
+                  billing_group_id: null
                   connection_id: '1752379429071357070'
                   emergency_address_id: null
                   messaging_profile_id: null
@@ -1647,6 +1646,7 @@ components:
                 old_service_provider_ocn: Unreal Communications
                 parent_support_key: pr_4bec1a
                 phone_number_configuration:
+                  billing_group_id: null
                   connection_id: '1752379429071357070'
                   emergency_address_id: null
                   messaging_profile_id: null
@@ -2781,6 +2781,7 @@ components:
                 old_service_provider_ocn: Unreal Communications
                 parent_support_key: null
                 phone_number_configuration:
+                  billing_group_id: null
                   connection_id: null
                   emergency_address_id: null
                   messaging_profile_id: null
@@ -3605,7 +3606,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      description: Conference does not exist
+      description: Fax does not exist
     NumberBlockOrderResponse:
       content:
         application/json:
@@ -4416,6 +4417,7 @@ components:
                 old_service_provider_ocn: Unreal Communications
                 parent_support_key: null
                 phone_number_configuration:
+                  billing_group_id: null
                   connection_id: '1752379429071357070'
                   emergency_address_id: null
                   messaging_profile_id: null
@@ -18928,10 +18930,9 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the resource.
-      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+      description: Identifies the type of resource.
+      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
-      readOnly: true
       type: string
     Image:
       description: The media object containing an image
@@ -19705,10 +19706,10 @@ components:
       title: Initaite TeXML Call Result
       type: object
     IntId:
-      description: Uniquely identifies the resource.
+      description: Identifies the resource.
       example: '1293384261075731499'
       format: int64
-      title: Int ID
+      readOnly: true
       type: string
     Interactive:
       properties:
@@ -23396,15 +23397,19 @@ components:
       properties:
         page_number:
           example: 2
+          format: int32
           type: integer
         page_size:
           example: 25
+          format: int32
           type: integer
         total_pages:
           example: 3
+          format: int32
           type: integer
         total_results:
           example: 55
+          format: int32
           type: integer
       type: object
     PaginationMetaSimple:
@@ -25350,6 +25355,10 @@ components:
       type: object
     PortingOrderPhoneNumberConfiguration:
       properties:
+        billing_group_id:
+          description: identifies the billing group to set on the numbers when ported
+          example: f1486bae-f067-460c-ad43-73a92848f902
+          type: string
         connection_id:
           description: identifies the connection to set on the numbers when ported
           example: f1486bae-f067-460c-ad43-73a92848f902
@@ -26710,40 +26719,9 @@ components:
       - refresh_token
       type: object
     Region:
-      properties:
-        code:
-          description: A code for the region.
-          example: ashburn-va
-          type: string
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-        name:
-          description: A name for the region.
-          example: Ashburn
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: region
-          readOnly: true
-          type: string
-        supported_interfaces:
-          description: List of interface types supported in this region.
-          items:
-            example: wireguard_interface
-            type: string
-          type: array
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-      title: Region
-      type: object
+      description: Region where the bucket is located.
+      example: us-east-1
+      type: string
     RegionIn:
       properties:
         region_code:
@@ -26998,21 +26976,19 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-          detail:
-            example: The requested resource or URL could not be found.
-          meta:
+      example:
+        errors:
+        - detail: Resource not found
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              detail:
                 type: string
             type: object
-          title:
-            example: Resource not found
+          type: array
+      title: Resource not found
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -30932,27 +30908,29 @@ components:
           title:
             example: Unexpected error
     UnprocessableEntityError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10002'
-          detail:
-            example: The phone number is invalid.
-          meta:
-            properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10002
-                type: string
-            type: object
-          source:
-            properties:
-              pointer:
-                example: /phone_numbers
-                type: string
-            type: object
-          title:
-            example: Invalid phone number
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
     UpdateAuthenticationProviderRequest:
       example:
         active: true
@@ -31577,7 +31555,7 @@ components:
         status:
           example: accepted
           type: string
-      title: TeXml REST Update Command Result
+      title: Update Call Result
       type: object
     UpdateConferenceRequest:
       example:
