@@ -773,11 +773,12 @@ components:
         format: +E.164
         type: string
     Id:
-      description: The id of the resource.
+      description: Identifies the resource.
       in: path
       name: id
       required: true
       schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
     IncludeCancelledAccounts:
@@ -1194,18 +1195,20 @@ components:
       schema:
         type: string
     Status:
-      description: Filters calls by status.
-      example: no-answer
+      description: The status of a notification setting
       in: query
-      name: Status
-      required: false
+      name: filter[status][eq]
       schema:
         enum:
-        - canceled
-        - completed
-        - failed
-        - busy
-        - no-answer
+        - enabled
+        - enable-received
+        - enable-pending
+        - enable-submtited
+        - delete-received
+        - delete-pending
+        - delete-submitted
+        - deleted
+        example: enable-received
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -15358,9 +15361,9 @@ components:
       title: Create WhatsApp Message Template Request Body
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date indicating when the resource was created.
-      example: '2020-02-02T22:25:27.521Z'
-      title: Created At
+      description: ISO 8601 formatted date-time indicating when the resource was created.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     CreationDate:
       format: date-time
@@ -17051,23 +17054,33 @@ components:
     Error:
       properties:
         code:
-          format: int
+          example: '10015'
+          format: integer
           type: string
         detail:
+          example: The value provided for the attribute is not valid. Check the value
+            used and try again.
           type: string
         meta:
+          properties:
+            url:
+              description: URL with additional information on the error.
+              example: https://developers.telnyx.com/docs/overview/errors/10015
+              type: string
           type: object
         source:
           properties:
             parameter:
-              description: Indicates which query parameter caused the error.
+              description: Indicates which parameter caused the error.
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
+              example: /attribute
               format: json-pointer
               type: string
           type: object
         title:
+          example: Invalid attribute
           type: string
       required:
       - code
@@ -26719,9 +26732,40 @@ components:
       - refresh_token
       type: object
     Region:
-      description: Region where the bucket is located.
-      example: us-east-1
-      type: string
+      properties:
+        code:
+          description: A code for the region.
+          example: ashburn-va
+          type: string
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+        name:
+          description: A name for the region.
+          example: Ashburn
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: region
+          readOnly: true
+          type: string
+        supported_interfaces:
+          description: List of interface types supported in this region.
+          items:
+            example: wireguard_interface
+            type: string
+          type: array
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated.
+          example: '2018-02-02T22:25:27.521Z'
+          readOnly: true
+          type: string
+      title: Region
+      type: object
     RegionIn:
       properties:
         region_code:
@@ -26976,19 +27020,21 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      example:
-        errors:
-        - detail: Resource not found
-      properties:
-        errors:
-          items:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10005'
+          detail:
+            example: The requested resource or URL could not be found.
+          meta:
             properties:
-              detail:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10005
                 type: string
             type: object
-          type: array
-      title: Resource not found
-      type: object
+          title:
+            example: Resource not found
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -32926,9 +32972,9 @@ components:
       title: UpdateWhatsappPhoneNumberRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date indicating when the resource was updated.
-      example: '2020-02-03T22:25:27.521Z'
-      title: Updated At
+      description: ISO 8601 formatted date-time indicating when the resource was updated.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     UplinkData:
       properties:
@@ -35886,11 +35932,10 @@ components:
 info:
   contact:
     email: support@telnyx.com
-  description: SIP trunking, SMS, MMS, Call Control and Telephony Data Services.
   license:
     name: MIT
-  title: Telnyx API
-  version: 2.0.0
+  title: 'Verify: Two Factor Verification'
+  version: 0.1.0
   x-endpoint-cost: light
 openapi: 3.0.0
 paths:
@@ -48319,46 +48364,17 @@ paths:
       x-latency-category: interactive
   /recordings:
     get:
-      description: Lists recordings for the authenticated user
-      operationId: listRecordings
-      parameters:
-      - description: Return only recordings associated with a given conference
-        in: query
-        name: filter[conference_id]
-        required: false
-        schema:
-          example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
-          type: string
-      - description: Return only recordings created later than or at given ISO 8601
-          datetime
-        in: query
-        name: filter[created_at][gte]
-        required: false
-        schema:
-          example: '2019-03-29T11:10:00Z'
-          type: string
-      - description: Return only recordings created earlier than or at given ISO 8601
-          datetime
-        in: query
-        name: filter[created_at][lte]
-        required: false
-        schema:
-          example: '2019-03-29T11:10:00Z'
-          type: string
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      description: Returns a list of your call recordings.
+      operationId: getRecordings
       responses:
         '200':
-          $ref: '#/components/responses/ListRecordingsResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
-      summary: List recordings
+          $ref: '#/components/responses/RecordingsResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List all call recordings
       tags:
-      - Recordings Commands
-      x-group-parameters: 'true'
-      x-latency-category: interactive
+      - Call Recordings
+      x-latency-category: responsive
   /recordings/actions/delete:
     description: Permanently deletes a list of call recordings.
     operationId: deleteRecordings
@@ -54223,7 +54239,7 @@ paths:
 security:
 - bearerAuth: []
 servers:
-- description: Version 2.0.0 of the Telnyx API
+- description: Telnyx's API
   url: https://api.telnyx.com/v2
 tags:
 - description: Access Tokens creation
@@ -54281,9 +54297,9 @@ tags:
   name: Dynamic Emergency Endpoints
 - description: FQDN connection operations
   name: FQDN Connections
-- description: FQDN Operations
-  name: FQDNs
 - description: FQDN operations
+  name: FQDNs
+- description: FQDN Operations
   name: FQDNs
 - description: Global IPs
   name: Global IPs
