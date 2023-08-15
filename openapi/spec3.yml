@@ -141,11 +141,12 @@ components:
         format: uuid
         type: string
     ConnectionId:
-      description: Uniquely identifies a Telnyx application (Call Control).
+      description: Telnyx connection id
       in: path
       name: connection_id
       required: true
       schema:
+        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -376,6 +377,7 @@ components:
         at least three characters.
       in: query
       name: filter[application_name][contains]
+      required: false
       schema:
         default: 'null'
         type: string
@@ -676,7 +678,8 @@ components:
     FilterOutboundVoiceProfileId:
       description: Identifies the associated outbound voice profile.
       in: query
-      name: filter[outbound_voice_profile_id]
+      name: filter[outbound.outbound_voice_profile_id]
+      required: false
       schema:
         example: '1293384261075731499'
         format: int64
@@ -1151,6 +1154,7 @@ components:
         \ in descending order."
       in: query
       name: sort
+      required: false
       schema:
         default: created_at
         enum:
@@ -1195,20 +1199,18 @@ components:
       schema:
         type: string
     Status:
-      description: The status of a notification setting
+      description: Filters calls by status.
+      example: no-answer
       in: query
-      name: filter[status][eq]
+      name: Status
+      required: false
       schema:
         enum:
-        - enabled
-        - enable-received
-        - enable-pending
-        - enable-submtited
-        - delete-received
-        - delete-pending
-        - delete-submitted
-        - deleted
-        example: enable-received
+        - canceled
+        - completed
+        - failed
+        - busy
+        - no-answer
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -3609,7 +3611,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      description: Fax does not exist
+      description: Conference does not exist
     NumberBlockOrderResponse:
       content:
         application/json:
@@ -4349,13 +4351,8 @@ components:
       content:
         application/json:
           schema:
-            properties:
-              errors:
-                items:
-                  $ref: '#/components/schemas/UnprocessableEntityError'
-                type: array
-      description: Unprocessable entity. Check the 'detail' field in response for
-        details.
+            $ref: '#/components/schemas/Errors'
+      description: Unprocessable Entity
     UnprocessableEntityResponse:
       description: Unprocessable entity
     UnprocessableManagedAccountEntity:
@@ -17054,33 +17051,23 @@ components:
     Error:
       properties:
         code:
-          example: '10015'
           format: integer
           type: string
         detail:
-          example: The value provided for the attribute is not valid. Check the value
-            used and try again.
           type: string
         meta:
-          properties:
-            url:
-              description: URL with additional information on the error.
-              example: https://developers.telnyx.com/docs/overview/errors/10015
-              type: string
           type: object
         source:
           properties:
             parameter:
-              description: Indicates which parameter caused the error.
+              description: Indicates which query parameter caused the error.
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
-              example: /attribute
               format: json-pointer
               type: string
           type: object
         title:
-          example: Invalid attribute
           type: string
       required:
       - code
@@ -18943,9 +18930,10 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the type of resource.
-      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+      description: Identifies the resource.
+      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
       format: uuid
+      readOnly: true
       type: string
     Image:
       description: The media object containing an image
@@ -19719,10 +19707,10 @@ components:
       title: Initaite TeXML Call Result
       type: object
     IntId:
-      description: Identifies the resource.
+      description: Uniquely identifies the resource.
       example: '1293384261075731499'
       format: int64
-      readOnly: true
+      title: Int ID
       type: string
     Interactive:
       properties:
@@ -23410,19 +23398,15 @@ components:
       properties:
         page_number:
           example: 2
-          format: int32
           type: integer
         page_size:
           example: 25
-          format: int32
           type: integer
         total_pages:
           example: 3
-          format: int32
           type: integer
         total_results:
           example: 55
-          format: int32
           type: integer
       type: object
     PaginationMetaSimple:
@@ -26293,10 +26277,8 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies the type of the resource.
-      enum:
-      - event
-      example: event
+      description: Identifies record type.
+      pattern: custom_storage_credentials
       type: string
     Recording:
       example:
@@ -26732,40 +26714,9 @@ components:
       - refresh_token
       type: object
     Region:
-      properties:
-        code:
-          description: A code for the region.
-          example: ashburn-va
-          type: string
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-        name:
-          description: A name for the region.
-          example: Ashburn
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: region
-          readOnly: true
-          type: string
-        supported_interfaces:
-          description: List of interface types supported in this region.
-          items:
-            example: wireguard_interface
-            type: string
-          type: array
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-      title: Region
-      type: object
+      description: Region where the bucket is located.
+      example: us-east-1
+      type: string
     RegionIn:
       properties:
         region_code:
@@ -27020,21 +26971,19 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-          detail:
-            example: The requested resource or URL could not be found.
-          meta:
+      example:
+        errors:
+        - detail: Resource not found
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              detail:
                 type: string
             type: object
-          title:
-            example: Resource not found
+          type: array
+      title: Resource not found
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -31601,7 +31550,7 @@ components:
         status:
           example: accepted
           type: string
-      title: Update Call Result
+      title: TeXml REST Update Command Result
       type: object
     UpdateConferenceRequest:
       example:
@@ -33085,16 +33034,18 @@ components:
       title: UploadWhatsappProfilePhotoRequest
       type: object
     Url:
+      description: 'Standard Values: HOME, WORK'
+      example:
+        type: WORK
+        url: https://www.facebook.com
       properties:
-        url:
-          format: uri
-          maxLength: 2083
-          minLength: 1
-          title: Url
+        type:
+          description: 'Standard Values: HOME, WORK'
           type: string
-      required:
-      - url
-      title: Url
+        url:
+          description: URL
+          type: string
+      title: Root Type for Url
       type: object
     UrlShortenerSettings:
       description: 'The URL shortener feature allows automatic replacement of URLs
@@ -35932,10 +35883,11 @@ components:
 info:
   contact:
     email: support@telnyx.com
+  description: SIP trunking, SMS, MMS, Call Control and Telephony Data Services.
   license:
     name: MIT
-  title: 'Verify: Two Factor Verification'
-  version: 0.1.0
+  title: Telnyx API
+  version: 2.0.0
   x-endpoint-cost: light
 openapi: 3.0.0
 paths:
@@ -48364,17 +48316,46 @@ paths:
       x-latency-category: interactive
   /recordings:
     get:
-      description: Returns a list of your call recordings.
-      operationId: getRecordings
+      description: Lists recordings for the authenticated user
+      operationId: listRecordings
+      parameters:
+      - description: Return only recordings associated with a given conference
+        in: query
+        name: filter[conference_id]
+        required: false
+        schema:
+          example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          type: string
+      - description: Return only recordings created later than or at given ISO 8601
+          datetime
+        in: query
+        name: filter[created_at][gte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - description: Return only recordings created earlier than or at given ISO 8601
+          datetime
+        in: query
+        name: filter[created_at][lte]
+        required: false
+        schema:
+          example: '2019-03-29T11:10:00Z'
+          type: string
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
       responses:
         '200':
-          $ref: '#/components/responses/RecordingsResponseBody'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: List all call recordings
+          $ref: '#/components/responses/ListRecordingsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List recordings
       tags:
-      - Call Recordings
-      x-latency-category: responsive
+      - Recordings Commands
+      x-group-parameters: 'true'
+      x-latency-category: interactive
   /recordings/actions/delete:
     description: Permanently deletes a list of call recordings.
     operationId: deleteRecordings
@@ -54239,7 +54220,7 @@ paths:
 security:
 - bearerAuth: []
 servers:
-- description: Telnyx's API
+- description: Version 2.0.0 of the Telnyx API
   url: https://api.telnyx.com/v2
 tags:
 - description: Access Tokens creation
@@ -54297,9 +54278,9 @@ tags:
   name: Dynamic Emergency Endpoints
 - description: FQDN connection operations
   name: FQDN Connections
-- description: FQDN operations
-  name: FQDNs
 - description: FQDN Operations
+  name: FQDNs
+- description: FQDN operations
   name: FQDNs
 - description: Global IPs
   name: Global IPs

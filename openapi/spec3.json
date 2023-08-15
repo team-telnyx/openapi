@@ -1,9 +1,10 @@
 {
   "openapi": "3.0.0",
   "info": {
+    "version": "2.0.0",
+    "title": "Telnyx API",
     "x-endpoint-cost": "light",
-    "title": "Verify: Two Factor Verification",
-    "version": "0.1.0",
+    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "license": {
       "name": "MIT"
     },
@@ -14,7 +15,7 @@
   "servers": [
     {
       "url": "https://api.telnyx.com/v2",
-      "description": "Telnyx's API"
+      "description": "Version 2.0.0 of the Telnyx API"
     }
   ],
   "security": [
@@ -133,11 +134,11 @@
     },
     {
       "name": "FQDNs",
-      "description": "FQDN operations"
+      "description": "FQDN Operations"
     },
     {
       "name": "FQDNs",
-      "description": "FQDN Operations"
+      "description": "FQDN operations"
     },
     {
       "name": "Global IPs",
@@ -18790,21 +18791,63 @@
     },
     "/recordings": {
       "get": {
-        "summary": "List all call recordings",
-        "description": "Returns a list of your call recordings.",
-        "operationId": "getRecordings",
+        "description": "Lists recordings for the authenticated user",
+        "summary": "List recordings",
+        "operationId": "listRecordings",
         "tags": [
-          "Call Recordings"
+          "Recordings Commands"
+        ],
+        "x-group-parameters": "true",
+        "parameters": [
+          {
+            "name": "filter[conference_id]",
+            "in": "query",
+            "description": "Return only recordings associated with a given conference",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+            }
+          },
+          {
+            "name": "filter[created_at][gte]",
+            "in": "query",
+            "description": "Return only recordings created later than or at given ISO 8601 datetime",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2019-03-29T11:10:00Z"
+            }
+          },
+          {
+            "name": "filter[created_at][lte]",
+            "in": "query",
+            "description": "Return only recordings created earlier than or at given ISO 8601 datetime",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2019-03-29T11:10:00Z"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/RecordingsResponseBody"
+            "$ref": "#/components/responses/ListRecordingsResponse"
           },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
           }
         },
-        "x-latency-category": "responsive"
+        "x-latency-category": "interactive"
       }
     },
     "/recordings/actions/delete": {
@@ -27551,11 +27594,12 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Uniquely identifies a Telnyx application (Call Control).",
+        "description": "Telnyx connection id",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "1293384261075731461"
         }
       },
       "CreatedAtGtFilter": {
@@ -27825,6 +27869,7 @@
       "FilterApplicationName": {
         "name": "filter[application_name][contains]",
         "in": "query",
+        "required": false,
         "description": "If present, applications with <code>application_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
@@ -28191,8 +28236,9 @@
         }
       },
       "FilterOutboundVoiceProfileId": {
-        "name": "filter[outbound_voice_profile_id]",
+        "name": "filter[outbound.outbound_voice_profile_id]",
         "in": "query",
+        "required": false,
         "description": "Identifies the associated outbound voice profile.",
         "schema": {
           "type": "string",
@@ -28758,6 +28804,7 @@
       "SortConnection": {
         "name": "sort",
         "in": "query",
+        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -28805,23 +28852,21 @@
         "example": ">=2023-05-22"
       },
       "Status": {
-        "name": "filter[status][eq]",
+        "name": "Status",
         "in": "query",
-        "description": "The status of a notification setting",
+        "required": false,
+        "description": "Filters calls by status.",
         "schema": {
           "type": "string",
           "enum": [
-            "enabled",
-            "enable-received",
-            "enable-pending",
-            "enable-submtited",
-            "delete-received",
-            "delete-pending",
-            "delete-submitted",
-            "deleted"
-          ],
-          "example": "enable-received"
-        }
+            "canceled",
+            "completed",
+            "failed",
+            "busy",
+            "no-answer"
+          ]
+        },
+        "example": "no-answer"
       },
       "StatusEqFilter": {
         "name": "filter[status][eq]",
@@ -32550,7 +32595,7 @@
         }
       },
       "NotFoundResponse": {
-        "description": "Fax does not exist"
+        "description": "Conference does not exist"
       },
       "NumberBlockOrderResponse": {
         "description": "Successful response with details about a number block order.",
@@ -33721,18 +33766,11 @@
         }
       },
       "UnprocessableEntityErrorResponse": {
-        "description": "Unprocessable entity. Check the 'detail' field in response for details.",
+        "description": "Unprocessable Entity",
         "content": {
           "application/json": {
             "schema": {
-              "properties": {
-                "errors": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UnprocessableEntityError"
-                  }
-                }
-              }
+              "$ref": "#/components/schemas/Errors"
             }
           }
         }
@@ -49047,16 +49085,13 @@
         "properties": {
           "code": {
             "type": "string",
-            "format": "integer",
-            "example": "10015"
+            "format": "integer"
           },
           "title": {
-            "type": "string",
-            "example": "Invalid attribute"
+            "type": "string"
           },
           "detail": {
-            "type": "string",
-            "example": "The value provided for the attribute is not valid. Check the value used and try again."
+            "type": "string"
           },
           "source": {
             "type": "object",
@@ -49064,24 +49099,16 @@
               "pointer": {
                 "description": "JSON pointer (RFC6901) to the offending entity.",
                 "type": "string",
-                "format": "json-pointer",
-                "example": "/attribute"
+                "format": "json-pointer"
               },
               "parameter": {
-                "description": "Indicates which parameter caused the error.",
+                "description": "Indicates which query parameter caused the error.",
                 "type": "string"
               }
             }
           },
           "meta": {
-            "type": "object",
-            "properties": {
-              "url": {
-                "type": "string",
-                "description": "URL with additional information on the error.",
-                "example": "https://developers.telnyx.com/docs/overview/errors/10015"
-              }
-            }
+            "type": "object"
           }
         }
       },
@@ -51441,8 +51468,9 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-        "description": "Identifies the type of resource."
+        "description": "Identifies the resource.",
+        "readOnly": true,
+        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
       },
       "Image": {
         "title": "Image",
@@ -52314,11 +52342,11 @@
         }
       },
       "IntId": {
+        "title": "Int ID",
         "type": "string",
         "format": "int64",
-        "description": "Identifies the resource.",
-        "example": "1293384261075731499",
-        "readOnly": true
+        "description": "Uniquely identifies the resource.",
+        "example": "1293384261075731499"
       },
       "Interactive": {
         "title": "Interactive",
@@ -56793,22 +56821,18 @@
         "properties": {
           "total_pages": {
             "type": "integer",
-            "format": "int32",
             "example": 3
           },
           "total_results": {
             "type": "integer",
-            "format": "int32",
             "example": 55
           },
           "page_number": {
             "type": "integer",
-            "format": "int32",
             "example": 2
           },
           "page_size": {
             "type": "integer",
-            "format": "int32",
             "example": 25
           }
         }
@@ -60301,11 +60325,8 @@
       },
       "RecordType": {
         "type": "string",
-        "example": "event",
-        "enum": [
-          "event"
-        ],
-        "description": "Identifies the type of the resource."
+        "description": "Identifies record type.",
+        "pattern": "custom_storage_credentials"
       },
       "Recording": {
         "type": "object",
@@ -60850,46 +60871,9 @@
         ]
       },
       "Region": {
-        "type": "object",
-        "title": "Region",
-        "properties": {
-          "record_type": {
-            "type": "string",
-            "description": "Identifies the type of the resource.",
-            "readOnly": true,
-            "example": "region"
-          },
-          "code": {
-            "type": "string",
-            "description": "A code for the region.",
-            "example": "ashburn-va"
-          },
-          "name": {
-            "type": "string",
-            "description": "A name for the region.",
-            "example": "Ashburn"
-          },
-          "supported_interfaces": {
-            "type": "array",
-            "description": "List of interface types supported in this region.",
-            "items": {
-              "type": "string",
-              "example": "wireguard_interface"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "description": "ISO 8601 formatted date-time indicating when the resource was created.",
-            "readOnly": true,
-            "example": "2018-02-02T22:25:27.521Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
-            "readOnly": true,
-            "example": "2018-02-02T22:25:27.521Z"
-          }
-        }
+        "description": "Region where the bucket is located.",
+        "type": "string",
+        "example": "us-east-1"
       },
       "RegionIn": {
         "type": "object",
@@ -61214,33 +61198,28 @@
         }
       },
       "ResourceNotFoundError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/GenericError"
-          },
-          {
-            "properties": {
-              "code": {
-                "example": "10005"
-              },
-              "title": {
-                "example": "Resource not found"
-              },
-              "detail": {
-                "example": "The requested resource or URL could not be found."
-              },
-              "meta": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
-                  }
+        "type": "object",
+        "title": "Resource not found",
+        "example": {
+          "errors": [
+            {
+              "detail": "Resource not found"
+            }
+          ]
+        },
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string"
                 }
               }
             }
           }
-        ]
+        }
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -66638,7 +66617,7 @@
       },
       "UpdateCommandResult": {
         "type": "object",
-        "title": "Update Call Result",
+        "title": "TeXml REST Update Command Result",
         "example": {
           "sid": "c46e06d7-b78f-4b13-96b6-c576af9640ff",
           "status": "accepted"
@@ -68395,19 +68374,22 @@
         }
       },
       "Url": {
-        "title": "Url",
-        "required": [
-          "url"
-        ],
+        "title": "Root Type for Url",
+        "description": "Standard Values: HOME, WORK",
         "type": "object",
         "properties": {
           "url": {
-            "title": "Url",
-            "maxLength": 2083,
-            "minLength": 1,
-            "type": "string",
-            "format": "uri"
+            "description": "URL",
+            "type": "string"
+          },
+          "type": {
+            "description": "Standard Values: HOME, WORK",
+            "type": "string"
           }
+        },
+        "example": {
+          "url": "https://www.facebook.com",
+          "type": "WORK"
         }
       },
       "UrlShortenerSettings": {
