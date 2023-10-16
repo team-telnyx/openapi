@@ -739,7 +739,7 @@ components:
         type: string
     FilterOrganizationEmailEq:
       description: If present, only returns results with the <code>organization_name</code>
-        matching the exact value given.
+        matching exactly the value given.
       in: query
       name: filter[organization_name][eq]
       required: false
@@ -2294,14 +2294,8 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      content:
-        application/json:
-          examples:
-            Not authorized:
-              $ref: '#/components/examples/NotAuthorized'
-          schema:
-            $ref: '#/components/schemas/Errors'
-      description: Forbidden
+      description: Unauthorized response. Happens when the current user is not authorized
+        to access the endpoint.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -3270,6 +3264,16 @@ components:
             title: List Log Messages Response
             type: object
       description: Successful response
+    ListManagedAccountsAllocatableGlobalOutboundChannelsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/ManagedAccountsGlobalOutboundChannels'
+            type: object
+      description: Successful response with information about allocatable global outbound
+        channels.
     ListManagedAccountsResponse:
       content:
         application/json:
@@ -3277,7 +3281,7 @@ components:
             properties:
               data:
                 items:
-                  $ref: '#/components/schemas/ManagedAccount'
+                  $ref: '#/components/schemas/ManagedAccountMultiListing'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
@@ -4750,6 +4754,16 @@ components:
                 $ref: '#/components/schemas/BillingGroup'
             type: object
       description: Expected billing group response to a valid request
+    UpdateManagedAccountGlobalChannelLimitResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SingleManagedAccountGlobalOutboundChannels'
+            type: object
+      description: Successful response with information about the allocatable global
+        outbound channels for the given account.
     UpdatePortingOrderResponse:
       content:
         application/json:
@@ -20572,6 +20586,103 @@ components:
           example: balance
           type: string
       type: object
+    ManagedAccountMultiListing:
+      properties:
+        api_user:
+          description: The manager account's email, which serves as the V1 API user
+            identifier
+          example: managed_account@example.com
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        email:
+          description: The managed account's email.
+          example: user@example.com
+          format: email
+          type: string
+        id:
+          description: Uniquely identifies the managed account.
+          example: f65ceda4-6522-4ad6-aede-98de83385123
+          format: UUID
+          type: string
+        managed_account_allow_custom_pricing:
+          description: Boolean value that indicates if the managed account is able
+            to have custom pricing set for it or not. If false, uses the pricing of
+            the manager account. Defaults to false. There may be time lag between
+            when the value is changed and pricing changes take effect.
+          example: true
+          type: boolean
+        manager_account_id:
+          description: The ID of the manager account associated with the managed account.
+          example: f65ceda4-6522-4ad6-aede-98de83385123
+          type: string
+        organization_name:
+          description: The organization the managed account is associated with.
+          example: Example Company LLC
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - managed_account
+          example: managed_account
+          type: string
+        rollup_billing:
+          description: Boolean value that indicates if the billing information and
+            charges to the managed account "roll up" to the manager account. If true,
+            the managed account will not have its own balance and will use the shared
+            balance with the manager account. This value cannot be changed after account
+            creation without going through Telnyx support as changes require manual
+            updates to the account ledger. Defaults to false.
+          example: false
+          type: boolean
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+      required:
+      - record_type
+      - id
+      - email
+      - api_user
+      - manager_account_id
+      - created_at
+      - updated_at
+      title: ManagedAccount
+      type: object
+    ManagedAccountsGlobalOutboundChannels:
+      example:
+        allocatable_global_outbound_channels: 500
+        record_type: allocatable_global_outbound_channels
+        total_global_channels_allocated: 135
+      properties:
+        allocatable_global_outbound_channels:
+          description: The total amount of allocatable global outbound channels available
+            to the authenticated manager. Will be 0 if the feature is not enabled
+            for their account.
+          example: 500
+          type: integer
+        managed_account_allow_custom_pricing:
+          description: Boolean value that indicates if the managed account is able
+            to have custom pricing set for it or not. If false, uses the pricing of
+            the manager account. Defaults to false. This value may be changed, but
+            there may be time lag between when the value is changed and pricing changes
+            take effect.
+          example: false
+          type: boolean
+        record_type:
+          description: The type of the data contained in this record.
+          example: allocatable_global_outbound_channels
+          type: string
+        total_global_channels_allocated:
+          description: The total number of allocatable global outbound channels currently
+            allocated across all managed accounts for the authenticated user. This
+            includes any amount of channels allocated by default at managed account
+            creation time. Will be 0 if the feature is not enabled for their account.
+          example: 135
+          type: integer
+      title: Managed Accounts Global Outbound Channels
     MdrDeleteDetailReportResponse:
       properties:
         data:
@@ -28821,6 +28932,38 @@ components:
           type: string
       title: OTAUpdate
       type: object
+    SingleManagedAccountGlobalOutboundChannels:
+      example:
+        channel_limit: 30
+        email: allocate_demo@customer.com
+        id: 096abcde-1122-3344-ab77-ff0123456789
+        manager_account_id: beeabcde-1122-3344-ab77-ff0123456789
+        record_type: managed_account_global_outbound_settings
+      properties:
+        channel_limit:
+          description: Integer value that indicates the number of allocatable global
+            outbound channels that are allocated to the managed account. If the value
+            is 0 then the account will have no usable channels and will not be able
+            to perform outbound calling.
+          example: 30
+          type: integer
+        email:
+          description: The email of the managed account.
+          example: customer@example.org
+          type: string
+        id:
+          description: The user ID of the managed account.
+          example: 096abcde-1122-3344-ab77-ff0123456789
+          type: string
+        manager_account_id:
+          description: The user ID of the manager of the account.
+          example: beeabcde-1122-3344-ab77-ff0123456789
+          type: string
+        record_type:
+          description: The name of the type of data in the response.
+          example: managed_account_global_outbound_settings
+          type: string
+      title: Global Outbound Channels Details for a Managed Account
     SipHeader:
       example:
         name: User-to-User
@@ -31873,6 +32016,18 @@ components:
       - ip_address
       title: Update Ip Request
       type: object
+    UpdateManagedAccountGlobalChannelLimitRequest:
+      example:
+        channel_limit: 30
+      properties:
+        channel_limit:
+          description: Integer value that indicates the number of allocatable global
+            outbound channels that should be allocated to the managed account. Must
+            be 0 or more. If the value is 0 then the account will have no usable channels
+            and will not be able to perform outbound calling.
+          example: 30
+          type: integer
+      title: Update Managed Account Global Outbound Channels Request
     UpdateManagedAccountRequest:
       example:
         managed_account_allow_custom_pricing: true
@@ -43185,6 +43340,24 @@ paths:
       - Managed Accounts
       x-endpoint-cost: medium
       x-latency-category: responsive
+  /managed_accounts/allocatable_global_outbound_channels:
+    get:
+      description: Display information about allocatable global outbound channels
+        for the current user. Only usable by account managers.
+      operationId: listManagedAccountsAllocatableGlobalOutboundChannels
+      responses:
+        '200':
+          $ref: '#/components/responses/ListManagedAccountsAllocatableGlobalOutboundChannelsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+      summary: Display information about allocatable global outbound channels for
+        the current user.
+      tags:
+      - Managed Accounts
+      x-endpoint-cost: medium
+      x-latency-category: responsive
   /managed_accounts/{id}:
     get:
       description: Retrieves the details of a single managed account.
@@ -43285,6 +43458,40 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableManagedAccountEntity'
       summary: Enables a managed account
+      tags:
+      - Managed Accounts
+      x-latency-category: responsive
+  /managed_accounts/{id}/update_global_channel_limit:
+    patch:
+      description: Update the amount of allocatable global outbound channels allocated
+        to a specific managed account.
+      operationId: updateManagedAccountGlobalChannelLimit
+      parameters:
+      - description: Managed Account User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateManagedAccountGlobalChannelLimitRequest'
+        description: Parameters that define the changes to the global outbounds channels
+          for the managed account
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/UpdateManagedAccountGlobalChannelLimitResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found
+        '422':
+          $ref: '#/components/responses/UnprocessableManagedAccountEntity'
+      summary: Update the amount of allocatable global outbound channels allocated
+        to a specific managed account.
       tags:
       - Managed Accounts
       x-latency-category: responsive

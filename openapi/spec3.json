@@ -11812,6 +11812,29 @@
         "x-latency-category": "responsive"
       }
     },
+    "/managed_accounts/allocatable_global_outbound_channels": {
+      "get": {
+        "summary": "Display information about allocatable global outbound channels for the current user.",
+        "description": "Display information about allocatable global outbound channels for the current user. Only usable by account managers.",
+        "operationId": "listManagedAccountsAllocatableGlobalOutboundChannels",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "x-endpoint-cost": "medium",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListManagedAccountsAllocatableGlobalOutboundChannelsResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/managed_accounts/{id}": {
       "get": {
         "description": "Retrieves the details of a single managed account.",
@@ -11948,6 +11971,53 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ManagedAccountResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Resource not found"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableManagedAccountEntity"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/managed_accounts/{id}/update_global_channel_limit": {
+      "patch": {
+        "summary": "Update the amount of allocatable global outbound channels allocated to a specific managed account.",
+        "description": "Update the amount of allocatable global outbound channels allocated to a specific managed account.",
+        "operationId": "updateManagedAccountGlobalChannelLimit",
+        "tags": [
+          "Managed Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Managed Account User ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Parameters that define the changes to the global outbounds channels for the managed account",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateManagedAccountGlobalChannelLimitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/UpdateManagedAccountGlobalChannelLimitResponse"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
@@ -28123,7 +28193,7 @@
         "name": "filter[organization_name][eq]",
         "in": "query",
         "required": false,
-        "description": "If present, only returns results with the <code>organization_name</code> matching the exact value given.",
+        "description": "If present, only returns results with the <code>organization_name</code> matching exactly the value given.",
         "schema": {
           "type": "string",
           "default": "null"
@@ -30226,19 +30296,7 @@
         }
       },
       "ForbiddenResponse": {
-        "description": "Forbidden",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Errors"
-            },
-            "examples": {
-              "Not authorized": {
-                "$ref": "#/components/examples/NotAuthorized"
-              }
-            }
-          }
-        }
+        "description": "Unauthorized response. Happens when the current user is not authorized to access the endpoint."
       },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
@@ -31766,6 +31824,21 @@
           }
         }
       },
+      "ListManagedAccountsAllocatableGlobalOutboundChannelsResponse": {
+        "description": "Successful response with information about allocatable global outbound channels.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/ManagedAccountsGlobalOutboundChannels"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListManagedAccountsResponse": {
         "description": "Successful response with a list of managed accounts.",
         "content": {
@@ -31776,7 +31849,7 @@
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ManagedAccount"
+                    "$ref": "#/components/schemas/ManagedAccountMultiListing"
                   }
                 },
                 "meta": {
@@ -34104,6 +34177,21 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/BillingGroup"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UpdateManagedAccountGlobalChannelLimitResponse": {
+        "description": "Successful response with information about the allocatable global outbound channels for the given account.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SingleManagedAccountGlobalOutboundChannels"
                 }
               }
             }
@@ -53219,6 +53307,106 @@
           "currency": "USD"
         }
       },
+      "ManagedAccountMultiListing": {
+        "type": "object",
+        "title": "ManagedAccount",
+        "required": [
+          "record_type",
+          "id",
+          "email",
+          "api_user",
+          "manager_account_id",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "managed_account",
+            "enum": [
+              "managed_account"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "id": {
+            "type": "string",
+            "format": "UUID",
+            "description": "Uniquely identifies the managed account.",
+            "example": "f65ceda4-6522-4ad6-aede-98de83385123"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The managed account's email.",
+            "example": "user@example.com"
+          },
+          "api_user": {
+            "type": "string",
+            "description": "The manager account's email, which serves as the V1 API user identifier",
+            "example": "managed_account@example.com"
+          },
+          "organization_name": {
+            "type": "string",
+            "description": "The organization the managed account is associated with.",
+            "example": "Example Company LLC"
+          },
+          "manager_account_id": {
+            "type": "string",
+            "description": "The ID of the manager account associated with the managed account.",
+            "example": "f65ceda4-6522-4ad6-aede-98de83385123"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "managed_account_allow_custom_pricing": {
+            "type": "boolean",
+            "description": "Boolean value that indicates if the managed account is able to have custom pricing set for it or not. If false, uses the pricing of the manager account. Defaults to false. There may be time lag between when the value is changed and pricing changes take effect.",
+            "example": true
+          },
+          "rollup_billing": {
+            "type": "boolean",
+            "description": "Boolean value that indicates if the billing information and charges to the managed account \"roll up\" to the manager account. If true, the managed account will not have its own balance and will use the shared balance with the manager account. This value cannot be changed after account creation without going through Telnyx support as changes require manual updates to the account ledger. Defaults to false.",
+            "example": false
+          }
+        }
+      },
+      "ManagedAccountsGlobalOutboundChannels": {
+        "title": "Managed Accounts Global Outbound Channels",
+        "properties": {
+          "managed_account_allow_custom_pricing": {
+            "type": "boolean",
+            "description": "Boolean value that indicates if the managed account is able to have custom pricing set for it or not. If false, uses the pricing of the manager account. Defaults to false. This value may be changed, but there may be time lag between when the value is changed and pricing changes take effect.",
+            "example": false
+          },
+          "allocatable_global_outbound_channels": {
+            "type": "integer",
+            "description": "The total amount of allocatable global outbound channels available to the authenticated manager. Will be 0 if the feature is not enabled for their account.",
+            "example": 500
+          },
+          "record_type": {
+            "type": "string",
+            "description": "The type of the data contained in this record.",
+            "example": "allocatable_global_outbound_channels"
+          },
+          "total_global_channels_allocated": {
+            "type": "integer",
+            "description": "The total number of allocatable global outbound channels currently allocated across all managed accounts for the authenticated user. This includes any amount of channels allocated by default at managed account creation time. Will be 0 if the feature is not enabled for their account.",
+            "example": 135
+          }
+        },
+        "example": {
+          "allocatable_global_outbound_channels": 500,
+          "record_type": "allocatable_global_outbound_channels",
+          "total_global_channels_allocated": 135
+        }
+      },
       "MdrDeleteDetailReportResponse": {
         "type": "object",
         "properties": {
@@ -63166,6 +63354,43 @@
           }
         }
       },
+      "SingleManagedAccountGlobalOutboundChannels": {
+        "title": "Global Outbound Channels Details for a Managed Account",
+        "properties": {
+          "channel_limit": {
+            "type": "integer",
+            "description": "Integer value that indicates the number of allocatable global outbound channels that are allocated to the managed account. If the value is 0 then the account will have no usable channels and will not be able to perform outbound calling.",
+            "example": 30
+          },
+          "email": {
+            "type": "string",
+            "description": "The email of the managed account.",
+            "example": "customer@example.org"
+          },
+          "id": {
+            "type": "string",
+            "description": "The user ID of the managed account.",
+            "example": "096abcde-1122-3344-ab77-ff0123456789"
+          },
+          "manager_account_id": {
+            "type": "string",
+            "description": "The user ID of the manager of the account.",
+            "example": "beeabcde-1122-3344-ab77-ff0123456789"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "The name of the type of data in the response.",
+            "example": "managed_account_global_outbound_settings"
+          }
+        },
+        "example": {
+          "channel_limit": 30,
+          "email": "allocate_demo@customer.com",
+          "id": "096abcde-1122-3344-ab77-ff0123456789",
+          "manager_account_id": "beeabcde-1122-3344-ab77-ff0123456789",
+          "record_type": "managed_account_global_outbound_settings"
+        }
+      },
       "SipHeader": {
         "type": "object",
         "title": "SIP Header",
@@ -66749,6 +66974,19 @@
           "connection_id": "6a09cdc3-8948-47f0-aa62-74ac943d6c58",
           "ip_address": "192.168.0.0",
           "port": 5060
+        }
+      },
+      "UpdateManagedAccountGlobalChannelLimitRequest": {
+        "title": "Update Managed Account Global Outbound Channels Request",
+        "properties": {
+          "channel_limit": {
+            "type": "integer",
+            "description": "Integer value that indicates the number of allocatable global outbound channels that should be allocated to the managed account. Must be 0 or more. If the value is 0 then the account will have no usable channels and will not be able to perform outbound calling.",
+            "example": 30
+          }
+        },
+        "example": {
+          "channel_limit": 30
         }
       },
       "UpdateManagedAccountRequest": {
