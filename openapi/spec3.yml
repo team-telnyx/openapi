@@ -17693,6 +17693,46 @@ components:
       - data
       title: EmbeddingSimilaritySearchResponse
       type: object
+    EmbeddingsBucketFiles:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        error_reason:
+          title: Error Reason
+          type: string
+        filename:
+          title: Filename
+          type: string
+        last_embedded_at:
+          format: date-time
+          title: Last Embedded At
+          type: string
+        status:
+          title: Status
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - filename
+      - status
+      - created_at
+      title: EmbeddingsBucketFiles
+      type: object
+    EmbeddingsBucketFilesData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/EmbeddingsBucketFiles'
+          title: Data
+          type: array
+      required:
+      - data
+      title: EmbeddingsBucketFilesData
+      type: object
     EmergencySettings:
       description: The emergency services settings for a phone number.
       example:
@@ -37259,6 +37299,35 @@ paths:
       tags:
       - Public Endpoints
       x-latency-category: responsive
+  /ai/embeddings/buckets/{bucket_name}:
+    get:
+      description: Get all embedded files for a given user bucket, including their
+        processing status.
+      operationId: embedding_bucket_files_public_embedding_buckets__bucket_name__get
+      parameters:
+      - in: path
+        name: bucket_name
+        required: true
+        schema:
+          title: Bucket Name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingsBucketFilesData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Embedding Bucket Files
+      tags:
+      - Public Endpoints
+      x-latency-category: responsive
   /ai/embeddings/similarity-search:
     post:
       description: "Perform a similarity search on a Telnyx Storage Bucket, returning\
@@ -37300,13 +37369,16 @@ paths:
       description: 'Check the status of a current embedding task. Will be one of the
         following:
 
-        - `idle` - Task is waiting to be picked up by a worker
+        - `queued` - Task is waiting to be picked up by a worker
 
-        - `pending` - Task is running
+        - `processing` - The embedding task is running
 
         - `success` - Task completed successfully and the bucket is embedded
 
-        - `error` - Task failed'
+        - `failure` - Task failed and no files were embedded successfully
+
+        - `partial_success` - Some files were embedded successfully, but at least
+        one failed'
       operationId: embedding_task_public_embedding__task_id__get
       parameters:
       - in: path
