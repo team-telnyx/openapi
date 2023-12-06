@@ -16949,6 +16949,44 @@ components:
             `CallSidToCoach` has to be given.
           example: false
           type: boolean
+        ConferenceRecord:
+          description: Whether to record the conference the participant is joining.
+            Defualts to `do-not-record`. The boolean values `true` and `false` are
+            synonymous with `record-from-start` and `do-not-record` respectively.
+          enum:
+          - 'true'
+          - 'false'
+          - record-from-start
+          - do-not-record
+          example: record-from-start
+          type: string
+        ConferenceRecordingStatusCallback:
+          description: The URL the conference recording callbacks will be sent to.
+          example: https://example.com/conference_recording_status_callback
+          type: string
+        ConferenceRecordingStatusCallbackEvent:
+          description: 'The changes to the conference recording''s state that should
+            generate a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed`
+            and `absent`. Separate multiple values with a space. Defaults to `completed`.
+            `failed` and `absent` are synonymous.'
+          example: in-progress completed failed absent
+          type: string
+        ConferenceRecordingStatusCallbackMethod:
+          description: HTTP request type used for `ConferenceRecordingStatusCallback`.
+            Defaults to `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        ConferenceTrim:
+          description: Whether to trim any leading and trailing silence from the conference
+            recording. Defaults to `trim-silence`.
+          enum:
+          - trim-silence
+          - do-not-trim
+          example: false
+          type: string
         EndConferenceOnExit:
           description: Whether to end the conference when the participant leaves.
             Defaults to `false`.
@@ -16983,6 +17021,45 @@ components:
           description: Whether the participant should be muted.
           example: true
           type: boolean
+        Record:
+          description: Whether to record the entire participant's call leg. Defaults
+            to `false`.
+          example: false
+          type: boolean
+        RecordingChannels:
+          description: The number of channels in the final recording. Defaults to
+            `mono`.
+          enum:
+          - mono
+          - dual
+          example: dual
+          type: string
+        RecordingStatusCallback:
+          description: The URL the recording callbacks will be sent to.
+          example: https://example.com/recording_status_callback
+          type: string
+        RecordingStatusCallbackEvent:
+          description: 'The changes to the recording''s state that should generate
+            a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed`
+            and `absent`. Separate multiple values with a space. Defaults to `completed`.'
+          example: in-progress completed absent
+          type: string
+        RecordingStatusCallbackMethod:
+          description: HTTP request type used for `RecordingStatusCallback`. Defaults
+            to `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        RecordingTrack:
+          description: The audio track to record for the call. The default is `both`.
+          enum:
+          - inbound
+          - outbound
+          - both
+          example: inbound
+          type: string
         StartConferenceOnEnter:
           description: Whether to start the conference when the participant enters.
             Defaults to `true`.
@@ -17007,7 +17084,7 @@ components:
           example: GET
           type: string
         TimeLimit:
-          description: The maximum duratin of the call in seconds.
+          description: The maximum duration of the call in seconds.
           example: 30
           type: integer
         Timeout:
@@ -17021,12 +17098,20 @@ components:
             with a `+` and country code.
           example: '+16175551212'
           type: string
+        Trim:
+          description: Whether to trim any leading and trailing silence from the recording.
+            Defaults to `trim-silence`.
+          enum:
+          - trim-silence
+          - do-not-trim
+          example: false
+          type: string
         WaitUrl:
           description: The URL to call for an audio file to play while the participant
             is waiting for the conference to start.
           example: https://www.example.com/wait_music.mp3
           type: string
-      title: Update Conference Participant Request
+      title: Create Conference Participant Request
       type: object
     DialogflowConfig:
       properties:
@@ -20664,6 +20749,45 @@ components:
           maximum: 60000
           minimum: 500
           type: integer
+        Record:
+          description: Whether to record the entire participant's call leg. Defaults
+            to `false`.
+          example: false
+          type: boolean
+        RecordingChannels:
+          description: The number of channels in the final recording. Defaults to
+            `mono`.
+          enum:
+          - mono
+          - dual
+          example: dual
+          type: string
+        RecordingStatusCallback:
+          description: The URL the recording callbacks will be sent to.
+          example: https://example.com/recording_status_callback
+          type: string
+        RecordingStatusCallbackEvent:
+          description: 'The changes to the recording''s state that should generate
+            a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed`
+            and `absent`. Separate multiple values with a space. Defaults to `completed`.'
+          example: in-progress completed absent
+          type: string
+        RecordingStatusCallbackMethod:
+          description: HTTP request type used for `RecordingStatusCallback`. Defaults
+            to `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        RecordingTrack:
+          description: The audio track to record for the call. The default is `both`.
+          enum:
+          - inbound
+          - outbound
+          - both
+          example: inbound
+          type: string
         StatusCallback:
           description: URL destination for Telnyx to send status callback events to
             for the call.
@@ -20692,6 +20816,14 @@ components:
           description: The phone number of the called party. Phone numbers are formatted
             with a `+` and country code.
           example: '+16175551212'
+          type: string
+        Trim:
+          description: Whether to trim any leading and trailing silence from the recording.
+            Defaults to `trim-silence`.
+          enum:
+          - trim-silence
+          - do-not-trim
+          example: false
           type: string
         Url:
           description: The URL from which Telnyx will retrieve the TeXML call instructions.
@@ -53455,6 +53587,27 @@ paths:
       summary: Fetch multiple call resources
       tags:
       - TeXML REST Commands
+      x-latency-category: responsive
+    post:
+      description: Initiate an outbound TeXML call. Telnyx will request TeXML from
+        the XML Request URL configured for the connection in the Mission Control Portal.
+      operationId: InitiateTeXMLCall
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateCallRequest'
+        description: Iniatiate Call request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InitiateCallResponse'
+      summary: Initiate an outbound call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/Accounts/{account_sid}/Calls/{call_sid}:
     get:
