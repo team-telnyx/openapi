@@ -732,6 +732,14 @@ components:
         - operator_connect
         example: zoom
         type: string
+    FilterFqdn:
+      description: If present, connections with an `fqdn` that equals the given value
+        will be returned. Matching is case-sensitive, and the full string must match.
+      in: query
+      name: filter[fqdn]
+      schema:
+        default: null
+        type: string
     FilterId:
       description: If present, connections with <code>id</code> matching the given
         value will be returned.
@@ -1651,6 +1659,24 @@ components:
                 $ref: '#/components/schemas/AuthenticationProvider'
             type: object
       description: Successful response
+    BadRequestResponse:
+      content:
+        application/json:
+          examples:
+            missingParameter:
+              value:
+                errors:
+                - code: '10015'
+                  detail: The request failed because it was not well-formed.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  source:
+                    pointer: /
+                  title: Bad Request
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Bad request, the request was unacceptable, often due to missing
+        a required parameter.
     BulkCredentialResponse:
       content:
         application/json:
@@ -4473,6 +4499,69 @@ components:
                 type: array
             type: object
       description: Successful response
+    RegistrationStatusResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                example:
+                  data:
+                    id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+                    ip_address: 190.106.106.121
+                    last_registration: '2021-09-28T15:11:02'
+                    port: 37223
+                    record_type: registration_status
+                    sip_username: rogerp
+                    status: Expired
+                    transport: UDP
+                    user_agent: Z 5.4.12 v2.10.13.2-mod
+                properties:
+                  ip_address:
+                    description: The ip used during the SIP connection
+                    example: 190.106.106.121
+                    type: string
+                  last_registration:
+                    description: ISO 8601 formatted date indicating when the resource
+                      was last updated.
+                    example: '2018-02-02T22:25:27.521Z'
+                    type: string
+                  port:
+                    description: The port of the SIP connection
+                    example: 37223
+                    type: integer
+                  record_type:
+                    description: Identifies the type of the resource.
+                    example: registration_status
+                    type: string
+                  sip_username:
+                    description: The user name of the SIP connection
+                    example: sip_username
+                    type: string
+                  status:
+                    description: The current registration status of your SIP connection
+                    enum:
+                    - Not Applicable
+                    - Not Registered
+                    - Failed
+                    - Expired
+                    - Registered
+                    - Unregistered
+                    type: string
+                  transport:
+                    description: The protocol of the SIP connection
+                    example: TCP
+                    type: string
+                  user_agent:
+                    description: The user agent of the SIP connection
+                    example: Z 5.4.12 v2.10.13.2-mod
+                    type: string
+                title: Registration Status
+                type: object
+            title: Registration Status Response
+            type: object
+      description: Successful response with details about a credential connection
+        registration status.
     ResourceNotFound:
       content:
         application/json:
@@ -4814,6 +4903,21 @@ components:
             title: Texml Application Response
             type: object
       description: Successful response
+    UnauthenticatedResponse:
+      content:
+        application/json:
+          examples:
+            Authentication Failed:
+              value:
+                errors:
+                - code: '10009'
+                  detail: Could not understand the provided credentials.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10009
+                  title: Authentication failed
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Unauthorized
     UnauthorizedErrorResponse:
       content:
         application/json:
@@ -13915,7 +14019,7 @@ components:
         android_push_credential_id:
           $ref: '#/components/schemas/ConnectionAndroidPushCredentialId'
         connection_name:
-          type: string
+          $ref: '#/components/schemas/ConnectionName'
         default_on_hold_comfort_noise_enabled:
           default: false
           description: When enabled, Telnyx will generate comfort noise when you place
@@ -13952,7 +14056,6 @@ components:
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
         sip_uri_calling_preference:
-          default: disabled
           description: This feature enables inbound SIP URI calls to your Credential
             Auth Connection. If enabled for all (unrestricted) then anyone who calls
             the SIP URI <your-username>@telnyx.com will be connected to your Connection.
@@ -14217,6 +14320,22 @@ components:
           timeout_2xx_secs: 10
         ios_push_credential_id: ec0c8e5d-439e-4620-a0c1-9d9c8d02a836
         onnet_t38_passthrough_enabled: true
+        outbound:
+          ani_override: '+1234567890'
+          ani_override_type: always
+          call_parking_enabled: true
+          channel_limit: 10
+          encrypted_media: string
+          generate_ringback_tone: true
+          instant_ringback_enabled: true
+          ip_authentication_method: token
+          ip_authentication_token: aBcD1234
+          localization: string
+          outbound_voice_profile_id: '1293384261075731499'
+          t38_reinvite_source: telnyx
+          tech_prefix: '0123'
+          timeout_1xx_secs: 10
+          timeout_2xx_secs: 10
         rtcp_settings:
           capture_enabled: true
           port: rtcp-mux
@@ -14236,7 +14355,7 @@ components:
         android_push_credential_id:
           $ref: '#/components/schemas/ConnectionAndroidPushCredentialId'
         connection_name:
-          type: string
+          $ref: '#/components/schemas/ConnectionName'
         default_on_hold_comfort_noise_enabled:
           default: true
           description: When enabled, Telnyx will generate comfort noise when you place
@@ -14256,6 +14375,12 @@ components:
           $ref: '#/components/schemas/InboundFqdn'
         ios_push_credential_id:
           $ref: '#/components/schemas/ConnectionIosPushCredentialId'
+        microsoft_teams_sbc:
+          default: false
+          description: When enabled, the connection will be created for Microsoft
+            Teams Direct Routing. A *.mstsbc.telnyx.tech FQDN will be created for
+            the connection automatically.
+          type: boolean
         onnet_t38_passthrough_enabled:
           default: false
           description: Enable on-net T38 if you prefer the sender and receiver negotiating
@@ -14263,42 +14388,20 @@ components:
             will be able to use T38 on just one leg of the call depending on each
             leg's settings.
           type: boolean
+        outbound:
+          $ref: '#/components/schemas/OutboundFqdn'
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
         transport_protocol:
           $ref: '#/components/schemas/FqdnConnectionTransportProtocol'
         webhook_api_version:
-          default: '1'
-          description: Determines which webhook format will be used, Telnyx API v1
-            or v2.
-          enum:
-          - '1'
-          - '2'
-          example: '1'
-          type: string
+          $ref: '#/components/schemas/WebhookApiVersion'
         webhook_event_failover_url:
-          default: ''
-          description: The failover URL where webhooks related to this connection
-            will be sent if sending to the primary URL fails. Must include a scheme,
-            such as 'https'.
-          example: https://failover.example.com
-          format: url
-          nullable: true
-          type: string
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
-          description: The URL where webhooks related to this connection will be sent.
-            Must include a scheme, such as 'https'.
-          example: https://example.com
-          format: url
-          type: string
+          $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          default: null
-          description: Specifies how many seconds to wait before timing out a webhook.
-          example: 25
-          maximum: 30
-          minimum: 0
-          nullable: true
-          type: integer
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       required:
       - connection_name
       title: Create FQDN Connection Request
@@ -16184,7 +16287,6 @@ components:
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
         sip_uri_calling_preference:
-          default: null
           description: This feature enables inbound SIP URI calls to your Credential
             Auth Connection. If enabled for all (unrestricted) then anyone who calls
             the SIP URI <your-username>@telnyx.com will be connected to your Connection.
@@ -17922,11 +18024,10 @@ components:
           type: string
       type: object
     EncryptedMedia:
-      description: Enable use of SRTP or ZRTP for encryption. Valid values are those
-        listed or null. Cannot be set to non-null if the transport_portocol is TLS.
+      description: Enable use of SRTP for encryption. Cannot be set if the transport_portocol
+        is TLS.
       enum:
       - SRTP
-      - ZRTP
       example: SRTP
       nullable: true
       type: string
@@ -18001,6 +18102,31 @@ components:
       required:
       - code
       - title
+    ErrorResponse:
+      properties:
+        errors:
+          items:
+            properties:
+              code:
+                type: string
+              detail:
+                type: string
+              meta:
+                properties:
+                  url:
+                    format: uri
+                    type: string
+                type: object
+              source:
+                properties:
+                  pointer:
+                    type: string
+                type: object
+              title:
+                type: string
+            type: object
+          type: array
+      type: object
     ErrorSource:
       properties:
         parameter:
@@ -18924,6 +19050,19 @@ components:
           timeout_2xx_secs: 10
         ios_push_credential_id: ec0c8e5d-439e-4620-a0c1-9d9c8d02a836
         onnet_t38_passthrough_enabled: true
+        outbound:
+          ani_override: string
+          ani_override_type: always
+          call_parking_enabled: true
+          channel_limit: 10
+          generate_ringback_tone: true
+          instant_ringback_enabled: true
+          ip_authentication_method: token
+          ip_authentication_token: string
+          localization: string
+          outbound_voice_profile_id: '1293384261075731499'
+          t38_reinvite_source: telnyx
+          tech_prefix: string
         record_type: fqdn_connection
         rtcp_settings:
           capture_enabled: true
@@ -18939,14 +19078,18 @@ components:
         active:
           description: Defaults to true
           type: boolean
+        adjust_dtmf_timestamp:
+          description: Indicates whether DTMF timestamp adjustment is enabled.
+          type: boolean
         anchorsite_override:
           $ref: '#/components/schemas/AnchorsiteOverride'
+        call_cost_enabled:
+          description: Indicates whether call cost calculation is enabled.
+          type: boolean
         connection_name:
-          type: string
+          $ref: '#/components/schemas/ConnectionName'
         created_at:
-          description: ISO 8601 formatted date indicating when the resource was created.
-          example: '2018-02-02T22:25:27.521Z'
-          type: string
+          $ref: '#/components/schemas/CreatedAt'
         default_on_hold_comfort_noise_enabled:
           default: true
           description: When enabled, Telnyx will generate comfort noise when you place
@@ -18967,8 +19110,21 @@ components:
           example: '1293384261075731499'
           format: int64
           type: string
+        ignore_dtmf_duration:
+          description: Indicates whether DTMF duration should be ignored.
+          type: boolean
+        ignore_mark_bit:
+          description: Indicates whether the mark bit should be ignored.
+          type: boolean
         inbound:
           $ref: '#/components/schemas/InboundFqdn'
+        microsoft_teams_sbc:
+          default: false
+          description: The connection is enabled for Microsoft Teams Direct Routing.
+          type: boolean
+        noise_suppression:
+          description: Indicates whether noise suppression is enabled.
+          type: boolean
         onnet_t38_passthrough_enabled:
           default: false
           description: Enable on-net T38 if you prefer that the sender and receiver
@@ -18976,50 +19132,51 @@ components:
             disabled, Telnyx will be able to use T38 on just one leg of the call according
             to each leg's settings.
           type: boolean
+        outbound:
+          $ref: '#/components/schemas/OutboundFqdn'
+        password:
+          description: The password for the FQDN connection.
+          type: string
         record_type:
           description: Identifies the type of the resource.
           example: fqdn_connection
           type: string
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
+        rtp_pass_codecs_on_stream_change:
+          description: Defines if codecs should be passed on stream change.
+          type: boolean
+        send_normalized_timestamps:
+          description: Indicates whether normalized timestamps should be sent.
+          type: boolean
+        third_party_control_enabled:
+          description: Indicates whether third-party control is enabled.
+          type: boolean
         transport_protocol:
           $ref: '#/components/schemas/FqdnConnectionTransportProtocol'
+        txt_name:
+          description: The name for the TXT record associated with the FQDN connection.
+          type: string
+        txt_ttl:
+          description: The time to live for the TXT record associated with the FQDN
+            connection.
+          type: integer
+        txt_value:
+          description: The value for the TXT record associated with the FQDN connection.
+          type: string
         updated_at:
-          description: ISO 8601 formatted date indicating when the resource was updated.
-          example: '2018-02-02T22:25:27.521Z'
+          $ref: '#/components/schemas/UpdatedAt'
+        user_name:
+          description: The username for the FQDN connection.
           type: string
         webhook_api_version:
-          default: '1'
-          description: Determines which webhook format will be used, Telnyx API v1
-            or v2.
-          enum:
-          - '1'
-          - '2'
-          example: '1'
-          type: string
+          $ref: '#/components/schemas/WebhookApiVersion'
         webhook_event_failover_url:
-          default: ''
-          description: The failover URL where webhooks related to this connection
-            will be sent if sending to the primary URL fails. Must include a scheme,
-            such as 'https'.
-          example: https://failover.example.com
-          format: url
-          nullable: true
-          type: string
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
-          description: The URL where webhooks related to this connection will be sent.
-            Must include a scheme, such as 'https'.
-          example: https://example.com
-          format: url
-          type: string
+          $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          default: null
-          description: Specifies how many seconds to wait before timing out a webhook.
-          example: 25
-          maximum: 30
-          minimum: 0
-          nullable: true
-          type: integer
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       required:
       - connection_name
       title: FQDN Connection
@@ -20113,7 +20270,7 @@ components:
           nullable: true
           type: string
         default_routing_method:
-          default: null
+          default: sequential
           description: Default routing method to be used when a number is associated
             with the connection. Must be one of the routing method types or null,
             other values are not allowed.
@@ -20217,6 +20374,8 @@ components:
           default: 90
           description: 'Time(sec) before aborting if call is unanswered (min: 1, max:
             600).'
+          maximum: 600
+          minimum: 1
           type: integer
       title: Inbound FQDN
       type: object
@@ -23925,6 +24084,99 @@ components:
           - none
           - by_caller_phone_number
           type: string
+      type: object
+    OutboundFqdn:
+      properties:
+        ani_override:
+          description: Set a phone number as the ani_override value to override caller
+            id number on outbound calls.
+          format: E.164
+          title: ANI override type
+          type: string
+        ani_override_type:
+          default: always
+          description: Specifies when we should apply your ani_override setting. Only
+            applies when ani_override is not blank.
+          enum:
+          - always
+          - normal
+          - emergency
+          example: normal
+          title: ANI override type
+          type: string
+        call_parking_enabled:
+          default: false
+          description: Forces all SIP calls originated on this connection to be \"parked\"
+            instead of \"bridged\" to the destination specified on the URI. Parked
+            calls will return ringback to the caller and will await for a Call Control
+            command to define which action will be taken next.
+          type: boolean
+        channel_limit:
+          description: When set, this will limit the total number of inbound calls
+            to phone numbers associated with this connection.
+          type: integer
+        encrypted_media:
+          $ref: '#/components/schemas/EncryptedMedia'
+        generate_ringback_tone:
+          default: false
+          description: Generate ringback tone through 183 session progress message
+            with early media.
+          type: boolean
+        instant_ringback_enabled:
+          default: false
+          description: When set, ringback will not wait for indication before sending
+            ringback tone to calling party.
+          type: boolean
+        ip_authentication_method:
+          default: ip-authentication
+          enum:
+          - credential-authentication
+          - ip-authentication
+          example: credential-authentication
+          type: string
+        ip_authentication_token:
+          type: string
+        localization:
+          default: US
+          description: A 2-character country code specifying the country whose national
+            dialing rules should be used. For example, if set to `US` then any US
+            number can be dialed without preprending +1 to the number. When left blank,
+            Telnyx will try US and GB dialing rules, in that order, by default.",
+          example: US
+          type: string
+        outbound_voice_profile_id:
+          $ref: '#/components/schemas/OutboundVoiceProfileId'
+        t38_reinvite_source:
+          default: telnyx
+          description: This setting only affects connections with Fax-type Outbound
+            Voice Profiles. The setting dictates whether or not Telnyx sends a t.38
+            reinvite. By default, Telnyx will send the re-invite. If set to `customer`,
+            the caller is expected to send the t.38 reinvite.
+          enum:
+          - telnyx
+          - customer
+          - disabled
+          - passthru
+          - caller-passthru
+          - callee-passthru
+          type: string
+        tech_prefix:
+          description: Numerical chars only, exactly 4 characters.
+          type: string
+        timeout_1xx_secs:
+          default: 3
+          description: Time(sec) before aborting if connection is not made.
+          maximum: 120
+          minimum: 1
+          type: integer
+        timeout_2xx_secs:
+          default: 90
+          description: 'Time(sec) before aborting if call is unanswered (min: 1, max:
+            600).'
+          maximum: 600
+          minimum: 1
+          type: integer
+      title: Connection Outbound Settings
       type: object
     OutboundIp:
       example:
@@ -32992,7 +33244,7 @@ components:
         android_push_credential_id:
           $ref: '#/components/schemas/ConnectionAndroidPushCredentialId'
         connection_name:
-          type: string
+          $ref: '#/components/schemas/ConnectionName'
         default_on_hold_comfort_noise_enabled:
           default: false
           description: When enabled, Telnyx will generate comfort noise when you place
@@ -33029,7 +33281,6 @@ components:
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
         sip_uri_calling_preference:
-          default: disabled
           description: This feature enables inbound SIP URI calls to your Credential
             Auth Connection. If enabled for all (unrestricted) then anyone who calls
             the SIP URI <your-username>@telnyx.com will be connected to your Connection.
@@ -33266,7 +33517,7 @@ components:
         android_push_credential_id:
           $ref: '#/components/schemas/ConnectionAndroidPushCredentialId'
         connection_name:
-          type: string
+          $ref: '#/components/schemas/ConnectionName'
         default_on_hold_comfort_noise_enabled:
           default: true
           description: When enabled, Telnyx will generate comfort noise when you place
@@ -33293,42 +33544,20 @@ components:
             disabled, Telnyx will be able to use T38 on just one leg of the call according
             to each leg's settings.
           type: boolean
+        outbound:
+          $ref: '#/components/schemas/OutboundFqdn'
         rtcp_settings:
           $ref: '#/components/schemas/ConnectionRtcpSettings'
         transport_protocol:
           $ref: '#/components/schemas/FqdnConnectionTransportProtocol'
         webhook_api_version:
-          default: '1'
-          description: Determines which webhook format will be used, Telnyx API v1
-            or v2.
-          enum:
-          - '1'
-          - '2'
-          example: '1'
-          type: string
+          $ref: '#/components/schemas/WebhookApiVersion'
         webhook_event_failover_url:
-          default: ''
-          description: The failover URL where webhooks related to this connection
-            will be sent if sending to the primary URL fails. Must include a scheme,
-            such as 'https'.
-          example: https://failover.example.com
-          format: url
-          nullable: true
-          type: string
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
-          description: The URL where webhooks related to this connection will be sent.
-            Must include a scheme, such as 'https'.
-          example: https://example.com
-          format: url
-          type: string
+          $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          default: null
-          description: Specifies how many seconds to wait before timing out a webhook.
-          example: 25
-          maximum: 30
-          minimum: 0
-          nullable: true
-          type: integer
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       title: Update FQDN Connection Request
     UpdateFqdnRequest:
       example:
@@ -42335,11 +42564,11 @@ paths:
         '200':
           $ref: '#/components/responses/ListConnectionsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
-        '404':
-          description: Resource not found
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List connections
       tags:
       - Connections
@@ -42385,12 +42614,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a connection
       tags:
       - Connections
@@ -42409,11 +42640,11 @@ paths:
         '200':
           $ref: '#/components/responses/ListCredentialConnectionsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
-        '404':
-          description: Resource not found
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List credential connections
       tags:
       - Credential Connections
@@ -42434,8 +42665,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/CredentialConnectionResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Create a credential connection
       tags:
       - Credential Connections
@@ -42455,12 +42690,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CredentialConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Delete a credential connection
       tags:
       - Credential Connections
@@ -42479,11 +42716,13 @@ paths:
         '200':
           $ref: '#/components/responses/CredentialConnectionResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a credential connection
       tags:
       - Credential Connections
@@ -42509,12 +42748,42 @@ paths:
         '200':
           $ref: '#/components/responses/CredentialConnectionResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update a credential connection
+      tags:
+      - Credential Connections
+      x-latency-category: responsive
+  /credential_connections/{id}/actions/check_registration_status:
+    post:
+      description: Updates the registration_status for a credential connection, this
+        endpoint also updates the `registration_status` and `registration_status_updated_at`
+        fields in the credential connection
+      operationId: checkRegistrationStatus
+      parameters:
+      - description: Identifies the resource.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/RegistrationStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Update a credential connection registration status
       tags:
       - Credential Connections
       x-latency-category: responsive
@@ -43812,11 +44081,11 @@ paths:
         '200':
           $ref: '#/components/responses/GetAllFaxApplicationsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
-        '404':
-          description: Resource not found
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List all Fax Applications
       tags:
       - Programmable Fax Applications
@@ -43839,8 +44108,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/FaxApplicationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Creates a Fax Application
       tags:
       - Programmable Fax Applications
@@ -43856,12 +44129,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/FaxApplicationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Deletes a Fax Application
       tags:
       - Programmable Fax Applications
@@ -43875,12 +44150,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/FaxApplicationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a Fax Application
       tags:
       - Programmable Fax Applications
@@ -43902,11 +44179,13 @@ paths:
         '200':
           $ref: '#/components/responses/FaxApplicationResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update a Fax Application
       tags:
       - Programmable Fax Applications
@@ -44177,16 +44456,20 @@ paths:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
       - $ref: '#/components/parameters/FilterConnectionName'
+      - $ref: '#/components/parameters/FilterFqdn'
+      - $ref: '#/components/parameters/FilterOutboundVoiceProfileId'
       - $ref: '#/components/parameters/SortConnection'
       responses:
         '200':
           $ref: '#/components/responses/ListFqdnConnectionsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
       summary: List FQDN connections
       tags:
       - FQDN Connections
@@ -44207,8 +44490,14 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/FqdnConnectionResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Create an FQDN connection
       tags:
       - FQDN Connections
@@ -44219,21 +44508,18 @@ paths:
       description: Deletes an FQDN connection.
       operationId: deleteFqdnConnection
       parameters:
-      - description: FQDN Connection ID
-        in: path
-        name: id
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/id'
       responses:
         '200':
           $ref: '#/components/responses/FqdnConnectionResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Delete an FQDN connection
       tags:
       - FQDN Connections
@@ -44242,21 +44528,18 @@ paths:
       description: Retrieves the details of an existing FQDN connection.
       operationId: retrieveFqdnConnection
       parameters:
-      - description: FQDN Connection ID
-        in: path
-        name: id
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/id'
       responses:
         '200':
           $ref: '#/components/responses/FqdnConnectionResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Retrieve an FQDN connection
       tags:
       - FQDN Connections
@@ -44265,12 +44548,7 @@ paths:
       description: Updates settings of an existing FQDN connection.
       operationId: updateFqdnConnection
       parameters:
-      - description: FQDN Connection ID
-        in: path
-        name: id
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/id'
       requestBody:
         content:
           application/json:
@@ -44282,11 +44560,13 @@ paths:
         '200':
           $ref: '#/components/responses/FqdnConnectionResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update an FQDN connection
       tags:
       - FQDN Connections
@@ -44325,9 +44605,9 @@ paths:
         '200':
           $ref: '#/components/responses/ListFqdnsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
       summary: List FQDNs
       tags:
       - FQDNs
@@ -44345,10 +44625,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/FqdnResponse'
-        '400':
-          description: Bad request
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Create an FQDN
       tags:
       - FQDNs
@@ -44364,9 +44646,13 @@ paths:
         '200':
           $ref: '#/components/responses/FqdnResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Delete an FQDN
       tags:
       - FQDNs
@@ -44380,9 +44666,13 @@ paths:
         '200':
           $ref: '#/components/responses/FqdnResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve an FQDN
       tags:
       - FQDNs
@@ -44400,10 +44690,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/FqdnResponse'
-        '400':
-          description: Bad request
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update an FQDN
       tags:
       - FQDNs
@@ -44865,11 +45159,11 @@ paths:
         '200':
           $ref: '#/components/responses/ListIpConnectionsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
-        '404':
-          description: Resource not found
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List Ip connections
       tags:
       - IP Connections
@@ -44890,8 +45184,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/IpConnectionResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Create an Ip connection
       tags:
       - IP Connections
@@ -44911,12 +45209,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/IpConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Delete an Ip connection
       tags:
       - IP Connections
@@ -44934,12 +45234,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/IpConnectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve an Ip connection
       tags:
       - IP Connections
@@ -44965,11 +45267,13 @@ paths:
         '200':
           $ref: '#/components/responses/IpConnectionResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update an Ip connection
       tags:
       - IP Connections
@@ -45002,9 +45306,11 @@ paths:
         '200':
           $ref: '#/components/responses/ListIpsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List Ips
       tags:
       - IPs
@@ -45022,10 +45328,12 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/IpResponse'
-        '400':
-          description: Bad request
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Create an Ip
       tags:
       - IPs
@@ -45041,9 +45349,13 @@ paths:
         '200':
           $ref: '#/components/responses/IpResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Delete an Ip
       tags:
       - IPs
@@ -45057,9 +45369,13 @@ paths:
         '200':
           $ref: '#/components/responses/IpResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve an Ip
       tags:
       - IPs
@@ -45077,10 +45393,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/IpResponse'
-        '400':
-          description: Bad request
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update an Ip
       tags:
       - IPs
@@ -53887,11 +54207,11 @@ paths:
         '200':
           $ref: '#/components/responses/GetAllTexmlApplicationsResponse'
         '400':
-          description: Bad request
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
-        '404':
-          description: Resource not found
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
       summary: List all TeXML Applications
       tags:
       - TeXML Applications
@@ -53911,8 +54231,14 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/TexmlApplicationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Creates a TeXML Application
       tags:
       - TeXML Applications
@@ -53927,12 +54253,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Deletes a TeXML Application
       tags:
       - TeXML Applications
@@ -53945,12 +54273,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
-        '422':
-          description: Bad request
+          $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a TeXML Application
       tags:
       - TeXML Applications
@@ -53970,12 +54300,16 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
         '401':
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          description: Resource not found
+          $ref: '#/components/responses/NotFoundResponse'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update a TeXML Application
       tags:
       - TeXML Applications
