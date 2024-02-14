@@ -1,21 +1,14 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "version": "2.0.0",
-    "title": "Telnyx API",
-    "x-endpoint-cost": "light",
-    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
-    "license": {
-      "name": "MIT"
-    },
-    "contact": {
-      "email": "support@telnyx.com"
-    }
+    "title": "Telnyx 10DLC API",
+    "description": "# Overview\nThe Telnyx 10DLC API facilitates interaction with The Campaign Registry (TCR), allowing the creation and registration of brands and campaigns with TCR.\n\n# API Interaction\n## Request Authorization\nTelnyx 10DLC API endpoints require authorization for each request. To properly authorize requests, send an Authorization header with `Bearer ` plus your Telnyx API key as the value. See the following curl request for example usage:\n\n```sh\ncurl --location --request GET 'https://api.telnyx.com/10dlc/example/endpoint' \\ \n--header 'Authorization: Bearer YOUR_API_KEY_GOES_HERE' \\ \n--data-raw ''\n```\n\nYou can obtain your API key by logging into your <a href=\"https://portal.telnyx.com\">Telnyx portal account</a> and clicking the \"API Keys\" tab. From there, you can copy your desired API key for use in your requests, similar to the above example curl request.\n\n## The 10DLC Work Flow\n1. Create a brand\n\n2. Apply for brand vetting\n\n3. Create a campaign or campaigns (associated with the created brand)\n\n4. Assign a phone number or phone numbers to the created campaign\n## 10DLC Costs\n**Brands:**\n1. Brand registration: $4 one time charge\n\n2.  Brand vetting: $40 one time charge\n\n**Campaigns:**\n\n1. Campaign registration T-Mobile: $50 one time charge\n\n2. Campaign creation: first 3 month's charge upfront. After the first 3 months, this charge will change to a once a month recurring charge (see charge values below, based on campaign use case)\n\n   a. Charity Campaign Use Case: $15 upfront (first 3 months), and $5 month to month after\n\n   b. Low Mixed Volume Campaign Use Case: $6 upfront (first 3 months), and $2 month to month after\n\n   c. Any Other Campaign Use Case: $30 upfront (first 3 months), and $10 month to month after\n3. Phone number to campaign assignment: $0.03 one time charge for each assignment\n\n## Frequently Asked Questions\nFor frequently asked questions, visit <a href=\"https://support.telnyx.com/en/articles/3679260-frequently-asked-questions-about-10dlc\">Telnyx 10DLC FAQs</a>.",
+    "version": "0.1"
   },
   "servers": [
     {
-      "url": "https://api.telnyx.com/v2",
-      "description": "Version 2.0.0 of the Telnyx API"
+      "url": "https://api.telnyx.com/10dlc",
+      "description": "Telnyx's 10DLC Passthrough API"
     }
   ],
   "security": [
@@ -21068,63 +21061,21 @@
     },
     "/recordings": {
       "get": {
-        "description": "Lists recordings for the authenticated user",
-        "summary": "List recordings",
-        "operationId": "ListRecordings",
+        "summary": "List all call recordings",
+        "description": "Returns a list of your call recordings.",
+        "operationId": "GetRecordings",
         "tags": [
-          "Recordings Commands"
-        ],
-        "x-group-parameters": "true",
-        "parameters": [
-          {
-            "name": "filter[conference_id]",
-            "in": "query",
-            "description": "Return only recordings associated with a given conference",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
-            }
-          },
-          {
-            "name": "filter[created_at][gte]",
-            "in": "query",
-            "description": "Return only recordings created later than or at given ISO 8601 datetime",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "2019-03-29T11:10:00Z"
-            }
-          },
-          {
-            "name": "filter[created_at][lte]",
-            "in": "query",
-            "description": "Return only recordings created earlier than or at given ISO 8601 datetime",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "2019-03-29T11:10:00Z"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
-          }
+          "Call Recordings"
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ListRecordingsResponse"
+            "$ref": "#/components/responses/RecordingsResponseBody"
           },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "422": {
-            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
           }
         },
-        "x-latency-category": "interactive"
+        "x-latency-category": "responsive"
       }
     },
     "/recordings/actions/delete": {
@@ -28738,12 +28689,11 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Telnyx connection id",
+        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string",
-          "example": "1293384261075731461"
+          "type": "string"
         }
       },
       "CreatedAtGtFilter": {
@@ -35009,7 +34959,20 @@
         }
       },
       "NotFoundResponse": {
-        "description": "Conference does not exist"
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Resource not found",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/ResourceNotFoundError"
+                }
+              }
+            }
+          }
+        }
       },
       "NumberBlockOrderResponse": {
         "description": "Successful response with details about a number block order.",
@@ -36313,7 +36276,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized"
+        "description": "Unauthenticated response. Happens when the current user cannot be authenticated."
       },
       "UnexpectedErrorResponse": {
         "description": "An unexpected error occurred.",
@@ -36343,11 +36306,18 @@
         }
       },
       "UnprocessableEntityErrorResponse": {
-        "description": "Unprocessable Entity",
+        "description": "Unprocessable entity. Check the 'detail' field in response for details.",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/Errors"
+              "properties": {
+                "errors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnprocessableEntityError"
+                  }
+                }
+              }
             }
           }
         }
@@ -52347,7 +52317,7 @@
         "properties": {
           "code": {
             "type": "string",
-            "format": "integer"
+            "format": "int"
           },
           "title": {
             "type": "string"
@@ -54974,17 +54944,17 @@
         }
       },
       "HTTPValidationError": {
-        "title": "HTTPValidationError",
-        "type": "object",
         "properties": {
           "detail": {
-            "title": "Detail",
-            "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationError"
-            }
+            },
+            "type": "array",
+            "title": "Detail"
           }
-        }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "HangupRequest": {
         "type": "object",
@@ -55046,9 +55016,8 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "description": "Identifies the resource.",
-        "readOnly": true,
-        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+        "description": "Identifies the type of resource."
       },
       "ImmutableSetLong": {
         "type": "array",
@@ -55895,9 +55864,14 @@
         "title": "Initiate Call Request",
         "required": [
           "To",
-          "From"
+          "From",
+          "ApplicationSid"
         ],
         "properties": {
+          "ApplicationSid": {
+            "description": "The ID of the TeXML Application.",
+            "type": "string"
+          },
           "To": {
             "description": "The phone number of the called party. Phone numbers are formatted with a `+` and country code.",
             "example": "+16175551212",
@@ -56140,11 +56114,11 @@
         }
       },
       "IntId": {
-        "title": "Int ID",
         "type": "string",
         "format": "int64",
-        "description": "Uniquely identifies the resource.",
-        "example": "1293384261075731499"
+        "description": "Identifies the resource.",
+        "example": "1293384261075731499",
+        "readOnly": true
       },
       "Interface": {
         "type": "object",
@@ -65462,28 +65436,33 @@
         }
       },
       "ResourceNotFoundError": {
-        "type": "object",
-        "title": "Resource not found",
-        "example": {
-          "errors": [
-            {
-              "detail": "Resource not found"
-            }
-          ]
-        },
-        "properties": {
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "string"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10005"
+              },
+              "title": {
+                "example": "Resource not found"
+              },
+              "detail": {
+                "example": "The requested resource or URL could not be found."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
+                  }
                 }
               }
             }
           }
-        }
+        ]
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -70183,39 +70162,42 @@
         ]
       },
       "UnprocessableEntityError": {
-        "required": [
-          "code",
-          "title"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "format": "int"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
           },
-          "title": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "source": {
-            "type": "object",
+          {
             "properties": {
-              "pointer": {
-                "description": "JSON pointer (RFC6901) to the offending entity.",
-                "type": "string",
-                "format": "json-pointer"
+              "code": {
+                "example": "10002"
               },
-              "parameter": {
-                "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+              "title": {
+                "example": "Invalid phone number"
+              },
+              "detail": {
+                "example": "The phone number is invalid."
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "pointer": {
+                    "type": "string",
+                    "example": "/phone_numbers"
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
+                  }
+                }
               }
             }
-          },
-          "meta": {
-            "type": "object"
           }
-        }
+        ]
       },
       "UpdateAuthenticationProviderRequest": {
         "type": "object",
@@ -70908,7 +70890,7 @@
       },
       "UpdateCommandResult": {
         "type": "object",
-        "title": "TeXml REST Update Command Result",
+        "title": "Update Call Result",
         "example": {
           "sid": "c46e06d7-b78f-4b13-96b6-c576af9640ff",
           "status": "accepted"
@@ -70997,54 +70979,31 @@
         }
       },
       "UpdateConferenceRequest": {
-        "required": [
-          "call_control_id",
-          "supervisor_role"
-        ],
         "type": "object",
         "title": "Update Conference Request",
         "properties": {
-          "call_control_id": {
-            "description": "Unique identifier and token for controlling the call",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
+          "Status": {
+            "description": "The new status of the resource. Specifying `completed` will end the conference and hang up all participants.",
+            "example": "completed",
             "type": "string"
           },
-          "command_id": {
-            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
-            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "AnnounceUrl": {
+            "description": "The URL we should call to announce something into the conference. The URL may return an MP3 file, a WAV file, or a TwiML document that contains <Play>, <Say>, <Pause>, or <Redirect> verbs.",
+            "example": "https://www.example.com/announce.xml",
             "type": "string"
           },
-          "supervisor_role": {
-            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
-            "example": "whisper",
+          "AnnounceMethod": {
+            "description": "The HTTP method used to call the `AnnounceUrl`. Defaults to `POST`.",
+            "example": "GET",
             "type": "string",
             "enum": [
-              "barge",
-              "monitor",
-              "none",
-              "whisper"
+              "GET",
+              "POST"
             ]
-          },
-          "whisper_call_control_ids": {
-            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
-            "example": [
-              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
         "example": {
-          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
-          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
-          "supervisor_role": "whisper",
-          "whisper_call_control_ids": [
-            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-          ]
+          "Status": "completed"
         }
       },
       "UpdateCredentialConnectionRequest": {
@@ -73166,17 +73125,8 @@
         ]
       },
       "ValidationError": {
-        "title": "ValidationError",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "type": "object",
         "properties": {
           "loc": {
-            "title": "Location",
-            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -73186,17 +73136,26 @@
                   "type": "integer"
                 }
               ]
-            }
+            },
+            "type": "array",
+            "title": "Location"
           },
           "msg": {
-            "title": "Message",
-            "type": "string"
+            "type": "string",
+            "title": "Message"
           },
           "type": {
-            "title": "Error Type",
-            "type": "string"
+            "type": "string",
+            "title": "Error Type"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       },
       "Verification": {
         "title": "Verification",
