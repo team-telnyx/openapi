@@ -5376,7 +5376,7 @@
     "/calls/{call_control_id}/actions/streaming_start": {
       "post": {
         "summary": "Streaming start",
-        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n\n**Bidirectional Media Streaming**\n\nMedia can be sent back to the call through the websocket as well. This is done in a way very similar to the [playback_start](https://developers.telnyx.com/docs/api/v2/call-control/Call-Commands#callPlaybackStart)\ncommand, when using a base64 encoded mp3 file in the payload. Simply send a packet to the websocket connection as follows:\n\n```\n{\n  \"event\": \"media\",\n  \"media\": {\n    \"payload\" : <your base64 encoded mp3 file>\n  }\n}\n```\n\nThe payload, which is a base64-encoded mp3 file, will be played on the call.\n\nSome limitations to be aware of:\n\n- Media payloads can only be submitted once per second.\n- Media _must_ be base64 encoded mp3\n\n**Stream Errors**\n\nAny errors in the media packet, including when a rate limit is reached, will result in an error frame being\nsent to your websocket server. The error frame will appear as follows:\n\n```\n{\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\",\n  \"event\": \"error\",\n  \"sequence_number\": \"6\",\n  \"error\": {\n    \"title\": \"rate_limit_reached\",\n    \"code\": \"100005\",\n    \"detail\": \"Too many requests\"\n  }\n}\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"`\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"`\n- Error 100005: `\"rate_limit_reached\"`\n",
+        "description": "Start streaming the media from a call to a specific WebSocket address or Dialogflow connection in near-realtime. Audio will be delivered as base64-encoded RTP payload (raw audio), wrapped in JSON payloads. \n\n**Example: Starting a stream to a Websocket address**\n\n The `stream_url` param is mandatory.\n\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"stream_url\": \"wss://www.example.com/websocket\",\\ \n\"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\",\\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\" \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n``` \n\n **Example: Starting a stream to a Dialogflow connection** \n\n Enable the Dialogflow integration by sending `\"enable_dialogflow\": true` in the request. You need to have a Dialogflow connection associated with your Call Control application first, [click here for instructions](https://developers.telnyx.com/docs/v2/call-control/tutorials/dialogflow-es).\n```\ncurl -X POST \\ \n  --header \"Content-Type: application/json\" \\ \n  --header \"Accept: application/json\" \\ \n  --header \"Authorization: Bearer YOUR_API_KEY\" \\ \n  --data '{\n \"client_state\":\"aGF2ZSBhIG5pY2UgZGF5ID1d\", \\ \n\"command_id\":\"891510ac-f3e4-11e8-af5b-de00688a4901\", \\ \n\"enable_dialogflow\": true \\ \n}' \\ \n  https://api.telnyx.com/v2/calls/{call_control_id}/actions/streaming_start \n```\n\n**Expected Webhooks:**\n\n- `streaming.started`\n- `streaming.stopped`\n- `streaming.failed`\n\n**WebSocket events**\n\nWhen the WebSocket connection is established, the following event is being sent over it:\n```\n{\n  \"event\": \"connected\",\n  \"version\": \"1.0.0\"\n}\n```\nAnd when the call is started, an event which contains information about the encoding and `stream_id` that identifies a particular stream:\n```\n{\n  \"event\": \"start\",\n  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg\", \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\": {\n      \"encoding\": \"PCMU\",\n      \"sample_rate\": 8000,\n      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\n}\n```\nThe start event is followed by the following media events that contain base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"track\": \"inbound/outbound\", \n    \"chunk\": \"2\",\n    \"timestamp\": \"5\",\n    \"payload\": \"no+JhoaJjpzSHxAKBgYJD...IsSbjomGhoqQn1Ic\" \n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n}\n```\nPlease note that the order of events is not guaranteed and the chunk number can be used to reorder the events.\n\nWhen the call ends, the stop event over WebSockets connection is sent:\n```\n{ \n  \"event\": \"stop\",\n  \"sequence_number\": \"5\",\n  \"stop\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\",\n    \"call_control_id\": \"v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ\"\n   },\n    \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\" \n }\n```\n\n**Bidirectional Media Streaming**\n\nMedia can be sent back to the call through the websocket as well. This is done in a way very similar to the [playback_start](https://developers.telnyx.com/docs/api/v2/call-control/Call-Commands#callPlaybackStart)\ncommand, when using a base64 encoded mp3 file in the payload. Simply send a packet to the websocket connection as follows:\n\n```\n{\n  \"event\": \"media\",\n  \"media\": {\n    \"payload\" : <your base64 encoded mp3 file>\n  }\n}\n```\n\nThe payload, which is a base64-encoded mp3 file, will be played on the call.\n\nSome limitations to be aware of:\n\n- Media payloads can only be submitted once per second.\n- Media _must_ be base64 encoded mp3\n\n**Stream Errors**\n\nAny errors in the media packet, including when a rate limit is reached, will result in an error frame being\nsent to your websocket server. The error frame will appear as follows:\n\n```\n{\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\",\n  \"event\": \"error\",\n  \"sequence_number\": \"6\",\n  \"error\": {\n    \"title\": \"rate_limit_reached\",\n    \"code\": \"100005\",\n    \"detail\": \"Too many requests\"\n  }\n}\n```\n\nPossible errors are as follows:\n\n- Error 100002: `\"unknown_error\"`\n- Error 100003: `\"malformed_frame\"`\n- Error 100004: `\"invalid_media\"`\n- Error 100005: `\"rate_limit_reached\"`\n",
         "operationId": "StartCallStreaming",
         "tags": [
           "Call Commands"
@@ -5528,6 +5528,74 @@
             }
           }
         },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/suppression_start": {
+      "post": {
+        "operationId": "noiseSuppressionStart",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoiseSuppressionStart"
+              }
+            }
+          },
+          "description": "Start streaming media request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "summary": "Noise Suppression Start (BETA)",
+        "tags": [
+          "Call Commands"
+        ],
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/suppression_stop": {
+      "post": {
+        "operationId": "noiseSuppressionStop",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoiseSuppressionStop"
+              }
+            }
+          },
+          "description": "Start streaming media request",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "summary": "Noise Suppression Stop (BETA)",
+        "tags": [
+          "Call Commands"
+        ],
         "x-latency-category": "interactive"
       }
     },
@@ -26162,6 +26230,97 @@
         }
       }
     },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Recordings.json": {
+      "get": {
+        "summary": "Fetch recordings for a call",
+        "description": "Returns recordings for a call identified by call_sid.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "FetchTeXMLCallRecordings",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlGetCallRecordingsResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      },
+      "post": {
+        "summary": "Request recording for a call",
+        "description": "Starts recording with specified parameters for call idientified by call_sid.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "StartTeXMLCallRecording",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlCreateCallRecordingRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlCreateCallRecordingResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Recordings/{recording_sid}.json": {
+      "post": {
+        "summary": "Update recording on a call",
+        "description": "Updates recording resource for particular call.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "UpdateTeXMLCallRecording",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          },
+          {
+            "$ref": "#/components/parameters/RecordingId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlUpdateCallRecordingRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlCreateCallRecordingResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
     "/texml/Accounts/{account_sid}/Conferences": {
       "get": {
         "summary": "List conference resources",
@@ -26450,6 +26609,122 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetConferenceRecordingsResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Conferences/{conference_sid}/Recordings.json": {
+      "get": {
+        "summary": "Fetch recordings for a conference",
+        "description": "Returns recordings for a conference identified by conference_sid.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "FetchTeXMLConferenceRecordings",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/ConferenceSid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlGetCallRecordingsResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Recordings.json": {
+      "get": {
+        "summary": "Fetch multiple recording resources",
+        "description": "Returns multiple recording resources for an account.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "GetTeXMLCallRecordings",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/PageSizeTexml"
+          },
+          {
+            "$ref": "#/components/parameters/TexmlDateCreated"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlGetCallRecordingsResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Recordings/{recording_sid}.json": {
+      "delete": {
+        "summary": "Delete recording resource",
+        "description": "Deletes recording resource identified by recording id.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "DeleteTeXMLCallRecording",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/RecordingId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The resource was deleted successfully."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      },
+      "get": {
+        "summary": "Fetch recording resource",
+        "description": "Returns recording resource identified by recording id.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "GetTeXMLCallRecording",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/RecordingId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlGetCallRecordingResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -30749,6 +31024,16 @@
           "default": 20
         }
       },
+      "PageSizeTexml": {
+        "name": "PageSize",
+        "in": "query",
+        "required": false,
+        "description": "The number of records to be displayed on a page",
+        "schema": {
+          "type": "integer"
+        },
+        "example": 10
+      },
       "PageToken": {
         "name": "PageToken",
         "in": "query",
@@ -30847,12 +31132,14 @@
         }
       },
       "RecordingId": {
-        "name": "recording_id",
         "description": "Uniquely identifies the recording by id.",
+        "name": "recording_id",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string"
+          "format": "uuid",
+          "type": "string",
+          "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
         }
       },
       "RequiredTag": {
@@ -31048,6 +31335,17 @@
             ],
             "example": "pending"
           }
+        }
+      },
+      "TexmlDateCreated": {
+        "name": "DateCreated",
+        "in": "query",
+        "required": false,
+        "description": "Filters recording by the creation date. Expected format is ISO8601 date or date-time, ie. {YYYY}-{MM}-{DD} or {YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}Z. Also accepts inequality operators, e.g. DateCreated>=2023-05-22.",
+        "schema": {
+          "type": "string",
+          "format": "datetime-iso8601",
+          "example": "2023-05-22"
         }
       },
       "TimestampGreater": {
@@ -31501,6 +31799,26 @@
             }
           }
         }
+      },
+      "TexmlCreateCallRecordingRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateCallRecordingRequestBody"
+            }
+          }
+        },
+        "description": "Starts call recording on a call."
+      },
+      "TexmlUpdateCallRecordingRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlUpdateCallRecordingRequestBody"
+            }
+          }
+        },
+        "description": "Update call recording on a call."
       },
       "UpdatePortingOrdersActivationJob": {
         "required": true,
@@ -37112,6 +37430,36 @@
           }
         }
       },
+      "TexmlCreateCallRecordingResponse": {
+        "description": "Successful call recording create response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateCallRecordingResponseBody"
+            }
+          }
+        }
+      },
+      "TexmlGetCallRecordingResponse": {
+        "description": "Retrieves call recording resource.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlGetCallRecordingResponseBody"
+            }
+          }
+        }
+      },
+      "TexmlGetCallRecordingsResponse": {
+        "description": "Successful Get Call Recordings Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlGetCallRecordingsResponseBody"
+            }
+          }
+        }
+      },
       "UnauthenticatedResponse": {
         "description": "Unauthorized",
         "content": {
@@ -38006,6 +38354,10 @@
             "format": "date-time"
           }
         }
+      },
+      "AccountSid": {
+        "type": "string",
+        "example": "61bf923e-5e4d-4595-a110-56190ea18a1b"
       },
       "ActionsParticipantsRequest": {
         "type": "object",
@@ -40738,6 +41090,10 @@
           }
         }
       },
+      "CallControlId": {
+        "type": "string",
+        "example": "v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA"
+      },
       "CallCost": {
         "type": "object",
         "title": "Call Cost Received Event",
@@ -43395,7 +43751,7 @@
             "example": 1000
           },
           "record_timeout_secs": {
-            "description": "The number of seconds that Telnyx will wait for the recording to be stopped if silence is detected when `record` is specified. The timer only starts when the speech is detected. The minimum value is 0. The default value is 0 (infinite).",
+            "description": "The number of seconds that Telnyx will wait for the recording to be stopped if silence is detected when `record` is specified. The timer only starts when the speech is detected. Please note that call transcription is used to detect silence and the related charge will be applied. The minimum value is 0. The default value is 0 (infinite).",
             "type": "integer",
             "format": "int32",
             "default": 0,
@@ -47587,6 +47943,12 @@
             "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Conferences.json?Page=0&PageSize=1"
           }
         }
+      },
+      "ConferenceSid": {
+        "type": "string",
+        "format": "uuid",
+        "example": "cd5a70f4-759b-4d5e-9c06-88c00f16f3c1",
+        "nullable": true
       },
       "ConferenceSpeakEnded": {
         "type": "object",
@@ -51938,6 +52300,11 @@
             "example": "event"
           }
         }
+      },
+      "DateTimeRFC2822": {
+        "type": "string",
+        "format": "datetime-rfc2822",
+        "example": "Fri, 11 Aug 2023 19:12:11 +0000"
       },
       "Dca": {
         "title": "Dca",
@@ -59854,6 +60221,62 @@
           }
         }
       },
+      "NoiseSuppressionDirection": {
+        "type": "string",
+        "title": "Noise Suppression Direction",
+        "description": "The direction of the audio stream to be noise suppressed.",
+        "enum": [
+          "inbound",
+          "outbound",
+          "both"
+        ],
+        "default": "inbound",
+        "example": "outbound"
+      },
+      "NoiseSuppressionStart": {
+        "type": "object",
+        "title": "Noise Suppression Start Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/NoiseSuppressionDirection"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "direction": "both"
+        }
+      },
+      "NoiseSuppressionStop": {
+        "type": "object",
+        "title": "Noise Suppression Stop Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "NotFoundError": {
         "properties": {
           "code": {
@@ -66092,6 +66515,19 @@
           }
         }
       },
+      "RecordingSource": {
+        "type": "string",
+        "description": "Defines how the recording was created.",
+        "enum": [
+          "StartCallRecordingAPI",
+          "StartConferenceRecordingAPI",
+          "OutboundAPI",
+          "DialVerb",
+          "Conference",
+          "RecordVerb",
+          "Trunking"
+        ]
+      },
       "RecordingStarted": {
         "type": "object",
         "title": "Recording Started",
@@ -66185,6 +66621,21 @@
             "$ref": "#/components/schemas/RecordingStarted"
           }
         }
+      },
+      "RecordingStatusCallbackEvent": {
+        "description": "The changes to the recording's state that should generate a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed` and `absent`. Separate multiple values with a space. Defaults to `completed`.",
+        "example": "in-progress completed absent",
+        "type": "string"
+      },
+      "RecordingTrack": {
+        "description": "The audio track to record for the call. The default is `both`.",
+        "example": "inbound",
+        "type": "string",
+        "enum": [
+          "inbound",
+          "outbound",
+          "both"
+        ]
       },
       "ReferRequest": {
         "type": "object",
@@ -69653,11 +70104,22 @@
             "format": "int32"
           },
           "timeout_secs": {
-            "description": "The number of seconds that Telnyx will wait for the recording to be stopped if silence is detected. The timer only starts when the speech is detected. The minimum value is 0. The default value is 0 (infinite)",
+            "description": "The number of seconds that Telnyx will wait for the recording to be stopped if silence is detected. The timer only starts when the speech is detected. Please note that call transcription is used to detect silence and the related charge will be applied. The minimum value is 0. The default value is 0 (infinite)",
             "type": "integer",
             "example": 100,
             "default": 0,
             "format": "int32"
+          },
+          "recording_track": {
+            "description": "The audio track to be recorded. Can be either `both`, `inbound` or `outbound`. If only single track is specified (`inbound`, `outbound`), `channels` configuration is ignored and it will be recorded as mono (single channel).",
+            "type": "string",
+            "example": "outbound",
+            "default": "both",
+            "enum": [
+              "both",
+              "inbound",
+              "outbound"
+            ]
           },
           "trim": {
             "description": "When set to `trim-silence`, silence will be removed from the beginning and end of the recording.",
@@ -70789,6 +71251,284 @@
           "updated_at": "2020-02-03T22:25:27.521Z"
         }
       },
+      "TexmlCreateCallRecordingRequestBody": {
+        "type": "object",
+        "title": "Texml Create Call Recording Request Body",
+        "properties": {
+          "RecordingStatusCallbackEvent": {
+            "$ref": "#/components/schemas/RecordingStatusCallbackEvent"
+          },
+          "RecordingStatusCallback": {
+            "$ref": "#/components/schemas/TexmlStatusCallback"
+          },
+          "RecordingStatusCallbackMethod": {
+            "$ref": "#/components/schemas/TexmlStatusCallbackMethod"
+          },
+          "RecordingChannels": {
+            "$ref": "#/components/schemas/TexmlRecordingChannels"
+          },
+          "RecordingTrack": {
+            "$ref": "#/components/schemas/RecordingTrack"
+          }
+        }
+      },
+      "TexmlCreateCallRecordingResponseBody": {
+        "type": "object",
+        "title": "Texml Create Call Recording Response Body",
+        "properties": {
+          "account_sid": {
+            "$ref": "#/components/schemas/AccountSid"
+          },
+          "call_sid": {
+            "$ref": "#/components/schemas/CallControlId"
+          },
+          "conference_sid": {
+            "$ref": "#/components/schemas/ConferenceSid"
+          },
+          "channels": {
+            "$ref": "#/components/schemas/TwimlRecordingChannels"
+          },
+          "date_created": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "date_updated": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "start_time": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "price": {
+            "$ref": "#/components/schemas/TexmlRecordingPrice"
+          },
+          "price_unit": {
+            "$ref": "#/components/schemas/TexmlPriceUnit"
+          },
+          "duration": {
+            "$ref": "#/components/schemas/TexmlRecordingDuration"
+          },
+          "sid": {
+            "$ref": "#/components/schemas/TexmlSid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RecordingSource"
+          },
+          "error_code": {
+            "$ref": "#/components/schemas/TexmlErrorCode"
+          },
+          "track": {
+            "$ref": "#/components/schemas/RecordingTrack"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The relative URI for this recording resource.",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json"
+          }
+        }
+      },
+      "TexmlErrorCode": {
+        "type": "string",
+        "nullable": true,
+        "example": null
+      },
+      "TexmlGetCallRecordingResponseBody": {
+        "type": "object",
+        "title": "Texml Get Call Recording Response Body",
+        "properties": {
+          "account_sid": {
+            "$ref": "#/components/schemas/AccountSid"
+          },
+          "call_sid": {
+            "$ref": "#/components/schemas/CallControlId"
+          },
+          "conference_sid": {
+            "$ref": "#/components/schemas/ConferenceSid"
+          },
+          "channels": {
+            "$ref": "#/components/schemas/TwimlRecordingChannels"
+          },
+          "date_created": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "date_updated": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "start_time": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "duration": {
+            "$ref": "#/components/schemas/TexmlRecordingDuration"
+          },
+          "sid": {
+            "$ref": "#/components/schemas/TexmlSid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/RecordingSource"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TexmlRecordingStatus"
+          },
+          "error_code": {
+            "$ref": "#/components/schemas/TexmlErrorCode"
+          },
+          "subresources_uris": {
+            "$ref": "#/components/schemas/TexmlRecordingSubresourcesUris"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The relative URI for this recording resource.",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json"
+          },
+          "media_url": {
+            "$ref": "#/components/schemas/TexmlRecordingMediaUrl"
+          }
+        }
+      },
+      "TexmlGetCallRecordingsResponseBody": {
+        "type": "object",
+        "title": "Multiple recording resources",
+        "properties": {
+          "recordings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TexmlGetCallRecordingResponseBody"
+            }
+          },
+          "end": {
+            "type": "integer",
+            "description": "The number of the last element on the page, zero-indexed.",
+            "example": 19
+          },
+          "first_page_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Relative uri to the first page of the query results",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1"
+          },
+          "previous_page_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Relative uri to the previous page of the query results",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1"
+          },
+          "next_page_uri": {
+            "type": "string",
+            "description": "Relative uri to the next page of the query results",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=1&PageSize=1"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number, zero-indexed.",
+            "example": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "The number of items on the page",
+            "example": 20
+          },
+          "start": {
+            "type": "integer",
+            "description": "The number of the first element on the page, zero-indexed.",
+            "example": 0
+          },
+          "uri": {
+            "type": "string",
+            "description": "The URI of the current page.",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1"
+          }
+        }
+      },
+      "TexmlPriceUnit": {
+        "type": "string",
+        "description": "The unit in which the price is given.",
+        "example": "USD",
+        "nullable": true
+      },
+      "TexmlRecordingChannels": {
+        "type": "string",
+        "enum": [
+          "mono",
+          "dual"
+        ],
+        "description": "When `dual`, final audio file has the first leg on channel A, and the rest on channel B. `mono` mixes both tracks into a single channel.",
+        "example": "mono",
+        "default": "dual"
+      },
+      "TexmlRecordingDuration": {
+        "type": "string",
+        "description": "The duration of this recording, given in seconds.",
+        "example": "12",
+        "nullable": true
+      },
+      "TexmlRecordingMediaUrl": {
+        "type": "string",
+        "format": "uri",
+        "example": "http://recordings.com/mp3/filename.mp3"
+      },
+      "TexmlRecordingPrice": {
+        "type": "string",
+        "description": "The price of this recording, the currency is specified in the price_unit field. ",
+        "example": "0.10",
+        "nullable": true
+      },
+      "TexmlRecordingStatus": {
+        "type": "string",
+        "enum": [
+          "in-progress",
+          "completed",
+          "paused",
+          "stopped"
+        ],
+        "example": "paused"
+      },
+      "TexmlRecordingSubresourcesUris": {
+        "type": "object",
+        "title": "Texml recording subresources uris",
+        "description": "Subresources details for a recording if available.",
+        "properties": {
+          "transcriptions": {
+            "type": "string",
+            "format": "uri",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac/Transcriptions.json",
+            "nullable": true
+          }
+        }
+      },
+      "TexmlSid": {
+        "type": "string",
+        "description": "Identifier of a resource.",
+        "example": "e9cea0be-7dbd-4b98-98b1-c0089d9d43b0"
+      },
+      "TexmlStatusCallback": {
+        "description": "Url where status callbacks will be sent.",
+        "example": "http://webhook.com/callback",
+        "type": "string",
+        "format": "uri"
+      },
+      "TexmlStatusCallbackMethod": {
+        "description": "HTTP method used to send status callbacks.",
+        "example": "GET",
+        "type": "string",
+        "default": "POST",
+        "enum": [
+          "GET",
+          "POST"
+        ]
+      },
+      "TexmlUpdateCallRecordingRequestBody": {
+        "type": "object",
+        "title": "Texml Create Call Recording Request Body",
+        "properties": {
+          "Status": {
+            "type": "string",
+            "enum": [
+              "in-progress",
+              "paused",
+              "stopped"
+            ],
+            "example": "paused"
+          }
+        }
+      },
       "TnReleaseEntry": {
         "type": "object",
         "title": "TnReleaseEntry",
@@ -71368,6 +72108,15 @@
             "example": "GET"
           }
         }
+      },
+      "TwimlRecordingChannels": {
+        "type": "integer",
+        "enum": [
+          1,
+          2
+        ],
+        "default": 2,
+        "example": 1
       },
       "UUID": {
         "title": "UUID",

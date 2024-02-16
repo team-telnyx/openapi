@@ -1205,6 +1205,14 @@ components:
         maximum: 250
         minimum: 1
         type: integer
+    PageSizeTexml:
+      description: The number of records to be displayed on a page
+      example: 10
+      in: query
+      name: PageSize
+      required: false
+      schema:
+        type: integer
     PageToken:
       description: Used to request the next page of results.
       in: query
@@ -1287,6 +1295,8 @@ components:
       name: recording_id
       required: true
       schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        format: uuid
         type: string
     RequiredTag:
       description: Filter by tag, required by bulk operations.
@@ -1480,6 +1490,17 @@ components:
           example: pending
           type: string
         type: array
+    TexmlDateCreated:
+      description: Filters recording by the creation date. Expected format is ISO8601
+        date or date-time, ie. {YYYY}-{MM}-{DD} or {YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}Z.
+        Also accepts inequality operators, e.g. DateCreated>=2023-05-22.
+      in: query
+      name: DateCreated
+      required: false
+      schema:
+        example: '2023-05-22'
+        format: datetime-iso8601
+        type: string
     TimestampGreater:
       description: Filter by timestamp greater than
       in: query
@@ -1809,6 +1830,18 @@ components:
                 type: string
             type: object
       required: true
+    TexmlCreateCallRecordingRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateCallRecordingRequestBody'
+      description: Starts call recording on a call.
+    TexmlUpdateCallRecordingRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlUpdateCallRecordingRequestBody'
+      description: Update call recording on a call.
     UpdatePortingOrdersActivationJob:
       content:
         application/json:
@@ -5398,6 +5431,24 @@ components:
             title: Texml Application Response
             type: object
       description: Successful response
+    TexmlCreateCallRecordingResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateCallRecordingResponseBody'
+      description: Successful call recording create response
+    TexmlGetCallRecordingResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlGetCallRecordingResponseBody'
+      description: Retrieves call recording resource.
+    TexmlGetCallRecordingsResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlGetCallRecordingsResponseBody'
+      description: Successful Get Call Recordings Response
     UnauthenticatedResponse:
       content:
         application/json:
@@ -5987,6 +6038,9 @@ components:
       - user_id
       title: AccessIPRangeResponseSchema
       type: object
+    AccountSid:
+      example: 61bf923e-5e4d-4595-a110-56190ea18a1b
+      type: string
     ActionsParticipantsRequest:
       properties:
         exclude:
@@ -8191,6 +8245,9 @@ components:
           type: string
       title: Call Control Command Result
       type: object
+    CallControlId:
+      example: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
+      type: string
     CallCost:
       properties:
         event_type:
@@ -10358,8 +10415,9 @@ components:
           default: 0
           description: The number of seconds that Telnyx will wait for the recording
             to be stopped if silence is detected when `record` is specified. The timer
-            only starts when the speech is detected. The minimum value is 0. The default
-            value is 0 (infinite).
+            only starts when the speech is detected. Please note that call transcription
+            is used to detect silence and the related charge will be applied. The
+            minimum value is 0. The default value is 0 (infinite).
           example: 100
           format: int32
           type: integer
@@ -13941,6 +13999,11 @@ components:
           type: string
       title: Multiple conference resources
       type: object
+    ConferenceSid:
+      example: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
+      format: uuid
+      nullable: true
+      type: string
     ConferenceSpeakEnded:
       example:
         event_type: conference.speak.ended
@@ -17686,6 +17749,10 @@ components:
           example: event
           type: string
       type: object
+    DateTimeRFC2822:
+      example: Fri, 11 Aug 2023 19:12:11 +0000
+      format: datetime-rfc2822
+      type: string
     Dca:
       properties:
         displayName:
@@ -24142,6 +24209,53 @@ components:
           type: string
       title: New participant resource
       type: object
+    NoiseSuppressionDirection:
+      default: inbound
+      description: The direction of the audio stream to be noise suppressed.
+      enum:
+      - inbound
+      - outbound
+      - both
+      example: outbound
+      title: Noise Suppression Direction
+      type: string
+    NoiseSuppressionStart:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        direction: both
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        direction:
+          $ref: '#/components/schemas/NoiseSuppressionDirection'
+      title: Noise Suppression Start Request
+      type: object
+    NoiseSuppressionStop:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: Noise Suppression Stop Request
+      type: object
     NotFoundError:
       properties:
         code:
@@ -29321,6 +29435,17 @@ components:
           type: string
       title: RecordingResponseData
       type: object
+    RecordingSource:
+      description: Defines how the recording was created.
+      enum:
+      - StartCallRecordingAPI
+      - StartConferenceRecordingAPI
+      - OutboundAPI
+      - DialVerb
+      - Conference
+      - RecordVerb
+      - Trunking
+      type: string
     RecordingStarted:
       example:
         event_type: video.room.recording.started
@@ -29394,6 +29519,20 @@ components:
           $ref: '#/components/schemas/RecordingStarted'
       title: Recording Started Event
       type: object
+    RecordingStatusCallbackEvent:
+      description: 'The changes to the recording''s state that should generate a call
+        to `RecoridngStatusCallback`. Can be: `in-progress`, `completed` and `absent`.
+        Separate multiple values with a space. Defaults to `completed`.'
+      example: in-progress completed absent
+      type: string
+    RecordingTrack:
+      description: The audio track to record for the call. The default is `both`.
+      enum:
+      - inbound
+      - outbound
+      - both
+      example: inbound
+      type: string
     ReferRequest:
       example:
         sip_address: sip:username@sip.non-telnyx-address.com
@@ -32343,11 +32482,25 @@ components:
           description: If enabled, a beep sound will be played at the start of a recording.
           example: true
           type: boolean
+        recording_track:
+          default: both
+          description: The audio track to be recorded. Can be either `both`, `inbound`
+            or `outbound`. If only single track is specified (`inbound`, `outbound`),
+            `channels` configuration is ignored and it will be recorded as mono (single
+            channel).
+          enum:
+          - both
+          - inbound
+          - outbound
+          example: outbound
+          type: string
         timeout_secs:
           default: 0
           description: The number of seconds that Telnyx will wait for the recording
             to be stopped if silence is detected. The timer only starts when the speech
-            is detected. The minimum value is 0. The default value is 0 (infinite)
+            is detected. Please note that call transcription is used to detect silence
+            and the related charge will be applied. The minimum value is 0. The default
+            value is 0 (infinite)
           example: 100
           format: int32
           type: integer
@@ -33263,6 +33416,213 @@ components:
           type: string
       title: Texml Application
       type: object
+    TexmlCreateCallRecordingRequestBody:
+      properties:
+        RecordingChannels:
+          $ref: '#/components/schemas/TexmlRecordingChannels'
+        RecordingStatusCallback:
+          $ref: '#/components/schemas/TexmlStatusCallback'
+        RecordingStatusCallbackEvent:
+          $ref: '#/components/schemas/RecordingStatusCallbackEvent'
+        RecordingStatusCallbackMethod:
+          $ref: '#/components/schemas/TexmlStatusCallbackMethod'
+        RecordingTrack:
+          $ref: '#/components/schemas/RecordingTrack'
+      title: Texml Create Call Recording Request Body
+      type: object
+    TexmlCreateCallRecordingResponseBody:
+      properties:
+        account_sid:
+          $ref: '#/components/schemas/AccountSid'
+        call_sid:
+          $ref: '#/components/schemas/CallControlId'
+        channels:
+          $ref: '#/components/schemas/TwimlRecordingChannels'
+        conference_sid:
+          $ref: '#/components/schemas/ConferenceSid'
+        date_created:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        date_updated:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        duration:
+          $ref: '#/components/schemas/TexmlRecordingDuration'
+        error_code:
+          $ref: '#/components/schemas/TexmlErrorCode'
+        price:
+          $ref: '#/components/schemas/TexmlRecordingPrice'
+        price_unit:
+          $ref: '#/components/schemas/TexmlPriceUnit'
+        sid:
+          $ref: '#/components/schemas/TexmlSid'
+        source:
+          $ref: '#/components/schemas/RecordingSource'
+        start_time:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        track:
+          $ref: '#/components/schemas/RecordingTrack'
+        uri:
+          description: The relative URI for this recording resource.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json
+          type: string
+      title: Texml Create Call Recording Response Body
+      type: object
+    TexmlErrorCode:
+      example: null
+      nullable: true
+      type: string
+    TexmlGetCallRecordingResponseBody:
+      properties:
+        account_sid:
+          $ref: '#/components/schemas/AccountSid'
+        call_sid:
+          $ref: '#/components/schemas/CallControlId'
+        channels:
+          $ref: '#/components/schemas/TwimlRecordingChannels'
+        conference_sid:
+          $ref: '#/components/schemas/ConferenceSid'
+        date_created:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        date_updated:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        duration:
+          $ref: '#/components/schemas/TexmlRecordingDuration'
+        error_code:
+          $ref: '#/components/schemas/TexmlErrorCode'
+        media_url:
+          $ref: '#/components/schemas/TexmlRecordingMediaUrl'
+        sid:
+          $ref: '#/components/schemas/TexmlSid'
+        source:
+          $ref: '#/components/schemas/RecordingSource'
+        start_time:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        status:
+          $ref: '#/components/schemas/TexmlRecordingStatus'
+        subresources_uris:
+          $ref: '#/components/schemas/TexmlRecordingSubresourcesUris'
+        uri:
+          description: The relative URI for this recording resource.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json
+          type: string
+      title: Texml Get Call Recording Response Body
+      type: object
+    TexmlGetCallRecordingsResponseBody:
+      properties:
+        end:
+          description: The number of the last element on the page, zero-indexed.
+          example: 19
+          type: integer
+        first_page_uri:
+          description: Relative uri to the first page of the query results
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1
+          format: uri
+          type: string
+        next_page_uri:
+          description: Relative uri to the next page of the query results
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=1&PageSize=1
+          type: string
+        page:
+          description: Current page number, zero-indexed.
+          example: 0
+          type: integer
+        page_size:
+          description: The number of items on the page
+          example: 20
+          type: integer
+        previous_page_uri:
+          description: Relative uri to the previous page of the query results
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1
+          format: uri
+          type: string
+        recordings:
+          items:
+            $ref: '#/components/schemas/TexmlGetCallRecordingResponseBody'
+          type: array
+        start:
+          description: The number of the first element on the page, zero-indexed.
+          example: 0
+          type: integer
+        uri:
+          description: The URI of the current page.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1
+          type: string
+      title: Multiple recording resources
+      type: object
+    TexmlPriceUnit:
+      description: The unit in which the price is given.
+      example: USD
+      nullable: true
+      type: string
+    TexmlRecordingChannels:
+      default: dual
+      description: When `dual`, final audio file has the first leg on channel A, and
+        the rest on channel B. `mono` mixes both tracks into a single channel.
+      enum:
+      - mono
+      - dual
+      example: mono
+      type: string
+    TexmlRecordingDuration:
+      description: The duration of this recording, given in seconds.
+      example: '12'
+      nullable: true
+      type: string
+    TexmlRecordingMediaUrl:
+      example: http://recordings.com/mp3/filename.mp3
+      format: uri
+      type: string
+    TexmlRecordingPrice:
+      description: 'The price of this recording, the currency is specified in the
+        price_unit field. '
+      example: '0.10'
+      nullable: true
+      type: string
+    TexmlRecordingStatus:
+      enum:
+      - in-progress
+      - completed
+      - paused
+      - stopped
+      example: paused
+      type: string
+    TexmlRecordingSubresourcesUris:
+      description: Subresources details for a recording if available.
+      properties:
+        transcriptions:
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac/Transcriptions.json
+          format: uri
+          nullable: true
+          type: string
+      title: Texml recording subresources uris
+      type: object
+    TexmlSid:
+      description: Identifier of a resource.
+      example: e9cea0be-7dbd-4b98-98b1-c0089d9d43b0
+      type: string
+    TexmlStatusCallback:
+      description: Url where status callbacks will be sent.
+      example: http://webhook.com/callback
+      format: uri
+      type: string
+    TexmlStatusCallbackMethod:
+      default: POST
+      description: HTTP method used to send status callbacks.
+      enum:
+      - GET
+      - POST
+      example: GET
+      type: string
+    TexmlUpdateCallRecordingRequestBody:
+      properties:
+        Status:
+          enum:
+          - in-progress
+          - paused
+          - stopped
+          example: paused
+          type: string
+      title: Texml Create Call Recording Request Body
+      type: object
     TnReleaseEntry:
       properties:
         number_id:
@@ -33774,6 +34134,13 @@ components:
       - to
       title: Transfer Call Request
       type: object
+    TwimlRecordingChannels:
+      default: 2
+      enum:
+      - 1
+      - 2
+      example: 1
+      type: integer
     UUID:
       description: Uniquely identifies the resource.
       example: 542c3bca-d247-42bc-8fe7-e01d16ecd761
@@ -42128,8 +42495,8 @@ paths:
         \  \"sequence_number\": \"1\",\n  \"start\": {\n    \"user_id\": \"3e6f995f-85f7-4705-9741-53b116d28237\"\
         ,\n    \"call_control_id\": \"v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg\"\
         , \n    \"client_state\": \"aGF2ZSBhIG5pY2UgZGF5ID1d\",\n    \"media_format\"\
-        : {\n      \"encoding\": \"audio/x-mulaw\",\n      \"sample_rate\": 8000,\n\
-        \      \"channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\
+        : {\n      \"encoding\": \"PCMU\",\n      \"sample_rate\": 8000,\n      \"\
+        channels\": 1\n    }\n  },\n  \"stream_id\": \"32de0dea-53cb-4b21-89a4-9e1819c043bc\"\
         \n}\n```\nThe start event is followed by the following media events that contain\
         \ base64-encoded RTP payload (raw audio, no RTP headers) (:\n```\n{ \n  \"\
         event\": \"media\",\n  \"sequence_number\": \"4\",\n  \"media\": { \n    \"\
@@ -42220,6 +42587,48 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Streaming stop
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/suppression_start:
+    post:
+      operationId: noiseSuppressionStart
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoiseSuppressionStart'
+        description: Start streaming media request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Noise Suppression Start (BETA)
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/suppression_stop:
+    post:
+      operationId: noiseSuppressionStop
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoiseSuppressionStop'
+        description: Start streaming media request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Noise Suppression Stop (BETA)
       tags:
       - Call Commands
       x-latency-category: interactive
@@ -55978,6 +56387,62 @@ paths:
       - TeXML REST Commands
       x-group-parameters: 'true'
       x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Recordings.json:
+    get:
+      description: Returns recordings for a call identified by call_sid.
+      operationId: FetchTeXMLCallRecordings
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlGetCallRecordingsResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch recordings for a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+    post:
+      description: Starts recording with specified parameters for call idientified
+        by call_sid.
+      operationId: StartTeXMLCallRecording
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlCreateCallRecordingRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlCreateCallRecordingResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Request recording for a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Recordings/{recording_sid}.json:
+    post:
+      description: Updates recording resource for particular call.
+      operationId: UpdateTeXMLCallRecording
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      - $ref: '#/components/parameters/RecordingId'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlUpdateCallRecordingRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlCreateCallRecordingResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Update recording on a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
   /texml/Accounts/{account_sid}/Conferences:
     get:
       description: Lists conference resources.
@@ -56147,6 +56612,75 @@ paths:
       summary: List conference recordings
       tags:
       - TeXML REST Commands
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Conferences/{conference_sid}/Recordings.json:
+    get:
+      description: Returns recordings for a conference identified by conference_sid.
+      operationId: FetchTeXMLConferenceRecordings
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/ConferenceSid'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlGetCallRecordingsResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch recordings for a conference
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Recordings.json:
+    get:
+      description: Returns multiple recording resources for an account.
+      operationId: GetTeXMLCallRecordings
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/Page'
+      - $ref: '#/components/parameters/PageSizeTexml'
+      - $ref: '#/components/parameters/TexmlDateCreated'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlGetCallRecordingsResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch multiple recording resources
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Recordings/{recording_sid}.json:
+    delete:
+      description: Deletes recording resource identified by recording id.
+      operationId: DeleteTeXMLCallRecording
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/RecordingId'
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Delete recording resource
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+    get:
+      description: Returns recording resource identified by recording id.
+      operationId: GetTeXMLCallRecording
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/RecordingId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlGetCallRecordingResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Fetch recording resource
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/calls/{application_id}:
     post:
