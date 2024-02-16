@@ -50,8 +50,8 @@
       "description": "Brand operations"
     },
     {
-      "name": "Buckets",
-      "description": "Bucket operations"
+      "name": "Bucket Usage",
+      "description": "Bucket Usage operations"
     },
     {
       "name": "Bulk Credentials",
@@ -25335,7 +25335,8 @@
     "/storage/buckets/{bucketName}/snapshot": {
       "get": {
         "operationId": "GetBucketSnapshot",
-        "description": "Get the bucket snapshot",
+        "summary": "Get Bucket Snapshot",
+        "description": "Returns the amount of storage space a bucket takes up at the present time.",
         "parameters": [
           {
             "in": "path",
@@ -25348,11 +25349,11 @@
           }
         ],
         "tags": [
-          "Buckets"
+          "Bucket Usage"
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/BucketUsageResponse"
+            "$ref": "#/components/responses/BucketSnapshotResponse"
           }
         },
         "x-latency-category": "responsive"
@@ -25361,7 +25362,8 @@
     "/storage/buckets/{bucketName}/usage": {
       "get": {
         "operationId": "GetBucketUsage",
-        "description": "Get the bucket usage details",
+        "summary": "Get Bucket Usage",
+        "description": "Returns the detail on API usage on a bucket of a particular time period, group by method category.",
         "parameters": [
           {
             "in": "path",
@@ -25375,8 +25377,11 @@
           {
             "in": "query",
             "name": "filter[start_time]",
+            "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "date-time",
+              "example": "2020-01-01T00:00:00Z"
             },
             "description": "The start time of the query"
           },
@@ -25384,13 +25389,15 @@
             "in": "query",
             "name": "filter[end_time]",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "date-time",
+              "example": "2020-01-01T00:00:00Z"
             },
             "description": "The end time of the query"
           }
         ],
         "tags": [
-          "Buckets"
+          "Bucket Usage"
         ],
         "responses": {
           "200": {
@@ -25403,7 +25410,8 @@
     "/storage/buckets/{bucketName}/{objectName}/presigned_url": {
       "post": {
         "operationId": "GetPresignedObjectUrl",
-        "description": "Creates a presigned URL for an object",
+        "summary": "Get Presigned Object URL",
+        "description": "Returns a timed and authenticated URL to get an object. This is the equivalent to AWS S3\u2019s \u201cpresigned\u201d URL. Please note that Telnyx performs authentication differently from AWS S3 and you MUST NOT use the presign method of AWS s3api CLI or sdk to generate the presigned URL. \n\nRefer to: https://developers.telnyx.com/docs/cloud-storage/presigned-urls\n",
         "parameters": [
           {
             "in": "path",
@@ -25447,6 +25455,8 @@
     "/storage/ssl_certificates": {
       "get": {
         "operationId": "GetStorageSSLCertificates",
+        "summary": "Get SSL Certificates",
+        "description": "Returns the stored certificate detail of a bucket, if applicable.",
         "tags": [
           "SSL Certificates"
         ],
@@ -25480,7 +25490,8 @@
         "tags": [
           "SSL Certificates"
         ],
-        "description": "Upload a new SSL certificate for use with Telnyx storage",
+        "summary": "Add SSL Certificate",
+        "description": "Uploads an SSL certificate and its matching secret so that you can use Telnyx\u2019s storage as your CDN.",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -25491,10 +25502,15 @@
                     "type": "string",
                     "description": "The name of the SSL certificate"
                   },
-                  "file": {
+                  "certificate": {
                     "type": "string",
                     "format": "binary",
                     "description": "The SSL certificate file"
+                  },
+                  "private_key": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The private key file"
                   }
                 }
               }
@@ -25512,8 +25528,21 @@
     "/storage/ssl_certificates/{ssl_certificate_id}": {
       "delete": {
         "operationId": "RemoveStorageSSLCertificate",
+        "summary": "Remove SSL Certificate",
+        "description": "Deletes an SSL certificate and its matching secret.",
         "tags": [
           "SSL Certificates"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ssl_certificate_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "SSL certificate ID"
+          }
         ],
         "responses": {
           "200": {
@@ -31671,6 +31700,16 @@
                   ]
                 }
               }
+            }
+          }
+        }
+      },
+      "BucketSnapshotResponse": {
+        "description": "Bucket Snapshot",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BucketSnapshot"
             }
           }
         }
@@ -39702,6 +39741,18 @@
           },
           "category": {
             "type": "string",
+            "enum": [
+              "list_bucket",
+              "list_buckets",
+              "get-bucket_location",
+              "create_bucket",
+              "stat_bucket",
+              "get_bucket_versioning",
+              "set_bucket_versioning",
+              "get_obj",
+              "put_obj",
+              "delete_obj"
+            ],
             "description": "The category of the bucket operation",
             "example": "put_obj"
           }
@@ -39729,6 +39780,31 @@
             "type": "integer",
             "description": "The number of successful operations",
             "example": 123456
+          }
+        }
+      },
+      "BucketSnapshot": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "size": {
+                "type": "integer",
+                "description": "The size of the bucket in bytes",
+                "example": 123456
+              },
+              "size_kb": {
+                "type": "integer",
+                "description": "The size of the bucket in kilobytes",
+                "example": 123456
+              },
+              "num_objects": {
+                "type": "integer",
+                "description": "The number of objects in the bucket",
+                "example": 123456
+              }
+            }
           }
         }
       },
@@ -68137,9 +68213,56 @@
             "type": "string",
             "description": "Human readable label for the certificate"
           },
+          "issued_to": {
+            "type": "object",
+            "properties": {
+              "common_name": {
+                "type": "string",
+                "description": "The common name of the entity the certificate was issued to"
+              },
+              "organization": {
+                "type": "string",
+                "description": "The organization the certificate was issued to"
+              },
+              "organization_unit": {
+                "type": "string",
+                "description": "The organizational unit the certificate was issued to"
+              }
+            }
+          },
+          "issued_by": {
+            "type": "object",
+            "properties": {
+              "common_name": {
+                "type": "string",
+                "description": "The common name of the entity the certificate was issued by"
+              },
+              "organization": {
+                "type": "string",
+                "description": "The organization the certificate was issued by"
+              },
+              "organization_unit": {
+                "type": "string",
+                "description": "The organizational unit the certificate was issued by"
+              }
+            }
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-01-01T00:00:00Z",
+            "description": "The time the certificate is valid from"
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2020-01-01T00:00:00Z",
+            "description": "The time the certificate is valid to"
+          },
           "created_at": {
             "type": "string",
-            "format": "timestamp",
+            "format": "date-time",
+            "example": "2020-01-01T00:00:00Z",
             "description": "Time when SSL certificate was uploaded"
           }
         }

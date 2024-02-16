@@ -1936,6 +1936,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
       description: Bad request, the request was unacceptable, often due to missing
         a required parameter.
+    BucketSnapshotResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BucketSnapshot'
+      description: Bucket Snapshot
     BucketUsageResponse:
       content:
         application/json:
@@ -7351,6 +7357,17 @@ components:
           type: integer
         category:
           description: The category of the bucket operation
+          enum:
+          - list_bucket
+          - list_buckets
+          - get-bucket_location
+          - create_bucket
+          - stat_bucket
+          - get_bucket_versioning
+          - set_bucket_versioning
+          - get_obj
+          - put_obj
+          - delete_obj
           example: put_obj
           type: string
         ops:
@@ -7380,6 +7397,24 @@ components:
           description: The number of successful operations
           example: 123456
           type: integer
+      type: object
+    BucketSnapshot:
+      properties:
+        data:
+          properties:
+            num_objects:
+              description: The number of objects in the bucket
+              example: 123456
+              type: integer
+            size:
+              description: The size of the bucket in bytes
+              example: 123456
+              type: integer
+            size_kb:
+              description: The size of the bucket in kilobytes
+              example: 123456
+              type: integer
+          type: object
       type: object
     BucketUsageResponse:
       properties:
@@ -31055,13 +31090,50 @@ components:
       properties:
         created_at:
           description: Time when SSL certificate was uploaded
-          format: timestamp
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
           type: string
         id:
           description: Unique identifier for the SSL certificate
           type: string
+        issued_by:
+          properties:
+            common_name:
+              description: The common name of the entity the certificate was issued
+                by
+              type: string
+            organization:
+              description: The organization the certificate was issued by
+              type: string
+            organization_unit:
+              description: The organizational unit the certificate was issued by
+              type: string
+          type: object
+        issued_to:
+          properties:
+            common_name:
+              description: The common name of the entity the certificate was issued
+                to
+              type: string
+            organization:
+              description: The organization the certificate was issued to
+              type: string
+            organization_unit:
+              description: The organizational unit the certificate was issued to
+              type: string
+          type: object
         name:
           description: Human readable label for the certificate
+          type: string
+        valid_from:
+          description: The time the certificate is valid from
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+        valid_to:
+          description: The time the certificate is valid to
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
           type: string
       type: object
     SearchedSIMCardGroup:
@@ -55358,7 +55430,8 @@ paths:
       x-latency-category: responsive
   /storage/buckets/{bucketName}/snapshot:
     get:
-      description: Get the bucket snapshot
+      description: Returns the amount of storage space a bucket takes up at the present
+        time.
       operationId: GetBucketSnapshot
       parameters:
       - description: The name of the bucket
@@ -55369,13 +55442,15 @@ paths:
           type: string
       responses:
         '200':
-          $ref: '#/components/responses/BucketUsageResponse'
+          $ref: '#/components/responses/BucketSnapshotResponse'
+      summary: Get Bucket Snapshot
       tags:
-      - Buckets
+      - Bucket Usage
       x-latency-category: responsive
   /storage/buckets/{bucketName}/usage:
     get:
-      description: Get the bucket usage details
+      description: Returns the detail on API usage on a bucket of a particular time
+        period, group by method category.
       operationId: GetBucketUsage
       parameters:
       - description: The name of the bucket
@@ -55387,22 +55462,32 @@ paths:
       - description: The start time of the query
         in: query
         name: filter[start_time]
+        required: true
         schema:
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
           type: string
       - description: The end time of the query
         in: query
         name: filter[end_time]
         schema:
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
           type: string
       responses:
         '200':
           $ref: '#/components/responses/BucketUsageResponse'
+      summary: Get Bucket Usage
       tags:
-      - Buckets
+      - Bucket Usage
       x-latency-category: responsive
   /storage/buckets/{bucketName}/{objectName}/presigned_url:
     post:
-      description: Creates a presigned URL for an object
+      description: "Returns a timed and authenticated URL to get an object. This is\
+        \ the equivalent to AWS S3\u2019s \u201Cpresigned\u201D URL. Please note that\
+        \ Telnyx performs authentication differently from AWS S3 and you MUST NOT\
+        \ use the presign method of AWS s3api CLI or sdk to generate the presigned\
+        \ URL. \n\nRefer to: https://developers.telnyx.com/docs/cloud-storage/presigned-urls\n"
       operationId: GetPresignedObjectUrl
       parameters:
       - description: The name of the bucket
@@ -55425,11 +55510,13 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/PresignedObjectUrlResponse'
+      summary: Get Presigned Object URL
       tags:
       - Presigned Object URLs
       x-latency-category: responsive
   /storage/ssl_certificates:
     get:
+      description: Returns the stored certificate detail of a bucket, if applicable.
       operationId: GetStorageSSLCertificates
       parameters:
       - description: The page number
@@ -55445,37 +55532,53 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SSLCertificatesResponse'
+      summary: Get SSL Certificates
       tags:
       - SSL Certificates
       x-latency-category: responsive
     post:
-      description: Upload a new SSL certificate for use with Telnyx storage
+      description: "Uploads an SSL certificate and its matching secret so that you\
+        \ can use Telnyx\u2019s storage as your CDN."
       operationId: AddStorageSSLCertificate
       requestBody:
         content:
           multipart/form-data:
             schema:
               properties:
-                file:
+                certificate:
                   description: The SSL certificate file
                   format: binary
                   type: string
                 name:
                   description: The name of the SSL certificate
                   type: string
+                private_key:
+                  description: The private key file
+                  format: binary
+                  type: string
               type: object
       responses:
         '200':
           $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Add SSL Certificate
       tags:
       - SSL Certificates
       x-latency-category: responsive
   /storage/ssl_certificates/{ssl_certificate_id}:
     delete:
+      description: Deletes an SSL certificate and its matching secret.
       operationId: RemoveStorageSSLCertificate
+      parameters:
+      - description: SSL certificate ID
+        in: path
+        name: ssl_certificate_id
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Remove SSL Certificate
       tags:
       - SSL Certificates
       x-latency-category: responsive
@@ -57963,8 +58066,8 @@ tags:
   name: Billing Groups
 - description: Brand operations
   name: Brands
-- description: Bucket operations
-  name: Buckets
+- description: Bucket Usage operations
+  name: Bucket Usage
 - description: Bulk operations over Credentials
   name: Bulk Credentials
 - description: Phone number campaign bulk assignment
