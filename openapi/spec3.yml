@@ -1969,21 +1969,30 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
       description: Bad request, the request was unacceptable, often due to missing
         a required parameter.
-    BucketSnapshotResponse:
+    BucketAPIUsageResponse:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BucketSnapshot'
-      description: Bucket Snapshot
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/BucketAPIUsageResponse'
+                type: array
+            type: object
+      description: Bucket Usage
     BucketUsageResponse:
       content:
         application/json:
           schema:
             properties:
               data:
-                $ref: '#/components/schemas/BucketUsageResponse'
+                items:
+                  $ref: '#/components/schemas/BucketUsage'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMetaSimple'
             type: object
-      description: Bucket Usage
+      description: Bucket Storage Usage
     BulkCredentialResponse:
       content:
         application/json:
@@ -5174,19 +5183,6 @@ components:
                 $ref: '#/components/schemas/SSLCertificate'
             type: object
       description: SSL Certificate Response
-    SSLCertificatesResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/SSLCertificate'
-                type: array
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: SSL Certificate Response
     SearchMobileNetworkOperatorsResponse:
       content:
         application/json:
@@ -7390,6 +7386,20 @@ components:
       description: Name of the bucket to be used to store recording files.
       example: example-bucket
       type: string
+    BucketAPIUsageResponse:
+      properties:
+        categories:
+          items:
+            $ref: '#/components/schemas/BucketOps'
+          type: array
+        timestamp:
+          description: The time the usage was recorded
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+        total:
+          $ref: '#/components/schemas/BucketOpsTotal'
+      type: object
     BucketNotFoundError:
       properties:
         detail:
@@ -7452,32 +7462,25 @@ components:
           example: 123456
           type: integer
       type: object
-    BucketSnapshot:
+    BucketUsage:
       properties:
-        data:
-          properties:
-            num_objects:
-              description: The number of objects in the bucket
-              example: 123456
-              type: integer
-            size:
-              description: The size of the bucket in bytes
-              example: 123456
-              type: integer
-            size_kb:
-              description: The size of the bucket in kilobytes
-              example: 123456
-              type: integer
-          type: object
-      type: object
-    BucketUsageResponse:
-      properties:
-        categories:
-          items:
-            $ref: '#/components/schemas/BucketOps'
-          type: array
-        total:
-          $ref: '#/components/schemas/BucketOpsTotal'
+        num_objects:
+          description: The number of objects in the bucket
+          example: 123456
+          type: integer
+        size:
+          description: The size of the bucket in bytes
+          example: 123456
+          type: integer
+        size_kb:
+          description: The size of the bucket in kilobytes
+          example: 123456
+          type: integer
+        timestamp:
+          description: The time the snapshot was taken
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
       type: object
     BulkCreationDetailedStatusResponse:
       properties:
@@ -28710,6 +28713,8 @@ components:
         ttl:
           description: The time to live of the token in minutes
           example: 60
+          maximum: 720
+          minimum: 1
           type: integer
       type: object
     PrivateWirelessGateway:
@@ -31272,9 +31277,6 @@ components:
               description: The organizational unit the certificate was issued to
               type: string
           type: object
-        name:
-          description: Human readable label for the certificate
-          type: string
         valid_from:
           description: The time the certificate is valid from
           example: '2020-01-01T00:00:00Z'
@@ -55861,11 +55863,27 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
-  /storage/buckets/{bucketName}/snapshot:
+  /storage/buckets/{bucketName}/ssl_certificate:
+    delete:
+      description: Deletes an SSL certificate and its matching secret.
+      operationId: RemoveStorageSSLCertificate
+      parameters:
+      - description: Bucket Name
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Remove SSL Certificate
+      tags:
+      - Bucket SSL Certificate
+      x-latency-category: responsive
     get:
-      description: Returns the amount of storage space a bucket takes up at the present
-        time.
-      operationId: GetBucketSnapshot
+      description: Returns the stored certificate detail of a bucket, if applicable.
+      operationId: GetStorageSSLCertificates
       parameters:
       - description: The name of the bucket
         in: path
@@ -55875,15 +55893,87 @@ paths:
           type: string
       responses:
         '200':
-          $ref: '#/components/responses/BucketSnapshotResponse'
-      summary: Get Bucket Snapshot
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Get Bucket SSL Certificate
       tags:
-      - Bucket Usage
+      - Bucket SSL Certificate
       x-latency-category: responsive
-  /storage/buckets/{bucketName}/usage:
+    put:
+      description: "Uploads an SSL certificate and its matching secret so that you\
+        \ can use Telnyx\u2019s storage as your CDN."
+      operationId: AddStorageSSLCertificate
+      parameters:
+      - description: The name of the bucket
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                certificate:
+                  description: The SSL certificate file
+                  format: binary
+                  type: string
+                private_key:
+                  description: The private key file
+                  format: binary
+                  type: string
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Add SSL Certificate
+      tags:
+      - Bucket SSL Certificate
+      x-latency-category: responsive
+  /storage/buckets/{bucketName}/usage/api:
     get:
       description: Returns the detail on API usage on a bucket of a particular time
         period, group by method category.
+      operationId: GetStorageAPIUsage
+      parameters:
+      - description: The name of the bucket
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      - description: The start time of the query
+        examples:
+          start_time:
+            value: '2020-01-01T00:00:00Z'
+        in: query
+        name: filter[start_time]
+        required: true
+        schema:
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      - description: The end time of the query
+        examples:
+          end_time:
+            value: '2020-01-01T00:00:00Z'
+        in: query
+        name: filter[end_time]
+        schema:
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/BucketAPIUsageResponse'
+      summary: Get API Usage
+      tags:
+      - Bucket Usage
+      x-latency-category: responsive
+  /storage/buckets/{bucketName}/usage/storage:
+    get:
+      description: Returns the amount of storage space and number of files a bucket
+        takes up.
       operationId: GetBucketUsage
       parameters:
       - description: The name of the bucket
@@ -55893,6 +55983,9 @@ paths:
         schema:
           type: string
       - description: The start time of the query
+        examples:
+          start_time:
+            value: '2020-01-01T00:00:00Z'
         in: query
         name: filter[start_time]
         required: true
@@ -55901,6 +55994,9 @@ paths:
           format: date-time
           type: string
       - description: The end time of the query
+        examples:
+          end_time:
+            value: '2020-01-01T00:00:00Z'
         in: query
         name: filter[end_time]
         schema:
@@ -55946,74 +56042,6 @@ paths:
       summary: Get Presigned Object URL
       tags:
       - Presigned Object URLs
-      x-latency-category: responsive
-  /storage/ssl_certificates:
-    get:
-      description: Returns the stored certificate detail of a bucket, if applicable.
-      operationId: GetStorageSSLCertificates
-      parameters:
-      - description: The page number
-        in: query
-        name: page[number]
-        schema:
-          type: integer
-      - description: The page size
-        in: query
-        name: page[size]
-        schema:
-          type: integer
-      responses:
-        '200':
-          $ref: '#/components/responses/SSLCertificatesResponse'
-      summary: Get SSL Certificates
-      tags:
-      - SSL Certificates
-      x-latency-category: responsive
-    post:
-      description: "Uploads an SSL certificate and its matching secret so that you\
-        \ can use Telnyx\u2019s storage as your CDN."
-      operationId: AddStorageSSLCertificate
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              properties:
-                certificate:
-                  description: The SSL certificate file
-                  format: binary
-                  type: string
-                name:
-                  description: The name of the SSL certificate
-                  type: string
-                private_key:
-                  description: The private key file
-                  format: binary
-                  type: string
-              type: object
-      responses:
-        '200':
-          $ref: '#/components/responses/SSLCertificateResponse'
-      summary: Add SSL Certificate
-      tags:
-      - SSL Certificates
-      x-latency-category: responsive
-  /storage/ssl_certificates/{ssl_certificate_id}:
-    delete:
-      description: Deletes an SSL certificate and its matching secret.
-      operationId: RemoveStorageSSLCertificate
-      parameters:
-      - description: SSL certificate ID
-        in: path
-        name: ssl_certificate_id
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/SSLCertificateResponse'
-      summary: Remove SSL Certificate
-      tags:
-      - SSL Certificates
       x-latency-category: responsive
   /sub_number_orders:
     get:
@@ -58624,6 +58652,8 @@ tags:
   name: Billing Groups
 - description: Brand operations
   name: Brands
+- description: SSL certificate operations
+  name: Bucket SSL Certificate
 - description: Bucket Usage operations
   name: Bucket Usage
 - description: Bulk operations over Credentials
@@ -58788,8 +58818,6 @@ tags:
   name: SIM Card Orders
 - description: SIM Cards operations
   name: SIM Cards
-- description: SSL certificate operations
-  name: SSL Certificates
 - description: Short codes
   name: Short Codes
 - description: TeXML Applications operations
