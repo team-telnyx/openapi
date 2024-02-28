@@ -34,6 +34,10 @@
       "description": "Configure AI assistant specifications"
     },
     {
+      "name": "Audio",
+      "description": "Turn audio into text or text into audio."
+    },
+    {
       "name": "Authentication Providers",
       "description": "Authentication Provider operations"
     },
@@ -104,6 +108,10 @@
     {
       "name": "Channel zones",
       "description": "Channel zones"
+    },
+    {
+      "name": "Chat",
+      "description": "Generate text with LLMs"
     },
     {
       "name": "Conference Commands",
@@ -188,10 +196,6 @@
     {
       "name": "Inbound Channels",
       "description": "Inbound channels operations"
-    },
-    {
-      "name": "Inference",
-      "description": "Generate text with LLMs"
     },
     {
       "name": "Inventory Level",
@@ -1502,10 +1506,53 @@
         "x-latency-category": "responsive"
       }
     },
+    "/ai/audio/transcriptions": {
+      "post": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Transcribe speech to text",
+        "description": "Transcribe speech to text. This endpoint is consistent with the [OpenAI Transcription API](https://platform.openai.com/docs/api-reference/audio/createTranscription) and may be used with the OpenAI JS or Python SDK.",
+        "operationId": "audio_public_audio_transcriptions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioTranscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTranscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/ai/chat/completions": {
       "post": {
         "tags": [
-          "Inference"
+          "Chat"
         ],
         "summary": "Create a chat completion",
         "description": "Invokes a selected LLM to generate text given input messages. This endpoint is consistent with the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat) and may be used with the OpenAI JS or Python SDK. Function calling and tool selection is also supported. <br /><br />**Note**: Users will be charged to their Telnyx billing account for the usage of Open Source models.",
@@ -1811,7 +1858,7 @@
     "/ai/models": {
       "get": {
         "tags": [
-          "Inference"
+          "Chat"
         ],
         "summary": "Get available models",
         "description": "This endpoint returns a list of Open Source and OpenAI models that are available for use. <br /><br /> **Note**: Model `id`'s will be in the form `{source}/{model_name}`. For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1` consistent with HuggingFace naming conventions.",
@@ -1844,7 +1891,7 @@
     "/ai/summarize": {
       "post": {
         "tags": [
-          "Inference"
+          "Chat"
         ],
         "summary": "Summarize bucket or file content",
         "description": "Summarize a bucket or a file.",
@@ -39313,6 +39360,39 @@
           "data"
         ],
         "title": "AssistantsListData"
+      },
+      "AudioTranscriptionRequest": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "description": "The audio file object to transcribe, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.",
+            "type": "string",
+            "format": "binary"
+          },
+          "model": {
+            "description": "ID of the model to use. Only `distil-whisper/distil-large-v2` is currently available.",
+            "example": "distil-whisper/distil-large-v2",
+            "type": "string",
+            "enum": [
+              "distil-whisper/distil-large-v2"
+            ]
+          }
+        },
+        "required": [
+          "file",
+          "model"
+        ]
+      },
+      "AudioTranscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
       },
       "AuthenticationProvider": {
         "type": "object",

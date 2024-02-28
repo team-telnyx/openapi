@@ -6561,6 +6561,31 @@ components:
       - data
       title: AssistantsListData
       type: object
+    AudioTranscriptionRequest:
+      properties:
+        file:
+          description: 'The audio file object to transcribe, in one of these formats:
+            flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.'
+          format: binary
+          type: string
+        model:
+          description: ID of the model to use. Only `distil-whisper/distil-large-v2`
+            is currently available.
+          enum:
+          - distil-whisper/distil-large-v2
+          example: distil-whisper/distil-large-v2
+          type: string
+      required:
+      - file
+      - model
+      type: object
+    AudioTranscriptionResponse:
+      properties:
+        text:
+          type: string
+      required:
+      - text
+      type: object
     AuthenticationProvider:
       properties:
         active:
@@ -40065,6 +40090,35 @@ paths:
       tags:
       - Assistants
       x-latency-category: responsive
+  /ai/audio/transcriptions:
+    post:
+      description: Transcribe speech to text. This endpoint is consistent with the
+        [OpenAI Transcription API](https://platform.openai.com/docs/api-reference/audio/createTranscription)
+        and may be used with the OpenAI JS or Python SDK.
+      operationId: audio_public_audio_transcriptions_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AudioTranscriptionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioTranscriptionResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Transcribe speech to text
+      tags:
+      - Audio
+      x-latency-category: responsive
   /ai/chat/completions:
     post:
       description: 'Invokes a selected LLM to generate text given input messages.
@@ -40100,7 +40154,7 @@ paths:
           description: Validation Error
       summary: Create a chat completion
       tags:
-      - Inference
+      - Chat
       x-latency-category: responsive
   /ai/embeddings:
     post:
@@ -40323,7 +40377,7 @@ paths:
           description: Validation Error
       summary: Get available models
       tags:
-      - Inference
+      - Chat
       x-latency-category: responsive
   /ai/summarize:
     post:
@@ -40350,7 +40404,7 @@ paths:
           description: Validation Error
       summary: Summarize bucket or file content
       tags:
-      - Inference
+      - Chat
       x-latency-category: responsive
   /authentication_providers:
     get:
@@ -59254,6 +59308,8 @@ tags:
   name: Advanced OptIn/OptOut
 - description: Configure AI assistant specifications
   name: Assistants
+- description: Turn audio into text or text into audio.
+  name: Audio
 - description: Authentication Provider operations
   name: Authentication Providers
 - description: V2 Auto Recharge Preferences API
@@ -59291,6 +59347,8 @@ tags:
   name: Campaign
 - description: Channel zones
   name: Channel zones
+- description: Generate text with LLMs
+  name: Chat
 - description: Conference command operations
   name: Conference Commands
 - description: Connections operations
@@ -59333,8 +59391,6 @@ tags:
   name: IPs
 - description: Inbound channels operations
   name: Inbound Channels
-- description: Generate text with LLMs
-  name: Inference
 - description: Inventory Level
   name: Inventory Level
 - description: Managed Accounts operations
