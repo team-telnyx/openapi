@@ -5388,6 +5388,20 @@ components:
                 $ref: '#/components/schemas/SimpleSIMCard'
             type: object
       description: Successful response
+    SlimListPhoneNumbersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/SlimPhoneNumberDetailed'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            title: List Phone Numbers Response
+            type: object
+      description: Successful response with a list of phone numbers.
     SubNumberOrderResponse:
       content:
         application/json:
@@ -27257,6 +27271,10 @@ components:
           - emergency-only
           - ported-out
           - port-out-pending
+          - requirement-info-pending
+          - requirement-info-under-review
+          - requirement-info-exception
+          - provision-pending
           readOnly: true
           type: string
         t38_fax_gateway_enabled:
@@ -32522,6 +32540,156 @@ components:
       - name
       - value
       title: SIP Header
+      type: object
+    SlimPhoneNumberDetailed:
+      example:
+        billing_group_id: 86f58db9-0fe3-4adc-9d1f-46e66e6e9323
+        call_forwarding_enabled: true
+        call_recording_enabled: true
+        caller_id_name_enabled: true
+        cnam_listing_enabled: true
+        connection_id: '1293384261075731499'
+        created_at: '2019-10-23T18:10:00.000Z'
+        customer_reference: customer-reference
+        emergency_address_id: '1315261609962112019'
+        emergency_enabled: true
+        external_pin: '1234'
+        hd_voice_enabled: true
+        id: '1293384261075731499'
+        inbound_call_screening: disabled
+        number_level_routing: disabled
+        phone_number: '+19705555098'
+        phone_number_type: local
+        purchased_at: '2019-10-23T18:10:00.000Z'
+        record_type: phone_number
+        status: active
+        t38_fax_gateway_enabled: true
+        updated_at: '2019-10-24T18:10:00.000Z'
+      properties:
+        billing_group_id:
+          description: Identifies the billing group associated with the phone number.
+          type: string
+        call_forwarding_enabled:
+          default: true
+          description: Indicates if call forwarding will be enabled for this number
+            if forwards_to and forwarding_type are filled in. Defaults to true for
+            backwards compatibility with APIV1 use of numbers endpoints.
+          readOnly: true
+          type: boolean
+        call_recording_enabled:
+          description: Indicates whether call recording is enabled for this number.
+          readOnly: true
+          type: boolean
+        caller_id_name_enabled:
+          description: Indicates whether caller ID is enabled for this number.
+          readOnly: true
+          type: boolean
+        cnam_listing_enabled:
+          description: Indicates whether a CNAM listing is enabled for this number.
+          readOnly: true
+          type: boolean
+        connection_id:
+          description: Identifies the connection associated with the phone number.
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          readOnly: true
+          type: string
+        customer_reference:
+          description: A customer reference string for customer look ups.
+          example: MY REF 001
+          type: string
+        emergency_address_id:
+          description: Identifies the emergency address associated with the phone
+            number.
+          format: int64
+          readOnly: true
+          type: string
+        emergency_enabled:
+          description: Indicates whether emergency services are enabled for this number.
+          readOnly: true
+          type: boolean
+        external_pin:
+          description: If someone attempts to port your phone number away from Telnyx
+            and your phone number has an external PIN set, Telnyx will attempt to
+            verify that you provided the correct external PIN to the winning carrier.
+            Note that not all carriers cooperate with this security mechanism.
+          type: string
+        id:
+          $ref: '#/components/schemas/IntId'
+        inbound_call_screening:
+          default: disabled
+          description: The inbound_call_screening setting is a phone number configuration
+            option variable that allows users to configure their settings to block
+            or flag fraudulent calls. It can be set to disabled, reject_calls, or
+            flag_calls. This feature has an additional per-number monthly cost associated
+            with it.
+          enum:
+          - disabled
+          - reject_calls
+          - flag_calls
+          type: string
+        number_level_routing:
+          default: disabled
+          description: Deprecated field, the only value for this is 'disabled'. All
+            routing for numbers should be configured via connection settings.
+          enum:
+          - disabled
+          type: string
+        phone_number:
+          description: The +E.164-formatted phone number associated with this record.
+          readOnly: true
+          type: string
+        phone_number_type:
+          description: 'The phone number''s type.
+
+            Note: For numbers purchased prior to July 2023 or when fetching a number''s
+            details immediately after a purchase completes, the legacy values `tollfree`,
+            `shortcode` or `longcode` may be returned instead.'
+          enum:
+          - local
+          - toll_free
+          - mobile
+          - national
+          - shared_cost
+          - landline
+          - tollfree
+          - shortcode
+          - longcode
+          readOnly: true
+          type: string
+        purchased_at:
+          description: ISO 8601 formatted date indicating when the resource was purchased.
+          readOnly: true
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: phone_number_slim
+          readOnly: true
+          type: string
+        status:
+          description: The phone number's current status.
+          enum:
+          - purchase-pending
+          - purchase-failed
+          - port-pending
+          - port-failed
+          - active
+          - deleted
+          - emergency-only
+          - ported-out
+          - port-out-pending
+          - requirement-info-pending
+          - requirement-info-under-review
+          - requirement-info-exception
+          - provision-pending
+          readOnly: true
+          type: string
+        t38_fax_gateway_enabled:
+          description: Indicates whether T38 Fax Gateway for inbound calls to this
+            number.
+          readOnly: true
+          type: boolean
       type: object
     SoleProprietorData:
       properties:
@@ -51871,6 +52039,156 @@ paths:
       summary: List phone numbers with messaging settings
       tags:
       - Number Configurations
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /phone_numbers/slim:
+    get:
+      operationId: SlimListPhoneNumbers
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: Include the connection associated with the phone number.
+        in: query
+        name: include_connection
+        required: false
+        schema:
+          default: false
+          type: boolean
+      - description: Include the tags associated with the phone number.
+        in: query
+        name: include_tags
+        required: false
+        schema:
+          default: false
+          type: boolean
+      - description: Filter by phone number tags. (This requires the include_tags
+          param)
+        in: query
+        name: filter[tag]
+        required: false
+        schema:
+          type: string
+      - description: "Filter by phone number. Requires at least three digits.\n  \
+          \           Non-numerical characters will result in no values being returned."
+        in: query
+        name: filter[phone_number]
+        required: false
+        schema:
+          type: string
+      - description: Filter by phone number status.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          enum:
+          - purchase_pending
+          - purchase_failed
+          - port_pending
+          - active
+          - deleted
+          - port_failed
+          - emergency_only
+          - ported_out
+          - port_out_pending
+          example: active
+          type: string
+      - description: Filter by connection_id.
+        in: query
+        name: filter[connection_id]
+        required: false
+        schema:
+          example: '1521916448077776306'
+          format: int64
+          type: string
+      - description: Filter contains connection name. Requires at least three characters
+          and the include_connection param.
+        in: query
+        name: filter[voice.connection_name][contains]
+        required: false
+        schema:
+          example: test
+          type: string
+      - description: Filter starts with connection name. Requires at least three characters
+          and the include_connection param.
+        in: query
+        name: filter[voice.connection_name][starts_with]
+        required: false
+        schema:
+          example: test
+          type: string
+      - description: Filter ends with connection name. Requires at least three characters
+          and the include_connection param.
+        in: query
+        name: filter[voice.connection_name][ends_with]
+        required: false
+        schema:
+          example: test
+          type: string
+      - description: Filter by connection name , requires the include_connection param
+          and the include_connection param.
+        in: query
+        name: filter[voice.connection_name]
+        required: false
+        schema:
+          example: test
+          type: string
+      - description: Filter by usage_payment_method.
+        in: query
+        name: filter[voice.usage_payment_method]
+        required: false
+        schema:
+          enum:
+          - pay-per-minute
+          - channel
+          example: channel
+          type: string
+      - description: Filter by the billing_group_id associated with phone numbers.
+          To filter to only phone numbers that have no billing group associated them,
+          set the value of this filter to the string 'null'.
+        in: query
+        name: filter[billing_group_id]
+        required: false
+        schema:
+          example: 62e4bf2e-c278-4282-b524-488d9c9c43b2
+          type: string
+      - description: Filter by the emergency_address_id associated with phone numbers.
+          To filter only phone numbers that have no emergency address associated with
+          them, set the value of this filter to the string 'null'.
+        in: query
+        name: filter[emergency_address_id]
+        required: false
+        schema:
+          example: '9102160989215728032'
+          format: int64
+          type: string
+      - description: Filter numbers via the customer_reference set.
+        in: query
+        name: filter[customer_reference]
+        schema:
+          type: string
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by created_at in descending order.
+        in: query
+        name: sort
+        required: false
+        schema:
+          enum:
+          - purchased_at
+          - phone_number
+          - connection_name
+          - usage_payment_method
+          example: connection_name
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SlimListPhoneNumbersResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List phone numbers, This endpoint is a lighter version of the /phone_numbers
+        endpoint having higher performance and rate limit.
+      tags:
+      - Phone Number Configurations
+      x-endpoint-cost: medium
       x-group-parameters: 'true'
       x-latency-category: responsive
   /phone_numbers/voice:
