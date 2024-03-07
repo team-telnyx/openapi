@@ -12309,33 +12309,78 @@ components:
     ChatCompletionRequest:
       properties:
         best_of:
+          description: This is used with `use_beam_search` to determine how many options
+            to return.
+          example: 2
           type: integer
         early_stopping:
+          default: false
+          description: This is used with `use_beam_search`. If `true`, generation
+            stops as soon as there are `best_of` complete candidates; if `false`,
+            a heuristic is applied and the generation stops when is it very unlikely
+            to find better candidates.
           type: boolean
         frequency_penalty:
+          default: 0.0
+          description: Higher values will penalize the model from repeating the same
+            output tokens.
+          example: 1.5
           type: number
         length_penalty:
+          default: 1.0
+          description: This is used with `use_beam_search` to prefer shorter or longer
+            completions.
           type: number
         max_tokens:
+          description: Maximum number of completion tokens the model should generate.
+          example: 128
           type: integer
         messages:
+          description: A list of the previous chat messages for context.
+          example:
+          - content: You are a friendly chatbot.
+            role: system
+          - content: Hello, world!
+            role: user
           items:
             $ref: '#/components/schemas/ChatCompletionSystemMessageParam'
           type: array
         min_p:
+          description: This is an alternative to `temperature` that [many prefer](https://github.com/huggingface/transformers/issues/27670).
+            Must be in [0, 1].
+          example: 0.1
           type: number
         model:
           default: NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO
-          title: Model
+          description: The language model to chat with. If you are optimizing for
+            speed, try [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1).
+            For quality, try [NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)
           type: string
+        n:
+          description: This will return multiple choices for you instead of a single
+            chat completion.
+          example: 2
+          type: number
         openai_api_key:
+          description: If you are using OpenAI models using our API, this is how you
+            pass along your OpenAI API key.
           type: string
+        presence_penalty:
+          default: 0.0
+          description: Higher values will penalize the model from repeating the same
+            output tokens.
+          example: 1.5
+          type: number
         stream:
           default: false
+          description: Whether or not to stream data-only server-sent events as they
+            become available.
           type: boolean
         temperature:
-          type: number
-        timeout:
+          description: Adjusts the "creativity" of the model. Lower values make the
+            model more deterministic and repetitive, while higher values make the
+            model more random and creative.
+          example: 0.8
           type: number
         tool_choice:
           enum:
@@ -12343,14 +12388,22 @@ components:
           - auto
           type: string
         tools:
+          description: The `retrieval` tool type is unique to Telnyx. You may pass
+            a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding)
+            for retrieval-augmented generation.
           items:
             anyOf:
             - $ref: '#/components/schemas/Retrieval'
             - $ref: '#/components/schemas/ChatCompletionToolParam'
           type: array
         top_p:
+          description: An alternative to `temperature`.
           type: number
         use_beam_search:
+          default: false
+          description: Setting this to `true` will allow the model to [explore more
+            completion options](https://huggingface.co/blog/how-to-generate#beam-search).
+            This is not supported by OpenAI.
           type: boolean
       required:
       - messages
@@ -12359,10 +12412,13 @@ components:
     ChatCompletionSystemMessageParam:
       properties:
         content:
-          title: Content
           type: string
         role:
-          title: Role
+          enum:
+          - system
+          - user
+          - assistant
+          - tool
           type: string
       required:
       - content
@@ -12374,7 +12430,8 @@ components:
         function:
           $ref: '#/components/schemas/FunctionDefinition'
         type:
-          title: Type
+          enum:
+          - function
           type: string
       required:
       - function
@@ -20469,13 +20526,10 @@ components:
     FunctionDefinition:
       properties:
         description:
-          title: Description
           type: string
         name:
-          title: Name
           type: string
         parameters:
-          title: Parameters
           type: object
       required:
       - name
@@ -30388,7 +30442,8 @@ components:
         retrieval:
           $ref: '#/components/schemas/BucketIds'
         type:
-          title: Type
+          enum:
+          - retrieval
           type: string
       required:
       - type
@@ -40273,11 +40328,9 @@ paths:
       x-latency-category: responsive
   /ai/chat/completions:
     post:
-      description: 'Invokes a selected LLM to generate text given input messages.
-        This endpoint is consistent with the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
-        and may be used with the OpenAI JS or Python SDK. Function calling and tool
-        selection is also supported. <br /><br />**Note**: Users will be charged to
-        their Telnyx billing account for the usage of Open Source models.'
+      description: Chat with a language model. This endpoint is consistent with the
+        [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
+        and may be used with the OpenAI JS or Python SDK.
       operationId: chat_public_chat_completions_post
       requestBody:
         content:

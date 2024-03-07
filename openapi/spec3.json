@@ -1547,7 +1547,7 @@
           "Chat"
         ],
         "summary": "Create a chat completion",
-        "description": "Invokes a selected LLM to generate text given input messages. This endpoint is consistent with the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat) and may be used with the OpenAI JS or Python SDK. Function calling and tool selection is also supported. <br /><br />**Note**: Users will be charged to their Telnyx billing account for the usage of Open Source models.",
+        "description": "Chat with a language model. This endpoint is consistent with the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat) and may be used with the OpenAI JS or Python SDK.",
         "operationId": "chat_public_chat_completions_post",
         "requestBody": {
           "required": true,
@@ -46474,32 +46474,48 @@
             "items": {
               "$ref": "#/components/schemas/ChatCompletionSystemMessageParam"
             },
-            "type": "array"
+            "type": "array",
+            "example": [
+              {
+                "role": "system",
+                "content": "You are a friendly chatbot."
+              },
+              {
+                "role": "user",
+                "content": "Hello, world!"
+              }
+            ],
+            "description": "A list of the previous chat messages for context."
           },
           "model": {
             "type": "string",
-            "title": "Model",
-            "default": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO"
-          },
-          "max_tokens": {
-            "type": "integer"
-          },
-          "frequency_penalty": {
-            "type": "number"
+            "default": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+            "description": "The language model to chat with. If you are optimizing for speed, try [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1). For quality, try [NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)"
           },
           "stream": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Whether or not to stream data-only server-sent events as they become available."
+          },
+          "max_tokens": {
+            "type": "integer",
+            "example": 128,
+            "description": "Maximum number of completion tokens the model should generate."
           },
           "temperature": {
-            "type": "number"
+            "type": "number",
+            "example": 0.8,
+            "description": "Adjusts the \"creativity\" of the model. Lower values make the model more deterministic and repetitive, while higher values make the model more random and creative."
           },
-          "tool_choice": {
-            "type": "string",
-            "enum": [
-              "none",
-              "auto"
-            ]
+          "min_p": {
+            "type": "number",
+            "example": 0.1,
+            "description": "This is an alternative to `temperature` that [many prefer](https://github.com/huggingface/transformers/issues/27670). Must be in [0, 1]."
+          },
+          "n": {
+            "type": "number",
+            "example": 2,
+            "description": "This will return multiple choices for you instead of a single chat completion."
           },
           "tools": {
             "items": {
@@ -46512,31 +46528,55 @@
                 }
               ]
             },
-            "type": "array"
+            "type": "array",
+            "description": "The `retrieval` tool type is unique to Telnyx. You may pass a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding) for retrieval-augmented generation."
           },
-          "top_p": {
-            "type": "number"
-          },
-          "timeout": {
-            "type": "number"
-          },
-          "min_p": {
-            "type": "number"
+          "tool_choice": {
+            "type": "string",
+            "enum": [
+              "none",
+              "auto"
+            ]
           },
           "use_beam_search": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": false,
+            "description": "Setting this to `true` will allow the model to [explore more completion options](https://huggingface.co/blog/how-to-generate#beam-search). This is not supported by OpenAI."
           },
           "best_of": {
-            "type": "integer"
+            "type": "integer",
+            "example": 2,
+            "description": "This is used with `use_beam_search` to determine how many options to return."
           },
           "length_penalty": {
-            "type": "number"
+            "type": "number",
+            "default": 1.0,
+            "description": "This is used with `use_beam_search` to prefer shorter or longer completions."
           },
           "early_stopping": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": false,
+            "description": "This is used with `use_beam_search`. If `true`, generation stops as soon as there are `best_of` complete candidates; if `false`, a heuristic is applied and the generation stops when is it very unlikely to find better candidates."
+          },
+          "frequency_penalty": {
+            "type": "number",
+            "default": 0.0,
+            "example": 1.5,
+            "description": "Higher values will penalize the model from repeating the same output tokens."
+          },
+          "presence_penalty": {
+            "type": "number",
+            "default": 0.0,
+            "example": 1.5,
+            "description": "Higher values will penalize the model from repeating the same output tokens."
+          },
+          "top_p": {
+            "type": "number",
+            "description": "An alternative to `temperature`."
           },
           "openai_api_key": {
-            "type": "string"
+            "type": "string",
+            "description": "If you are using OpenAI models using our API, this is how you pass along your OpenAI API key."
           }
         },
         "type": "object",
@@ -46548,12 +46588,16 @@
       "ChatCompletionSystemMessageParam": {
         "properties": {
           "content": {
-            "type": "string",
-            "title": "Content"
+            "type": "string"
           },
           "role": {
             "type": "string",
-            "title": "Role"
+            "enum": [
+              "system",
+              "user",
+              "assistant",
+              "tool"
+            ]
           }
         },
         "type": "object",
@@ -46570,7 +46614,9 @@
           },
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "function"
+            ]
           }
         },
         "type": "object",
@@ -56311,16 +56357,13 @@
       "FunctionDefinition": {
         "properties": {
           "name": {
-            "type": "string",
-            "title": "Name"
+            "type": "string"
           },
           "description": {
-            "type": "string",
-            "title": "Description"
+            "type": "string"
           },
           "parameters": {
-            "type": "object",
-            "title": "Parameters"
+            "type": "object"
           }
         },
         "type": "object",
@@ -68350,7 +68393,9 @@
         "properties": {
           "type": {
             "type": "string",
-            "title": "Type"
+            "enum": [
+              "retrieval"
+            ]
           },
           "retrieval": {
             "$ref": "#/components/schemas/BucketIds"
