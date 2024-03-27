@@ -5190,6 +5190,15 @@ components:
                 $ref: '#/components/schemas/SIMCardPublicIP'
             type: object
       description: Successful response
+    SSLCertificateResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SSLCertificate'
+            type: object
+      description: SSL Certificate Response
     SearchMobileNetworkOperatorsResponse:
       content:
         application/json:
@@ -31867,6 +31876,53 @@ components:
           readOnly: true
           type: string
       type: object
+    SSLCertificate:
+      properties:
+        created_at:
+          description: Time when SSL certificate was uploaded
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+        id:
+          description: Unique identifier for the SSL certificate
+          type: string
+        issued_by:
+          properties:
+            common_name:
+              description: The common name of the entity the certificate was issued
+                by
+              type: string
+            organization:
+              description: The organization the certificate was issued by
+              type: string
+            organization_unit:
+              description: The organizational unit the certificate was issued by
+              type: string
+          type: object
+        issued_to:
+          properties:
+            common_name:
+              description: The common name of the entity the certificate was issued
+                to
+              type: string
+            organization:
+              description: The organization the certificate was issued to
+              type: string
+            organization_unit:
+              description: The organizational unit the certificate was issued to
+              type: string
+          type: object
+        valid_from:
+          description: The time the certificate is valid from
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+        valid_to:
+          description: The time the certificate is valid to
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      type: object
     SearchedSIMCardGroup:
       properties:
         consumed_data:
@@ -56974,6 +57030,73 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
+  /storage/buckets/{bucketName}/ssl_certificate:
+    delete:
+      description: Deletes an SSL certificate and its matching secret.
+      operationId: RemoveStorageSSLCertificate
+      parameters:
+      - description: Bucket Name
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Remove SSL Certificate
+      tags:
+      - Bucket SSL Certificate
+      x-latency-category: responsive
+    get:
+      description: Returns the stored certificate detail of a bucket, if applicable.
+      operationId: GetStorageSSLCertificates
+      parameters:
+      - description: The name of the bucket
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Get Bucket SSL Certificate
+      tags:
+      - Bucket SSL Certificate
+      x-latency-category: responsive
+    put:
+      description: "Uploads an SSL certificate and its matching secret so that you\
+        \ can use Telnyx\u2019s storage as your CDN."
+      operationId: AddStorageSSLCertificate
+      parameters:
+      - description: The name of the bucket
+        in: path
+        name: bucketName
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                certificate:
+                  description: The SSL certificate file
+                  format: binary
+                  type: string
+                private_key:
+                  description: The private key file
+                  format: binary
+                  type: string
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/SSLCertificateResponse'
+      summary: Add SSL Certificate
+      tags:
+      - Bucket SSL Certificate
+      x-latency-category: responsive
   /storage/buckets/{bucketName}/usage/api:
     get:
       description: Returns the detail on API usage on a bucket of a particular time
@@ -59691,6 +59814,8 @@ tags:
   name: Billing Groups
 - description: Brand operations
   name: Brands
+- description: SSL certificate operations
+  name: Bucket SSL Certificate
 - description: Bucket Usage operations
   name: Bucket Usage
 - description: Bulk operations over Credentials
