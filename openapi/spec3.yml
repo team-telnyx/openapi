@@ -19429,29 +19429,34 @@ components:
       required:
       - code
       - title
+    ErrorRecord:
+      properties:
+        code:
+          description: an application-specific error code, expressed as a stringified
+            5-digit integer
+          example: '10003'
+          type: string
+        detail:
+          description: "a human-readable explanation specific to this occurrence of\
+            \ the problem. Like title, this field\u2019s value can be localized"
+          example: 'Available metrics values for sip-trunking: connected,cost,completed,call_sec,attempted,billed_sec.'
+          type: string
+        meta:
+          $ref: '#/components/schemas/MetaResponse'
+        source:
+          $ref: '#/components/schemas/SourceResponse'
+        title:
+          description: a short, human-readable summary of the problem, with NO punctuation,
+            that SHOULD NOT CHANGE from occurrence to occurrence of the problem, except
+            for purposes of localization
+          example: Metrics invalid values
+          type: string
+      type: object
     ErrorResponse:
       properties:
         errors:
           items:
-            properties:
-              code:
-                type: string
-              detail:
-                type: string
-              meta:
-                properties:
-                  url:
-                    format: uri
-                    type: string
-                type: object
-              source:
-                properties:
-                  pointer:
-                    type: string
-                type: object
-              title:
-                type: string
-            type: object
+            $ref: '#/components/schemas/ErrorRecord'
           type: array
       type: object
     Errors:
@@ -24468,6 +24473,13 @@ components:
           example: 55
           type: integer
       type: object
+    MetaResponse:
+      properties:
+        url:
+          description: This should likely be a URL to the relevant documentation
+          example: https://developers.telnyx.com/docs/overview/errors/10001
+          type: string
+      type: object
     Metadata:
       properties:
         page_number:
@@ -26384,6 +26396,25 @@ components:
           title: Total Records
           type: integer
       title: Paginated[VerificationRequestStatus]
+      type: object
+    PaginationData:
+      properties:
+        page_number:
+          description: Selected page number.
+          example: '1'
+          type: integer
+        page_size:
+          description: Records per single page
+          example: '20'
+          type: integer
+        total_pages:
+          description: Total number of pages.
+          example: '5'
+          type: integer
+        total_results:
+          description: Total number of results.
+          example: '100'
+          type: integer
       type: object
     PaginationMeta:
       properties:
@@ -29773,9 +29804,25 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies record type.
-      pattern: custom_storage_credentials
-      type: string
+      description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
+      properties:
+        product_dimensions:
+          description: Telnyx Product Dimensions
+          example: '[''direction'', ''currency'', ''message_type'']'
+          items:
+            type: string
+          type: array
+        product_metrics:
+          description: Telnyx Product Metrics
+          example: '[''cost'', ''billed_sec'']'
+          items:
+            type: string
+          type: array
+        record_type:
+          description: Telnyx Product type
+          example: conversation_event
+          type: string
+      type: object
     RecordingCompleted:
       example:
         event_type: video.room.recording.started
@@ -32839,6 +32886,18 @@ components:
           example: inbound
           type: string
       title: Sound modifications
+      type: object
+    SourceResponse:
+      properties:
+        parameter:
+          description: a string indicating which URI query parameter caused the error
+          example: metrics
+          type: string
+        pointer:
+          description: A JSON Pointer [RFC6901] to the associated entity in the request
+            document
+          example: /title
+          type: string
       type: object
     SpeakRequest:
       example:
@@ -37147,6 +37206,67 @@ components:
       - rate-deck
       example: tariff
       type: string
+    UsageReportsOptionsRecord:
+      description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
+      properties:
+        product:
+          description: Telnyx Product
+          example: wireless
+          type: string
+        product_dimensions:
+          description: Telnyx Product Dimensions
+          example: '[''mnc'', ''mcc'', ''sim_card_id'', ''sim_group_name'']'
+          items:
+            type: string
+          type: array
+        product_metrics:
+          description: Telnyx Product Metrics
+          example: '[''uplink_data_bytes'',''downlink_data'',''downlink_data_bytes'',''uplink_data'',''data_cost'']'
+          items:
+            type: string
+          type: array
+        record_types:
+          description: Subproducts if applicable
+          example: 'null'
+          items:
+            $ref: '#/components/schemas/RecordType'
+          type: array
+      type: object
+    UsageReportsOptionsResponse:
+      description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
+      properties:
+        data:
+          description: Collection of product description
+          items:
+            $ref: '#/components/schemas/UsageReportsOptionsRecord'
+          type: array
+      type: object
+    UsageReportsResponse:
+      properties:
+        data:
+          example:
+          - cost: 0.012
+            count: 8
+            country_iso: LC
+            customer_carrier_fee: 0
+            direction: outbound
+            parts: 12
+            product: messaging
+            product_name: long_code
+          - cost: 0.021
+            count: 12
+            country_iso: MP
+            customer_carrier_fee: 0
+            direction: outbound
+            parts: 21
+            product: messaging
+            product_name: long_code
+          items:
+            type: object
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationData'
+      type: object
     UseCaseCategories:
       description: Tollfree usecase categories
       enum:
@@ -57787,6 +57907,255 @@ paths:
       tags:
       - TeXML Applications
       x-latency-category: responsive
+  /usage_reports:
+    get:
+      description: Get Telnyx usage data by product, broken out by the specified dimensions
+      operationId: GetUsageReport
+      parameters:
+      - description: Telnyx product
+        examples:
+          product=messaging:
+            summary: messaging
+            value: messaging
+          product=wireless:
+            summary: wireless
+            value: wireless
+        in: query
+        name: product
+        required: true
+        schema:
+          type: string
+      - description: Breakout by specified product dimensions
+        examples:
+          dimensions=direction&dimensions=currency&dimensions=message_type:
+            summary: Dimensions aggregation list
+            value: dimensions=direction&dimensions=currency&dimensions=message_type
+        in: query
+        name: dimensions
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      - description: Specified product usage values
+        examples:
+          metrics=cost&metrics=billed_sec:
+            summary: Metrics aggregation list
+            value: metrics=cost&metrics=billed_sec
+        in: query
+        name: metrics
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      - description: 'The start date for the time range you are interested in. The
+          maximum time range is 31 days. Format: YYYY-MM-DDTHH:mm:ss'
+        examples:
+          start_date=2024-02-01T00:00:00:
+            summary: Aggregate for records with timestamp starting at specified date
+              and time.
+            value: '2024-02-01T00:00:00'
+        in: query
+        name: start_date
+        required: false
+        schema:
+          type: string
+      - description: 'The end date for the time range you are interested in. The maximum
+          time range is 31 days. Format: YYYY-MM-DDTHH:mm:ss'
+        examples:
+          end_date=2024-03-01T00:00:00:
+            summary: Aggregate for records with timestamp ending at specified date
+              and time.
+            value: '2024-03-01T00:00:00'
+        in: query
+        name: end_date
+        required: false
+        schema:
+          type: string
+      - description: A more user-friendly way to specify the timespan you want to
+          filter by. More options can be found in the Telnyx API Reference docs.
+        examples:
+          date_range=last_3_days:
+            summary: last_3_days - Searches for records with timestamp starting at
+              `00:00:00` since 3 days ago
+            value: last_3_days
+          date_range=today:
+            summary: today - Searches for records with timestamp starting at `00:00:00`
+              of the current day
+            value: today
+        in: query
+        name: date_range
+        required: false
+        schema:
+          type: string
+      - description: Filter records on dimensions
+        examples:
+          filter[country_code]=NLD:
+            summary: Filter country code on NLD
+            value: filter[country_code]=NLD
+          filter[currency]=USD:
+            summary: Filter currency on USD
+            value: filter[currency]=USD
+          filter[direction]=inbound:
+            summary: Filter direction on Inbound
+            value: filter[direction]=inbound
+        in: query
+        name: filter
+        required: false
+        schema:
+          type: string
+      - description: Return the aggregations for all Managed Accounts under the user
+          making the request.
+        examples:
+          managed_accounts=true:
+            summary: Fetch aggregations for all Managed Accounts
+            value: false
+        in: query
+        name: managed_accounts
+        required: false
+        schema:
+          type: boolean
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          exclusiveMinimum: true
+          minimum: 1
+          title: Page[Number]
+          type: integer
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 5000.0
+          title: Page[Size]
+          type: integer
+      - description: Specifies the sort order for results
+        examples:
+          defaultOrder:
+            summary: Default Order (No Sort)
+            value: ''
+          sort=-created_at:
+            summary: Sorts search results using the `-created_at` date-time in descending
+              order
+            value: -created_at
+          sort=created_at:
+            summary: Sorts search results using the `created_at` date-time in ascending
+              order
+            value: created_at
+        in: query
+        name: sort
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+      - description: Specify the response format (csv or json). JSON is returned by
+          default, even if not specified.
+        examples:
+          format=csv:
+            summary: Get the response in CSV format
+            value: csv
+          format=json:
+            summary: Get the response in JSON format
+            value: json
+        in: query
+        name: format
+        required: false
+        schema:
+          enum:
+          - csv
+          - json
+          type: string
+      - in: header
+        name: Telnyx-Auth-Rev2
+        schema:
+          description: Authenticates the request
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageReportsResponse'
+            text/csv:
+              schema:
+                description: CSV formatted data
+                example: 'user_id,direction,product,cost,billed_sec
+
+                  3ca7bd3d-7d82-4e07-9df4-009123068320,inbound,forking,0.000800,17.000000
+
+                  ...'
+                type: string
+          description: Successful
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Get Telnyx product usage data (BETA)
+      tags:
+      - Usage Reports (BETA)
+      x-latency-category: interactive
+  /usage_reports/options:
+    get:
+      description: Get the Usage Reports options for querying usage, including the
+        products available and their respective metrics and dimensions
+      operationId: ListUsageReportsOptions
+      parameters:
+      - description: Options (dimensions and metrics) for a given product. If none
+          specified, all products will be returned.
+        examples:
+          product=wireless:
+            summary: Specify a product if you know what you're looking for
+            value: wireless
+        in: query
+        name: product
+        required: false
+        schema:
+          type: string
+      - in: header
+        name: Telnyx-Auth-Rev2
+        schema:
+          description: Authenticates the request
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageReportsOptionsResponse'
+          description: Successful
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Bad Request
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Internal Server Error
+      security:
+      - bearerAuth: []
+      summary: Get Usage Reports query options (BETA)
+      tags:
+      - Usage Reports (BETA)
+      x-latency-category: interactive
   /v2/external_connections/{id}/locations/{location_id}:
     patch:
       operationId: updateLocation
@@ -59646,6 +60015,8 @@ tags:
   name: TeXML Applications
 - description: TeXML REST Commands
   name: TeXML REST Commands
+- description: Usage data reporting across Telnyx products
+  name: Usage Reports (BETA)
 - description: Verified Calls Display Profile related endpoints
   name: Verified Calls Display Profile
 - description: ''
