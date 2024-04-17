@@ -1479,7 +1479,6 @@ components:
         \ in descending order."
       in: query
       name: sort
-      required: false
       schema:
         default: created_at
         enum:
@@ -4667,13 +4666,20 @@ components:
     NotFoundResponse:
       content:
         application/json:
+          examples:
+            notFound:
+              value:
+                errors:
+                - code: '10005'
+                  detail: The requested resource or URL could not be found.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+                  source:
+                    pointer: /
+                  title: Resource not found
           schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/ResourceNotFoundError'
-            title: Resource not found
-            type: object
-      description: Resource not found
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The requested resource doesn't exist.
     NumberBlockOrderResponse:
       content:
         application/json:
@@ -5615,8 +5621,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthenticated response. Happens when the current user cannot
-        be authenticated.
+      description: Unauthorized
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -5646,7 +5651,24 @@ components:
       description: Unprocessable entity. Check the 'detail' field in response for
         details.
     UnprocessableEntityResponse:
-      description: Unprocessable entity
+      content:
+        application/json:
+          examples:
+            unprocessableEntity:
+              value:
+                errors:
+                - code: '10015'
+                  detail: 'Invalid dnis_format: test, was provided. Acceptable formats
+                    are +e164, e164, national, sip_username'
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  source:
+                    pointer: /inbound/dnis_number_format
+                  title: Bad Request
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The request was well-formed but was unable to be followed due to
+        semantic errors.
     UnprocessableManagedAccountEntity:
       content:
         application/json:
@@ -17536,9 +17558,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date indicating when the resource was created.
-      example: '2020-02-02T22:25:27.521Z'
-      title: Created At
+      description: ISO 8601 formatted date-time indicating when the resource was created.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     CreationDate:
       format: date-time
@@ -21698,9 +21720,10 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the type of resource.
-      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+      description: Identifies the resource.
+      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
       format: uuid
+      readOnly: true
       type: string
     ImageURL:
       properties:
@@ -30588,21 +30611,29 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-          detail:
-            example: The requested resource or URL could not be found.
-          meta:
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              code:
+                description: Error code identifying the error type.
+                type: string
+              detail:
+                description: A human-readable explanation of the error.
+                type: string
+              meta:
+                properties:
+                  url:
+                    description: A URL to the detailed documentation for the error.
+                    format: uri
+                    type: string
+                type: object
+              title:
+                description: A short, human-readable summary of the problem.
                 type: string
             type: object
-          title:
-            example: Resource not found
+          type: array
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -37073,9 +37104,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date indicating when the resource was updated.
-      example: '2020-02-03T22:25:27.521Z'
-      title: Updated At
+      description: ISO 8601 formatted date-time indicating when the resource was updated.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     UplinkData:
       properties:
@@ -39671,34 +39702,14 @@ components:
       scheme: bearer
       type: http
 info:
-  description: "# Overview\nThe Telnyx 10DLC API facilitates interaction with The\
-    \ Campaign Registry (TCR), allowing the creation and registration of brands and\
-    \ campaigns with TCR.\n\n# API Interaction\n## Request Authorization\nTelnyx 10DLC\
-    \ API endpoints require authorization for each request. To properly authorize\
-    \ requests, send an Authorization header with `Bearer ` plus your Telnyx API key\
-    \ as the value. See the following curl request for example usage:\n\n```sh\ncurl\
-    \ --location --request GET 'https://api.telnyx.com/10dlc/example/endpoint' \\\
-    \ \n--header 'Authorization: Bearer YOUR_API_KEY_GOES_HERE' \\ \n--data-raw ''\n\
-    ```\n\nYou can obtain your API key by logging into your <a href=\"https://portal.telnyx.com\"\
-    >Telnyx portal account</a> and clicking the \"API Keys\" tab. From there, you\
-    \ can copy your desired API key for use in your requests, similar to the above\
-    \ example curl request.\n\n## The 10DLC Work Flow\n1. Create a brand\n\n2. Apply\
-    \ for brand vetting\n\n3. Create a campaign or campaigns (associated with the\
-    \ created brand)\n\n4. Assign a phone number or phone numbers to the created campaign\n\
-    ## 10DLC Costs\n**Brands:**\n1. Brand registration: $4 one time charge\n\n2. \
-    \ Brand vetting: $40 one time charge\n\n**Campaigns:**\n\n1. Campaign registration\
-    \ T-Mobile: $50 one time charge\n\n2. Campaign creation: first 3 month's charge\
-    \ upfront. After the first 3 months, this charge will change to a once a month\
-    \ recurring charge (see charge values below, based on campaign use case)\n\n \
-    \  a. Charity Campaign Use Case: $15 upfront (first 3 months), and $5 month to\
-    \ month after\n\n   b. Low Mixed Volume Campaign Use Case: $6 upfront (first 3\
-    \ months), and $2 month to month after\n\n   c. Any Other Campaign Use Case: $30\
-    \ upfront (first 3 months), and $10 month to month after\n3. Phone number to campaign\
-    \ assignment: $0.03 one time charge for each assignment\n\n## Frequently Asked\
-    \ Questions\nFor frequently asked questions, visit <a href=\"https://support.telnyx.com/en/articles/3679260-frequently-asked-questions-about-10dlc\"\
-    >Telnyx 10DLC FAQs</a>."
-  title: Telnyx 10DLC API
-  version: '0.1'
+  contact:
+    email: support@telnyx.com
+  description: Notifications and Notification Settings.
+  license:
+    name: MIT
+  title: Telnyx API
+  version: 2.0.0
+  x-endpoint-cost: light
 openapi: 3.0.0
 paths:
   /:
@@ -59859,8 +59870,8 @@ paths:
 security:
 - bearerAuth: []
 servers:
-- description: Telnyx's 10DLC Passthrough API
-  url: https://api.telnyx.com/10dlc
+- description: Version 2.0.0 of the Telnyx API
+  url: https://api.telnyx.com/v2
 tags:
 - description: Access Tokens creation
   name: Access Tokens
