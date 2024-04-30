@@ -19157,6 +19157,26 @@ components:
       - GOVERNMENT
       example: PRIVATE_PROFIT
       title: EntityType
+    EnumListResponse:
+      example: '["BASIC_ACCOUNT", "SMALL_ACCOUNT", "MEDIUM_ACCOUNT", "LARGE_ACCOUNT",
+        "KEY_ACCOUNT"]'
+      items:
+        anyOf:
+        - type: string
+        - type: object
+      title: EnumListResponse
+      type: array
+    EnumObjectResponse:
+      example: '{"AREIS": "AREIS", "BANDW": "Bandwidth", "SINCH": "Sinch"}'
+      title: EnumObjectResponse
+      type: object
+    EnumPaginatedResponse:
+      example: '{"page": 1, "records": [{"isin": "US68243Q1067", "iso2": "US", "symbol":
+        "FLWS", "exchange": "NASDAQ", "displayName": "1-800 FLOWERS.COM, Inc."}, {"isin":
+        "US88025U1097", "iso2": "US", "symbol": "TXG", "exchange": "NASDAQ", "displayName":
+        "10X GENOMICS INC CLASS A"}], "totalRecords": 2}'
+      title: EnumPaginatedResponse
+      type: object
     Error:
       properties:
         code:
@@ -24281,6 +24301,48 @@ components:
       - displayName
       - osrBitmaskIndex
       title: Mno
+      type: object
+    MnoMetadata:
+      properties:
+        '10999':
+          $ref: '#/components/schemas/MnoMetadataItem'
+      title: MnoMetadata
+      type: object
+    MnoMetadataItem:
+      properties:
+        minMsgSamples:
+          example: 1
+          type: integer
+        mno:
+          type: string
+        mnoReview:
+          type: boolean
+        mnoSupport:
+          type: boolean
+        noEmbeddedLink:
+          type: boolean
+        noEmbeddedPhone:
+          type: boolean
+        qualify:
+          type: boolean
+        reqSubscriberHelp:
+          type: boolean
+        reqSubscriberOptin:
+          type: boolean
+        reqSubscriberOptout:
+          type: boolean
+      required:
+      - qualify
+      - mno
+      - noEmbeddedLink
+      - reqSubscriberHelp
+      - reqSubscriberOptout
+      - mnoReview
+      - noEmbeddedPhone
+      - mnoSupport
+      - reqSubscriberOptin
+      - minMsgSamples
+      title: MnoMetadataItem
       type: object
     MobileNetworkOperator:
       properties:
@@ -43927,7 +43989,7 @@ paths:
       x-latency-category: responsive
   /campaign/{campaignId}/mnoMetadata:
     get:
-      description: Get the campaign metadata for each MNO it was submitted to
+      description: Get the campaign metadata for each MNO it was submitted to.
       operationId: GetCampaignMnoMetadata
       parameters:
       - description: ID of the campaign in question
@@ -43943,16 +44005,17 @@ paths:
           content:
             application/json:
               schema:
-                title: Response Get Campaign Mno Metadata Public Campaign  Campaignid  Mnometadata
-                  Get
-                type: object
-          description: Successful Response
-        '422':
+                $ref: '#/components/schemas/MnoMetadata'
+          description: Successful Response. It constains a map of usecase metadata
+            for each MNO. The key is the network ID of the MNO (e.g. 10017), the value
+            is the mno metadata for the usecase. The metadata may also include some
+            MNO specific fields.
+        default:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
+                $ref: '#/components/schemas/Errors'
+          description: Unexpected Error
       summary: Get Campaign Mno Metadata
       tags:
       - Campaign
@@ -46116,39 +46179,44 @@ paths:
         name: endpoint
         required: true
         schema:
+          enum:
+          - mno
+          - optionalAttributes
+          - usecase
+          - vertical
+          - altBusinessIdType
+          - brandIdentityStatus
+          - brandRelationship
+          - campaignStatus
+          - entityType
+          - extVettingProvider
+          - vettingStatus
+          - brandStatus
+          - operationStatus
+          - approvedPublicCompany
+          - stockExchange
+          - vettingClass
           title: Endpoint
           type: string
       responses:
         '200':
           content:
             application/json:
-              schema: {}
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/EnumListResponse'
+                - $ref: '#/components/schemas/EnumObjectResponse'
+                - $ref: '#/components/schemas/EnumPaginatedResponse'
           description: Successful Response
-        '422':
+        '404':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
+                $ref: '#/components/schemas/Errors'
+          description: Resource not found
       summary: Get Enum
       tags:
       - Enum
-      x-latency-category: responsive
-  /error:
-    get:
-      description: List all error codes
-      operationId: ListErrorCodes
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                title: Response List Error Codes Public Error Get
-                type: string
-          description: Successful Response
-      summary: List Error Codes
-      tags:
-      - Error
       x-latency-category: responsive
   /external_connections:
     get:

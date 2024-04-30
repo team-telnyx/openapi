@@ -6209,7 +6209,7 @@
           "Campaign"
         ],
         "summary": "Get Campaign Mno Metadata",
-        "description": "Get the campaign metadata for each MNO it was submitted to",
+        "description": "Get the campaign metadata for each MNO it was submitted to.",
         "operationId": "GetCampaignMnoMetadata",
         "parameters": [
           {
@@ -6226,22 +6226,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Successful Response. It constains a map of usecase metadata for each MNO. The key is the network ID of the MNO (e.g. 10017), the value is the mno metadata for the usecase. The metadata may also include some MNO specific fields.",
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response Get Campaign Mno Metadata Public Campaign  Campaignid  Mnometadata Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/MnoMetadata"
                 }
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "default": {
+            "description": "Unexpected Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -9477,7 +9476,25 @@
             "required": true,
             "schema": {
               "title": "Endpoint",
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "mno",
+                "optionalAttributes",
+                "usecase",
+                "vertical",
+                "altBusinessIdType",
+                "brandIdentityStatus",
+                "brandRelationship",
+                "campaignStatus",
+                "entityType",
+                "extVettingProvider",
+                "vettingStatus",
+                "brandStatus",
+                "operationStatus",
+                "approvedPublicCompany",
+                "stockExchange",
+                "vettingClass"
+              ]
             },
             "name": "endpoint",
             "in": "path"
@@ -9488,40 +9505,28 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/EnumListResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EnumObjectResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/EnumPaginatedResponse"
+                    }
+                  ]
                 }
               }
             }
-          }
-        },
-        "x-latency-category": "responsive"
-      }
-    },
-    "/error": {
-      "get": {
-        "tags": [
-          "Error"
-        ],
-        "summary": "List Error Codes",
-        "description": "List all error codes",
-        "operationId": "ListErrorCodes",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
+          },
+          "404": {
+            "description": "Resource not found",
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Response List Error Codes Public Error Get",
-                  "type": "string"
+                  "$ref": "#/components/schemas/Errors"
                 }
               }
             }
@@ -54713,6 +54718,31 @@
         "description": "Entity type behind the brand. This is the form of business establishment.",
         "example": "PRIVATE_PROFIT"
       },
+      "EnumListResponse": {
+        "title": "EnumListResponse",
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "example": "[\"BASIC_ACCOUNT\", \"SMALL_ACCOUNT\", \"MEDIUM_ACCOUNT\", \"LARGE_ACCOUNT\", \"KEY_ACCOUNT\"]"
+      },
+      "EnumObjectResponse": {
+        "title": "EnumObjectResponse",
+        "type": "object",
+        "example": "{\"AREIS\": \"AREIS\", \"BANDW\": \"Bandwidth\", \"SINCH\": \"Sinch\"}"
+      },
+      "EnumPaginatedResponse": {
+        "title": "EnumPaginatedResponse",
+        "type": "object",
+        "example": "{\"page\": 1, \"records\": [{\"isin\": \"US68243Q1067\", \"iso2\": \"US\", \"symbol\": \"FLWS\", \"exchange\": \"NASDAQ\", \"displayName\": \"1-800 FLOWERS.COM, Inc.\"}, {\"isin\": \"US88025U1097\", \"iso2\": \"US\", \"symbol\": \"TXG\", \"exchange\": \"NASDAQ\", \"displayName\": \"10X GENOMICS INC CLASS A\"}], \"totalRecords\": 2}"
+      },
       "Error": {
         "required": [
           "code",
@@ -60996,6 +61026,64 @@
             "minimum": 1,
             "type": "integer",
             "description": "NetNumber OSR 'campaign_id' property's 'status' attribute holds individual MNO campaign operation status. The 'status' attribute leverages bitmasking technique to store multiple MNOs' operating status. The campaign operation status is reduced to '1' or '0' value where '1' indicate an 'ACTIVE' status and '0' represents every other non-active statuses, including REVIEW, REJECT and SUSPEND. The 'osrBitmaskIndex' holds the bitmask index of the MNO. For example, T-Mobile's bitmask index is 2, which implies T-Mobile's campaign operation status is stored in bit #2, or 3rd bit when counting from right."
+          }
+        }
+      },
+      "MnoMetadata": {
+        "title": "MnoMetadata",
+        "type": "object",
+        "properties": {
+          "10999": {
+            "$ref": "#/components/schemas/MnoMetadataItem"
+          }
+        }
+      },
+      "MnoMetadataItem": {
+        "title": "MnoMetadataItem",
+        "type": "object",
+        "required": [
+          "qualify",
+          "mno",
+          "noEmbeddedLink",
+          "reqSubscriberHelp",
+          "reqSubscriberOptout",
+          "mnoReview",
+          "noEmbeddedPhone",
+          "mnoSupport",
+          "reqSubscriberOptin",
+          "minMsgSamples"
+        ],
+        "properties": {
+          "qualify": {
+            "type": "boolean"
+          },
+          "mno": {
+            "type": "string"
+          },
+          "noEmbeddedLink": {
+            "type": "boolean"
+          },
+          "reqSubscriberHelp": {
+            "type": "boolean"
+          },
+          "reqSubscriberOptout": {
+            "type": "boolean"
+          },
+          "mnoReview": {
+            "type": "boolean"
+          },
+          "noEmbeddedPhone": {
+            "type": "boolean"
+          },
+          "mnoSupport": {
+            "type": "boolean"
+          },
+          "reqSubscriberOptin": {
+            "type": "boolean"
+          },
+          "minMsgSamples": {
+            "type": "integer",
+            "example": 1
           }
         }
       },
