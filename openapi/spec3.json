@@ -46208,23 +46208,50 @@
           },
           "model": {
             "type": "string",
-            "default": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-            "description": "The language model to chat with. If you are optimizing for speed, try [mistralai/Mistral-7B-Instruct-v0.1](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.1). For quality, try [NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)"
+            "default": "meta-llama/Meta-Llama-3-8B-Instruct",
+            "description": "The language model to chat with. If you are optimizing for price, try [meta-llama/Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct). For quality, try [meta-llama/Meta-Llama-3-70B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct). Or explore our [LLM Library](https://telnyx.com/products/llm-library)."
           },
           "stream": {
             "type": "boolean",
             "default": false,
             "description": "Whether or not to stream data-only server-sent events as they become available."
           },
+          "temperature": {
+            "type": "number",
+            "default": 0.7,
+            "example": 0.7,
+            "description": "Adjusts the \"creativity\" of the model. Lower values make the model more deterministic and repetitive, while higher values make the model more random and creative."
+          },
           "max_tokens": {
             "type": "integer",
             "example": 128,
             "description": "Maximum number of completion tokens the model should generate."
           },
-          "temperature": {
-            "type": "number",
-            "example": 0.8,
-            "description": "Adjusts the \"creativity\" of the model. Lower values make the model more deterministic and repetitive, while higher values make the model more random and creative."
+          "tools": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ChatCompletionToolParam"
+                },
+                {
+                  "$ref": "#/components/schemas/Retrieval"
+                }
+              ]
+            },
+            "type": "array",
+            "description": "The `function` tool type follows the same schema as the [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat). The `retrieval` tool type is unique to Telnyx. You may pass a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding) for retrieval-augmented generation."
+          },
+          "tool_choice": {
+            "type": "string",
+            "enum": [
+              "none",
+              "auto",
+              "required"
+            ]
+          },
+          "response_format": {
+            "description": "Use this is you want to guarantee a JSON output without defining a schema. For control over the schema, use `guided_json`.",
+            "$ref": "#/components/schemas/ChatCompletionResponseFormatParam"
           },
           "guided_json": {
             "type": "object",
@@ -46261,10 +46288,6 @@
               "negative"
             ]
           },
-          "response_format": {
-            "description": "Use this is you want to guarantee a JSON output without defining a schema. For control over the schema, use `guided_json`.",
-            "$ref": "#/components/schemas/ChatCompletionResponseFormatParam"
-          },
           "min_p": {
             "type": "number",
             "example": 0.1,
@@ -46274,27 +46297,6 @@
             "type": "number",
             "example": 2,
             "description": "This will return multiple choices for you instead of a single chat completion."
-          },
-          "tools": {
-            "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Retrieval"
-                },
-                {
-                  "$ref": "#/components/schemas/ChatCompletionToolParam"
-                }
-              ]
-            },
-            "type": "array",
-            "description": "The `retrieval` tool type is unique to Telnyx. You may pass a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding) for retrieval-augmented generation."
-          },
-          "tool_choice": {
-            "type": "string",
-            "enum": [
-              "none",
-              "auto"
-            ]
           },
           "use_beam_search": {
             "type": "boolean",
@@ -46407,7 +46409,7 @@
           "function",
           "type"
         ],
-        "title": "ChatCompletionToolParam"
+        "title": "Function"
       },
       "CivicAddress": {
         "type": "object",
@@ -49282,20 +49284,17 @@
           },
           "tools": {
             "items": {
-              "$ref": "#/components/schemas/NewTool"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ChatCompletionToolParam"
+                },
+                {
+                  "$ref": "#/components/schemas/Retrieval"
+                }
+              ]
             },
             "type": "array",
-            "title": "Tools",
-            "default": [
-              {
-                "type": "retrieval",
-                "retrieval": {
-                  "bucket_ids": [
-                    "my_bucket_id_1"
-                  ]
-                }
-              }
-            ]
+            "description": "The `function` tool type follows the same schema as the [OpenAI Assistants API](https://platform.openai.com/docs/api-reference/assistants/createAssistant). The `retrieval` tool type is unique to Telnyx. You may pass a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding) for retrieval-augmented generation."
           }
         },
         "type": "object",
@@ -61306,37 +61305,6 @@
             "example": "/v2/texml/Accounts/4e71926f-8f13-450e-b91c-23c2ef786aa6/Conferences/cd5a70f4-759b-4d5e-9c06-88c00f16f3c1/Participants/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ.json"
           }
         }
-      },
-      "NewTool": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "retrieval",
-              "function"
-            ],
-            "title": "Type"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "function": {
-            "$ref": "#/components/schemas/FunctionDetail-Input"
-          },
-          "retrieval": {
-            "$ref": "#/components/schemas/RetrievalDetail"
-          }
-        },
-        "type": "object",
-        "required": [
-          "type"
-        ],
-        "title": "NewTool"
       },
       "NoiseSuppressionDirection": {
         "type": "string",
@@ -73773,10 +73741,17 @@
           },
           "tools": {
             "items": {
-              "$ref": "#/components/schemas/NewTool"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ChatCompletionToolParam"
+                },
+                {
+                  "$ref": "#/components/schemas/Retrieval"
+                }
+              ]
             },
             "type": "array",
-            "title": "Tools"
+            "description": "The `function` tool type follows the same schema as the [OpenAI Assistants API](https://platform.openai.com/docs/api-reference/assistants/modifyAssistant). The `retrieval` tool type is unique to Telnyx. You may pass a list of [embedded storage buckets](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding) for retrieval-augmented generation."
           }
         },
         "type": "object",
