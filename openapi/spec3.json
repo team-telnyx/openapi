@@ -1619,6 +1619,57 @@
       }
     },
     "/ai/embeddings": {
+      "get": {
+        "tags": [
+          "Embeddings"
+        ],
+        "summary": "Get Tasks by Status",
+        "description": "Retrieve tasks for the user that are either `queued`, `processing`, `failed`, `success` or `partial_success` based on the query string. Defaults to `queued` and `processing`.",
+        "operationId": "GetTasksByStatus",
+        "parameters": [
+          {
+            "description": "List of task statuses i.e. `status=queued&status=processing`",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "title": "Status",
+              "description": "List of task statuses i.e. `status=queued&status=processing`",
+              "default": [
+                "processing",
+                "queued"
+              ]
+            },
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackgroundTasksQueryResponseData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
       "post": {
         "tags": [
           "Embeddings"
@@ -40632,6 +40683,76 @@
           }
         }
       },
+      "BackgroundTaskStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "processing",
+          "success",
+          "failure",
+          "partial_success"
+        ],
+        "title": "BackgroundTaskStatus",
+        "description": "Status of an embeddings task."
+      },
+      "BackgroundTasksQueryResponse": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "task_name": {
+            "type": "string",
+            "title": "Task Name"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BackgroundTaskStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Finished At"
+          },
+          "bucket": {
+            "type": "string",
+            "title": "Bucket"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "task_id",
+          "task_name",
+          "status",
+          "created_at"
+        ],
+        "title": "BackgroundTasksQueryResponse"
+      },
+      "BackgroundTasksQueryResponseData": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BackgroundTasksQueryResponse"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BackgroundTasksQueryResponseData"
+      },
       "BillingGroup": {
         "type": "object",
         "properties": {
@@ -72322,8 +72443,7 @@
                 "title": "Task Name"
               },
               "status": {
-                "type": "string",
-                "title": "Status"
+                "$ref": "#/components/schemas/BackgroundTaskStatus"
               },
               "created_at": {
                 "type": "string",

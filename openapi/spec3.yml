@@ -7246,6 +7246,59 @@ components:
           $ref: '#/components/schemas/Bucket'
       title: Azure Blob Storage Configuration Data
       type: object
+    BackgroundTaskStatus:
+      description: Status of an embeddings task.
+      enum:
+      - queued
+      - processing
+      - success
+      - failure
+      - partial_success
+      title: BackgroundTaskStatus
+      type: string
+    BackgroundTasksQueryResponse:
+      properties:
+        bucket:
+          title: Bucket
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        finished_at:
+          format: date-time
+          title: Finished At
+          type: string
+        status:
+          $ref: '#/components/schemas/BackgroundTaskStatus'
+        task_id:
+          title: Task Id
+          type: string
+        task_name:
+          title: Task Name
+          type: string
+        user_id:
+          title: User Id
+          type: string
+      required:
+      - user_id
+      - task_id
+      - task_name
+      - status
+      - created_at
+      title: BackgroundTasksQueryResponse
+      type: object
+    BackgroundTasksQueryResponseData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/BackgroundTasksQueryResponse'
+          title: Data
+          type: array
+      required:
+      - data
+      title: BackgroundTasksQueryResponseData
+      type: object
     BillingGroup:
       example:
         created_at: '2019-10-15T10:07:15.527Z'
@@ -33661,8 +33714,7 @@ components:
               title: Finished At
               type: string
             status:
-              title: Status
-              type: string
+              $ref: '#/components/schemas/BackgroundTaskStatus'
             task_id:
               format: uuid
               title: Task ID
@@ -40726,6 +40778,42 @@ paths:
       - Chat
       x-latency-category: responsive
   /ai/embeddings:
+    get:
+      description: Retrieve tasks for the user that are either `queued`, `processing`,
+        `failed`, `success` or `partial_success` based on the query string. Defaults
+        to `queued` and `processing`.
+      operationId: GetTasksByStatus
+      parameters:
+      - description: List of task statuses i.e. `status=queued&status=processing`
+        in: query
+        name: status
+        required: false
+        schema:
+          default:
+          - processing
+          - queued
+          description: List of task statuses i.e. `status=queued&status=processing`
+          items:
+            type: string
+          title: Status
+          type: array
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundTasksQueryResponseData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Tasks by Status
+      tags:
+      - Embeddings
+      x-latency-category: responsive
     post:
       description: "Perform embedding on a Telnyx Storage Bucket using the a embedding\
         \ model.\nThe current supported file types are:\n- PDF\n- HTML\n- txt/unstructured\
