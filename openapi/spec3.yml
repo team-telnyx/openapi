@@ -4679,6 +4679,17 @@ components:
                 $ref: '#/components/schemas/MigrationSourceParams'
             type: object
       description: Create Migration Source Response
+    NetworkCoverageListResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/NetworkCoverage'
+                type: array
+            type: object
+      description: Successful response
     NetworkInterfaceListResponse:
       content:
         application/json:
@@ -24747,6 +24758,26 @@ components:
             type: string
         title: Network
         type: object
+    NetworkCoverage:
+      properties:
+        available_services:
+          description: List of interface types supported in this region.
+          example:
+          - cloud_vpn
+          - virtual_cross_connect
+          - private_wireless_gateway
+          items:
+            type: string
+          type: array
+        location:
+          $ref: '#/components/schemas/Location'
+        record_type:
+          description: Identifies the type of the resource.
+          example: network_coverage
+          readOnly: true
+          type: string
+      title: NetworkCoverage
+      type: object
     NetworkCreate:
       allOf:
       - $ref: '#/components/schemas/Network'
@@ -38987,7 +39018,29 @@ components:
       allOf:
       - $ref: '#/components/schemas/Record'
       - properties:
-          bandwidth_mbps:
+          cloud_provider:
+            description: The Virtual Private Cloud with which you would like to establish
+              a cross connect.
+            enum:
+            - aws
+            - azure
+            - gce
+            example: aws
+            type: string
+          cloud_provider_region:
+            description: The region where your Virtual Private Cloud hosts are located.
+            example: us-east-1
+            type: string
+          record_type:
+            description: Identifies the type of the resource.
+            example: virtual_cross_connect_coverage
+            readOnly: true
+            type: string
+          region_code:
+            description: The region the interface is deployed to.
+            example: ashburn-va
+            type: string
+          supported_vxc_bandwidth_mbps:
             description: The available throughput in Megabits per Second (Mbps) for
               your Virtual Cross Connect.
             example:
@@ -38998,28 +39051,6 @@ components:
             items:
               type: number
             type: array
-          cloud_provider:
-            description: The Virtual Private Cloud with which you would like to establish
-              a cross connect.
-            enum:
-            - aws
-            - azure
-            - gce
-            example: aws
-            type: string
-          cloud_region:
-            description: The region where your Virtual Private Cloud hosts are located.
-            example: us-east-1
-            type: string
-          record_type:
-            description: Identifies the type of the resource.
-            example: virtual_cross_connect_region
-            readOnly: true
-            type: string
-          region_code:
-            description: The region the interface is deployed to.
-            example: ashburn-va
-            type: string
         title: VirtualCrossConnectRegion
         type: object
     Volume:
@@ -39288,6 +39319,7 @@ components:
       - properties:
           enable_sip_trunking:
             description: Enable SIP traffic forwarding over VPN interface.
+            example: false
             type: boolean
           endpoint:
             description: The Telnyx WireGuard peers `Peer.endpoint` value.
@@ -49833,6 +49865,19 @@ paths:
       tags:
       - Push Credentials
       x-latency-category: responsive
+  /network_coverage:
+    get:
+      description: List all locations and the interfaces that region supports
+      operationId: ListNetworkCoverage
+      responses:
+        '200':
+          $ref: '#/components/responses/NetworkCoverageListResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: List network coverage locations
+      tags:
+      - Coverage
+      x-latency-category: responsive
   /networks:
     get:
       description: List all Networks.
@@ -59314,7 +59359,7 @@ paths:
       tags:
       - Verify
       x-latency-category: responsive
-  /virtual_cross_connect_regions:
+  /virtual_cross_connect_coverage:
     get:
       description: List all Virtual Cross Connects Cloud Regions.<br /><br />This
         endpoint shows which cloud regions are available for the `region_code` your
@@ -59351,7 +59396,7 @@ paths:
       tags:
       - Virtual Cross Connects
       x-latency-category: responsive
-  /virtual_cross_connect_regions/{id}:
+  /virtual_cross_connect_coverage/{id}:
     get:
       description: Retrieve a Virtual Cross Connect Cloud Regions.
       operationId: GetVirtualCrossConnectRegion
@@ -59469,23 +59514,6 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update the Virtual Cross Connect
-      tags:
-      - Virtual Cross Connects
-      x-latency-category: responsive
-  /virtual_cross_connects/{id}/actions/provision:
-    post:
-      description: Provision a new Virtual Cross Connect.<br /><br />This endpoint
-        is only necessary for GCE cloud regions. Once you have patched your Cloud
-        IPs, you must POST this request to trigger the provision.
-      operationId: ProvisionVirtualCrossConnect
-      parameters:
-      - $ref: '#/components/parameters/ResourceId'
-      responses:
-        '202':
-          $ref: '#/components/responses/VirtualCrossConnectResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Provision a Virtual Cross Connect
       tags:
       - Virtual Cross Connects
       x-latency-category: responsive

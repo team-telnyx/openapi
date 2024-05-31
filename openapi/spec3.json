@@ -14761,6 +14761,25 @@
         "x-latency-category": "responsive"
       }
     },
+    "/network_coverage": {
+      "get": {
+        "summary": "List network coverage locations",
+        "description": "List all locations and the interfaces that region supports",
+        "operationId": "ListNetworkCoverage",
+        "tags": [
+          "Coverage"
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/NetworkCoverageListResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/networks": {
       "get": {
         "summary": "List all Networks",
@@ -28911,7 +28930,7 @@
         "x-latency-category": "responsive"
       }
     },
-    "/virtual_cross_connect_regions": {
+    "/virtual_cross_connect_coverage": {
       "get": {
         "summary": "List all Virtual Cross Connect Cloud Regions",
         "description": "List all Virtual Cross Connects Cloud Regions.<br /><br />This endpoint shows which cloud regions are available for the `region_code` your Virtual Cross Connect will be provisioned in.",
@@ -28964,7 +28983,7 @@
         "x-latency-category": "responsive"
       }
     },
-    "/virtual_cross_connect_regions/{id}": {
+    "/virtual_cross_connect_coverage/{id}": {
       "get": {
         "summary": "Retrieve a Virtual Cross Connect Cloud Regions",
         "description": "Retrieve a Virtual Cross Connect Cloud Regions.",
@@ -29128,30 +29147,6 @@
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
-      }
-    },
-    "/virtual_cross_connects/{id}/actions/provision": {
-      "post": {
-        "summary": "Provision a Virtual Cross Connect",
-        "description": "Provision a new Virtual Cross Connect.<br /><br />This endpoint is only necessary for GCE cloud regions. Once you have patched your Cloud IPs, you must POST this request to trigger the provision.",
-        "operationId": "ProvisionVirtualCrossConnect",
-        "tags": [
-          "Virtual Cross Connects"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "202": {
-            "$ref": "#/components/responses/VirtualCrossConnectResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -36959,6 +36954,24 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/MigrationSourceParams"
+                }
+              }
+            }
+          }
+        }
+      },
+      "NetworkCoverageListResponse": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NetworkCoverage"
+                  }
                 }
               }
             }
@@ -61690,6 +61703,33 @@
           }
         ]
       },
+      "NetworkCoverage": {
+        "type": "object",
+        "title": "NetworkCoverage",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource.",
+            "readOnly": true,
+            "example": "network_coverage"
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "available_services": {
+            "type": "array",
+            "description": "List of interface types supported in this region.",
+            "example": [
+              "cloud_vpn",
+              "virtual_cross_connect",
+              "private_wireless_gateway"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "NetworkCreate": {
         "allOf": [
           {
@@ -78736,7 +78776,7 @@
                 "type": "string",
                 "description": "Identifies the type of the resource.",
                 "readOnly": true,
-                "example": "virtual_cross_connect_region"
+                "example": "virtual_cross_connect_coverage"
               },
               "region_code": {
                 "description": "The region the interface is deployed to.",
@@ -78753,12 +78793,12 @@
                 "description": "The Virtual Private Cloud with which you would like to establish a cross connect.",
                 "example": "aws"
               },
-              "cloud_region": {
+              "cloud_provider_region": {
                 "type": "string",
                 "description": "The region where your Virtual Private Cloud hosts are located.",
                 "example": "us-east-1"
               },
-              "bandwidth_mbps": {
+              "supported_vxc_bandwidth_mbps": {
                 "type": "array",
                 "description": "The available throughput in Megabits per Second (Mbps) for your Virtual Cross Connect.",
                 "items": {
@@ -79113,7 +79153,8 @@
               },
               "enable_sip_trunking": {
                 "type": "boolean",
-                "description": "Enable SIP traffic forwarding over VPN interface."
+                "description": "Enable SIP traffic forwarding over VPN interface.",
+                "example": false
               }
             }
           }
