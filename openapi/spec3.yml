@@ -2093,6 +2093,17 @@ components:
             title: Bulk Room Recordings Delete Response
             type: object
       description: Successful response for Bulk Delete Room recordings requests
+    BulkMessagingSettingsUpdatePhoneNumbersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/BulkMessagingSettingsUpdatePhoneNumbers'
+            title: Retrieve bulk update messaging settings Response
+            type: object
+      description: Successful response with details about messaging bulk update phone
+        numbers.
     BulkSIMCardActionCollectionResponse:
       content:
         application/json:
@@ -7965,6 +7976,69 @@ components:
       - tag
       - connection_id
       title: Bulk Credential Request
+      type: object
+    BulkMessagingSettingsUpdatePhoneNumbers:
+      example:
+        failed: []
+        order_id: 00000000-0000-0000-0000-000000000000
+        pending: []
+        record_type: messaging_numbers_bulk_update
+        success:
+        - '+18880000000'
+        - '+18880000001'
+        - '+18880000002'
+      properties:
+        failed:
+          description: Phone numbers that failed to update.
+          items:
+            format: +E.164
+            type: string
+          type: array
+        order_id:
+          description: Order ID to verify bulk update status.
+          format: uuid
+          readOnly: true
+          type: string
+        pending:
+          description: Phone numbers pending to be updated.
+          items:
+            format: +E.164
+            type: string
+          type: array
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - messaging_numbers_bulk_update
+          example: messaging_numbers_bulk_update
+          readOnly: true
+          type: string
+        success:
+          description: Phoned numbers updated successfully.
+          items:
+            format: +E.164
+            type: string
+          type: array
+      type: object
+    BulkMessagingSettingsUpdatePhoneNumbersRequest:
+      example:
+        messaging_profile_id: 00000000-0000-0000-0000-000000000000
+        numbers:
+        - '+18880000000'
+        - '+18880000001'
+        - '+18880000002'
+      properties:
+        messaging_profile_id:
+          description: Unique identifier for a messaging profile.
+          type: string
+        numbers:
+          description: Phone numbers to be updated.
+          items:
+            format: +E.164
+            type: string
+          type: array
+      required:
+      - messaging_profile_id
+      - numbers
       type: object
     BulkSIMCardAction:
       description: This object represents a bulk SIM card action. It groups SIM card
@@ -48901,6 +48975,7 @@ paths:
                     - $ref: '#/components/schemas/OutboundMessagePayload'
                     - $ref: '#/components/schemas/InboundMessagePayload'
                 type: object
+          description: Successful response with details of a message.
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a message
@@ -49007,6 +49082,44 @@ paths:
       summary: Delete a messaging hosted number
       tags:
       - Messaging Hosted Number
+      x-latency-category: responsive
+  /messaging_numbers_bulk_updates:
+    post:
+      operationId: BulkUpdateMessagingSettingsOnPhoneNumbers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkMessagingSettingsUpdatePhoneNumbersRequest'
+        description: Updated messaging settings for the phone numbers
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/BulkMessagingSettingsUpdatePhoneNumbersResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Bulk update messaging settings
+      tags:
+      - Number Configurations
+      x-latency-category: responsive
+  /messaging_numbers_bulk_updates/{order_id}:
+    get:
+      operationId: GetBulkUpdateMessagingSettingsOnPhoneNumbersStatus
+      parameters:
+      - description: Order ID to verify bulk update status.
+        in: path
+        name: order_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/BulkMessagingSettingsUpdatePhoneNumbersResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve bulk update status
+      tags:
+      - Number Configurations
       x-latency-category: responsive
   /messaging_profile_metrics:
     get:
