@@ -4206,6 +4206,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListPortingEventsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingEvent'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     ListPortingLOAConfigurations:
       content:
         application/json:
@@ -5414,6 +5427,15 @@ components:
                 $ref: '#/components/schemas/CustomerServiceRecord'
             type: object
       description: Successful Response
+    ShowPortingEventResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingEvent'
+            type: object
+      description: Successful response
     ShowPortingLOAConfiguration:
       content:
         application/json:
@@ -28496,6 +28518,69 @@ components:
           format: date-time
           type: string
       type: object
+    PortingEvent:
+      properties:
+        available_notification_methods:
+          description: Indicates the notification methods used.
+          items:
+            enum:
+            - email
+            - webhook
+            - webhook_v1
+            type: string
+          type: array
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+        event_type:
+          description: Identifies the event type
+          enum:
+          - porting_order.deleted
+          - porting_order.loa_updated
+          - porting_order.messaging_changed
+          - porting_order.status_changed
+          - porting_order.sharing_token_expired
+          - porting_order.new_comment
+          - porting_order.split
+          example: porting_order.deleted
+          type: string
+        id:
+          description: Uniquely identifies the event.
+          example: eef3340b-8903-4466-b445-89b697315a3a
+          format: uuid
+          type: string
+        payload:
+          oneOf:
+          - $ref: '#/components/schemas/WebhookPortingOrderDeletedPayload'
+          - $ref: '#/components/schemas/WebhookPortingOrderMessagingChangedPayload'
+          - $ref: '#/components/schemas/WebhookPortingOrderStatusChangedPayload'
+          - $ref: '#/components/schemas/WebhookPortingOrderNewCommentPayload'
+          - $ref: '#/components/schemas/WebhookPortingOrderSplitPayload'
+        payload_status:
+          description: The status of the payload generation.
+          enum:
+          - created
+          - completed
+          example: created
+          type: string
+        porting_order_id:
+          description: Identifies the porting order associated with the event.
+          example: 9471c873-e3eb-4ca1-957d-f9a451334d52
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_event
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+      type: object
     PortingLOAConfiguration:
       properties:
         address:
@@ -39270,6 +39355,182 @@ components:
       format: url
       title: Webhook Event URL
       type: string
+    WebhookPortingOrderDeletedPayload:
+      description: The webhook payload for the porting_order.deleted event
+      properties:
+        customer_reference:
+          description: Identifies the customer reference associated with the porting
+            order.
+          example: my-ref-001
+          type: string
+        deleted_at:
+          description: ISO 8601 formatted date indicating when the porting order was
+            deleted.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          type: string
+        id:
+          description: Identifies the porting order that was deleted.
+          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+          format: uuid
+          type: string
+      type: object
+    WebhookPortingOrderMessagingChangedPayload:
+      description: The webhook payload for the porting_order.messaging_changed event
+      properties:
+        customer_reference:
+          description: Identifies the customer reference associated with the porting
+            order.
+          example: my-ref-001
+          type: string
+        id:
+          description: Identifies the porting order that was moved.
+          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+          format: uuid
+          type: string
+        messaging:
+          description: The messaging portability status of the porting order.
+          properties:
+            enable_messaging:
+              description: Indicates whether messaging is enabled for the porting
+                order.
+              example: true
+              type: boolean
+            messaging_capable:
+              description: Indicates whether the porting order is messaging capable.
+              example: true
+              type: boolean
+            messaging_port_completed:
+              description: Indicates whether the messaging port is completed.
+              example: true
+              type: boolean
+            messaging_port_status:
+              description: Indicates the messaging port status of the porting order.
+              enum:
+              - not_applicable
+              - pending
+              - activating
+              - exception
+              - canceled
+              - partial_port_complete
+              - ported
+              example: ported
+              type: string
+          type: object
+        support_key:
+          description: Identifies the support key associated with the porting order.
+          example: sr_b1a2c3
+          type: string
+      type: object
+    WebhookPortingOrderNewCommentPayload:
+      description: The webhook payload for the porting_order.new_comment event
+      properties:
+        comment:
+          description: The comment that was added to the porting order.
+          properties:
+            body:
+              description: The body of the comment.
+              example: This is a comment.
+              type: string
+            id:
+              description: Identifies the comment.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+            inserted_at:
+              description: ISO 8601 formatted date indicating when the comment was
+                created.
+              example: '2021-03-19T10:07:15.527Z'
+              format: date-time
+              type: string
+            user_id:
+              description: Identifies the user that create the comment.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+            user_type:
+              description: Identifies the type of the user that created the comment.
+              enum:
+              - user
+              - admin
+              - system
+              example: user
+              type: string
+          type: object
+        porting_order_id:
+          description: Identifies the porting order that the comment was added to.
+          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+          format: uuid
+          type: string
+        support_key:
+          description: Identifies the support key associated with the porting order.
+          example: sr_b1a2c3
+          type: string
+      type: object
+    WebhookPortingOrderSplitPayload:
+      description: The webhook payload for the porting_order.split event
+      properties:
+        from:
+          description: The porting order that was split.
+          properties:
+            id:
+              description: Identifies the porting order that was split.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+          type: object
+        porting_phone_numbers:
+          description: The list of porting phone numbers that were moved to the new
+            porting order.
+          items:
+            properties:
+              id:
+                description: Identifies the porting phone number that was moved.
+                example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+                format: uuid
+                type: string
+            type: object
+          type: array
+        to:
+          description: The new porting order that the phone numbers was moved to.
+          properties:
+            id:
+              description: Identifies the porting order that was split.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+          type: object
+      type: object
+    WebhookPortingOrderStatusChangedPayload:
+      description: The webhook payload for the porting_order.status_changed event
+      properties:
+        customer_reference:
+          description: Identifies the customer reference associated with the porting
+            order.
+          example: my-ref-001
+          type: string
+        id:
+          description: Identifies the porting order that was moved.
+          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+          format: uuid
+          type: string
+        status:
+          $ref: '#/components/schemas/PortingOrderStatus'
+        support_key:
+          description: Identifies the support key associated with the porting order.
+          example: sr_b1a2c3
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the porting order was
+            moved.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          type: string
+        webhook_url:
+          description: The URL to send the webhook to.
+          example: https://example.com/webhook
+          type: string
+      type: object
     WebhookTimeoutSecs:
       default: null
       description: Specifies how many seconds to wait before timing out a webhook.
@@ -52983,6 +53244,103 @@ paths:
       summary: Run a portability check
       tags:
       - Phone Number Porting
+      x-latency-category: responsive
+  /porting/events:
+    get:
+      description: Returns a list of all porting events.
+      operationId: listPortingEvents
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: Filter by event type.
+        in: query
+        name: filter[type]
+        schema:
+          enum:
+          - porting_order.deleted
+          - porting_order.loa_updated
+          - porting_order.messaging_changed
+          - porting_order.status_changed
+          - porting_order.sharing_token_expired
+          - porting_order.new_comment
+          - porting_order.split
+          example: porting_order.deleted
+          type: string
+      - description: Filter by porting order ID.
+        in: query
+        name: filter[porting_order_id]
+        schema:
+          example: 34dc46a9-53ed-4e01-9454-26227ea13326
+          format: uuid
+          type: string
+      - description: Filter by created at greater than or equal to.
+        in: query
+        name: filter[created_at][gte]
+        schema:
+          example: '2021-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      - description: Filter by created at less than or equal to.
+        in: query
+        name: filter[created_at][lte]
+        schema:
+          example: '2021-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingEventsResponse'
+        '500':
+          description: Internal server error
+      summary: List all porting events
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting/events/{id}:
+    get:
+      description: Show a specific porting event.
+      operationId: showPortingEvent
+      parameters:
+      - description: Identifies the porting event.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ShowPortingEventResponse'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      summary: Show a porting event
+      tags:
+      - Porting Order
+      x-latency-category: responsive
+  /porting/events/{id}/republish:
+    post:
+      description: Republish a specific porting event.
+      operationId: republishPortingEvent
+      parameters:
+      - description: Identifies the porting event.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: No content
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+      summary: Republish a porting event
+      tags:
+      - Porting Order
       x-latency-category: responsive
   /porting/loa_configuration/preview:
     post:
