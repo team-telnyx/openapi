@@ -41601,30 +41601,24 @@ paths:
       parameters:
       - description: Filter phone numbers by city.
         examples:
-          AU:
-            value: Canberra
-          CA:
-            value: Toronto
-          US:
+          generic:
             value: Chicago
         in: query
         name: filter[locality]
         schema:
           type: string
-      - description: Filter phone numbers by ISO alpha-2 country code.
+      - description: Filter phone numbers by country.
+        examples:
+          generic:
+            summary: Must use 2 letter ISO alpha-2 country code
+            value: US
         in: query
         name: filter[country_code]
         schema:
-          example: US
           type: string
-      - description: Filter by the national destination code of the number. This filter
-          is only applicable to North American numbers.
+      - description: Filter by the national destination code of the number.
         examples:
-          AU:
-            value: '0251'
-          CA:
-            value: '437'
-          US:
+          generic:
             value: '312'
         in: query
         name: filter[national_destination_code]
@@ -41632,11 +41626,14 @@ paths:
           type: string
       - description: Filter phone numbers by number type.
         in: query
-        name: filter[number_type]
+        name: filter[phone_number_type]
         schema:
           enum:
-          - toll-free
-          example: toll-free
+          - local
+          - toll_free
+          - mobile
+          - national
+          - shared_cost
           type: string
       responses:
         '200':
@@ -41651,79 +41648,81 @@ paths:
     get:
       operationId: ListAvailablePhoneNumbers
       parameters:
-      - description: Filter numbers starting with a pattern (exclude NDC from start
-          of this filter if used with `national_destination_code` filter).
+      - description: Filter numbers starting with a pattern (excludes NDC if used
+          with `national_destination_code` filter).
         examples:
           generic:
-            summary: Find numbers starting with the prefix 'FREE'
-            value: FREE
+            summary: Find numbers starting with the pattern. Can be numbers or letters
+              e.g '8226' or 'TACO'
+            value: TACO
         in: query
         name: filter[phone_number][starts_with]
         schema:
           type: string
-      - description: Filter numbers ending with a pattern (max length of 4 digits
-          if used with `national_destination_code` filter).
+      - description: Filter numbers ending with a pattern (excludes NDC if used with
+          `national_destination_code` filter).
         examples:
           generic:
-            summary: Find numbers ending with the suffix 'CALL'
-            value: CALL
+            summary: Find numbers ending with the pattern. Can be numbers or letters
+              e.g '8226' or 'TACO'
+            value: TACO
         in: query
         name: filter[phone_number][ends_with]
         schema:
           type: string
-      - description: Filter numbers containing a pattern (must be used with `national_destination_code`
-          filter and only searches within last 4 digits).
+      - description: Filter numbers containing a pattern (excludes NDC if used with
+          `national_destination_code` filter).
         examples:
           generic:
-            summary: Find numbers that contain the word 'FOO' within the last 4 digits
-            value: FOO
+            summary: Find numbers that contain the pattern. Can be numbers or letters
+              e.g '8226' or 'TACO'
+            value: TACO
         in: query
         name: filter[phone_number][contains]
         schema:
           type: string
       - description: Filter phone numbers by city.
         examples:
-          AU:
-            value: Canberra
-          CA:
-            value: Toronto
-          US:
+          generic:
             value: Chicago
         in: query
         name: filter[locality]
         schema:
           type: string
-      - description: Filter phone numbers by US state/CA province.
+      - description: Find numbers in a particular US state or CA province.
+        examples:
+          generic:
+            summary: Must use 2 letter state/province code.
+            value: IL
         in: query
         name: filter[administrative_area]
         schema:
-          example: IL
           type: string
-      - description: Filter phone numbers by ISO alpha-2 country code.
+      - description: Filter phone numbers by country.
+        examples:
+          generic:
+            summary: Must use 2 letter ISO alpha-2 country code
+            value: US
         in: query
         name: filter[country_code]
         schema:
-          example: US
           type: string
-      - description: Filter by the national destination code of the number. This filter
-          is only applicable to North American numbers.
+      - description: Filter by the national destination code of the number.
         examples:
-          AU:
-            value: '0251'
-          CA:
-            value: '437'
-          US:
+          generic:
             value: '312'
         in: query
         name: filter[national_destination_code]
         schema:
           type: string
-      - description: Filter phone numbers by NANP rate center. This filter is only
-          applicable to North American numbers.
+      - description: Filter phone numbers by rate center. This filter is only applicable
+          to USA and Canada numbers.
+        examples:
+          generic:
+            value: Chicago Heights
         in: query
         name: filter[rate_center]
         schema:
-          example: CHICAGO HEIGHTS
           type: string
       - description: Filter phone numbers by number type.
         in: query
@@ -41735,15 +41734,15 @@ paths:
           - mobile
           - national
           - shared_cost
-          - landline
-          example: local
           type: string
-      - description: Filter if the phone number should be used for voice, fax, mms,
-          sms, emergency.
+      - description: Filter phone numbers with specific features.
+        examples:
+          generic:
+            summary: This filter will also accept a list of features
+            value: voice,sms,hd_voice
         in: query
         name: filter[features]
         schema:
-          example: voice,sms
           items:
             enum:
             - sms
@@ -41751,41 +41750,56 @@ paths:
             - voice
             - fax
             - emergency
+            - hd_voice
+            - international_sms
+            - local_calling
             type: string
           type: array
       - description: Limits the number of results.
+        examples:
+          generic:
+            value: 100
         in: query
         name: filter[limit]
         schema:
-          example: 100
           type: integer
       - description: Filter to determine if best effort results should be included.
-          Only available in NANPA countries.
+          Only available in USA/CANADA.
+        examples:
+          generic:
+            summary: If no numbers are found in specified area, try return numbers
+              from a similar location.
+            value: true
         in: query
         name: filter[best_effort]
         schema:
-          example: false
           type: boolean
       - description: Filter to exclude phone numbers that need additional time after
-          to purchase to receive phone calls. Only available for toll-free numbers.
+          to purchase to activate. Only applicable for +1 toll_free numbers.
+        examples:
+          generic:
+            value: true
         in: query
         name: filter[quickship]
         schema:
-          example: true
           type: boolean
       - description: Filter to exclude phone numbers that cannot be reserved before
           purchase.
+        examples:
+          generic:
+            value: true
         in: query
         name: filter[reservable]
         schema:
-          example: true
           type: boolean
-      - description: Filter to exclude phone numbers that are currently on hold for
-          your account.
+      - description: Filter to exclude phone numbers that are currently on hold/reserved
+          for your account.
+        examples:
+          generic:
+            value: true
         in: query
         name: filter[exclude_held_numbers]
         schema:
-          example: false
           type: boolean
       responses:
         '200':
