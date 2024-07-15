@@ -14674,6 +14674,63 @@
         "tags": [
           "Coverage"
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "filters[available_services][contains]",
+            "description": "The region of associated location to filter on.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AvailableService"
+            }
+          },
+          {
+            "name": "filter[location.region]",
+            "description": "The region of associated location to filter on.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "AMER"
+            }
+          },
+          {
+            "name": "filter[location.site]",
+            "description": "The site of associated location to filter on.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "SJC"
+            }
+          },
+          {
+            "name": "filter[location.pop]",
+            "description": "The site of associated location to filter on.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "SV1"
+            }
+          },
+          {
+            "name": "filter[location.code]",
+            "description": "The site of associated location to filter on.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "silicon_valley-ca"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/NetworkCoverageListResponse"
@@ -29596,9 +29653,9 @@
     },
     "/virtual_cross_connects_coverage": {
       "get": {
-        "summary": "List all Virtual Cross Connect Cloud Regions",
-        "description": "List all Virtual Cross Connects Cloud Regions.<br /><br />This endpoint shows which cloud regions are available for the `region_code` your Virtual Cross Connect will be provisioned in.",
-        "operationId": "ListVirtualCrossConnectRegions",
+        "summary": "List Virtual Cross Connect Cloud Coverage",
+        "description": "List Virtual Cross Connects Cloud Coverage.<br /><br />This endpoint shows which cloud regions are available for the `location_code` your Virtual Cross Connect will be provisioned in.",
+        "operationId": "ListVirtualCrossConnectCoverage",
         "tags": [
           "Virtual Cross Connects"
         ],
@@ -29638,31 +29695,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/VirtualCrossConnectRegionListResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
-      }
-    },
-    "/virtual_cross_connects_coverage/{id}": {
-      "get": {
-        "summary": "Retrieve a Virtual Cross Connect Cloud Regions",
-        "description": "Retrieve a Virtual Cross Connect Cloud Regions.",
-        "operationId": "GetVirtualCrossConnectRegion",
-        "tags": [
-          "Virtual Cross Connects"
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/VirtualCrossConnectRegionResponse"
+            "$ref": "#/components/responses/VirtualCrossConnectCoverageListResponse"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -37725,6 +37758,9 @@
                   "items": {
                     "$ref": "#/components/schemas/NetworkCoverage"
                   }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
             }
@@ -39718,6 +39754,27 @@
           }
         }
       },
+      "VirtualCrossConnectCoverageListResponse": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VirtualCrossConnectCoverage"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "VirtualCrossConnectListResponse": {
         "description": "Successful response",
         "content": {
@@ -39733,42 +39790,6 @@
                 },
                 "meta": {
                   "$ref": "#/components/schemas/PaginationMeta"
-                }
-              }
-            }
-          }
-        }
-      },
-      "VirtualCrossConnectRegionListResponse": {
-        "description": "Successful response",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VirtualCrossConnectRegion"
-                  }
-                },
-                "meta": {
-                  "$ref": "#/components/schemas/PaginationMeta"
-                }
-              }
-            }
-          }
-        }
-      },
-      "VirtualCrossConnectRegionResponse": {
-        "description": "Successful response",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "$ref": "#/components/schemas/VirtualCrossConnectRegion"
                 }
               }
             }
@@ -41430,6 +41451,15 @@
             "example": 0
           }
         }
+      },
+      "AvailableService": {
+        "type": "string",
+        "title": "Available service",
+        "enum": [
+          "cloud_vpn",
+          "private_wireless_gateway",
+          "virtual_cross_connect"
+        ]
       },
       "AwsAccessKeyId": {
         "description": "AWS credentials access key id.",
@@ -62359,13 +62389,12 @@
           "available_services": {
             "type": "array",
             "description": "List of interface types supported in this region.",
-            "example": [
-              "cloud_vpn",
-              "virtual_cross_connect",
-              "private_wireless_gateway"
-            ],
             "items": {
-              "type": "string"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/AvailableService"
+                }
+              ]
             }
           }
         }
@@ -79559,6 +79588,53 @@
           }
         ]
       },
+      "VirtualCrossConnectCoverage": {
+        "allOf": [
+          {
+            "type": "object",
+            "title": "VirtualCrossConnectCoverage",
+            "properties": {
+              "record_type": {
+                "type": "string",
+                "description": "Identifies the type of the resource.",
+                "readOnly": true,
+                "example": "virtual_cross_connects_coverage"
+              },
+              "location": {
+                "$ref": "#/components/schemas/Location"
+              },
+              "cloud_provider": {
+                "type": "string",
+                "enum": [
+                  "aws",
+                  "azure",
+                  "gce"
+                ],
+                "description": "The Virtual Private Cloud with which you would like to establish a cross connect.",
+                "example": "aws"
+              },
+              "cloud_provider_region": {
+                "type": "string",
+                "description": "The region where your Virtual Private Cloud hosts are located. Should be identical to how the cloud provider names region, i.e. us-east-1 for AWS but Frankfurt for Azure",
+                "example": "us-east-1"
+              },
+              "available_bandwidth": {
+                "type": "array",
+                "description": "The available throughput in Megabits per Second (Mbps) for your Virtual Cross Connect.",
+                "items": {
+                  "type": "number"
+                },
+                "example": [
+                  50,
+                  100,
+                  200,
+                  500
+                ]
+              }
+            }
+          }
+        ]
+      },
       "VirtualCrossConnectCreate": {
         "allOf": [
           {
@@ -79618,53 +79694,6 @@
                 "format": "ipv4",
                 "description": "The IP address assigned for your side of the Virtual Cross Connect.<br /><br />If none is provided, one will be generated for you.<br /><br />This value can not be patched once the VXC has bene provisioned.",
                 "example": "169.254.0.4"
-              }
-            }
-          }
-        ]
-      },
-      "VirtualCrossConnectRegion": {
-        "allOf": [
-          {
-            "type": "object",
-            "title": "VirtualCrossConnectRegion",
-            "properties": {
-              "record_type": {
-                "type": "string",
-                "description": "Identifies the type of the resource.",
-                "readOnly": true,
-                "example": "virtual_cross_connects_coverage"
-              },
-              "location": {
-                "$ref": "#/components/schemas/Location"
-              },
-              "cloud_provider": {
-                "type": "string",
-                "enum": [
-                  "aws",
-                  "azure",
-                  "gce"
-                ],
-                "description": "The Virtual Private Cloud with which you would like to establish a cross connect.",
-                "example": "aws"
-              },
-              "cloud_provider_region": {
-                "type": "string",
-                "description": "The region where your Virtual Private Cloud hosts are located.",
-                "example": "us-east-1"
-              },
-              "available_bandwidth": {
-                "type": "array",
-                "description": "The available throughput in Megabits per Second (Mbps) for your Virtual Cross Connect.",
-                "items": {
-                  "type": "number"
-                },
-                "example": [
-                  50,
-                  100,
-                  200,
-                  500
-                ]
               }
             }
           }

@@ -4865,6 +4865,8 @@ components:
                 items:
                   $ref: '#/components/schemas/NetworkCoverage'
                 type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
     NetworkInterfaceListResponse:
@@ -6146,6 +6148,19 @@ components:
                 type: array
             type: object
       description: Successful response
+    VirtualCrossConnectCoverageListResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/VirtualCrossConnectCoverage'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     VirtualCrossConnectListResponse:
       content:
         application/json:
@@ -6157,28 +6172,6 @@ components:
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: Successful response
-    VirtualCrossConnectRegionListResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/VirtualCrossConnectRegion'
-                type: array
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: Successful response
-    VirtualCrossConnectRegionResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/VirtualCrossConnectRegion'
             type: object
       description: Successful response
     VirtualCrossConnectResponse:
@@ -7416,6 +7409,13 @@ components:
           example: 1
           type: integer
       type: object
+    AvailableService:
+      enum:
+      - cloud_vpn
+      - private_wireless_gateway
+      - virtual_cross_connect
+      title: Available service
+      type: string
     AwsAccessKeyId:
       description: AWS credentials access key id.
       example: AKIAIOSFODNN7EXAMPLE
@@ -24853,12 +24853,9 @@ components:
       properties:
         available_services:
           description: List of interface types supported in this region.
-          example:
-          - cloud_vpn
-          - virtual_cross_connect
-          - private_wireless_gateway
           items:
-            type: string
+            oneOf:
+            - $ref: '#/components/schemas/AvailableService'
           type: array
         location:
           $ref: '#/components/schemas/Location'
@@ -39239,6 +39236,44 @@ components:
       - $ref: '#/components/schemas/VirtualCrossConnectCreate'
       - $ref: '#/components/schemas/VirtualCrossConnectPatch'
       - $ref: '#/components/schemas/RegionOut'
+    VirtualCrossConnectCoverage:
+      allOf:
+      - properties:
+          available_bandwidth:
+            description: The available throughput in Megabits per Second (Mbps) for
+              your Virtual Cross Connect.
+            example:
+            - 50
+            - 100
+            - 200
+            - 500
+            items:
+              type: number
+            type: array
+          cloud_provider:
+            description: The Virtual Private Cloud with which you would like to establish
+              a cross connect.
+            enum:
+            - aws
+            - azure
+            - gce
+            example: aws
+            type: string
+          cloud_provider_region:
+            description: The region where your Virtual Private Cloud hosts are located.
+              Should be identical to how the cloud provider names region, i.e. us-east-1
+              for AWS but Frankfurt for Azure
+            example: us-east-1
+            type: string
+          location:
+            $ref: '#/components/schemas/Location'
+          record_type:
+            description: Identifies the type of the resource.
+            example: virtual_cross_connects_coverage
+            readOnly: true
+            type: string
+        title: VirtualCrossConnectCoverage
+        type: object
     VirtualCrossConnectCreate:
       allOf:
       - $ref: '#/components/schemas/VirtualCrossConnect'
@@ -39288,42 +39323,6 @@ components:
             example: false
             type: boolean
         title: VirtualCrossConnectPatch
-        type: object
-    VirtualCrossConnectRegion:
-      allOf:
-      - properties:
-          available_bandwidth:
-            description: The available throughput in Megabits per Second (Mbps) for
-              your Virtual Cross Connect.
-            example:
-            - 50
-            - 100
-            - 200
-            - 500
-            items:
-              type: number
-            type: array
-          cloud_provider:
-            description: The Virtual Private Cloud with which you would like to establish
-              a cross connect.
-            enum:
-            - aws
-            - azure
-            - gce
-            example: aws
-            type: string
-          cloud_provider_region:
-            description: The region where your Virtual Private Cloud hosts are located.
-            example: us-east-1
-            type: string
-          location:
-            $ref: '#/components/schemas/Location'
-          record_type:
-            description: Identifies the type of the resource.
-            example: virtual_cross_connects_coverage
-            readOnly: true
-            type: string
-        title: VirtualCrossConnectRegion
         type: object
     Volume:
       description: Message Volume Enums
@@ -50351,6 +50350,43 @@ paths:
     get:
       description: List all locations and the interfaces that region supports
       operationId: ListNetworkCoverage
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - description: The region of associated location to filter on.
+        in: query
+        name: filters[available_services][contains]
+        required: false
+        schema:
+          $ref: '#/components/schemas/AvailableService'
+      - description: The region of associated location to filter on.
+        in: query
+        name: filter[location.region]
+        required: false
+        schema:
+          example: AMER
+          type: string
+      - description: The site of associated location to filter on.
+        in: query
+        name: filter[location.site]
+        required: false
+        schema:
+          example: SJC
+          type: string
+      - description: The site of associated location to filter on.
+        in: query
+        name: filter[location.pop]
+        required: false
+        schema:
+          example: SV1
+          type: string
+      - description: The site of associated location to filter on.
+        in: query
+        name: filter[location.code]
+        required: false
+        schema:
+          example: silicon_valley-ca
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/NetworkCoverageListResponse'
@@ -60352,10 +60388,10 @@ paths:
       x-latency-category: responsive
   /virtual_cross_connects_coverage:
     get:
-      description: List all Virtual Cross Connects Cloud Regions.<br /><br />This
-        endpoint shows which cloud regions are available for the `region_code` your
-        Virtual Cross Connect will be provisioned in.
-      operationId: ListVirtualCrossConnectRegions
+      description: List Virtual Cross Connects Cloud Coverage.<br /><br />This endpoint
+        shows which cloud regions are available for the `location_code` your Virtual
+        Cross Connect will be provisioned in.
+      operationId: ListVirtualCrossConnectCoverage
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
@@ -60380,25 +60416,10 @@ paths:
           type: string
       responses:
         '200':
-          $ref: '#/components/responses/VirtualCrossConnectRegionListResponse'
+          $ref: '#/components/responses/VirtualCrossConnectCoverageListResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: List all Virtual Cross Connect Cloud Regions
-      tags:
-      - Virtual Cross Connects
-      x-latency-category: responsive
-  /virtual_cross_connects_coverage/{id}:
-    get:
-      description: Retrieve a Virtual Cross Connect Cloud Regions.
-      operationId: GetVirtualCrossConnectRegion
-      parameters:
-      - $ref: '#/components/parameters/ResourceId'
-      responses:
-        '200':
-          $ref: '#/components/responses/VirtualCrossConnectRegionResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Retrieve a Virtual Cross Connect Cloud Regions
+      summary: List Virtual Cross Connect Cloud Coverage
       tags:
       - Virtual Cross Connects
       x-latency-category: responsive
