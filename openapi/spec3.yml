@@ -16491,29 +16491,14 @@ components:
       example:
         billing_group_id: abc85f64-5717-4562-b3fc-2c9600
         connection_id: '346789098765567'
-        created_at: '2018-01-01T00:00:00.000000Z'
         customer_reference: MY REF 001
         id: 12ade33a-21c0-473b-b055-b3c836e1c292
         messaging_profile_id: abc85f64-5717-4562-b3fc-2c9600
         phone_numbers:
         - bundle_id: bc8e4d67-33a0-4cbb-af74-7b58f05bd494
-          country_code: US
-          id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
           phone_number: '+19705555098'
-          phone_number_type: local
-          record_type: number_order_phone_number
-          regulatory_requirements:
-          - field_type: address
-            field_value: 45f45a04-b4be-4592-95b1-9306b9db2b21
-            record_type: phone_number_regulatory_requirement
-            requirement_id: 8ffb3622-7c6b-4ccc-b65f-7a3dc0099576
-          requirements_met: true
-          status: success
-        phone_numbers_count: 1
-        record_type: number_order
-        requirements_met: true
-        status: pending
-        updated_at: '2018-01-01T00:00:00.000000Z'
+        - phone_number: '+492111609539'
+          requirement_group_id: dbbd94ee-9079-488f-80ba-f566b247fd79
       properties:
         billing_group_id:
           description: Identifies the billing group associated with the phone number.
@@ -16523,21 +16508,9 @@ components:
           description: Identifies the connection associated with this phone number.
           example: '346789098765567'
           type: string
-        created_at:
-          description: An ISO 8901 datetime string denoting when the number order
-            was created.
-          example: '2018-01-01T00:00:00.000000Z'
-          format: datetime
-          readOnly: true
-          type: string
         customer_reference:
           description: A customer reference string for customer look ups.
           example: MY REF 001
-          type: string
-        id:
-          example: 12ade33a-21c0-473b-b055-b3c836e1c292
-          format: uuid
-          readOnly: true
           type: string
         messaging_profile_id:
           description: Identifies the messaging profile associated with the phone
@@ -16546,44 +16519,24 @@ components:
           type: string
         phone_numbers:
           items:
-            $ref: '#/components/schemas/PhoneNumber'
+            properties:
+              bundle_id:
+                description: ID of bundle to associate the number to
+                example: bc8e4d67-33a0-4cbb-af74-7b58f05bd494
+                type: string
+              phone_number:
+                description: e164_phone_number
+                example: '+19705555098'
+                type: string
+              requirement_group_id:
+                description: ID of requirement group to use to satisfy number requirements
+                example: dbbd94ee-9079-488f-80ba-f566b247fd7
+                type: string
+            required:
+            - phone_number
+            type: object
           type: array
           writeOnly: true
-        phone_numbers_count:
-          description: The count of phone numbers in the number order.
-          example: 1
-          readOnly: true
-          type: integer
-        record_type:
-          example: number_order
-          readOnly: true
-          type: string
-        requirements_met:
-          description: True if all requirements are met for every phone number, false
-            otherwise.
-          example: true
-          readOnly: true
-          type: boolean
-        status:
-          description: The status of the order.
-          enum:
-          - pending
-          - success
-          - failure
-          example: success
-          readOnly: true
-          type: string
-        sub_number_order_ids:
-          items:
-            description: Sub Number Order ID
-            type: string
-          type: array
-        updated_at:
-          description: An ISO 8901 datetime string for when the number order was updated.
-          example: '2018-01-01T00:00:00.000000Z'
-          format: datetime
-          readOnly: true
-          type: string
     CreateNumberPoolMessageRequest:
       example:
         from: '+18445550001'
@@ -51220,7 +51173,7 @@ paths:
       x-latency-category: responsive
   /number_order_phone_numbers/{number_order_phone_number_id}:
     get:
-      description: Get an existing number order phone number.
+      description: Get an existing phone number in number order.
       operationId: GetNumberOrderPhoneNumber
       parameters:
       - description: The number order phone number ID.
@@ -51234,12 +51187,13 @@ paths:
           $ref: '#/components/responses/NumberOrderPhoneNumberResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Retrieve a number order phone number.
+      summary: Retrieve a single phone number within a number order.
       tags:
       - Phone Number Orders
       x-latency-category: responsive
     patch:
-      description: Updates a number order phone number.
+      description: Updates requirements for a single phone number within a number
+        order.
       operationId: UpdateNumberOrderPhoneNumber
       parameters:
       - description: The number order phone number ID.
@@ -51259,7 +51213,7 @@ paths:
           $ref: '#/components/responses/NumberOrderPhoneNumberResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Update a number order phone number.
+      summary: Update requirements for a single phone number within a number order.
       tags:
       - Phone Number Orders
       x-latency-category: responsive
@@ -51312,20 +51266,6 @@ paths:
       x-group-parameters: 'true'
       x-latency-category: responsive
     post:
-      callbacks:
-        numberOrderStatusUpdate:
-          '{$request.body#/webhook_url}':
-            post:
-              requestBody:
-                content:
-                  application/json:
-                    schema:
-                      $ref: '#/components/schemas/NumberOrderedEvent'
-                required: true
-              responses:
-                '200':
-                  description: The server must return a HTTP 200, otherwise we will
-                    reattempt to deliver the webhook to the failover URL.
       description: Creates a phone number order.
       operationId: CreateNumberOrder
       requestBody:
@@ -58495,13 +58435,6 @@ paths:
         name: filter[status]
         schema:
           type: string
-      - description: User ID of the user who owns the sub number order
-        in: query
-        name: filter[user_id]
-        schema:
-          example: d70873cd-7c98-401a-81b6-b1ae08246995
-          format: uuid
-          type: string
       - description: ID of the number order the sub number order belongs to
         in: query
         name: filter[order_request_id]
@@ -58594,7 +58527,27 @@ paths:
           $ref: '#/components/responses/SubNumberOrderResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Update a sub number order
+      summary: Update a sub number order's requirements
+      tags:
+      - Phone Number Orders
+      x-latency-category: responsive
+  /sub_number_orders/{sub_number_order_id}/cancel:
+    patch:
+      description: Allows you to cancel a sub number order in 'pending' status.
+      operationId: CancelSubNumberOrder
+      parameters:
+      - description: The ID of the sub number order.
+        in: path
+        name: sub_number_order_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SubNumberOrderResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Cancel a sub number order
       tags:
       - Phone Number Orders
       x-latency-category: responsive
