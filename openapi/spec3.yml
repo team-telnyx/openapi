@@ -6409,6 +6409,17 @@ components:
                 items:
                   $ref: '#/components/schemas/RegulatoryRequirements'
                 type: array
+            type: object
+      description: An array of Regulatory Requirements Responses
+    listRegulatoryRequirementsPhoneNumbers:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/RegulatoryRequirementsPhoneNumbers'
+                type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
@@ -31056,6 +31067,71 @@ components:
       type: object
     RegulatoryRequirements:
       properties:
+        action:
+          example: ordering
+          readOnly: true
+          type: string
+        country_code:
+          example: DE
+          readOnly: true
+          type: string
+        phone_number_type:
+          example: local
+          readOnly: true
+          type: string
+        regulatory_requirements:
+          items:
+            properties:
+              acceptance_criteria:
+                properties:
+                  acceptable_characters:
+                    example: Characters that can be included in field value
+                    type: string
+                  acceptable_values:
+                    type: array
+                  case_sensitive:
+                    example: Whether field value is case sensitive
+                    type: string
+                  locality_limit:
+                    example: Identical locality as the numbers desired
+                    type: string
+                  max_length:
+                    example: '10'
+                    type: string
+                  min_length:
+                    example: '5'
+                    type: string
+                  regex:
+                    example: regex field value must match
+                    type: string
+                  time_limit:
+                    example: Less than 5 months old
+                    type: string
+                type: object
+              description:
+                example: Address matching the DID area code (street, building number,
+                  postal code, city and country)
+                readOnly: true
+                type: string
+              example:
+                example: 311 W Superior St, Chicago, IL 60654
+                readOnly: true
+                type: string
+              field_type:
+                example: address_id
+                type: string
+              id:
+                example: 12ade33a-21c0-473b-b055-b3c836e1c292
+                format: uuid
+                readOnly: true
+                type: string
+              name:
+                example: Address matching the DID area code
+                type: string
+            type: object
+          type: array
+    RegulatoryRequirementsPhoneNumbers:
+      properties:
         phone_number:
           example: '+41215471644'
           readOnly: true
@@ -53829,7 +53905,7 @@ paths:
       x-latency-category: responsive
   /phone_numbers_regulatory_requirements:
     get:
-      operationId: ListRegulatoryRequirements
+      operationId: ListRegulatoryRequirementsPhoneNumbers
       parameters:
       - description: Record type phone number/ phone numbers
         in: query
@@ -53840,12 +53916,12 @@ paths:
           type: string
       responses:
         '200':
-          $ref: '#/components/responses/listRegulatoryRequirements'
+          $ref: '#/components/responses/listRegulatoryRequirementsPhoneNumbers'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Retrieve regulatory requirements
+      summary: Retrieve regulatory requirements for a list of phone numbers
       tags:
-      - Phone Number Orders
+      - Regulatory Requirements
       x-latency-category: responsive
   /portability_checks:
     post:
@@ -56024,6 +56100,62 @@ paths:
       summary: List all Regions
       tags:
       - Regions
+      x-latency-category: responsive
+  /regulatory_requirements:
+    get:
+      operationId: ListRegulatoryRequirements
+      parameters:
+      - description: Phone number to check requirements for
+        in: query
+        name: filter[phone_number]
+        required: false
+        schema:
+          example: '+41215470622'
+          type: string
+      - description: ID of requirement group to check requirements for
+        in: query
+        name: filter[requirement_group_id]
+        required: false
+        schema:
+          example: d4c0b4a6-7bd2-40c5-a3b9-2acd99e212b2
+          type: string
+      - description: Country code(iso2) to check requirements for
+        in: query
+        name: filter[country_code]
+        required: false
+        schema:
+          example: DE
+          type: string
+      - description: Phone number type to check requirements for
+        in: query
+        name: filter[phone_number_type]
+        required: false
+        schema:
+          enum:
+          - local
+          - toll_free
+          - mobile
+          - national
+          - shared_cost
+          type: string
+      - description: Action to check requirements for
+        in: query
+        name: filter[action]
+        required: false
+        schema:
+          enum:
+          - ordering
+          - porting
+          - action
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/listRegulatoryRequirements'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve regulatory requirements
+      tags:
+      - Regulatory Requirements
       x-latency-category: responsive
   /reports/cdr_usage_reports/sync:
     get:
@@ -62127,6 +62259,8 @@ tags:
   name: Queue Commands
 - description: Regions
   name: Regions
+- description: Regulatory Requirements
+  name: Regulatory Requirements
 - description: Wireless reporting operations
   name: Reporting
 - description: Requirement Groups
