@@ -4329,6 +4329,64 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/gather_using_ai": {
+      "post": {
+        "summary": "Gather using AI (BETA)",
+        "description": "**BETA** Gather parameters defined in the request payload using a voice assistant.\n\n You can pass parameters described as a JSON Schema object and the voice assistant will attempt to gather these informations. At the moment only English is supported.\n\n**Expected Webhooks:**\n\n- `call.ai_gather.ended`\n",
+        "operationId": "callGatherUsingAI",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Gather using AI request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatherUsingAIRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "CallAIGatherEnded": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallAIGatherEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/gather_using_audio": {
       "post": {
         "summary": "Gather using audio",
@@ -40785,6 +40843,11 @@
       }
     },
     "schemas": {
+      "AWSVoiceSettings": {
+        "type": "object",
+        "title": "AWS Voice Settings",
+        "properties": {}
+      },
       "AcceptSuggestionsRequest": {
         "type": "object",
         "properties": {
@@ -43369,6 +43432,159 @@
             "description": "Indicates the duration of the call in seconds",
             "type": "integer",
             "example": 50
+          }
+        }
+      },
+      "CallAIGatherEnded": {
+        "type": "object",
+        "title": "Call AI Gather Ended",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.ai_gather.ended",
+            "enum": [
+              "call.ai_gather.ended"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "from": {
+                "type": "string",
+                "example": "+35319605860",
+                "description": "Number or SIP URI placing the call."
+              },
+              "to": {
+                "type": "string",
+                "example": "+13129457420",
+                "description": "Destination number or SIP URI of the call."
+              },
+              "message_history": {
+                "description": "The history of the messages exchanged during the AI gather",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "example": "Hello, I'm 29 and I live in Paris.",
+                      "description": "The content of the message"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "assistant",
+                        "user"
+                      ],
+                      "example": "user",
+                      "description": "The role of the message sender"
+                    }
+                  }
+                }
+              },
+              "result": {
+                "type": "object",
+                "description": "The result of the AI gather, its type depends of the `parameters` provided in the command",
+                "example": {
+                  "age": 29,
+                  "city": "Paris"
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "valid",
+                  "invalid"
+                ],
+                "example": "valid",
+                "description": "Reflects how command ended."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.ai_gather.ended",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "from": "+35319605860",
+            "to": "+35319605860",
+            "status": "valid",
+            "message_history": [
+              {
+                "content": "Hello, can you tell me your age and where you live?",
+                "role": "assistant"
+              },
+              {
+                "content": "Hello, I'm 29 and I live in Paris?",
+                "role": "user"
+              }
+            ],
+            "result": {
+              "age": 29,
+              "city": "Paris"
+            }
+          }
+        }
+      },
+      "CallAIGatherEndedEvent": {
+        "type": "object",
+        "title": "Call AI Gather Ended Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallAIGatherEnded"
           }
         }
       },
@@ -56213,6 +56429,17 @@
           "amount"
         ]
       },
+      "ElevenLabsVoiceSettings": {
+        "type": "object",
+        "title": "ElevenLabs Voice Settings",
+        "properties": {
+          "api_key_ref": {
+            "description": "The reference to the ElevenLabs API key to be used for the voice assistant. The API key must be added to the account text-to-speech secrets `/v2/text-to-speech/secrets`.",
+            "type": "string",
+            "example": "my_elevenlabs_api_key"
+          }
+        }
+      },
       "EmbeddingBucketRequest": {
         "properties": {
           "bucket_name": {
@@ -58319,6 +58546,136 @@
             "type": "string",
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
           }
+        }
+      },
+      "GatherUsingAIRequest": {
+        "type": "object",
+        "title": "Gather Using AI Request",
+        "required": [
+          "parameters"
+        ],
+        "properties": {
+          "parameters": {
+            "description": "The parameters described as a JSON Schema object that needs to be gathered by the voice assistant. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format",
+            "type": "object",
+            "example": {
+              "properties": {
+                "age": {
+                  "description": "The age of the customer.",
+                  "type": "integer"
+                },
+                "location": {
+                  "description": "The location of the customer.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "age",
+                "location"
+              ],
+              "type": "object"
+            }
+          },
+          "voice": {
+            "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices only, for ElevenLabs voices you can pass the voice as `ElevenLabs.<model_id>.<voice_id>`, for Telnyx voices you can pass the voice as `Telnyx.<model_id>.<voice_id>`, for AWS Polly voices you can pass the voice as `AWS.Polly.<voice_id>`",
+            "type": "string",
+            "default": "Telnyx.LibriTTS.0",
+            "example": "Telnyx.LibriTTS.0"
+          },
+          "voice_settings": {
+            "description": "The settings associated with the voice selected",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ElevenLabsVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/TelnyxVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/AWSVoiceSettings"
+              }
+            ]
+          },
+          "greeting": {
+            "description": "Text that will be played when the gathering starts, if none then nothing will be played when the gathering starts. The greeting can be text or SSML. There is a 3,000 character limit.",
+            "type": "string",
+            "example": "Hello, can you tell me your age and where you live?"
+          },
+          "gather_ended_speech": {
+            "description": "Text that will be played when the gathering is done, if none then nothing will be played when the gathering ends. The gather_ended_speech can be text or SSML. There is a 3,000 character limit.",
+            "type": "string",
+            "example": "Thanks for your informations."
+          },
+          "message_history": {
+            "description": "The message history you want the voice assistant to be aware of, this can be useful to keep the context of the conversation, or to pass additional information to the voice assistant.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string",
+                  "example": "Hello, I'm 29 and I live in Paris.",
+                  "description": "The content of the message"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "assistant",
+                    "user"
+                  ],
+                  "example": "user",
+                  "description": "The role of the message sender"
+                }
+              }
+            }
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "parameters": {
+            "properties": {
+              "age": {
+                "description": "The age of the customer.",
+                "type": "integer"
+              },
+              "location": {
+                "description": "The location of the customer.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "age",
+              "location"
+            ],
+            "type": "object"
+          },
+          "voice": "Telnyx.LibriTTS.0",
+          "voice_settings": {
+            "voice_speed": 1.25
+          },
+          "greeting": "Hello, can you tell me your age and where you live?",
+          "gather_ended_speech": "Thanks for your informations.",
+          "message_history": [
+            {
+              "content": "Hello, what's your name?",
+              "role": "assistant"
+            },
+            {
+              "content": "Hello, I'm John.",
+              "role": "user"
+            }
+          ],
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
         }
       },
       "GatherUsingAudioRequest": {
@@ -75619,6 +75976,21 @@
           "su",
           "auto_detect"
         ]
+      },
+      "TelnyxVoiceSettings": {
+        "type": "object",
+        "title": "Telnyx Voice Settings",
+        "properties": {
+          "voice_speed": {
+            "description": "The voice speed to be used for the voice. The voice speed must be between 0.1 and 2.0. Default value is 1.0.",
+            "type": "number",
+            "default": 1.0,
+            "format": "float",
+            "example": 1.0,
+            "minimum": 0.1,
+            "maximum": 2.0
+          }
+        }
       },
       "TexmlApplication": {
         "type": "object",
