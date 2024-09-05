@@ -3731,6 +3731,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListAuditLogsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/AuditLogEntry'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: List of audit log entries
     ListAvailablePhoneNumbersBlockResponse:
       content:
         application/json:
@@ -7181,6 +7194,66 @@ components:
       - start
       - end
       - text
+      type: object
+    AuditLogEntry:
+      properties:
+        change_made_by:
+          description: Indicates what type of user made the change
+          enum:
+          - account_owner
+          - organization_member
+          - account_manager
+          - telnyx
+          type: string
+        change_type:
+          description: Identifies the type of change that was made
+          type: string
+        changes:
+          items:
+            properties:
+              field:
+                description: Identifies the name of the field that was changed
+                example: inbound.timeout_1xx_secs
+                type: string
+              from:
+                description: Value of the field before the change was made. This field
+                  can be any JSON type.
+                nullable: true
+                required: false
+              to:
+                description: Value of the field after the change was made. This field
+                  can be any JSON type.
+                nullable: true
+            type: object
+          nullable: true
+          type: array
+        created_at:
+          description: ISO 8601 formatted date indicating when the change was made
+          example: '2020-01-01T00:00:00Z'
+          format: date-time
+          type: string
+        id:
+          description: Unique identifier for the audit log entry
+          format: uuid
+          type: string
+        organization_id:
+          description: Unique identifier for the organization that owns the resource
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: audit_event
+          type: string
+        resource_id:
+          description: Unique identifier for the resource that was changed
+          type: string
+        resource_type:
+          description: Identifies the type of the resource that was changed
+          type: string
+        user_id:
+          description: Unique identifier for the user who made the change
+          format: uuid
+          type: string
       type: object
     AuthenticationProvider:
       properties:
@@ -42650,6 +42723,24 @@ paths:
       tags:
       - Chat
       x-latency-category: responsive
+  /audit_events:
+    get:
+      description: List all audit log entries. Audit logs are a best-effort, eventually
+        consistent record of significant account related changes.
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/ListAuditLogsResponse'
+          description: List of audit log entries
+      summary: List Audit Logs
+      tags:
+      - Audit Logs
+      x-latency-category: responsive
   /authentication_providers:
     get:
       description: Returns a list of your SSO authentication providers.
@@ -62698,6 +62789,8 @@ tags:
   name: Assistants
 - description: Turn audio into text or text into audio.
   name: Audio
+- description: Record of significant account related changes
+  name: Audit Logs
 - description: Authentication Provider operations
   name: Authentication Providers
 - description: V2 Auto Recharge Preferences API

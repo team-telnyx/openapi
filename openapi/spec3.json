@@ -45,6 +45,10 @@
       "description": "Turn audio into text or text into audio."
     },
     {
+      "name": "Audit Logs",
+      "description": "Record of significant account related changes"
+    },
+    {
       "name": "Authentication Providers",
       "description": "Authentication Provider operations"
     },
@@ -1988,6 +1992,36 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/audit_events": {
+      "get": {
+        "summary": "List Audit Logs",
+        "description": "List all audit log entries. Audit logs are a best-effort, eventually consistent record of significant account related changes.",
+        "tags": [
+          "Audit Logs"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of audit log entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/responses/ListAuditLogsResponse"
                 }
               }
             }
@@ -36675,6 +36709,27 @@
           }
         }
       },
+      "ListAuditLogsResponse": {
+        "description": "List of audit log entries",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditLogEntry"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListAvailablePhoneNumbersBlockResponse": {
         "description": "Successful response with a list of available phone numbers blocks.",
         "content": {
@@ -41856,6 +41911,82 @@
           "end",
           "text"
         ]
+      },
+      "AuditLogEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the audit log entry"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the user who made the change"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource.",
+            "example": "audit_event"
+          },
+          "resource_id": {
+            "type": "string",
+            "description": "Unique identifier for the resource that was changed"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the organization that owns the resource"
+          },
+          "changes": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "Identifies the name of the field that was changed",
+                  "example": "inbound.timeout_1xx_secs"
+                },
+                "from": {
+                  "description": "Value of the field before the change was made. This field can be any JSON type.",
+                  "nullable": true,
+                  "required": false
+                },
+                "to": {
+                  "description": "Value of the field after the change was made. This field can be any JSON type.",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "change_made_by": {
+            "type": "string",
+            "description": "Indicates what type of user made the change",
+            "enum": [
+              "account_owner",
+              "organization_member",
+              "account_manager",
+              "telnyx"
+            ]
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource that was changed"
+          },
+          "change_type": {
+            "type": "string",
+            "description": "Identifies the type of change that was made"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the change was made",
+            "example": "2020-01-01T00:00:00Z"
+          }
+        }
       },
       "AuthenticationProvider": {
         "type": "object",
