@@ -28197,6 +28197,71 @@
         }
       }
     },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Streams.json": {
+      "post": {
+        "summary": "Start streaming media from a call.",
+        "description": "Starts streaming media from a call to a specific WebSocket address.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "StartTeXMLCallStreaming",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlCreateCallStreamingRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlCreateCallStreamingResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Streams/{streaming_sid}.json": {
+      "post": {
+        "summary": "Update streaming on a call",
+        "description": "Updates streaming resource for particular call.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "UpdateTeXMLCallStreaming",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          },
+          {
+            "$ref": "#/components/parameters/StreamingSid"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlUpdateCallStreamingRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlUpdateCallStreamingResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
     "/texml/Accounts/{account_sid}/Conferences": {
       "get": {
         "summary": "List conference resources",
@@ -33535,6 +33600,17 @@
           }
         }
       },
+      "StreamingSid": {
+        "description": "Uniquely identifies the streaming by id.",
+        "name": "streaming_sid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "format": "uuid",
+          "type": "string",
+          "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+        }
+      },
       "TexmlDateCreated": {
         "name": "DateCreated",
         "in": "query",
@@ -34167,6 +34243,16 @@
         },
         "description": "Starts call recording on a call."
       },
+      "TexmlCreateCallStreamingRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateCallStreamingRequestBody"
+            }
+          }
+        },
+        "description": "Start streaming media from a call"
+      },
       "TexmlUpdateCallRecordingRequest": {
         "content": {
           "application/x-www-form-urlencoded": {
@@ -34176,6 +34262,16 @@
           }
         },
         "description": "Update call recording on a call."
+      },
+      "TexmlUpdateCallStreamingRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlUpdateCallStreamingRequestBody"
+            }
+          }
+        },
+        "description": "Update streaming"
       },
       "UpdatePortingOrdersActivationJob": {
         "required": true,
@@ -40185,6 +40281,16 @@
           }
         }
       },
+      "TexmlCreateCallStreamingResponse": {
+        "description": "Successful call streaming create response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateCallStreamingResponseBody"
+            }
+          }
+        }
+      },
       "TexmlGetCallRecordingResponse": {
         "description": "Retrieves call recording resource.",
         "content": {
@@ -40274,6 +40380,16 @@
                   "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Transcriptions.json?PageToken=YTBNAXPI&PageSize=1"
                 }
               }
+            }
+          }
+        }
+      },
+      "TexmlUpdateCallStreamingResponse": {
+        "description": "Successful call streaming update response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlUpdateCallStreamingResponseBody"
             }
           }
         }
@@ -74963,6 +75079,31 @@
         "type": "boolean",
         "default": false
       },
+      "StreamName": {
+        "description": "The user specified name of Stream.",
+        "example": "My stream",
+        "type": "string"
+      },
+      "StreamStatus": {
+        "description": "The status of the Stream you wish to update.",
+        "default": "stopped",
+        "example": "stopped",
+        "type": "string",
+        "enum": [
+          "stopped"
+        ]
+      },
+      "StreamTrack": {
+        "description": "Tracks to be included in the stream",
+        "default": "inbound_track",
+        "example": "both_tracks",
+        "type": "string",
+        "enum": [
+          "inbound_track",
+          "outbound_track",
+          "both_tracks"
+        ]
+      },
       "SubNumberOrder": {
         "properties": {
           "id": {
@@ -76424,6 +76565,60 @@
           }
         }
       },
+      "TexmlCreateCallStreamingRequestBody": {
+        "type": "object",
+        "title": "Texml Create Call Streaming Request Body",
+        "properties": {
+          "StatusCallback": {
+            "$ref": "#/components/schemas/TexmlStatusCallback"
+          },
+          "StatusCallbackMethod": {
+            "$ref": "#/components/schemas/TexmlStatusCallbackMethod"
+          },
+          "Track": {
+            "$ref": "#/components/schemas/StreamTrack"
+          },
+          "Name": {
+            "$ref": "#/components/schemas/StreamName"
+          }
+        }
+      },
+      "TexmlCreateCallStreamingResponseBody": {
+        "type": "object",
+        "title": "Texml Create Call Streaming Response Body",
+        "properties": {
+          "account_sid": {
+            "$ref": "#/components/schemas/AccountSid"
+          },
+          "call_sid": {
+            "$ref": "#/components/schemas/CallControlId"
+          },
+          "sid": {
+            "$ref": "#/components/schemas/TexmlSid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The user specified name of Stream.",
+            "example": "My stream"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the streaming.",
+            "enum": [
+              "in-progress"
+            ],
+            "example": "in-progress"
+          },
+          "date_updated": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The relative URI for this streaming resource.",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json"
+          }
+        }
+      },
       "TexmlErrorCode": {
         "type": "string",
         "nullable": true,
@@ -76676,6 +76871,46 @@
               "stopped"
             ],
             "example": "paused"
+          }
+        }
+      },
+      "TexmlUpdateCallStreamingRequestBody": {
+        "type": "object",
+        "title": "Texml Update Call Streaming Request Body",
+        "properties": {
+          "Status": {
+            "$ref": "#/components/schemas/StreamStatus"
+          }
+        }
+      },
+      "TexmlUpdateCallStreamingResponseBody": {
+        "type": "object",
+        "title": "Texml Update Call Streaming Response Body",
+        "properties": {
+          "account_sid": {
+            "$ref": "#/components/schemas/AccountSid"
+          },
+          "call_sid": {
+            "$ref": "#/components/schemas/CallControlId"
+          },
+          "sid": {
+            "$ref": "#/components/schemas/TexmlSid"
+          },
+          "status": {
+            "type": "string",
+            "description": "The status of the streaming.",
+            "enum": [
+              "stopped"
+            ],
+            "example": "stopped"
+          },
+          "date_updated": {
+            "$ref": "#/components/schemas/DateTimeRFC2822"
+          },
+          "uri": {
+            "type": "string",
+            "description": "The relative URI for this streaming resource.",
+            "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json"
           }
         }
       },

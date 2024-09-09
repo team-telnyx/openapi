@@ -1609,6 +1609,15 @@ components:
           example: pending
           type: string
         type: array
+    StreamingSid:
+      description: Uniquely identifies the streaming by id.
+      in: path
+      name: streaming_sid
+      required: true
+      schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        format: uuid
+        type: string
     TexmlDateCreated:
       description: Filters recording by the creation date. Expected format is ISO8601
         date or date-time, ie. {YYYY}-{MM}-{DD} or {YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}Z.
@@ -2080,12 +2089,24 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlCreateCallRecordingRequestBody'
       description: Starts call recording on a call.
+    TexmlCreateCallStreamingRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateCallStreamingRequestBody'
+      description: Start streaming media from a call
     TexmlUpdateCallRecordingRequest:
       content:
         application/x-www-form-urlencoded:
           schema:
             $ref: '#/components/schemas/TexmlUpdateCallRecordingRequestBody'
       description: Update call recording on a call.
+    TexmlUpdateCallStreamingRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlUpdateCallStreamingRequestBody'
+      description: Update streaming
     UpdatePortingOrdersActivationJob:
       content:
         application/json:
@@ -5937,6 +5958,12 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlCreateCallRecordingResponseBody'
       description: Successful call recording create response
+    TexmlCreateCallStreamingResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateCallStreamingResponseBody'
+      description: Successful call streaming create response
     TexmlGetCallRecordingResponse:
       content:
         application/json:
@@ -6003,6 +6030,12 @@ components:
             title: List Recording Transcriptions Response
             type: object
       description: Successful list Recording Transcriptions Response
+    TexmlUpdateCallStreamingResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlUpdateCallStreamingResponseBody'
+      description: Successful call streaming update response
     UnauthenticatedResponse:
       content:
         application/json:
@@ -34680,6 +34713,26 @@ components:
       description: Should fax media be stored on temporary URL. It does not support
         media_name, they can't be submitted together.
       type: boolean
+    StreamName:
+      description: The user specified name of Stream.
+      example: My stream
+      type: string
+    StreamStatus:
+      default: stopped
+      description: The status of the Stream you wish to update.
+      enum:
+      - stopped
+      example: stopped
+      type: string
+    StreamTrack:
+      default: inbound_track
+      description: Tracks to be included in the stream
+      enum:
+      - inbound_track
+      - outbound_track
+      - both_tracks
+      example: both_tracks
+      type: string
     SubNumberOrder:
       properties:
         country_code:
@@ -35890,6 +35943,44 @@ components:
           type: string
       title: Texml Create Call Recording Response Body
       type: object
+    TexmlCreateCallStreamingRequestBody:
+      properties:
+        Name:
+          $ref: '#/components/schemas/StreamName'
+        StatusCallback:
+          $ref: '#/components/schemas/TexmlStatusCallback'
+        StatusCallbackMethod:
+          $ref: '#/components/schemas/TexmlStatusCallbackMethod'
+        Track:
+          $ref: '#/components/schemas/StreamTrack'
+      title: Texml Create Call Streaming Request Body
+      type: object
+    TexmlCreateCallStreamingResponseBody:
+      properties:
+        account_sid:
+          $ref: '#/components/schemas/AccountSid'
+        call_sid:
+          $ref: '#/components/schemas/CallControlId'
+        date_updated:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        name:
+          description: The user specified name of Stream.
+          example: My stream
+          type: string
+        sid:
+          $ref: '#/components/schemas/TexmlSid'
+        status:
+          description: The status of the streaming.
+          enum:
+          - in-progress
+          example: in-progress
+          type: string
+        uri:
+          description: The relative URI for this streaming resource.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json
+          type: string
+      title: Texml Create Call Streaming Response Body
+      type: object
     TexmlErrorCode:
       example: null
       nullable: true
@@ -36084,6 +36175,34 @@ components:
           example: paused
           type: string
       title: Texml Create Call Recording Request Body
+      type: object
+    TexmlUpdateCallStreamingRequestBody:
+      properties:
+        Status:
+          $ref: '#/components/schemas/StreamStatus'
+      title: Texml Update Call Streaming Request Body
+      type: object
+    TexmlUpdateCallStreamingResponseBody:
+      properties:
+        account_sid:
+          $ref: '#/components/schemas/AccountSid'
+        call_sid:
+          $ref: '#/components/schemas/CallControlId'
+        date_updated:
+          $ref: '#/components/schemas/DateTimeRFC2822'
+        sid:
+          $ref: '#/components/schemas/TexmlSid'
+        status:
+          description: The status of the streaming.
+          enum:
+          - stopped
+          example: stopped
+          type: string
+        uri:
+          description: The relative URI for this streaming resource.
+          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json
+          type: string
+      title: Texml Update Call Streaming Response Body
       type: object
     TnReleaseEntry:
       properties:
@@ -60523,6 +60642,45 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Update recording on a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Streams.json:
+    post:
+      description: Starts streaming media from a call to a specific WebSocket address.
+      operationId: StartTeXMLCallStreaming
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlCreateCallStreamingRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlCreateCallStreamingResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Start streaming media from a call.
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Streams/{streaming_sid}.json:
+    post:
+      description: Updates streaming resource for particular call.
+      operationId: UpdateTeXMLCallStreaming
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      - $ref: '#/components/parameters/StreamingSid'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlUpdateCallStreamingRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlUpdateCallStreamingResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Update streaming on a call
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
