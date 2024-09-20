@@ -12988,9 +12988,8 @@ components:
           type: string
         comment_record_type:
           enum:
-          - number_order
           - sub_number_order
-          - number_order_phone_number
+          - requirement_group
           example: sub_number_order
           type: string
         commenter:
@@ -39566,6 +39565,9 @@ components:
         created_at:
           format: date-time
           type: string
+        expires_at:
+          format: date-time
+          type: string
         field_type:
           type: string
         field_value:
@@ -46507,12 +46509,14 @@ paths:
     get:
       operationId: ListComments
       parameters:
-      - description: Record type that the comment relates to i.e number_order, sub_number_order
-          or number_order_phone_number
+      - description: Record type that the comment relates to
         in: query
         name: filter[comment_record_type]
         required: true
         schema:
+          enum:
+          - sub_number_order
+          - requirement_group
           example: sub_number_order
           type: string
       - description: ID of the record the comments relate to
@@ -57758,6 +57762,16 @@ paths:
           - porting
           - action
           type: string
+      - description: Filter requirement groups by status
+        in: query
+        name: filter[status]
+        schema:
+          enum:
+          - approved
+          - unapproved
+          - pending-approval
+          - declined
+          type: string
       - description: Filter requirement groups by customer reference
         examples:
           generic:
@@ -57797,6 +57811,7 @@ paths:
                   example: US
                   type: string
                 customer_reference:
+                  example: My Requirement Group
                   type: string
                 phone_number_type:
                   enum:
@@ -57915,6 +57930,27 @@ paths:
                 $ref: '#/components/schemas/RequirementGroup'
           description: Updated requirement group
       summary: Update requirement values in requirement group
+      tags:
+      - Requirement Groups
+      x-latency-category: responsive
+  /requirement_groups/{id}/submit_for_approval:
+    post:
+      operationId: SubmitRequirementGroup
+      parameters:
+      - description: ID of the requirement group to submit
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequirementGroup'
+          description: A single requirement group
+      summary: Submit a Requirement Group for Approval
       tags:
       - Requirement Groups
       x-latency-category: responsive
