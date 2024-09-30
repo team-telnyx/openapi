@@ -4698,6 +4698,17 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListPortoutRejections:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortoutRejection'
+                type: array
+            type: object
+      description: Successful response
     ListPortoutReports:
       content:
         application/json:
@@ -5797,6 +5808,15 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/PortoutEvent'
+            type: object
+      description: Successful response
+    ShowPortoutRejection:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortoutRejection'
             type: object
       description: Successful response
     ShowPortoutReport:
@@ -30209,6 +30229,11 @@ components:
           example: portout
           readOnly: true
           type: string
+        rejection_code:
+          description: The rejection code for one of the valid rejections to reject
+            a port out order
+          example: 1002
+          type: integer
         requested_foc_date:
           description: ISO 8601 formatted Date/Time of the user requested FOC date
           example: '2018-02-02T22:25:27.521Z'
@@ -30316,6 +30341,18 @@ components:
           example: '2021-03-19T10:07:15.527000Z'
           format: date-time
           type: string
+      type: object
+    PortoutRejection:
+      properties:
+        code:
+          example: 1002
+          type: integer
+        description:
+          example: Invalid PIN
+          type: string
+        reason_required:
+          example: false
+          type: boolean
       type: object
     PortoutReport:
       properties:
@@ -56177,6 +56214,61 @@ paths:
         '500':
           description: Internal server error
       summary: Republish a port-out event
+      tags:
+      - Number Portout
+      x-latency-category: responsive
+  /portout/rejections:
+    get:
+      description: List the predefined port-out rejections
+      operationId: ListPortoutRejections
+      parameters:
+      - description: Filter rejections of a specific code
+        in: query
+        name: filter[code]
+        schema:
+          example: 1002
+          type: integer
+      - description: Filter rejections in a list of codes
+        in: query
+        name: filter[code][in]
+        schema:
+          example:
+          - 1002
+          - 1003
+          items:
+            type: integer
+          type: array
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortoutRejections'
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+        '500':
+          description: Internal server error
+      summary: List port-out rejections
+      tags:
+      - Number Portout
+      x-latency-category: responsive
+  /portout/rejections/{code}:
+    get:
+      description: Retrieve a specific port-out rejection.
+      operationId: GetPortingRejection
+      parameters:
+      - description: Identifies a rejection.
+        in: path
+        name: code
+        required: true
+        schema:
+          example: 1002
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ShowPortoutRejection'
+        '404':
+          description: Resource not found
+        '500':
+          description: Internal server error
+      summary: Retrieve a rejection
       tags:
       - Number Portout
       x-latency-category: responsive
