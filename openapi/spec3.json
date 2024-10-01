@@ -401,6 +401,10 @@
       "description": "SIM Card Orders operations"
     },
     {
+      "name": "SIM Card Pools",
+      "description": "SIM Card Pools operations"
+    },
+    {
       "name": "SIM Cards",
       "description": "SIM Cards operations"
     },
@@ -898,7 +902,7 @@
       "post": {
         "x-latency-category": "background",
         "summary": "Purchase eSIMs",
-        "description": "Purchases and registers the specified amount of eSIMs to the current user's account.<br/><br/>\nIf <code>sim_card_group_id</code> is provided, the eSIMs will be associated with that group. Otherwise, the default group for the current user will be used.<br/><br/>\n",
+        "description": "Purchases and registers the specified amount of eSIMs to the current user's account.<br/><br/>\nIf <code>sim_card_group_id</code> is provided, the eSIMs will be associated with that group. Otherwise, the default group for the current user will be used.<br/><br/>\n If the product is \"enterprise\" the sim_card_pool_name argument must be present",
         "operationId": "PurchaseESim",
         "tags": [
           "SIM Cards"
@@ -26806,6 +26810,93 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sim_card_pools": {
+      "get": {
+        "operationId": "GetSIMCardPools",
+        "summary": "List SIM card pools",
+        "description": "This API allows listing a paginated collection of SIM Card Pools . It allows to explore a collection of existing asynchronous operation using specific filters.",
+        "tags": [
+          "SIM Card Pools"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          },
+          {
+            "name": "filter[name]",
+            "description": "Filter by pool name.",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sim_card_pool",
+                "foobar"
+              ],
+              "example": "sim_card_pool"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardPoolCollectionResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sim_card_pools/{matching_id}": {
+      "delete": {
+        "operationId": "Delete SIMCardPool",
+        "summary": "Delete SIM card pool ",
+        "description": "This API Endpoint allows for the deletion of an empty SIM Card Pool",
+        "tags": [
+          "SIM Card Pools"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SIMCardPoolMatchingId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardPoolResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "get": {
+        "operationId": "GetSIMCardPool",
+        "summary": "List SIM card pools ",
+        "description": "This API Endpoint allows fetching a SIM Card Pool Resource",
+        "tags": [
+          "SIM Card Pools"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SIMCardPoolMatchingId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SIMCardPoolResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/sim_cards": {
       "get": {
         "summary": "Get all SIM cards",
@@ -33830,6 +33921,16 @@
           "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
         }
       },
+      "SIMCardPoolMatchingId": {
+        "name": "matching_id",
+        "description": "Identifies the SIM pool.",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "QR-G-K9-2N7-JHRTNX"
+        }
+      },
       "ShortCodeId": {
         "name": "id",
         "in": "path",
@@ -40127,6 +40228,42 @@
             }
           }
         }
+      },
+      "SIMCardPoolCollectionResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SIMCardPool"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "SIMCardPoolResponse": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SIMCardPool"
+                }
+              }
+            }
+          }
+        },
+        "description": "Successful Response"
       },
       "SIMCardPublicIPResponse": {
         "description": "Successful response",
@@ -57092,6 +57229,21 @@
             "example": 10,
             "minimum": 1
           },
+          "sim_pool_name": {
+            "type": "string",
+            "description": "Name of the SIM Pool to be asigned",
+            "example": "personal sim pool",
+            "default": "Default"
+          },
+          "product": {
+            "type": "string",
+            "description": "Type of product to be registered",
+            "enum": [
+              "enterprise"
+            ],
+            "example": "enterprise",
+            "default": ""
+          },
           "status": {
             "type": "string",
             "description": "Status on which the SIM cards will be set after being successfully registered.",
@@ -73272,6 +73424,62 @@
             "type": "integer",
             "description": "The amount of SIM cards requested in the SIM card order.",
             "example": 21
+          }
+        }
+      },
+      "SIMCardPool": {
+        "type": "object",
+        "title": "SIMCardPool",
+        "properties": {
+          "matching_id": {
+            "type": "string",
+            "example": "QR-G-K9-2N7-JHRTNX",
+            "readOnly": false
+          },
+          "name": {
+            "type": "string",
+            "example": "sim card pool",
+            "readOnly": false
+          },
+          "description": {
+            "type": "string",
+            "example": "sim card pool description",
+            "readOnly": false
+          },
+          "activation_code": {
+            "type": "string",
+            "example": "LPA:1$rsp.truphone.com$QR-G-K9-7NG-1H9FLVT",
+            "readOnly": true
+          },
+          "invalid_at": {
+            "type": "string",
+            "description": "Expiration date of the sim card pool resource",
+            "readOnly": false,
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "organization_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The user ID that created the SIM Card Pool",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The user ID that created the SIM Card Pool",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+            "readOnly": true,
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
+            "readOnly": true,
+            "example": "2018-02-02T22:25:27.521Z"
           }
         }
       },
