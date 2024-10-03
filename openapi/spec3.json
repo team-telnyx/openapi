@@ -185,6 +185,10 @@
       "description": "FQDN operations"
     },
     {
+      "name": "Fine Tuning",
+      "description": "Customize LLMs for your unique needs"
+    },
+    {
       "name": "Global IPs",
       "description": "Global IPs"
     },
@@ -1798,6 +1802,124 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TaskStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/ai/fine_tuning/jobs": {
+      "get": {
+        "tags": [
+          "Fine Tuning"
+        ],
+        "summary": "List fine tuning jobs",
+        "description": "Retrieve a list of all fine tuning jobs created by the user.",
+        "operationId": "get_finetuningjob_public_finetuning_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FineTuningJobsListData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "tags": [
+          "Fine Tuning"
+        ],
+        "summary": "Create a fine tuning job",
+        "description": "Create a new fine tuning job.",
+        "operationId": "create_new_finetuningjob_public_finetuning_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFineTuningJobRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FineTuningJob"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/ai/fine_tuning/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Fine Tuning"
+        ],
+        "summary": "Get a fine tuning job",
+        "description": "Retrieve a fine tuning job by `job_id`.",
+        "operationId": "get_finetuningjob_public_finetuning__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FineTuningJob"
                 }
               }
             }
@@ -53398,6 +53520,45 @@
           }
         }
       },
+      "CreateFineTuningJobRequest": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "The base model that is being fine-tuned."
+          },
+          "training_file": {
+            "type": "string",
+            "description": "The storage bucket or object used for training."
+          },
+          "suffix": {
+            "type": "string",
+            "description": "Optional suffix to append to the fine tuned model's name."
+          },
+          "hyperparameters": {
+            "type": "object",
+            "description": "The hyperparameters used for the fine-tuning job.",
+            "properties": {
+              "n_epochs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10,
+                "default": 3,
+                "description": "The number of epochs to train the model for. An epoch refers to one full cycle through the training dataset. 'auto' decides the optimal number of epochs based on the size of the dataset. If setting the number manually, we support any number between 1 and 50 epochs."
+              }
+            },
+            "required": [
+              "model",
+              "training_file"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "training_file"
+        ],
+        "title": "CreateFineTuningJobRequest"
+      },
       "CreateFqdnConnectionRequest": {
         "title": "Create FQDN Connection Request",
         "required": [
@@ -59128,6 +59289,96 @@
             "example": "adfaa016-f921-4b6c-97bb-e4c1dad231c5"
           }
         }
+      },
+      "FineTuningJob": {
+        "type": "object",
+        "title": "FineTuningJob",
+        "description": "The `fine_tuning.job` object represents a fine-tuning job that has been created through the API.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The name of the fine-tuned model that is being created."
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "The Unix timestamp (in seconds) for when the fine-tuning job was created."
+          },
+          "finished_at": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The Unix timestamp (in seconds) for when the fine-tuning job was finished. The value will be null if the fine-tuning job is still running."
+          },
+          "hyperparameters": {
+            "type": "object",
+            "description": "The hyperparameters used for the fine-tuning job.",
+            "properties": {
+              "n_epochs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10,
+                "default": 3,
+                "description": "The number of epochs to train the model for. An epoch refers to one full cycle through the training dataset."
+              }
+            },
+            "required": [
+              "n_epochs"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "The base model that is being fine-tuned."
+          },
+          "organization_id": {
+            "type": "string",
+            "description": "The organization that owns the fine-tuning job."
+          },
+          "status": {
+            "type": "string",
+            "description": "The current status of the fine-tuning job.",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "trained_tokens": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The total number of billable tokens processed by this fine-tuning job. The value will be null if the fine-tuning job is still running."
+          },
+          "training_file": {
+            "type": "string",
+            "description": "The storage bucket or object used for training."
+          }
+        },
+        "required": [
+          "created_at",
+          "finished_at",
+          "hyperparameters",
+          "id",
+          "model",
+          "organization_id",
+          "status",
+          "trained_tokens",
+          "training_file"
+        ]
+      },
+      "FineTuningJobsListData": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FineTuningJob"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "FineTuningJobListData"
       },
       "FirstCommandTimeout": {
         "title": "First Command Timeout",

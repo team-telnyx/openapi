@@ -16235,6 +16235,38 @@ components:
       - webhook_event_url
       title: Create Fax Application Request
       type: object
+    CreateFineTuningJobRequest:
+      properties:
+        hyperparameters:
+          description: The hyperparameters used for the fine-tuning job.
+          properties:
+            n_epochs:
+              default: 3
+              description: The number of epochs to train the model for. An epoch refers
+                to one full cycle through the training dataset. 'auto' decides the
+                optimal number of epochs based on the size of the dataset. If setting
+                the number manually, we support any number between 1 and 50 epochs.
+              maximum: 10
+              minimum: 1
+              type: integer
+          required:
+          - model
+          - training_file
+          type: object
+        model:
+          description: The base model that is being fine-tuned.
+          type: string
+        suffix:
+          description: Optional suffix to append to the fine tuned model's name.
+          type: string
+        training_file:
+          description: The storage bucket or object used for training.
+          type: string
+      required:
+      - model
+      - training_file
+      title: CreateFineTuningJobRequest
+      type: object
     CreateFqdnConnectionRequest:
       example:
         active: true
@@ -21027,6 +21059,80 @@ components:
         tags_list:
           example: tag1
           type: string
+      type: object
+    FineTuningJob:
+      description: The `fine_tuning.job` object represents a fine-tuning job that
+        has been created through the API.
+      properties:
+        created_at:
+          description: The Unix timestamp (in seconds) for when the fine-tuning job
+            was created.
+          type: integer
+        finished_at:
+          description: The Unix timestamp (in seconds) for when the fine-tuning job
+            was finished. The value will be null if the fine-tuning job is still running.
+          nullable: true
+          type: integer
+        hyperparameters:
+          description: The hyperparameters used for the fine-tuning job.
+          properties:
+            n_epochs:
+              default: 3
+              description: The number of epochs to train the model for. An epoch refers
+                to one full cycle through the training dataset.
+              maximum: 10
+              minimum: 1
+              type: integer
+          required:
+          - n_epochs
+          type: object
+        id:
+          description: The name of the fine-tuned model that is being created.
+          type: string
+        model:
+          description: The base model that is being fine-tuned.
+          type: string
+        organization_id:
+          description: The organization that owns the fine-tuning job.
+          type: string
+        status:
+          description: The current status of the fine-tuning job.
+          enum:
+          - queued
+          - running
+          - succeeded
+          - failed
+          - cancelled
+          type: string
+        trained_tokens:
+          description: The total number of billable tokens processed by this fine-tuning
+            job. The value will be null if the fine-tuning job is still running.
+          nullable: true
+          type: integer
+        training_file:
+          description: The storage bucket or object used for training.
+          type: string
+      required:
+      - created_at
+      - finished_at
+      - hyperparameters
+      - id
+      - model
+      - organization_id
+      - status
+      - trained_tokens
+      - training_file
+      title: FineTuningJob
+      type: object
+    FineTuningJobsListData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/FineTuningJob'
+          type: array
+      required:
+      - data
+      title: FineTuningJobListData
       type: object
     FirstCommandTimeout:
       default: false
@@ -42912,6 +43018,81 @@ paths:
       tags:
       - Embeddings
       x-latency-category: responsive
+  /ai/fine_tuning/jobs:
+    get:
+      description: Retrieve a list of all fine tuning jobs created by the user.
+      operationId: get_finetuningjob_public_finetuning_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FineTuningJobsListData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List fine tuning jobs
+      tags:
+      - Fine Tuning
+      x-latency-category: responsive
+    post:
+      description: Create a new fine tuning job.
+      operationId: create_new_finetuningjob_public_finetuning_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFineTuningJobRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FineTuningJob'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create a fine tuning job
+      tags:
+      - Fine Tuning
+      x-latency-category: responsive
+  /ai/fine_tuning/jobs/{job_id}:
+    get:
+      description: Retrieve a fine tuning job by `job_id`.
+      operationId: get_finetuningjob_public_finetuning__job_id__get
+      parameters:
+      - in: path
+        name: job_id
+        required: true
+        schema:
+          title: Job Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FineTuningJob'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get a fine tuning job
+      tags:
+      - Fine Tuning
+      x-latency-category: responsive
   /ai/models:
     get:
       description: 'This endpoint returns a list of Open Source and OpenAI models
@@ -63589,6 +63770,8 @@ tags:
   name: FQDN Connections
 - description: FQDN operations
   name: FQDNs
+- description: Customize LLMs for your unique needs
+  name: Fine Tuning
 - description: Global IPs
   name: Global IPs
 - description: IP Address Operations
