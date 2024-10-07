@@ -1424,6 +1424,13 @@ components:
       schema:
         format: uuid
         type: string
+    SiprecConnectorName:
+      description: Uniquely identifies a SIPREC connector
+      in: path
+      name: connector_name
+      required: true
+      schema:
+        type: string
     Sort:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
@@ -2091,6 +2098,13 @@ components:
                 type: string
             type: object
       required: true
+    SiprecConnectorRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SiprecConnector'
+      description: The params expected to create/update a SIPREC connector
+      required: true
     TexmlCreateCallRecordingRequest:
       content:
         application/x-www-form-urlencoded:
@@ -2103,6 +2117,12 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlCreateCallStreamingRequestBody'
       description: Start streaming media from a call
+    TexmlCreateSiprecSessionRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateSiprecSessionRequestBody'
+      description: Starts a SIPREC session.
     TexmlUpdateCallRecordingRequest:
       content:
         application/x-www-form-urlencoded:
@@ -2115,6 +2135,12 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlUpdateCallStreamingRequestBody'
       description: Update streaming
+    TexmlUpdateSiprecSessionRequest:
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/TexmlUpdateSiprecSessionRequestBody'
+      description: Updates a SIPREC session.
     UpdatePortingOrdersActivationJob:
       content:
         application/json:
@@ -5917,6 +5943,13 @@ components:
           schema:
             $ref: '#/components/schemas/PhoneNumberCampaign'
       description: Successful Response
+    SiprecConnectorResponseBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SiprecConnectorResponse'
+      description: Return details of the SIPREC connector associated with the given
+        name.
     SlimListPhoneNumbersResponse:
       content:
         application/json:
@@ -5991,6 +6024,12 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlCreateCallStreamingResponseBody'
       description: Successful call streaming create response
+    TexmlCreateSiprecSessionResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlCreateSiprecSessionResponseBody'
+      description: Successful SIPREC session create response
     TexmlGetCallRecordingResponse:
       content:
         application/json:
@@ -6063,6 +6102,12 @@ components:
           schema:
             $ref: '#/components/schemas/TexmlUpdateCallStreamingResponseBody'
       description: Successful call streaming update response
+    TexmlUpdateSiprecSessionResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TexmlUpdateSiprecSessionResponseBody'
+      description: Successful SIPREC session update response
     UnauthenticatedResponse:
       content:
         application/json:
@@ -11851,6 +11896,229 @@ components:
           example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1
           type: string
       title: Multiple call resources
+      type: object
+    CallSiprecFailed:
+      example:
+        event_type: siprec.failed
+        id: 25dc3731-e51e-4927-a50d-a61cc25984b1
+        occurred_at: '2021-12-15T14:11:24.613295Z'
+        payload:
+          call_control_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_leg_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_session_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          failure_cause: no_answer
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - siprec.failed
+          example: siprec.failed
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 25dc3731-e51e-4927-a50d-a61cc25984b1
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2021-12-15T14:11:24.613295Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            failure_cause:
+              description: Q850 reason why siprec session failed.
+              example: no_answer
+              type: string
+          type: object
+        record_type:
+          description: Identifies the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Siprec Failed
+      type: object
+    CallSiprecFailedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallSiprecFailed'
+      title: Siprec Failed Event
+      type: object
+    CallSiprecStarted:
+      example:
+        event_type: siprec.started
+        id: 7d743d69-f7e8-4761-b7d4-8cacf9d3c031
+        occurred_at: '2021-12-15T14:06:32.059436Z'
+        payload:
+          call_control_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_leg_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_session_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - siprec.started
+          example: siprec.started
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2021-12-15T14:06:32.059436Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Siprec Started
+      type: object
+    CallSiprecStartedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallSiprecStarted'
+      title: Siprec Started Event
+      type: object
+    CallSiprecStopped:
+      example:
+        event_type: siprec.stopped
+        id: 25dc3731-e51e-4927-a50d-a61cc25984b1
+        occurred_at: '2021-12-15T14:11:24.613295Z'
+        payload:
+          call_control_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_leg_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          call_session_id: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          hangup_cause: normal_clearing
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - siprec.stopped
+          example: siprec.stopped
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 25dc3731-e51e-4927-a50d-a61cc25984b1
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2021-12-15T14:11:24.613295Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 31f19208-5db0-11ec-9ea7-02420a0d3a69
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            hangup_cause:
+              description: Q850 reason why the SIPREC session was stopped.
+              example: normal_clearing
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Siprec Stopped
+      type: object
+    CallSiprecStoppedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallSiprecStopped'
+      title: Siprec Stopped Event
       type: object
     CallSpeakEnded:
       example:
@@ -34282,6 +34550,74 @@ components:
       - value
       title: SIP Header
       type: object
+    SiprecConnector:
+      example:
+        app_subdomain: my-app
+        host: siprec.telnyx.com
+        name: my-siprec-connector
+        port: 5060
+      properties:
+        app_subdomain:
+          description: Sip subdomain to route the call when using Telnyx SRS. Not
+            required if non-Telnyx SRS is used.
+          example: my-app-domain
+          type: string
+        host:
+          description: Hostname/IPv4 address of SIPREC SRS to be used
+          example: siprec.telnyx.com
+          type: string
+        name:
+          description: Name for the siprec connector resource.
+          example: my-siprec-connector
+          type: string
+        port:
+          description: Port for SIPREC SRS to be used
+          example: 5060
+          type: integer
+      required:
+      - host
+      - port
+      - name
+      title: SIPREC connector configuration
+      type: object
+    SiprecConnectorResponse:
+      properties:
+        data:
+          properties:
+            app_subdomain:
+              description: Sip subdomain to route the call when using Telnyx SRS Not
+                required if non-Telnyx SRS is used.
+              example: my-app-domain
+              type: string
+            created_at:
+              description: ISO 8601 formatted date of when the resource was created
+              example: '2024-01-23T18:10:02.574Z'
+              type: string
+            host:
+              description: Hostname/IPv4 address of SIPREC SRS to be used
+              example: siprec.telnyx.com
+              type: string
+            name:
+              description: Name for the siprec connector resource.
+              example: siprec-connector
+              type: string
+            port:
+              description: Port for SIPREC SRS to be used
+              example: 5060
+              type: integer
+            record_type:
+              example: siprec_connector
+              type: string
+            updated_at:
+              description: ISO 8601 formatted date of when the resource was last updated
+              example: '2024-01-23T18:10:02.574Z'
+              type: string
+          title: Siprec Connector
+          type: object
+      required:
+      - data
+      title: Siprec Connector Response
+      type: object
     SlimPhoneNumberDetailed:
       example:
         billing_group_id: 86f58db9-0fe3-4adc-9d1f-46e66e6e9323
@@ -34759,6 +35095,57 @@ components:
       - channels
       title: Start Recording Request
       type: object
+    StartSiprecRequest:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        connector_name: my-siprec-connector
+        siprec_track: both_tracks
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        connector_name:
+          description: Name of configured SIPREC connector to be used.
+          example: my-siprec-connector
+          type: string
+        include_metadata_custom_headers:
+          description: "When set, custom parameters will be added as metadata (recording.session.ExtensionParameters).\
+            \ Otherwise, they\u2019ll be added to sip headers."
+          enum:
+          - true
+          - false
+          example: true
+          type: boolean
+        secure:
+          description: Controls whether to encrypt media sent to your SRS using SRTP
+            and TLS. When set you need to configure SRS port in your connector to
+            5061.
+          enum:
+          - true
+          - false
+          example: true
+          type: boolean
+        session_timeout_secs:
+          default: 1800
+          description: Sets `Session-Expires` header to the INVITE. A reinvite is
+            sent every half the value set. Usefull for session keep alive. Minimum
+            value is 90, set to 0 to disable.
+          example: 900
+          type: integer
+        siprec_track:
+          default: both_tracks
+          description: Specifies which track should be sent on siprec session.
+          enum:
+          - inbound_track
+          - outbound_track
+          - both_tracks
+          example: outbound_track
+          type: string
+      title: Start Siprec Request
+      type: object
     StartStreamingRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -34903,6 +35290,23 @@ components:
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
       title: Stop Recording Request
+      type: object
+    StopSiprecRequest:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: Stop Siprec Request
       type: object
     StopStreamingRequest:
       example:
@@ -36260,6 +36664,110 @@ components:
           type: string
       title: Texml Create Call Streaming Response Body
       type: object
+    TexmlCreateSiprecSessionRequestBody:
+      properties:
+        ConnectorName:
+          description: The name of the connector to use for the SIPREC session.
+          example: my_connector
+          type: string
+        IncludeMetadataCustomHeaders:
+          description: "When set, custom parameters will be added as metadata (recording.session.ExtensionParameters).\
+            \ Otherwise, they\u2019ll be added to sip headers."
+          enum:
+          - true
+          - false
+          example: true
+          type: boolean
+        Secure:
+          description: Controls whether to encrypt media sent to your SRS using SRTP
+            and TLS. When set you need to configure SRS port in your connector to
+            5061.
+          enum:
+          - true
+          - false
+          example: true
+          type: boolean
+        SessionTimeoutSecs:
+          default: 1800
+          description: Sets `Session-Expires` header to the INVITE. A reinvite is
+            sent every half the value set. Usefull for session keep alive. Minimum
+            value is 90, set to 0 to disable.
+          example: 900
+          type: integer
+        StatusCallback:
+          description: URL destination for Telnyx to send status callback events to
+            for the siprec session.
+          example: https://www.example.com/callback
+          type: string
+        StatusCallbackMethod:
+          description: HTTP request type used for `StatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        Track:
+          description: The track to be used for siprec session. Can be `both_tracks`,
+            `inbound_track` or `outbound_track`. Defaults to `both_tracks`.
+          enum:
+          - both_tracks
+          - inbound_track
+          - outbound_track
+          example: both_tracks
+          type: string
+      title: Create Siprec Session Request
+      type: object
+    TexmlCreateSiprecSessionResponseBody:
+      properties:
+        account_sid:
+          description: The id of the account the resource belongs to.
+          example: 61bf923e-5e4d-4595-a110-56190ea18a1b
+          type: string
+        call_sid:
+          description: The id of the call the resource belongs to.
+          example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
+          type: string
+        date_created:
+          description: The date and time the siprec session was created.
+          example: Fri, 11 Aug 2023 19:12:11 +0000
+          type: string
+        date_updated:
+          description: The date and time the siprec session was last updated.
+          example: Fri, 11 Aug 2023 19:12:11 +0000
+          type: string
+        error_code:
+          description: The error code of the siprec session.
+          example: null
+          type: string
+        sid:
+          description: The SID of the siprec session.
+          example: 61bf923e-5e4d-4595-a110-56190ea18123
+          type: string
+        start_time:
+          description: The date and time the siprec session was started.
+          example: Fri, 11 Aug 2023 19:12:11 +0000
+          type: string
+        status:
+          description: The status of the siprec session.
+          enum:
+          - in-progress
+          - stopped
+          example: in-progress
+          type: string
+        track:
+          description: The track used for the siprec session.
+          enum:
+          - both_tracks
+          - inbound_track
+          - outbound_track
+          example: both_tracks
+          type: string
+        uri:
+          description: The URI of the siprec session.
+          example: https://api.telnyx.com/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18123/Calls/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-ai/Siprec/61bf923e-5e4d-4595-a110-56190ea18123
+          type: string
+      title: Create Siprec Session Response
+      type: object
     TexmlErrorCode:
       example: null
       nullable: true
@@ -36482,6 +36990,52 @@ components:
           example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json
           type: string
       title: Texml Update Call Streaming Response Body
+      type: object
+    TexmlUpdateSiprecSessionRequestBody:
+      properties:
+        Status:
+          description: The new status of the resource. Specifying `stopped` will end
+            the siprec session.
+          enum:
+          - stopped
+          example: stopped
+          type: string
+      title: Update Siprec Session Request
+      type: object
+    TexmlUpdateSiprecSessionResponseBody:
+      properties:
+        account_sid:
+          description: The id of the account the resource belongs to.
+          example: 61bf923e-5e4d-4595-a110-56190ea18a1b
+          type: string
+        call_sid:
+          description: The id of the call the resource belongs to.
+          example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
+          type: string
+        date_updated:
+          description: The date and time the siprec session was last updated.
+          example: Fri, 11 Aug 2023 19:12:11 +0000
+          type: string
+        error_code:
+          description: The error code of the siprec session.
+          example: null
+          type: string
+        sid:
+          description: The SID of the siprec session.
+          example: 61bf923e-5e4d-4595-a110-56190ea18123
+          type: string
+        status:
+          description: The status of the siprec session.
+          enum:
+          - in-progress
+          - stopped
+          example: in-progress
+          type: string
+        uri:
+          description: The URI of the siprec session.
+          example: https://api.telnyx.com/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18123/Calls/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-ai/Siprec/61bf923e-5e4d-4595-a110-56190ea18123
+          type: string
+      title: Update Siprec Session Response
       type: object
     TnReleaseEntry:
       properties:
@@ -45741,6 +46295,113 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Send SIP info
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/siprec_start:
+    post:
+      callbacks:
+        callSiprecFailed:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallSiprecFailedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callSiprecStarted:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallSiprecStartedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+        callSiprecStopped:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallSiprecStoppedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: "Start siprec session to configured in SIPREC connector SRS. \n\
+        \n**Expected Webhooks:**\n\n- `siprec.started`\n- `siprec.stopped`\n- `siprec.failed`\n"
+      operationId: StartSiprecSession
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSiprecRequest'
+        description: Start siprec session to configured in SIPREC connector SRS.
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: SIPREC start
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/siprec_stop:
+    post:
+      callbacks:
+        callStreamingStopped:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallSiprecStoppedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: 'Stop SIPREC session.
+
+
+        **Expected Webhooks:**
+
+
+        - `siprec.stopped`
+
+        '
+      operationId: StopSiprecSession
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StopSiprecRequest'
+        description: Stop siprec session
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: SIPREC stop
       tags:
       - Call Commands
       x-latency-category: interactive
@@ -60676,6 +61337,65 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
+  /siprec_connectors:
+    delete:
+      description: Deletes a stored Siprec Connection.
+      operationId: DeleteSiprecConnection
+      parameters:
+      - $ref: '#/components/parameters/SiprecConnectorName'
+      responses:
+        '204':
+          description: The SIPREC connector was deleted successfully.
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete stored Siprec Connection
+      tags:
+      - Siprec Connector
+      x-latency-category: responsive
+    get:
+      description: Return details of the Siprec connection.
+      operationId: GetSiprecConnection
+      parameters:
+      - $ref: '#/components/parameters/SiprecConnectorName'
+      responses:
+        '200':
+          $ref: '#/components/responses/SiprecConnectorResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve stored Siprec Connection
+      tags:
+      - Siprec Connector
+      x-latency-category: responsive
+    post:
+      description: Saves a siprec connector configuration.
+      operationId: CreateSiprecConnector
+      requestBody:
+        $ref: '#/components/requestBodies/SiprecConnectorRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/SiprecConnectorResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Creates a siprec connector
+      tags:
+      - Siprec Connector
+      x-latency-category: responsive
+    put:
+      description: Updates a stored SIPREC connector
+      operationId: UpdateSiprecConnector
+      parameters:
+      - $ref: '#/components/parameters/SiprecConnectorName'
+      requestBody:
+        $ref: '#/components/requestBodies/SiprecConnectorRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/SiprecConnectorResponseBody'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Update stored SIPREC connector
+      tags:
+      - Siprec Connector
+      x-latency-category: responsive
   /storage/buckets/{bucketName}/ssl_certificate:
     delete:
       description: Deletes an SSL certificate and its matching secret.
@@ -61378,6 +62098,45 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Update recording on a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Siprec.json:
+    post:
+      description: Starts siprec session with specified parameters for call idientified
+        by call_sid.
+      operationId: StartTeXMLSiprecSession
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlCreateSiprecSessionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlCreateSiprecSessionResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Request siprec session for a call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Calls/{call_sid}/Siprec/{siprec_sid}.json:
+    post:
+      description: Updates siprec session identified by siprec_sid.
+      operationId: UpdateTeXMLSiprecSession
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/CallSid'
+      requestBody:
+        $ref: '#/components/requestBodies/TexmlUpdateSiprecSessionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TexmlUpdateSiprecSessionResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Updates siprec session for a call
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
@@ -63914,6 +64673,8 @@ tags:
   name: SIM Card Pools
 - description: SIM Cards operations
   name: SIM Cards
+- description: SIPREC connectors configuration.
+  name: SIPREC Connectors
 - description: Store and retrieve secrets
   name: Secrets
 - description: Short codes

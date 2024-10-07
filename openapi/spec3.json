@@ -413,6 +413,10 @@
       "description": "SIM Cards operations"
     },
     {
+      "name": "SIPREC Connectors",
+      "description": "SIPREC connectors configuration."
+    },
+    {
       "name": "Secrets",
       "description": "Store and retrieve secrets"
     },
@@ -5564,6 +5568,164 @@
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/siprec_start": {
+      "post": {
+        "summary": "SIPREC start",
+        "description": "Start siprec session to configured in SIPREC connector SRS. \n\n**Expected Webhooks:**\n\n- `siprec.started`\n- `siprec.stopped`\n- `siprec.failed`\n",
+        "operationId": "StartSiprecSession",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Start siprec session to configured in SIPREC connector SRS.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartSiprecRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callSiprecStarted": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallSiprecStartedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callSiprecStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallSiprecStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callSiprecFailed": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallSiprecFailedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/siprec_stop": {
+      "post": {
+        "summary": "SIPREC stop",
+        "description": "Stop SIPREC session.\n\n**Expected Webhooks:**\n\n- `siprec.stopped`\n",
+        "operationId": "StopSiprecSession",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Stop siprec session",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopSiprecRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callStreamingStopped": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallSiprecStoppedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
           }
         },
         "x-latency-category": "interactive"
@@ -27791,6 +27953,97 @@
         "x-latency-category": "responsive"
       }
     },
+    "/siprec_connectors": {
+      "delete": {
+        "summary": "Delete stored Siprec Connection",
+        "description": "Deletes a stored Siprec Connection.",
+        "operationId": "DeleteSiprecConnection",
+        "tags": [
+          "Siprec Connector"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SiprecConnectorName"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The SIPREC connector was deleted successfully."
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "get": {
+        "summary": "Retrieve stored Siprec Connection",
+        "description": "Return details of the Siprec connection.",
+        "operationId": "GetSiprecConnection",
+        "tags": [
+          "Siprec Connector"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SiprecConnectorName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SiprecConnectorResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Creates a siprec connector",
+        "description": "Saves a siprec connector configuration.",
+        "operationId": "CreateSiprecConnector",
+        "tags": [
+          "Siprec Connector"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/SiprecConnectorRequest"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/SiprecConnectorResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "put": {
+        "summary": "Update stored SIPREC connector",
+        "description": "Updates a stored SIPREC connector",
+        "operationId": "UpdateSiprecConnector",
+        "tags": [
+          "Siprec Connector"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SiprecConnectorName"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/SiprecConnectorRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SiprecConnectorResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/storage/buckets/{bucketName}/ssl_certificate": {
       "delete": {
         "operationId": "RemoveStorageSSLCertificate",
@@ -28863,6 +29116,68 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/TexmlCreateCallRecordingResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Siprec.json": {
+      "post": {
+        "summary": "Request siprec session for a call",
+        "description": "Starts siprec session with specified parameters for call idientified by call_sid.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "StartTeXMLSiprecSession",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlCreateSiprecSessionRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlCreateSiprecSessionResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/texml/Accounts/{account_sid}/Calls/{call_sid}/Siprec/{siprec_sid}.json": {
+      "post": {
+        "summary": "Updates siprec session for a call",
+        "description": "Updates siprec session identified by siprec_sid.",
+        "x-latency-category": "responsive",
+        "x-group-parameters": "true",
+        "operationId": "UpdateTeXMLSiprecSession",
+        "tags": [
+          "TeXML REST Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AccountSid"
+          },
+          {
+            "$ref": "#/components/parameters/CallSid"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TexmlUpdateSiprecSessionRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/TexmlUpdateSiprecSessionResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -34141,6 +34456,15 @@
           "format": "uuid"
         }
       },
+      "SiprecConnectorName": {
+        "name": "connector_name",
+        "description": "Uniquely identifies a SIPREC connector",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       "Sort": {
         "name": "sort",
         "in": "query",
@@ -34962,6 +35286,17 @@
           }
         }
       },
+      "SiprecConnectorRequest": {
+        "description": "The params expected to create/update a SIPREC connector",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SiprecConnector"
+            }
+          }
+        }
+      },
       "TexmlCreateCallRecordingRequest": {
         "content": {
           "application/x-www-form-urlencoded": {
@@ -34982,6 +35317,16 @@
         },
         "description": "Start streaming media from a call"
       },
+      "TexmlCreateSiprecSessionRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateSiprecSessionRequestBody"
+            }
+          }
+        },
+        "description": "Starts a SIPREC session."
+      },
       "TexmlUpdateCallRecordingRequest": {
         "content": {
           "application/x-www-form-urlencoded": {
@@ -35001,6 +35346,16 @@
           }
         },
         "description": "Update streaming"
+      },
+      "TexmlUpdateSiprecSessionRequest": {
+        "content": {
+          "application/x-www-form-urlencoded": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlUpdateSiprecSessionRequestBody"
+            }
+          }
+        },
+        "description": "Updates a SIPREC session."
       },
       "UpdatePortingOrdersActivationJob": {
         "required": true,
@@ -40930,6 +41285,16 @@
           }
         }
       },
+      "SiprecConnectorResponseBody": {
+        "description": "Return details of the SIPREC connector associated with the given name.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SiprecConnectorResponse"
+            }
+          }
+        }
+      },
       "SlimListPhoneNumbersResponse": {
         "description": "Successful response with a list of phone numbers.",
         "content": {
@@ -41050,6 +41415,16 @@
           }
         }
       },
+      "TexmlCreateSiprecSessionResponse": {
+        "description": "Successful SIPREC session create response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlCreateSiprecSessionResponseBody"
+            }
+          }
+        }
+      },
       "TexmlGetCallRecordingResponse": {
         "description": "Retrieves call recording resource.",
         "content": {
@@ -41149,6 +41524,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/TexmlUpdateCallStreamingResponseBody"
+            }
+          }
+        }
+      },
+      "TexmlUpdateSiprecSessionResponse": {
+        "description": "Successful SIPREC session update response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/TexmlUpdateSiprecSessionResponseBody"
             }
           }
         }
@@ -48277,6 +48662,276 @@
             "type": "string",
             "description": "The URI of the current page.",
             "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1"
+          }
+        }
+      },
+      "CallSiprecFailed": {
+        "type": "object",
+        "title": "Siprec Failed",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "siprec.failed",
+            "enum": [
+              "siprec.failed"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:11:24.613295Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "failure_cause": {
+                "type": "string",
+                "example": "no_answer",
+                "description": "Q850 reason why siprec session failed."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "siprec.failed",
+          "id": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+          "occurred_at": "2021-12-15T14:11:24.613295Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "failure_cause": "no_answer"
+          }
+        }
+      },
+      "CallSiprecFailedEvent": {
+        "type": "object",
+        "title": "Siprec Failed Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallSiprecFailed"
+          }
+        }
+      },
+      "CallSiprecStarted": {
+        "type": "object",
+        "title": "Siprec Started",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "siprec.started",
+            "enum": [
+              "siprec.started"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:06:32.059436Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "siprec.started",
+          "id": "7d743d69-f7e8-4761-b7d4-8cacf9d3c031",
+          "occurred_at": "2021-12-15T14:06:32.059436Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          }
+        }
+      },
+      "CallSiprecStartedEvent": {
+        "type": "object",
+        "title": "Siprec Started Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallSiprecStarted"
+          }
+        }
+      },
+      "CallSiprecStopped": {
+        "type": "object",
+        "title": "Siprec Stopped",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "siprec.stopped",
+            "enum": [
+              "siprec.stopped"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-12-15T14:11:24.613295Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "hangup_cause": {
+                "type": "string",
+                "example": "normal_clearing",
+                "description": "Q850 reason why the SIPREC session was stopped."
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "siprec.stopped",
+          "id": "25dc3731-e51e-4927-a50d-a61cc25984b1",
+          "occurred_at": "2021-12-15T14:11:24.613295Z",
+          "payload": {
+            "call_control_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "call_session_id": "31f19208-5db0-11ec-9ea7-02420a0d3a69",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "hangup_cause": "normal_clearing"
+          }
+        }
+      },
+      "CallSiprecStoppedEvent": {
+        "type": "object",
+        "title": "Siprec Stopped Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallSiprecStopped"
           }
         }
       },
@@ -75297,6 +75952,92 @@
           "value": "value"
         }
       },
+      "SiprecConnector": {
+        "type": "object",
+        "title": "SIPREC connector configuration",
+        "required": [
+          "host",
+          "port",
+          "name"
+        ],
+        "properties": {
+          "host": {
+            "description": "Hostname/IPv4 address of SIPREC SRS to be used",
+            "type": "string",
+            "example": "siprec.telnyx.com"
+          },
+          "port": {
+            "description": "Port for SIPREC SRS to be used",
+            "type": "integer",
+            "example": 5060
+          },
+          "name": {
+            "description": "Name for the siprec connector resource.",
+            "type": "string",
+            "example": "my-siprec-connector"
+          },
+          "app_subdomain": {
+            "description": "Sip subdomain to route the call when using Telnyx SRS. Not required if non-Telnyx SRS is used.",
+            "type": "string",
+            "example": "my-app-domain"
+          }
+        },
+        "example": {
+          "host": "siprec.telnyx.com",
+          "port": 5060,
+          "name": "my-siprec-connector",
+          "app_subdomain": "my-app"
+        }
+      },
+      "SiprecConnectorResponse": {
+        "type": "object",
+        "title": "Siprec Connector Response",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "title": "Siprec Connector",
+            "properties": {
+              "record_type": {
+                "type": "string",
+                "example": "siprec_connector"
+              },
+              "name": {
+                "type": "string",
+                "example": "siprec-connector",
+                "description": "Name for the siprec connector resource."
+              },
+              "host": {
+                "type": "string",
+                "description": "Hostname/IPv4 address of SIPREC SRS to be used",
+                "example": "siprec.telnyx.com"
+              },
+              "port": {
+                "type": "integer",
+                "description": "Port for SIPREC SRS to be used",
+                "example": 5060
+              },
+              "app_subdomain": {
+                "description": "Sip subdomain to route the call when using Telnyx SRS Not required if non-Telnyx SRS is used.",
+                "type": "string",
+                "example": "my-app-domain"
+              },
+              "created_at": {
+                "type": "string",
+                "description": "ISO 8601 formatted date of when the resource was created",
+                "example": "2024-01-23T18:10:02.574Z"
+              },
+              "updated_at": {
+                "type": "string",
+                "description": "ISO 8601 formatted date of when the resource was last updated",
+                "example": "2024-01-23T18:10:02.574Z"
+              }
+            }
+          }
+        }
+      },
       "SlimPhoneNumberDetailed": {
         "type": "object",
         "example": {
@@ -75803,6 +76544,63 @@
           "timeout_secs": 0
         }
       },
+      "StartSiprecRequest": {
+        "type": "object",
+        "title": "Start Siprec Request",
+        "properties": {
+          "connector_name": {
+            "description": "Name of configured SIPREC connector to be used.",
+            "type": "string",
+            "example": "my-siprec-connector"
+          },
+          "siprec_track": {
+            "description": "Specifies which track should be sent on siprec session.",
+            "type": "string",
+            "enum": [
+              "inbound_track",
+              "outbound_track",
+              "both_tracks"
+            ],
+            "default": "both_tracks",
+            "example": "outbound_track"
+          },
+          "include_metadata_custom_headers": {
+            "description": "When set, custom parameters will be added as metadata (recording.session.ExtensionParameters). Otherwise, they\u2019ll be added to sip headers.",
+            "example": true,
+            "type": "boolean",
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "secure": {
+            "description": "Controls whether to encrypt media sent to your SRS using SRTP and TLS. When set you need to configure SRS port in your connector to 5061.",
+            "example": true,
+            "type": "boolean",
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "session_timeout_secs": {
+            "description": "Sets `Session-Expires` header to the INVITE. A reinvite is sent every half the value set. Usefull for session keep alive. Minimum value is 90, set to 0 to disable.",
+            "example": 900,
+            "type": "integer",
+            "default": 1800
+          },
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          }
+        },
+        "example": {
+          "connector_name": "my-siprec-connector",
+          "siprec_track": "both_tracks",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "StartStreamingRequest": {
         "type": "object",
         "title": "Start Streaming Request",
@@ -75954,6 +76752,26 @@
       "StopRecordingRequest": {
         "type": "object",
         "title": "Stop Recording Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "StopSiprecRequest": {
+        "type": "object",
+        "title": "Stop Siprec Request",
         "properties": {
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
@@ -77611,6 +78429,130 @@
           }
         }
       },
+      "TexmlCreateSiprecSessionRequestBody": {
+        "type": "object",
+        "title": "Create Siprec Session Request",
+        "properties": {
+          "ConnectorName": {
+            "description": "The name of the connector to use for the SIPREC session.",
+            "example": "my_connector",
+            "type": "string"
+          },
+          "Track": {
+            "description": "The track to be used for siprec session. Can be `both_tracks`, `inbound_track` or `outbound_track`. Defaults to `both_tracks`.",
+            "example": "both_tracks",
+            "type": "string",
+            "enum": [
+              "both_tracks",
+              "inbound_track",
+              "outbound_track"
+            ]
+          },
+          "IncludeMetadataCustomHeaders": {
+            "description": "When set, custom parameters will be added as metadata (recording.session.ExtensionParameters). Otherwise, they\u2019ll be added to sip headers.",
+            "example": true,
+            "type": "boolean",
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "Secure": {
+            "description": "Controls whether to encrypt media sent to your SRS using SRTP and TLS. When set you need to configure SRS port in your connector to 5061.",
+            "example": true,
+            "type": "boolean",
+            "enum": [
+              true,
+              false
+            ]
+          },
+          "SessionTimeoutSecs": {
+            "description": "Sets `Session-Expires` header to the INVITE. A reinvite is sent every half the value set. Usefull for session keep alive. Minimum value is 90, set to 0 to disable.",
+            "example": 900,
+            "type": "integer",
+            "default": 1800
+          },
+          "StatusCallback": {
+            "description": "URL destination for Telnyx to send status callback events to for the siprec session.",
+            "example": "https://www.example.com/callback",
+            "type": "string"
+          },
+          "StatusCallbackMethod": {
+            "description": "HTTP request type used for `StatusCallback`.",
+            "example": "GET",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST"
+            ]
+          }
+        }
+      },
+      "TexmlCreateSiprecSessionResponseBody": {
+        "type": "object",
+        "title": "Create Siprec Session Response",
+        "properties": {
+          "account_sid": {
+            "type": "string",
+            "description": "The id of the account the resource belongs to.",
+            "example": "61bf923e-5e4d-4595-a110-56190ea18a1b"
+          },
+          "call_sid": {
+            "type": "string",
+            "description": "The id of the call the resource belongs to.",
+            "example": "v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ"
+          },
+          "sid": {
+            "description": "The SID of the siprec session.",
+            "example": "61bf923e-5e4d-4595-a110-56190ea18123",
+            "type": "string"
+          },
+          "date_created": {
+            "description": "The date and time the siprec session was created.",
+            "example": "Fri, 11 Aug 2023 19:12:11 +0000",
+            "type": "string"
+          },
+          "date_updated": {
+            "description": "The date and time the siprec session was last updated.",
+            "example": "Fri, 11 Aug 2023 19:12:11 +0000",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "The date and time the siprec session was started.",
+            "example": "Fri, 11 Aug 2023 19:12:11 +0000",
+            "type": "string"
+          },
+          "status": {
+            "description": "The status of the siprec session.",
+            "example": "in-progress",
+            "type": "string",
+            "enum": [
+              "in-progress",
+              "stopped"
+            ]
+          },
+          "track": {
+            "description": "The track used for the siprec session.",
+            "example": "both_tracks",
+            "type": "string",
+            "enum": [
+              "both_tracks",
+              "inbound_track",
+              "outbound_track"
+            ]
+          },
+          "uri": {
+            "description": "The URI of the siprec session.",
+            "example": "https://api.telnyx.com/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18123/Calls/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-ai/Siprec/61bf923e-5e4d-4595-a110-56190ea18123",
+            "type": "string"
+          },
+          "error_code": {
+            "description": "The error code of the siprec session.",
+            "example": null,
+            "type": "string"
+          }
+        }
+      },
       "TexmlErrorCode": {
         "type": "string",
         "nullable": true,
@@ -77903,6 +78845,65 @@
             "type": "string",
             "description": "The relative URI for this streaming resource.",
             "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls/v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA/Streams/b08f0fa1-a32c-4218-b3b5-9cf78941ccac.json"
+          }
+        }
+      },
+      "TexmlUpdateSiprecSessionRequestBody": {
+        "type": "object",
+        "title": "Update Siprec Session Request",
+        "properties": {
+          "Status": {
+            "description": "The new status of the resource. Specifying `stopped` will end the siprec session.",
+            "example": "stopped",
+            "enum": [
+              "stopped"
+            ],
+            "type": "string"
+          }
+        }
+      },
+      "TexmlUpdateSiprecSessionResponseBody": {
+        "type": "object",
+        "title": "Update Siprec Session Response",
+        "properties": {
+          "account_sid": {
+            "type": "string",
+            "description": "The id of the account the resource belongs to.",
+            "example": "61bf923e-5e4d-4595-a110-56190ea18a1b"
+          },
+          "call_sid": {
+            "type": "string",
+            "description": "The id of the call the resource belongs to.",
+            "example": "v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ"
+          },
+          "sid": {
+            "description": "The SID of the siprec session.",
+            "example": "61bf923e-5e4d-4595-a110-56190ea18123",
+            "type": "string"
+          },
+          "date_updated": {
+            "description": "The date and time the siprec session was last updated.",
+            "example": "Fri, 11 Aug 2023 19:12:11 +0000",
+            "type": "string"
+          },
+          "status": {
+            "description": "The status of the siprec session.",
+            "example": "in-progress",
+            "type": "string",
+            "enum": [
+              "in-progress",
+              "stopped"
+            ]
+          },
+          "uri": {
+            "description": "The URI of the siprec session.",
+            "example": "https://api.telnyx.com/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18123/Calls/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-ai/Siprec/61bf923e-5e4d-4595-a110-56190ea18123",
+            "type": "string"
+          },
+          "error_code": {
+            "description": "The error code of the siprec session.",
+            "example": null,
+            "type": "string"
           }
         }
       },
