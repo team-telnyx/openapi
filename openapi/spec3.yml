@@ -31883,9 +31883,28 @@ components:
       - refresh_token
       type: object
     Region:
-      description: Region where the bucket is located.
-      example: us-east-1
-      type: string
+      properties:
+        code:
+          description: The unique code of the region.
+          example: dc2
+          type: string
+        inserted_at:
+          description: Timestamp when the region was inserted.
+          format: date-time
+          type: string
+        name:
+          description: The name of the region.
+          example: Washington DC, US
+          type: string
+        updated_at:
+          description: Timestamp when the region was last updated.
+          format: date-time
+          type: string
+      required:
+      - code
+      - name
+      title: Region
+      type: object
     RegionIn:
       properties:
         region_code:
@@ -33505,6 +33524,10 @@ components:
           type: string
         record_type:
           example: sim_card_public_ip
+          readOnly: true
+          type: string
+        region_code:
+          example: dc2
           readOnly: true
           type: string
         sim_card_id:
@@ -61140,6 +61163,14 @@ paths:
       operationId: SetSimCardPublicIp
       parameters:
       - $ref: '#/components/parameters/SIMCardId'
+      - description: The code of the region where the public IP should be assigned.
+          A list of available regions can be found at the regions endpoint
+        in: query
+        name: region_code
+        required: false
+        schema:
+          example: dc2
+          type: string
       responses:
         '202':
           $ref: '#/components/responses/SIMCardActionResponse'
@@ -64143,6 +64174,38 @@ paths:
       tags:
       - Reporting
       x-latency-category: background
+  /wireless/regions:
+    get:
+      description: Retrieve all wireless regions for the given product.
+      operationId: WirelessRegionsGetAll
+      parameters:
+      - description: The product for which to list regions (e.g., 'public_ips').
+        in: query
+        name: product
+        required: true
+        schema:
+          example: public_ips
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      $ref: '#/components/schemas/Region'
+                    type: array
+                type: object
+          description: A list of wireless regions
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Get all wireless regions
+      tags:
+      - Wireless Regions
+      x-latency-category: responsive
   /{bucketName}:
     delete:
       description: Deletes a bucket. The bucket must be empty for it to be deleted.
@@ -64637,6 +64700,8 @@ tags:
 - description: Queue commands operations
   name: Queue Commands
 - description: Regions
+  name: Regions
+- description: Regions for wireless services
   name: Regions
 - description: Regulatory Requirements
   name: Regulatory Requirements

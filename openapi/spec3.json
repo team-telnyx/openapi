@@ -345,6 +345,10 @@
       "description": "Regions"
     },
     {
+      "name": "Regions",
+      "description": "Regions for wireless services"
+    },
+    {
       "name": "Regulatory Requirements",
       "description": "Regulatory Requirements"
     },
@@ -27699,6 +27703,16 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/SIMCardId"
+          },
+          {
+            "name": "region_code",
+            "in": "query",
+            "description": "The code of the region where the public IP should be assigned. A list of available regions can be found at the regions endpoint",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "dc2"
+            }
           }
         ],
         "responses": {
@@ -32192,6 +32206,55 @@
             "$ref": "#/components/responses/GenericErrorResponse"
           }
         }
+      }
+    },
+    "/wireless/regions": {
+      "get": {
+        "tags": [
+          "Wireless Regions"
+        ],
+        "parameters": [
+          {
+            "name": "product",
+            "description": "The product for which to list regions (e.g., 'public_ips').",
+            "schema": {
+              "type": "string",
+              "example": "public_ips"
+            },
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of wireless regions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Region"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ResourceNotFound"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "operationId": "WirelessRegionsGetAll",
+        "summary": "Get all wireless regions",
+        "description": "Retrieve all wireless regions for the given product.",
+        "x-latency-category": "responsive"
       }
     },
     "/{bucketName}": {
@@ -72759,9 +72822,34 @@
         ]
       },
       "Region": {
-        "description": "Region where the bucket is located.",
-        "type": "string",
-        "example": "us-east-1"
+        "type": "object",
+        "title": "Region",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The unique code of the region.",
+            "example": "dc2"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the region.",
+            "example": "Washington DC, US"
+          },
+          "inserted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the region was inserted."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the region was last updated."
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
       },
       "RegionIn": {
         "type": "object",
@@ -74692,6 +74780,11 @@
           "record_type": {
             "type": "string",
             "example": "sim_card_public_ip",
+            "readOnly": true
+          },
+          "region_code": {
+            "type": "string",
+            "example": "dc2",
             "readOnly": true
           },
           "sim_card_id": {
