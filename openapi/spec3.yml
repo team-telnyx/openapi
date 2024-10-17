@@ -16860,6 +16860,21 @@ components:
           type: integer
       title: Create Inbound Ip Request
       type: object
+    CreateIntegrationSecretRequest:
+      properties:
+        identifier:
+          description: The unique identifier of the secret.
+          title: Identifier
+          type: string
+        value:
+          description: The value of the secret.
+          title: Value
+          type: string
+      required:
+      - identifier
+      - value
+      title: CreateIntegrationSecretRequest
+      type: object
     CreateIosPushCredentialRequest:
       properties:
         alias:
@@ -20375,8 +20390,10 @@ components:
       properties:
         errors:
           items:
-            $ref: '#/components/schemas/ErrorRecord'
+            $ref: '#/components/schemas/Error'
+          title: Errors
           type: array
+      title: ErrorResponse
       type: object
     Errors:
       properties:
@@ -23715,6 +23732,53 @@ components:
       format: int64
       title: Int ID
       type: string
+    IntegrationSecret:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        identifier:
+          title: Identifier
+          type: string
+        record_type:
+          example: integration_secret
+          title: Record Type
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+      required:
+      - record_type
+      - id
+      - identifier
+      - value
+      - created_at
+      title: IntegrationSecret
+      type: object
+    IntegrationSecretCreatedResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/IntegrationSecret'
+      required:
+      - data
+      title: IntegrationSecretCreatedResponse
+      type: object
+    IntegrationSecretsListData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/IntegrationSecret'
+          title: Data
+          type: array
+      required:
+      - data
+      title: SecretsListData
+      type: object
     Interface:
       properties:
         name:
@@ -50810,6 +50874,75 @@ paths:
       tags:
       - Global IPs
       x-latency-category: responsive
+  /integration_secrets:
+    get:
+      description: Retrieve a list of all integration secrets configured by the user.
+      operationId: list_integration_secrets
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationSecretsListData'
+          description: Successful Response
+      summary: List integration secrets
+      tags:
+      - Integration Secrets
+      x-latency-category: responsive
+    post:
+      description: Create a new secret with an associated identifier that can be used
+        to securely integrate with other services.
+      operationId: create_integration_secret
+      requestBody:
+        content:
+          application/json:
+            example:
+              identifier: my_secret
+              value: my_secret_value
+            schema:
+              $ref: '#/components/schemas/CreateIntegrationSecretRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationSecretCreatedResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Validation Error
+      summary: Create a secret
+      tags:
+      - Integration Secrets
+      x-latency-category: responsive
+  /integration_secrets/{id}:
+    delete:
+      description: Delete an integration secret given its ID.
+      operationId: delete_integration_secret
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          title: Secret Id
+          type: string
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Secret Not found
+      summary: Delete an integration secret
+      tags:
+      - Integration Secrets
+      x-latency-category: responsive
   /inventory_coverage:
     get:
       description: Creates an inventory coverage request. If locality, npa or national_destination_code
@@ -64532,6 +64665,8 @@ tags:
   name: IPs
 - description: Inbound channels operations
   name: Inbound Channels
+- description: Store and retrieve integration secrets
+  name: Integration Secrets
 - description: Inventory Level
   name: Inventory Level
 - description: Managed Accounts operations

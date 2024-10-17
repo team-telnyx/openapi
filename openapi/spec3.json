@@ -213,6 +213,10 @@
       "description": "Inbound channels operations"
     },
     {
+      "name": "Integration Secrets",
+      "description": "Store and retrieve integration secrets"
+    },
+    {
       "name": "Inventory Level",
       "description": "Inventory Level"
     },
@@ -12357,6 +12361,111 @@
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/integration_secrets": {
+      "get": {
+        "tags": [
+          "Integration Secrets"
+        ],
+        "summary": "List integration secrets",
+        "description": "Retrieve a list of all integration secrets configured by the user.",
+        "operationId": "list_integration_secrets",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationSecretsListData"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "tags": [
+          "Integration Secrets"
+        ],
+        "summary": "Create a secret",
+        "description": "Create a new secret with an associated identifier that can be used to securely integrate with other services.",
+        "operationId": "create_integration_secret",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntegrationSecretRequest"
+              },
+              "example": {
+                "identifier": "my_secret",
+                "value": "my_secret_value"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationSecretCreatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/integration_secrets/{id}": {
+      "delete": {
+        "tags": [
+          "Integration Secrets"
+        ],
+        "summary": "Delete an integration secret",
+        "description": "Delete an integration secret given its ID.",
+        "operationId": "delete_integration_secret",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Secret Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The resource was deleted successfully."
+          },
+          "404": {
+            "description": "Secret Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "x-latency-category": "responsive"
@@ -54579,6 +54688,26 @@
           "shaken_stir_enabled": true
         }
       },
+      "CreateIntegrationSecretRequest": {
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "title": "Identifier",
+            "description": "The unique identifier of the secret."
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "The value of the secret."
+          }
+        },
+        "type": "object",
+        "required": [
+          "identifier",
+          "value"
+        ],
+        "title": "CreateIntegrationSecretRequest"
+      },
       "CreateIosPushCredentialRequest": {
         "type": "object",
         "title": "Create iOS push credential request",
@@ -58724,15 +58853,17 @@
         }
       },
       "ErrorResponse": {
-        "type": "object",
         "properties": {
           "errors": {
-            "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ErrorRecord"
-            }
+              "$ref": "#/components/schemas/Error"
+            },
+            "type": "array",
+            "title": "Errors"
           }
-        }
+        },
+        "type": "object",
+        "title": "ErrorResponse"
       },
       "Errors": {
         "properties": {
@@ -62795,6 +62926,70 @@
         "format": "int64",
         "description": "Uniquely identifies the resource.",
         "example": "1293384261075731499"
+      },
+      "IntegrationSecret": {
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "title": "Record Type",
+            "example": "integration_secret"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "identifier": {
+            "type": "string",
+            "title": "Identifier"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "record_type",
+          "id",
+          "identifier",
+          "value",
+          "created_at"
+        ],
+        "title": "IntegrationSecret"
+      },
+      "IntegrationSecretCreatedResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IntegrationSecret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "IntegrationSecretCreatedResponse"
+      },
+      "IntegrationSecretsListData": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationSecret"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "SecretsListData"
       },
       "Interface": {
         "type": "object",
