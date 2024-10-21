@@ -4208,7 +4208,7 @@
     "/calls/{call_control_id}/actions/fork_start": {
       "post": {
         "summary": "Forking start",
-        "description": "Call forking allows you to stream the media from a call to a specific target in realtime. \nThis stream can be used to enable realtime audio analysis to support a \nvariety of use cases, including fraud detection, or the creation of AI-generated audio responses. \nRequests must specify either the `target` attribute or the `rx` and `tx` attributes.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/start-call-fork#callbacks) below):**\n\n- `call.fork.started`\n- `call.fork.stopped`\n\n**Simple Telnyx RTP Encapsulation Protocol (STREP)**\n\n*Note: This header/encapsulation is not used when the `rx` and `tx`\nparameters have been specified; it only applies when media is forked\nusing the `target` attribute.*\n\nIf the destination for forked media is specified using the \"target\"\nattribute, the RTP will be encapsulated in an extra Telnyx protocol,\nwhich adds a 24 byte header to the RTP payload in each packet. The STREP\nheader includes the Call Control `call_leg_id` for stream\nidentification, along with bits that represent the direction (inbound or\noutbound) of the media. This 24-byte header sits between the UDP header\nand the RTP header.\n\nThe STREP header makes it possible to fork RTP for multiple calls (or\ntwo RTP streams for the same call) to the same IP:port, where the\nstreams can be demultiplexed by your application using the information\nin the header. Of course, it's still possible to ignore this header\ncompletely, for example, if sending forked media for different calls to\ndifferent ports or IP addresses. In this case, simply strip 24 bytes\n(or use the second byte to find the header length) from the received UDP\npayload to get the RTP (RTP header and payload).\n\n```\nSTREP Specification\n\n  0                   1                   2                   3\n  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1\n +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n |1 1|Version|L|D|    HeaderLen  |  reserved (2 bytes)           |\n +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n |       reserved (4 bytes, for UDP ports or anything else)      |\n +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n |               The call_leg_id                                 |\n |                   from Call Control                           |\n |                       (128 bits / 16 bytes)                   |\n |                           (this is binary data)               |\n +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n\n 11\n   Static bits 11, always set to 11 to easily distinguish forked media\n   from RTP (10) and T.38 media (usually 00) and SIP (which begins\n   with a capital letter, so begins with bits 01). This is a magic number.\n\n Version\n   Four bits to indicate the version number of the protocol, starting at 0001.\n\n L\n   One bit to represent the leg of the call (A or B).\n   0 represents the A (first) leg of the call.\n   1 represents the B (second) leg of the call.\n\n D\n   One bit to represent the direction of this RTP stream.\n   0 represents media received by Telnyx.\n   1 represents media transmitted by Telnyx.\n\n HeaderLen (1 byte)\n   The length of the header in bytes.\n   Note that this value does not include the length of the payload. The total\n   size of the RTP can be calculated by subtracting the HeaderLen from the UDP\n   length (minus 8 for the UDP header).\n   In version 1, this value will always be 24.\n\n Reserved (6 bytes)\n   Reserved for future use and to make sure that the header is a multiple of 32 bits\n\n Call Leg ID\n   A 128-bit identifier for the call leg.\n   This is the call_leg_id from Call Control.\n```\n",
+        "description": "Call forking allows you to stream the media from a call to a specific target in realtime. \nThis stream can be used to enable realtime audio analysis to support a \nvariety of use cases, including fraud detection, or the creation of AI-generated audio responses. \nRequests must specify either the `target` attribute or the `rx` and `tx` attributes.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/start-call-fork#callbacks) below):**\n\n- `call.fork.started`\n- `call.fork.stopped`\n\n",
         "operationId": "StartCallFork",
         "tags": [
           "Call Commands"
@@ -76315,11 +76315,6 @@
         "type": "object",
         "title": "Start Forking Request",
         "properties": {
-          "target": {
-            "description": "The network target, <udp:ip_address:port>, where the call's RTP media packets should be forwarded. Both incoming and outgoing media packets will be delivered to the specified target, and information about the stream will be included in the encapsulation protocol header, including the direction (0 = inbound; 1 = outbound), leg (0 = A-leg; 1 = B-leg), and call_leg_id.",
-            "type": "string",
-            "example": "udp:192.0.2.1:9000"
-          },
           "rx": {
             "description": "The network target, <udp:ip_address:port>, where the call's incoming RTP media packets should be forwarded.",
             "type": "string",
@@ -76329,10 +76324,9 @@
             "description": "Optionally specify a media type to stream. If `decrypted` selected, Telnyx will decrypt incoming SIP media before forking to the target. `rx` and `tx` are required fields if `decrypted` selected.",
             "type": "string",
             "enum": [
-              "raw",
               "decrypted"
             ],
-            "default": "raw",
+            "default": "decrypted",
             "example": "decrypted"
           },
           "tx": {
@@ -76352,7 +76346,6 @@
           }
         },
         "example": {
-          "target": "udp:192.0.2.1:9000",
           "rx": "udp:192.0.2.1:9000",
           "tx": "udp:192.0.2.1:9001",
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
