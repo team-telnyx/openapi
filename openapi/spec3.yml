@@ -2224,6 +2224,77 @@ components:
                 $ref: '#/components/schemas/Address'
             type: object
       description: Successful response
+    AdvancedOrderResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              area_code:
+                default: ''
+                maxLength: 3
+                title: Area Code
+                type: string
+              comments:
+                default: ''
+                maxLength: 255
+                title: Comments
+                type: string
+              country_code:
+                default: US
+                maxLength: 2
+                minLength: 2
+                title: Country Code
+                type: string
+              customer_reference:
+                default: ''
+                title: Customer Reference
+                type: string
+              features:
+                items:
+                  enum:
+                  - sms
+                  - mms
+                  - voice
+                  - fax
+                  - emergency
+                title: Features
+                type: array
+                uniqueItems: true
+              id:
+                format: uuid
+                title: Id
+                type: string
+              orders:
+                items:
+                  format: uuid
+                  type: string
+                title: Orders
+                type: array
+                uniqueItems: true
+              phone_number_type:
+                default: ''
+                items:
+                  enum:
+                  - local
+                  - mobile
+                  - toll_free
+                  - shared_cost
+                  - national
+                  - landline
+              quantity:
+                default: 1
+                maximum: 10000
+                minimum: 1
+                title: Quantity
+                type: integer
+              status:
+                items:
+                  enum:
+                  - pending
+                  - processing
+                  - ordered
+                  type: string
+      description: An Advanced Order Response
     AuthenticationProviderResponse:
       content:
         application/json:
@@ -3767,6 +3838,16 @@ components:
             title: Ip Response
             type: object
       description: Successful response with details about an IP.
+    ListAdvancedOrderResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/responses/AdvancedOrderResponse'
+                type: array
+      description: An array of Advanced Order Responses
     ListAllowedFocWindows:
       content:
         application/json:
@@ -6832,6 +6913,57 @@ components:
               - address_suggestion
               type: string
           type: object
+      type: object
+    AdvancedOrderRequest:
+      properties:
+        area_code:
+          default: ''
+          maxLength: 3
+          title: Area Code
+          type: string
+        comments:
+          default: ''
+          maxLength: 255
+          title: Comments
+          type: string
+        country_code:
+          default: US
+          maxLength: 2
+          minLength: 2
+          title: Country Code
+          type: string
+        customer_reference:
+          default: ''
+          title: Customer Reference
+          type: string
+        features:
+          items:
+            enum:
+            - sms
+            - mms
+            - voice
+            - fax
+            - emergency
+          title: Features
+          type: array
+          uniqueItems: true
+        phone_number_type:
+          default: ''
+          items:
+            enum:
+            - local
+            - mobile
+            - toll_free
+            - shared_cost
+            - national
+            - landline
+        quantity:
+          default: 1
+          maximum: 10000
+          minimum: 1
+          title: Quantity
+          type: integer
+      title: AdvancedOrderRequest
       type: object
     AltBusinessIdType:
       description: An enumeration.
@@ -28391,6 +28523,20 @@ components:
           description: The phone number in e164 format.
           format: e164
           type: string
+    PhoneNumberBundleStatusChangeRequest:
+      example:
+        bundle_id: 5194d8fc-87e6-4188-baa9-1c434bbe861b
+      properties:
+        bundle_id:
+          description: The new bundle_id setting for the number. If you are assigning
+            the number to a bundle, this is the unique ID of the bundle you wish to
+            use. If you are removing the number from a bundle, this must be null.
+            You cannot assign a number from one bundle to another directly. You must
+            first remove it from a bundle, and then assign it to a new bundle.
+          type: string
+      required:
+      - bundle_id
+      type: object
     PhoneNumberCampaign:
       properties:
         assignmentStatus:
@@ -31990,6 +32136,8 @@ components:
                     example: Characters that can be included in field value
                     type: string
                   acceptable_values:
+                    items:
+                      type: string
                     type: array
                   case_sensitive:
                     example: Whether field value is case sensitive
@@ -43474,6 +43622,61 @@ paths:
         Connect and finishes the uploads of the numbers associated with it to Microsoft.
       tags:
       - Addresses
+      x-latency-category: responsive
+  /advanced_orders:
+    get:
+      operationId: list_advanced_orders_v2
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/ListAdvancedOrderResponse'
+          description: Successful Response
+      summary: List Advanced Orders
+      tags:
+      - Advanced Number Orders
+      x-latency-category: responsive
+    post:
+      operationId: create_advanced_order_v2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdvancedOrderRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/AdvancedOrderResponse'
+          description: Successful Response
+      summary: Create Advanced Order
+      tags:
+      - Advanced Number Orders
+      x-latency-category: responsive
+  /advanced_orders/{order_id}:
+    get:
+      operationId: get_advanced_order_v2
+      parameters:
+      - in: path
+        name: order_id
+        required: true
+        schema:
+          format: uuid
+          title: Order Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/AdvancedOrderResponse'
+          description: Successful Response
+      summary: Get Advanced Order
+      tags:
+      - Advanced Number Orders
       x-latency-category: responsive
   /ai/assistants:
     get:
@@ -55893,6 +56096,36 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a phone number
+      tags:
+      - Phone Number Configurations
+      x-endpoint-cost: medium
+      x-latency-category: responsive
+  /phone_numbers/{id}/actions/bundle_status_change:
+    patch:
+      operationId: PhoneNumberBundleStatusChange
+      parameters:
+      - $ref: '#/components/parameters/IntId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberBundleStatusChangeRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PhoneNumberWithVoiceSettings'
+                title: Phone Number Bundle Status Change
+                type: object
+          description: Phone number bundle status change success
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Change the bundle status for a phone number (set to being in a bundle
+        or remove from a bundle)
       tags:
       - Phone Number Configurations
       x-endpoint-cost: medium
