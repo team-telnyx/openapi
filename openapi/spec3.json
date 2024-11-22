@@ -3997,6 +3997,76 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/ai_assistant_start": {
+      "post": {
+        "summary": "Start AI Assistant (BETA)",
+        "description": "**BETA** - Start an AI assistant on the call.",
+        "operationId": "CallStartAIAssistant",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "AI Assistant request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAssistantStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
+    "/calls/{call_control_id}/actions/ai_assistant_stop": {
+      "post": {
+        "summary": "Stop AI Assistant (BETA)",
+        "description": "**BETA** - Stop an AI assistant on the call.",
+        "operationId": "CallStopAIAssistant",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "AI Assistant request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIAssistantStopRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CallControlCommandResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/answer": {
       "post": {
         "summary": "Answer call",
@@ -42398,6 +42468,83 @@
       }
     },
     "schemas": {
+      "AIAssistantStartRequest": {
+        "type": "object",
+        "properties": {
+          "assistant": {
+            "type": "object",
+            "description": "AI Assistant configuration",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "The identifier of the AI assistant to use"
+              },
+              "openai_api_key_ref": {
+                "type": "string",
+                "description": "Reference to the OpenAI API key. Required only when using OpenAI models"
+              }
+            }
+          },
+          "voice": {
+            "$ref": "#/components/schemas/VoiceConfig"
+          },
+          "voice_settings": {
+            "description": "The settings associated with the voice selected",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ElevenLabsVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/TelnyxVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/AWSVoiceSettings"
+              }
+            ]
+          },
+          "greeting": {
+            "description": "Text that will be played when the assistant starts, if none then nothing will be played when the assistant starts. The greeting can be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There is a 3,000 character limit.",
+            "type": "string",
+            "example": "Hello, can you tell me your age and where you live?"
+          },
+          "interruption_settings": {
+            "$ref": "#/components/schemas/InterruptionSettings"
+          },
+          "transcription": {
+            "$ref": "#/components/schemas/TranscriptionConfig"
+          },
+          "client_state": {
+            "type": "string",
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        }
+      },
+      "AIAssistantStopRequest": {
+        "type": "object",
+        "title": "AI Assistant Stop Request",
+        "properties": {
+          "client_state": {
+            "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "command_id": {
+            "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
+            "type": "string",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "AWSVoiceSettings": {
         "type": "object",
         "title": "AWS Voice Settings",
@@ -60899,22 +61046,10 @@
             }
           },
           "transcription": {
-            "type": "object",
-            "description": "The settings associated with speech to text for the voice assistant. This is only relevant if the assistant uses a text-to-text language model. Any assistant using a model with native audio support (e.g. `fixie-ai/ultravox-v0_4`) will ignore this field.",
-            "properties": {
-              "model": {
-                "description": "The speech to text model to be used by the voice assistant. `distil-whisper/distil-large-v2` is lower latency but English-only. `openai/whisper-large-v3-turbo` is multi-lingual but slightly higher latency.",
-                "type": "string",
-                "default": "distil-whisper/distil-large-v2",
-                "example": "distil-whisper/distil-large-v2"
-              }
-            }
+            "$ref": "#/components/schemas/TranscriptionConfig"
           },
           "voice": {
-            "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices only, for ElevenLabs voices you can pass the voice as `ElevenLabs.<model_id>.<voice_id>`, for Telnyx voices you can pass the voice as `Telnyx.<model_id>.<voice_id>`, for AWS Polly voices you can pass the voice as `AWS.Polly.<voice_id>`",
-            "type": "string",
-            "default": "Telnyx.LibriTTS.0",
-            "example": "Telnyx.LibriTTS.0"
+            "$ref": "#/components/schemas/VoiceConfig"
           },
           "voice_settings": {
             "description": "The settings associated with the voice selected",
@@ -60970,6 +61105,9 @@
             "description": "Use this field to avoid duplicate commands. Telnyx will ignore any command with the same `command_id` for the same `call_control_id`.",
             "type": "string",
             "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          },
+          "interruption_settings": {
+            "$ref": "#/components/schemas/InterruptionSettings"
           }
         },
         "example": {
@@ -63350,6 +63488,17 @@
         "description": "The current status of the interface deployment.",
         "readOnly": true,
         "example": "provisioned"
+      },
+      "InterruptionSettings": {
+        "type": "object",
+        "description": "Settings for handling user interruptions during assistant speech",
+        "properties": {
+          "enable": {
+            "type": "boolean",
+            "description": "When true, allows users to interrupt the assistant while speaking",
+            "default": true
+          }
+        }
       },
       "InventoryCoverage": {
         "type": "object",
@@ -80162,6 +80311,18 @@
           }
         }
       },
+      "TranscriptionConfig": {
+        "type": "object",
+        "description": "The settings associated with speech to text for the voice assistant. This is only relevant if the assistant uses a text-to-text language model. Any assistant using a model with native audio support (e.g. `fixie-ai/ultravox-v0_4`) will ignore this field.",
+        "properties": {
+          "model": {
+            "description": "The speech to text model to be used by the voice assistant. `distil-whisper/distil-large-v2` is lower latency but English-only. `openai/whisper-large-v3-turbo` is multi-lingual but slightly higher latency.",
+            "type": "string",
+            "default": "distil-whisper/distil-large-v2",
+            "example": "distil-whisper/distil-large-v2"
+          }
+        }
+      },
       "TranscriptionEvent": {
         "type": "object",
         "title": "Transcription Event",
@@ -85103,6 +85264,12 @@
             }
           }
         ]
+      },
+      "VoiceConfig": {
+        "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices only, for ElevenLabs voices you can pass the voice as `ElevenLabs.<model_id>.<voice_id>`, for Telnyx voices you can pass the voice as `Telnyx.<model_id>.<voice_id>`, for AWS Polly voices you can pass the voice as `AWS.Polly.<voice_id>`",
+        "type": "string",
+        "default": "Telnyx.LibriTTS.0",
+        "example": "Telnyx.LibriTTS.0"
       },
       "VoicemailPrefResponse": {
         "type": "object",

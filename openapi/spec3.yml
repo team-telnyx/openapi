@@ -6605,6 +6605,66 @@ components:
             type: object
       description: An array of Regulatory Requirements Responses
   schemas:
+    AIAssistantStartRequest:
+      properties:
+        assistant:
+          description: AI Assistant configuration
+          properties:
+            id:
+              description: The identifier of the AI assistant to use
+              type: string
+            openai_api_key_ref:
+              description: Reference to the OpenAI API key. Required only when using
+                OpenAI models
+              type: string
+          type: object
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        greeting:
+          description: Text that will be played when the assistant starts, if none
+            then nothing will be played when the assistant starts. The greeting can
+            be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There
+            is a 3,000 character limit.
+          example: Hello, can you tell me your age and where you live?
+          type: string
+        interruption_settings:
+          $ref: '#/components/schemas/InterruptionSettings'
+        transcription:
+          $ref: '#/components/schemas/TranscriptionConfig'
+        voice:
+          $ref: '#/components/schemas/VoiceConfig'
+        voice_settings:
+          description: The settings associated with the voice selected
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+      type: object
+    AIAssistantStopRequest:
+      example:
+        client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: AI Assistant Stop Request
+      type: object
     AWSVoiceSettings:
       properties: {}
       title: AWS Voice Settings
@@ -21999,6 +22059,8 @@ components:
             is a 3,000 character limit.
           example: Hello, can you tell me your age and where you live?
           type: string
+        interruption_settings:
+          $ref: '#/components/schemas/InterruptionSettings'
         message_history:
           description: The message history you want the voice assistant to be aware
             of, this can be useful to keep the context of the conversation, or to
@@ -22036,29 +22098,9 @@ components:
             type: object
           type: object
         transcription:
-          description: The settings associated with speech to text for the voice assistant.
-            This is only relevant if the assistant uses a text-to-text language model.
-            Any assistant using a model with native audio support (e.g. `fixie-ai/ultravox-v0_4`)
-            will ignore this field.
-          properties:
-            model:
-              default: distil-whisper/distil-large-v2
-              description: The speech to text model to be used by the voice assistant.
-                `distil-whisper/distil-large-v2` is lower latency but English-only.
-                `openai/whisper-large-v3-turbo` is multi-lingual but slightly higher
-                latency.
-              example: distil-whisper/distil-large-v2
-              type: string
-          type: object
+          $ref: '#/components/schemas/TranscriptionConfig'
         voice:
-          default: Telnyx.LibriTTS.0
-          description: The voice to be used by the voice assistant. Currently we support
-            ElevenLabs, Telnyx and AWS voices only, for ElevenLabs voices you can
-            pass the voice as `ElevenLabs.<model_id>.<voice_id>`, for Telnyx voices
-            you can pass the voice as `Telnyx.<model_id>.<voice_id>`, for AWS Polly
-            voices you can pass the voice as `AWS.Polly.<voice_id>`
-          example: Telnyx.LibriTTS.0
-          type: string
+          $ref: '#/components/schemas/VoiceConfig'
         voice_settings:
           description: The settings associated with the voice selected
           oneOf:
@@ -24039,6 +24081,14 @@ components:
       example: provisioned
       readOnly: true
       type: string
+    InterruptionSettings:
+      description: Settings for handling user interruptions during assistant speech
+      properties:
+        enable:
+          default: true
+          description: When true, allows users to interrupt the assistant while speaking
+          type: boolean
+      type: object
     InventoryCoverage:
       example:
         administrative_area: NJ
@@ -37982,6 +38032,20 @@ components:
           type: string
       title: Transcription
       type: object
+    TranscriptionConfig:
+      description: The settings associated with speech to text for the voice assistant.
+        This is only relevant if the assistant uses a text-to-text language model.
+        Any assistant using a model with native audio support (e.g. `fixie-ai/ultravox-v0_4`)
+        will ignore this field.
+      properties:
+        model:
+          default: distil-whisper/distil-large-v2
+          description: The speech to text model to be used by the voice assistant.
+            `distil-whisper/distil-large-v2` is lower latency but English-only. `openai/whisper-large-v3-turbo`
+            is multi-lingual but slightly higher latency.
+          example: distil-whisper/distil-large-v2
+          type: string
+      type: object
     TranscriptionEvent:
       properties:
         data:
@@ -42161,6 +42225,15 @@ components:
             type: boolean
         title: VirtualCrossConnectPatch
         type: object
+    VoiceConfig:
+      default: Telnyx.LibriTTS.0
+      description: The voice to be used by the voice assistant. Currently we support
+        ElevenLabs, Telnyx and AWS voices only, for ElevenLabs voices you can pass
+        the voice as `ElevenLabs.<model_id>.<voice_id>`, for Telnyx voices you can
+        pass the voice as `Telnyx.<model_id>.<voice_id>`, for AWS Polly voices you
+        can pass the voice as `AWS.Polly.<voice_id>`
+      example: Telnyx.LibriTTS.0
+      type: string
     VoicemailPrefResponse:
       example:
         enabled: 'true'
@@ -45843,6 +45916,50 @@ paths:
       summary: Retrieve a call status
       tags:
       - Call Information
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/ai_assistant_start:
+    post:
+      description: '**BETA** - Start an AI assistant on the call.'
+      operationId: CallStartAIAssistant
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIAssistantStartRequest'
+        description: AI Assistant request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Start AI Assistant (BETA)
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/ai_assistant_stop:
+    post:
+      description: '**BETA** - Stop an AI assistant on the call.'
+      operationId: CallStopAIAssistant
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIAssistantStopRequest'
+        description: AI Assistant request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Stop AI Assistant (BETA)
+      tags:
+      - Call Commands
       x-latency-category: interactive
   /calls/{call_control_id}/actions/answer:
     post:
