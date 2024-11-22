@@ -5241,6 +5241,50 @@
             "$ref": "#/components/responses/GenericErrorResponse"
           }
         },
+        "callbacks": {
+          "callRecordingSaved": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallRecordingSavedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "callRecordingError": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/callRecordingErrorEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          }
+        },
         "x-latency-category": "interactive"
       }
     },
@@ -45477,6 +45521,23 @@
                   "$ref": "#/components/schemas/CustomSipHeader"
                 }
               },
+              "sip_headers": {
+                "description": "User-to-User and Diversion headers from sip invite.",
+                "type": "array",
+                "example": [
+                  {
+                    "name": "User-to-User",
+                    "value": "1234"
+                  },
+                  {
+                    "name": "Diversion",
+                    "value": "<sip:111@192.168.1.1>"
+                  }
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/SipHeader"
+                }
+              },
               "from": {
                 "type": "string",
                 "example": "+35319605860",
@@ -45500,6 +45561,17 @@
                   "answered"
                 ],
                 "description": "State received from a command."
+              },
+              "tags": {
+                "description": "Array of tags associated to number.",
+                "example": [
+                  "tag-01",
+                  "tag-02"
+                ],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -45600,14 +45672,6 @@
                 "type": "string",
                 "example": "+13129457420",
                 "description": "Destination number or SIP URI of the call."
-              },
-              "state": {
-                "type": "string",
-                "example": "bridged",
-                "enum": [
-                  "bridged"
-                ],
-                "description": "State received from a command."
               }
             }
           }
@@ -46162,6 +46226,11 @@
                 "type": "integer",
                 "example": 7,
                 "description": "Current position of the call in the queue."
+              },
+              "queue_avg_wait_time_secs": {
+                "type": "integer",
+                "example": 60,
+                "description": "Average time call spends in the queue in seconds."
               }
             }
           }
@@ -46317,9 +46386,8 @@
               },
               "stream_type": {
                 "type": "string",
-                "example": "raw",
+                "example": "decrypted",
                 "enum": [
-                  "raw",
                   "decrypted"
                 ],
                 "description": "Type of media streamed. It can be either 'raw' or 'decrypted'."
@@ -46413,9 +46481,8 @@
               },
               "stream_type": {
                 "type": "string",
-                "example": "raw",
+                "example": "decrypted",
                 "enum": [
-                  "raw",
                   "decrypted"
                 ],
                 "description": "Type of media streamed. It can be either 'raw' or 'decrypted'."
@@ -46655,6 +46722,40 @@
                 "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
                 "description": "State received from a command."
               },
+              "custom_headers": {
+                "description": "Custom headers set on answer command",
+                "type": "array",
+                "example": [
+                  {
+                    "name": "head_1",
+                    "value": "val_1"
+                  },
+                  {
+                    "name": "head_2",
+                    "value": "val_2"
+                  }
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/CustomSipHeader"
+                }
+              },
+              "sip_headers": {
+                "description": "User-to-User and Diversion headers from sip invite.",
+                "type": "array",
+                "example": [
+                  {
+                    "name": "User-to-User",
+                    "value": "1234"
+                  },
+                  {
+                    "name": "Diversion",
+                    "value": "<sip:111@192.168.1.1>"
+                  }
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/SipHeader"
+                }
+              },
               "from": {
                 "type": "string",
                 "example": "+35319605860",
@@ -46678,6 +46779,17 @@
                   "hangup"
                 ],
                 "description": "State received from a command."
+              },
+              "tags": {
+                "description": "Array of tags associated to number.",
+                "example": [
+                  "tag-01",
+                  "tag-02"
+                ],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               },
               "hangup_cause": {
                 "type": "string",
@@ -46787,6 +46899,16 @@
                 "example": "7267xxxxxxxxxxxxxx",
                 "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
               },
+              "connection_codecs": {
+                "type": "string",
+                "example": "G722,PCMU,PCMA",
+                "description": "The list of comma-separated codecs enabled for the connection."
+              },
+              "offered_codecs": {
+                "type": "string",
+                "example": "G722,PCMU,PCMA",
+                "description": "The list of comma-separated codecs offered by caller."
+              },
               "call_leg_id": {
                 "type": "string",
                 "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
@@ -46809,6 +46931,33 @@
                   "$ref": "#/components/schemas/CustomSipHeader"
                 }
               },
+              "sip_headers": {
+                "description": "User-to-User and Diversion headers from sip invite.",
+                "type": "array",
+                "example": [
+                  {
+                    "name": "User-to-User",
+                    "value": "1234"
+                  },
+                  {
+                    "name": "Diversion",
+                    "value": "<sip:111@192.168.1.1>"
+                  }
+                ],
+                "items": {
+                  "$ref": "#/components/schemas/SipHeader"
+                }
+              },
+              "shaken_stir_attestation": {
+                "type": "string",
+                "example": "A",
+                "description": "SHAKEN/STIR attestation level."
+              },
+              "shaken_stir_validated": {
+                "type": "boolean",
+                "example": true,
+                "description": "Whether attestation was successfully validated or not."
+              },
               "call_session_id": {
                 "type": "string",
                 "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
@@ -46818,6 +46967,16 @@
                 "type": "string",
                 "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
                 "description": "State received from a command."
+              },
+              "caller_id_name": {
+                "type": "string",
+                "example": "+35319605860",
+                "description": "Caller id."
+              },
+              "call_screening_result": {
+                "type": "string",
+                "example": "spam_likely",
+                "description": "Call screening result."
               },
               "from": {
                 "type": "string",
@@ -46846,6 +47005,23 @@
                   "bridging"
                 ],
                 "description": "State received from a command."
+              },
+              "start_time": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2018-02-02T22:25:27.521992Z",
+                "description": "ISO 8601 datetime of when the call started."
+              },
+              "tags": {
+                "description": "Array of tags associated to number.",
+                "example": [
+                  "tag-01",
+                  "tag-02"
+                ],
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -46958,6 +47134,11 @@
                   "leave",
                   "timeout"
                 ]
+              },
+              "wait_time_secs": {
+                "type": "integer",
+                "example": 60,
+                "description": "Time call spent in the queue in seconds."
               }
             }
           }
@@ -47170,6 +47351,7 @@
                 "type": "string",
                 "example": "ended",
                 "enum": [
+                  "beep_detected",
                   "ended",
                   "not_sure"
                 ],
@@ -47281,7 +47463,8 @@
                   "human_business",
                   "machine",
                   "silence",
-                  "fax_detected"
+                  "fax_detected",
+                  "not_sure"
                 ],
                 "description": "Premium Answering Machine Detection result."
               }
@@ -47387,7 +47570,8 @@
                 "type": "string",
                 "example": "beep_detected",
                 "enum": [
-                  "beep_detected"
+                  "beep_detected",
+                  "no_beep_detected"
                 ],
                 "description": "Premium Answering Machine Greeting Ended result."
               }
@@ -47500,13 +47684,18 @@
                   "file_not_found",
                   "call_hangup",
                   "unknown",
-                  "failed",
+                  "cancelled",
                   "cancelled_amd",
                   "completed",
                   "failed"
                 ],
                 "example": "completed",
                 "description": "Reflects how command ended."
+              },
+              "status_detail": {
+                "type": "string",
+                "example": "Received curl error 22 HTTP error code 404 trying to fetch http://mediaurl.com.",
+                "description": "Provides details in case of failure."
               }
             }
           }
