@@ -2412,22 +2412,6 @@ components:
                 $ref: '#/components/schemas/BulkSIMCardAction'
             type: object
       description: Successful Response
-    BulkSIMCardNetworkPreferenceResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                description: Multi requested SIM cards network preferences.
-                items:
-                  $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
-                type: array
-              errors:
-                items:
-                  $ref: '#/components/schemas/Error'
-                type: array
-            type: object
-      description: ''
     BulkUploadDocServiceDocumentsResponse:
       content:
         application/json:
@@ -3014,21 +2998,6 @@ components:
             title: CSV Download Response
             type: object
       description: Successful response with details about a CSV download.
-    DELETESIMCardNetworkPreferenceResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
-            type: object
-      description: 'A successful network preferences deletion response. <br/><br/>
-
-        The delete won''t be done right away - this is an asynchronous operation.
-        The request will return the resource with an in-progress OTA update resource
-        (in the ota_updates node) representing the delete operation. Similarly to
-        the PUT API, the resource will only be deleted when the OTA updated is successfully
-        completed.'
     DefaultGatewayResponse:
       content:
         application/json:
@@ -5271,28 +5240,6 @@ components:
             title: Outbound Voice Profile Response
             type: object
       description: Successful response
-    PUTSIMCardNetworkPreferenceResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
-            type: object
-      description: "A successful network preferences definition response. <br/><br/>\n\
-        The sent mobile_network_operators_preferences parameter won't be applied to\
-        \ the main resource right away - this is an asynchronous operation. While\
-        \ interacting with this API, you will face the following scenarios:\n\n  *\
-        \ The first request for this API will return an empty mobile_network_operators_preferences\
-        \ with an in-progress OTA update resource in the ota_updates node containing\
-        \ the exact sent parameters to indicate the operation progress. The value\
-        \ will be applied to the principal object when the OTA update finishes its\
-        \ processing, thus indicating the SIM card network preference current state.\
-        \ \n  * The subsequent requests will contain the current state, that is what's\
-        \ applied to the SIM card settings, and return the related OTA update in the\
-        \ ota_updates node.\n  \nThe returned OTA updated (present in the ota_updates\
-        \ node) will, by default, be the resource related to the operation, not all\
-        \ of them."
     PatchGcbChannelZoneRequestResponse:
       content:
         application/json:
@@ -5702,15 +5649,6 @@ components:
                 $ref: '#/components/schemas/SIMCardGroupAction'
             type: object
       description: Successful Response
-    SIMCardNetworkPreferenceWithOTAUpdatesResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/SIMCardNetworkPreferenceWithOTAUpdates'
-            type: object
-      description: A successful network preferences definition response.
     SIMCardOrdersPreviewResponse:
       content:
         application/json:
@@ -33671,36 +33609,6 @@ components:
           type: string
       title: SIMCardGroupPatch
       type: object
-    SIMCardNetworkPreferenceWithOTAUpdates:
-      properties:
-        created_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            created.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-        mobile_network_operators_preferences:
-          $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesResponse'
-        ota_updates:
-          items:
-            $ref: '#/components/schemas/CompleteOTAUpdate'
-          type: array
-        record_type:
-          example: sim_card_network_preferences
-          readOnly: true
-          type: string
-        sim_card_id:
-          example: 6b14e151-8493-4fa1-8664-1cc4e6d14158
-          format: uuid
-          type: string
-        updated_at:
-          description: ISO 8601 formatted date-time indicating when the resource was
-            updated.
-          example: '2018-02-02T22:25:27.521Z'
-          readOnly: true
-          type: string
-      title: SIMCardNetworkPreferenceWithOTAUpdates
-      type: object
     SIMCardOrder:
       properties:
         cost:
@@ -43762,45 +43670,6 @@ paths:
       tags:
       - IP Ranges
       x-latency-category: responsive
-  /actions/network_preferences/sim_cards:
-    put:
-      description: 'This API allows dispatching the same operation described for the
-        PUT sim_cards/:id/network_preferences API for multiple SIM cards at once.<br/><br/>
-
-        Although, a SIM card network preference may fail individually under any validation
-        triggered as a consequence of its state. For example, a SIM can''t have an
-        in-progress OTA update for applying a Network Preference, so they''ll fail
-        when requested in this API. In that scenario, the specific error will be present
-        in the response along with the successful definitions in the "errors" response
-        node.
-
-        '
-      operationId: BulkSimCardNetworkPreferences
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                mobile_network_operators_preferences:
-                  $ref: '#/components/schemas/MobileNetworkOperatorsPreferencesRequest'
-                sim_card_ids:
-                  example:
-                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
-                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
-                  items:
-                    format: uuid
-                    type: string
-                  type: array
-              type: object
-      responses:
-        '202':
-          $ref: '#/components/responses/BulkSIMCardNetworkPreferenceResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-      summary: Bulk Network Preferences for SIM cards
-      tags:
-      - SIM Cards
-      x-latency-category: background
   /actions/purchase/esims:
     post:
       description: 'Purchases and registers the specified amount of eSIMs to the current
@@ -61708,40 +61577,6 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
-  /sim_cards/actions/bulk_set_network_preferences:
-    post:
-      description: 'This API triggers an asynchronous operation to set network preferences
-        for each of the specified SIM cards.<br/>
-
-        For each SIM Card a SIM Card Action will be generated. The status of the SIM
-        Card Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
-        API.
-
-        '
-      operationId: SetNetworkPreferencesBulk
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                sim_card_ids:
-                  example:
-                  - 6b14e151-8493-4fa1-8664-1cc4e6d14158
-                  items:
-                    $ref: '#/components/schemas/Id'
-                  type: array
-              required:
-              - sim_card_ids
-              type: object
-      responses:
-        '202':
-          $ref: '#/components/responses/BulkSIMCardActionResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-      summary: Request bulk setting of network preferences for SIM cards.
-      tags:
-      - SIM Cards
-      x-latency-category: background
   /sim_cards/actions/bulk_set_public_ips:
     post:
       description: 'This API triggers an asynchronous operation to set a public IP
@@ -61876,30 +61711,6 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
-  /sim_cards/{id}/actions/delete_network_preferences:
-    post:
-      description: 'This API deletes network preferences for a SIM card.<br/>
-
-        The API will trigger an asynchronous operation called a SIM Card Action. Creating
-        network preferences may take a period of time. The status of the SIM Card
-        Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
-        API.
-
-        '
-      operationId: DeleteNetworkPreferences
-      parameters:
-      - $ref: '#/components/parameters/SIMCardId'
-      responses:
-        '202':
-          $ref: '#/components/responses/SIMCardActionResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Delete network preferences for a SIM card
-      tags:
-      - SIM Cards
-      x-latency-category: background
   /sim_cards/{id}/actions/disable:
     post:
       description: 'This API disables a SIM card, disconnecting it from the network
@@ -61970,39 +61781,6 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Request removing a SIM card public IP
-      tags:
-      - SIM Cards
-      x-latency-category: background
-  /sim_cards/{id}/actions/set_network_preferences:
-    post:
-      description: 'This API sets network preferences for a SIM card.<br/>
-
-        Every SIM card has default network preferences defined on Telnyx. These preferences
-        will determine how a SIMCard will connect to the network by considering a
-        list of preferable operators.<br/><br/>
-
-        The SIM card needs to be attached to the network so this can connect and SMS
-        must be available, otherwise, the operation will fail. This preference will
-        only be respected if the network is available, otherwise the strongest signal
-        will be used. <br/><br/>
-
-        The API will trigger an asynchronous operation called a SIM Card Action. Creating
-        network preferences may take a period of time. The status of the SIM Card
-        Action can be followed through the [List SIM Card Action](https://developersdev.telnyx.com/docs/api/v2/wireless/SIM-Card-Actions#ListSIMCardActions)
-        API.
-
-        '
-      operationId: SetNetworkPreference
-      parameters:
-      - $ref: '#/components/parameters/SIMCardId'
-      responses:
-        '202':
-          $ref: '#/components/responses/SIMCardActionResponse'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Create or update network preferences for a SIM card
       tags:
       - SIM Cards
       x-latency-category: background
@@ -62100,86 +61878,6 @@ paths:
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Get SIM card device details
-      tags:
-      - SIM Cards
-      x-latency-category: responsive
-  /sim_cards/{id}/network_preferences:
-    delete:
-      description: 'This API asynchronously removes the custom-defined network preferences
-        settings. After this operation is done the Telnyx default settings, the same
-        applied for an unaltered SIM card, will be in place.
-
-        '
-      operationId: DeleteSIMCardNetworkPreferences
-      parameters:
-      - $ref: '#/components/parameters/SIMCardId'
-      responses:
-        '202':
-          $ref: '#/components/responses/DELETESIMCardNetworkPreferenceResponse'
-        '401':
-          description: Unauthorized
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Delete network preferences
-      tags:
-      - SIM Cards
-      x-latency-category: responsive
-    get:
-      description: 'It returns the network preferences currently applied in the SIM
-        card.
-
-        '
-      operationId: GetSimCardNetworkPreferences
-      parameters:
-      - $ref: '#/components/parameters/SIMCardId'
-      - $ref: '#/components/parameters/IncludeOTAUpdates'
-      responses:
-        '200':
-          $ref: '#/components/responses/SIMCardNetworkPreferenceWithOTAUpdatesResponse'
-        '401':
-          description: Unauthorized
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Get network preferences
-      tags:
-      - SIM Cards
-      x-latency-category: responsive
-    put:
-      description: 'This API allows setting or updating a SIM card network preference.
-        <br/><br/>
-
-        Every SIM card has default network preferences defined on Telnyx. These preferences
-        will determine how a SIMCard will connect to the network by considering a
-        list of preferable operators.<br/><br/>
-
-        There can be multiple scenarios where an operator can be preferred over another,
-        for example, when a specific mobile operator can provide better network latency
-        or better pricing.
-
-        '
-      operationId: PutSimCardNetworkPreferences
-      parameters:
-      - $ref: '#/components/parameters/SIMCardId'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                mobile_network_operators_preferences:
-                  description: A list of mobile network operators and the priority
-                    that should be applied when the SIM is connecting to the network.
-                  items:
-                    $ref: '#/components/schemas/MobileNetworkOperatorPreferencesRequest'
-                  type: array
-              type: object
-      responses:
-        '202':
-          $ref: '#/components/responses/PUTSIMCardNetworkPreferenceResponse'
-        '401':
-          description: Unauthorized
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Set network preferences
       tags:
       - SIM Cards
       x-latency-category: responsive
