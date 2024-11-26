@@ -586,53 +586,58 @@ components:
         example: f3575e15-32ce-400e-a4c0-dd78800c20b0
         format: uuid
         type: string
-    FilterCallEventStatus:
-      description: Event status
+    FilterCallEventFailed:
+      description: Delivery failed or not.
       in: query
-      name: filter[status]
+      name: filter[failed]
       required: false
       schema:
-        enum:
-        - delivered
-        - failed
-        example: delivered
-        type: string
-    FilterCallEventTimestampEqualTo:
-      description: 'Event timestamp: equal'
+        example: false
+        type: boolean
+    FilterCallEventName:
+      description: Event name
       in: query
-      name: filter[event_timestamp][eq]
+      name: filter[name]
       required: false
       schema:
-        example: '2019-03-29T11:10:00Z'
+        example: webhook
         type: string
-    FilterCallEventTimestampGreaterThan:
-      description: 'Event timestamp: greater than'
+    FilterCallEventOccurredAtEqualTo:
+      description: 'Event occurred_at: equal'
       in: query
-      name: filter[event_timestamp][gt]
+      name: filter[occurred_at][eq]
       required: false
       schema:
         example: '2019-03-29T11:10:00Z'
         type: string
-    FilterCallEventTimestampGreaterThanOrEqualTo:
-      description: 'Event timestamp: greater than or equal'
+    FilterCallEventOccurredAtGreaterThan:
+      description: 'Event occurred_at: greater than'
       in: query
-      name: filter[event_timestamp][gte]
+      name: filter[occurred_at][gt]
       required: false
       schema:
         example: '2019-03-29T11:10:00Z'
         type: string
-    FilterCallEventTimestampLessThan:
-      description: 'Event timestamp: lower than'
+    FilterCallEventOccurredAtGreaterThanOrEqualTo:
+      description: 'Event occurred_at: greater than or equal'
       in: query
-      name: filter[event_timestamp][lt]
+      name: filter[occurred_at][gte]
       required: false
       schema:
         example: '2019-03-29T11:10:00Z'
         type: string
-    FilterCallEventTimestampLessThanOrEqualTo:
-      description: 'Event timestamp: lower than or equal'
+    FilterCallEventOccurredAtLessThan:
+      description: 'Event occurred_at: lower than'
       in: query
-      name: filter[event_timestamp][lte]
+      name: filter[occurred_at][lt]
+      required: false
+      schema:
+        example: '2019-03-29T11:10:00Z'
+        type: string
+    FilterCallEventOccurredAtLessThanOrEqualTo:
+      description: 'Event occurred_at: lower than or equal'
+      in: query
+      name: filter[occurred_at][lte]
       required: false
       schema:
         example: '2019-03-29T11:10:00Z'
@@ -651,16 +656,16 @@ components:
     FilterCallLegId:
       description: The unique identifier of an individual call leg.
       in: query
-      name: filter[call_leg_id]
+      name: filter[leg_id]
       required: false
       schema:
         format: uuid
         type: string
     FilterCallSessionId:
-      description: The unique identifier of the call control session. A session may
-        include multiple call leg events.
+      description: The unique identifier of the call session. A session may include
+        multiple call leg events.
       in: query
-      name: filter[call_session_id]
+      name: filter[application_session_id]
       required: false
       schema:
         format: uuid
@@ -689,6 +694,13 @@ components:
         - init
         - in_progress
         - completed
+        type: string
+    FilterConnectionId:
+      description: The unique identifier of the conection.
+      in: query
+      name: filter[connection_id]
+      required: false
+      schema:
         type: string
     FilterConnectionName:
       description: If present, connections with <code>connection_name</code> containing
@@ -783,6 +795,14 @@ components:
       name: filter[fqdn]
       schema:
         default: null
+        type: string
+    FilterFrom:
+      description: Filter by From number.
+      in: query
+      name: filter[from]
+      required: false
+      schema:
+        example: '+12025550142'
         type: string
     FilterId:
       description: If present, connections with <code>id</code> matching the given
@@ -882,6 +902,18 @@ components:
       schema:
         example: '+1234567890'
         type: string
+    FilterProduct:
+      description: Filter by product.
+      in: query
+      name: filter[product]
+      required: false
+      schema:
+        enum:
+        - call_control
+        - fax
+        - texml
+        example: texml
+        type: string
     FilterQuantity:
       description: Filter orders by how many SIM cards were ordered.
       in: query
@@ -952,6 +984,14 @@ components:
       required: false
       schema:
         default: 'null'
+        type: string
+    FilterTo:
+      description: Filter by To number.
+      in: query
+      name: filter[to]
+      required: false
+      schema:
+        example: '+12025550142'
         type: string
     FilterUpdatedAt:
       description: Filter by ISO 8601 formatted date-time string matching resource
@@ -45549,24 +45589,29 @@ paths:
   /call_events:
     get:
       description: 'Filters call events by given filter parameters. Events are ordered
-        by `event_timestamp`. If filter for `call_leg_id` or `call_session_id` is
-        not present, it only filters events from the last 24 hours.
+        by `occurred_at`. If filter for `leg_id` or `application_session_id` is not
+        present, it only filters events from the last 24 hours.
 
 
-        **Note**: Only one `filter[event_timestamp]` can be passed.
+        **Note**: Only one `filter[occurred_at]` can be passed.
 
         '
       operationId: ListCallEvents
       parameters:
       - $ref: '#/components/parameters/FilterCallLegId'
       - $ref: '#/components/parameters/FilterCallSessionId'
-      - $ref: '#/components/parameters/FilterCallEventStatus'
+      - $ref: '#/components/parameters/FilterConnectionId'
+      - $ref: '#/components/parameters/FilterProduct'
+      - $ref: '#/components/parameters/FilterFrom'
+      - $ref: '#/components/parameters/FilterTo'
+      - $ref: '#/components/parameters/FilterCallEventFailed'
       - $ref: '#/components/parameters/FilterCallEventType'
-      - $ref: '#/components/parameters/FilterCallEventTimestampGreaterThan'
-      - $ref: '#/components/parameters/FilterCallEventTimestampGreaterThanOrEqualTo'
-      - $ref: '#/components/parameters/FilterCallEventTimestampLessThan'
-      - $ref: '#/components/parameters/FilterCallEventTimestampLessThanOrEqualTo'
-      - $ref: '#/components/parameters/FilterCallEventTimestampEqualTo'
+      - $ref: '#/components/parameters/FilterCallEventName'
+      - $ref: '#/components/parameters/FilterCallEventOccurredAtGreaterThan'
+      - $ref: '#/components/parameters/FilterCallEventOccurredAtGreaterThanOrEqualTo'
+      - $ref: '#/components/parameters/FilterCallEventOccurredAtLessThan'
+      - $ref: '#/components/parameters/FilterCallEventOccurredAtLessThanOrEqualTo'
+      - $ref: '#/components/parameters/FilterCallEventOccurredAtEqualTo'
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
       responses:
