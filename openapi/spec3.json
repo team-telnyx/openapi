@@ -345,6 +345,10 @@
       "description": "Queue commands operations"
     },
     {
+      "name": "RCS messaging",
+      "description": "Send RCS messages"
+    },
+    {
       "name": "Regions",
       "description": "Regions"
     },
@@ -15114,6 +15118,41 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ListMessagingUrlDomains"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/messsages/rcs": {
+      "post": {
+        "tags": [
+          "RCS messaging"
+        ],
+        "summary": "Send an RCS message",
+        "requestBody": {
+          "description": "RCS message body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RCSMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RCSResponse"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -72172,6 +72211,570 @@
             "type": "string",
             "description": "Unique identifier of the queue the call is in.",
             "example": "ae1626cc-6f42-11ea-becd-02420a0f8b69"
+          }
+        }
+      },
+      "RCSAction": {
+        "type": "object",
+        "description": "When tapped, initiates the corresponding native action on the device.",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text that is shown in the suggested action. Maximum 25 characters.",
+            "example": "Hello world"
+          },
+          "postback_data": {
+            "type": "string",
+            "description": "Payload (base64 encoded) that will be sent to the agent in the user event that results when the user taps the suggested action. Maximum 2048 characters."
+          },
+          "fallback_url": {
+            "type": "string",
+            "description": "Fallback URL to use if a client doesn't support a suggested action. Fallback URLs open in new browser windows. Maximum 2048 characters.",
+            "format": "url"
+          },
+          "dial_action": {
+            "$ref": "#/components/schemas/RCSDialAction"
+          },
+          "view_location_action": {
+            "$ref": "#/components/schemas/RCSViewLocationAction"
+          },
+          "create_calendar_event_action": {
+            "$ref": "#/components/schemas/RCSCreateCalendarEventAction"
+          },
+          "open_url_action": {
+            "$ref": "#/components/schemas/RCSOpenUrlAction"
+          },
+          "share_location_action": {
+            "$ref": "#/components/schemas/RCSShareLocationAction"
+          },
+          "compose_action": {
+            "$ref": "#/components/schemas/RCSComposeAction"
+          }
+        }
+      },
+      "RCSAgentMessage": {
+        "type": "object",
+        "properties": {
+          "content_message": {
+            "$ref": "#/components/schemas/RCSContentMessage"
+          },
+          "event": {
+            "$ref": "#/components/schemas/RCSEvent"
+          },
+          "expire_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp in UTC of when this message is considered expired",
+            "example": "2024-10-02T15:01:23Z"
+          },
+          "ttl": {
+            "type": "string",
+            "description": "Duration in seconds ending with 's'",
+            "example": "10.5s"
+          }
+        }
+      },
+      "RCSCardContent": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the card (at most 200 characters)",
+            "example": "Elephant"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the card (at most 2000 characters)"
+          },
+          "media": {
+            "$ref": "#/components/schemas/RCSMedia"
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "List of suggestions to include in the card. Maximum 10 suggestions.",
+            "items": {
+              "$ref": "#/components/schemas/RCSSuggestion"
+            }
+          }
+        }
+      },
+      "RCSCarouselCard": {
+        "required": [
+          "cardWidth",
+          "cardContents"
+        ],
+        "type": "object",
+        "description": "Carousel of cards.",
+        "properties": {
+          "card_width": {
+            "type": "string",
+            "example": "SMALL",
+            "description": "The width of the cards in the carousel.",
+            "enum": [
+              "CARD_WIDTH_UNSPECIFIED",
+              "SMALL",
+              "MEDIUM"
+            ]
+          },
+          "card_contents": {
+            "description": "The list of contents for each card in the carousel. A carousel can have a minimum of 2 cards and a maximum 10 cards.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RCSCardContent"
+            }
+          }
+        }
+      },
+      "RCSComposeAction": {
+        "type": "object",
+        "description": "Compose and send a message to a destination predefined by chatbot.",
+        "properties": {
+          "compose_text_message": {
+            "$ref": "#/components/schemas/RCSComposeTextMessage"
+          },
+          "compose_recording_message": {
+            "$ref": "#/components/schemas/RCSComposeRecordingMessage"
+          }
+        }
+      },
+      "RCSComposeRecordingMessage": {
+        "type": "object",
+        "required": [
+          "phoneNumber",
+          "type"
+        ],
+        "description": "Initiate the recording and sending of an audio or video message.",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "phone number in +E.164 format",
+            "example": 13125551234
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of the recording action.",
+            "enum": [
+              "COMPOSE_RECORDING_ACTION_TYPE_UNSPECIFIED",
+              "ACTION_TYPE_AUDIO",
+              "ACTION_TYPE_VIDEO"
+            ]
+          }
+        }
+      },
+      "RCSComposeTextMessage": {
+        "type": "object",
+        "required": [
+          "phone_number"
+        ],
+        "description": "Compose and send a text message.",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "phone number in +E.164 format",
+            "example": 13125551234
+          },
+          "text": {
+            "type": "string",
+            "description": "Draft to go into the send message text field."
+          }
+        }
+      },
+      "RCSContentInfo": {
+        "required": [
+          "fileUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "file_url": {
+            "type": "string",
+            "format": "url",
+            "description": "Publicly reachable URL of the file.",
+            "example": "https://example.com/elephant.jpg"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "format": "url",
+            "description": "Publicly reachable URL of the thumbnail. Maximum size of 100 kB."
+          },
+          "force_refresh": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RCSContentMessage": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "description": "List of suggested actions and replies",
+            "items": {
+              "$ref": "#/components/schemas/RCSSuggestion"
+            }
+          },
+          "text": {
+            "type": "string",
+            "description": "Text (maximum 3072 characters)",
+            "example": "Hello world!"
+          },
+          "rich_card": {
+            "$ref": "#/components/schemas/RCSRichCard"
+          },
+          "content_info": {
+            "$ref": "#/components/schemas/RCSContentInfo"
+          }
+        }
+      },
+      "RCSCreateCalendarEventAction": {
+        "type": "object",
+        "description": "Opens the user's default calendar app and starts the new calendar event flow with the agent-specified event data pre-filled.",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-10-02T15:01:23Z"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-10-02T15:02:31Z"
+          },
+          "title": {
+            "type": "string",
+            "description": "Event title. Maximum 100 characters."
+          },
+          "description": {
+            "type": "string",
+            "description": "Event description. Maximum 500 characters."
+          }
+        }
+      },
+      "RCSDialAction": {
+        "required": [
+          "phone_number"
+        ],
+        "type": "object",
+        "description": "Opens the user's default dialer app with the agent-specified phone number filled in.",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "Phone number in +E.164 format",
+            "example": 13125551234
+          }
+        }
+      },
+      "RCSEvent": {
+        "type": "object",
+        "description": "RCS Event to send to the recipient",
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "example": "IS_TYPING",
+            "enum": [
+              "TYPE_UNSPECIFIED",
+              "IS_TYPING",
+              "READ"
+            ]
+          }
+        }
+      },
+      "RCSFrom": {
+        "type": "object",
+        "properties": {
+          "bot_id": {
+            "type": "string",
+            "example": "Botman123",
+            "description": "bot ID"
+          },
+          "carrier": {
+            "type": "string",
+            "example": "Telnyx"
+          },
+          "line_type": {
+            "type": "string",
+            "example": "Wireless"
+          }
+        }
+      },
+      "RCSLatLng": {
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "description": "The latitude in degrees. It must be in the range [-90.0, +90.0].",
+            "example": 41.8
+          },
+          "longitude": {
+            "type": "number",
+            "description": "The longitude in degrees. It must be in the range [-180.0, +180.0].",
+            "example": -87.6
+          }
+        }
+      },
+      "RCSMedia": {
+        "type": "object",
+        "description": "A media file within a rich card.",
+        "properties": {
+          "height": {
+            "type": "string",
+            "example": "MEDIUM",
+            "description": "The height of the media within a rich card with a vertical layout. For a standalone card with horizontal layout, height is not customizable, and this field is ignored.",
+            "enum": [
+              "HEIGHT_UNSPECIFIED",
+              "SHORT",
+              "MEDIUM",
+              "TALL"
+            ]
+          },
+          "content_info": {
+            "$ref": "#/components/schemas/RCSContentInfo"
+          }
+        }
+      },
+      "RCSMessage": {
+        "required": [
+          "bot_id",
+          "to",
+          "messaging_profile_id",
+          "agent_message"
+        ],
+        "type": "object",
+        "properties": {
+          "bot_id": {
+            "type": "string",
+            "description": "RCS Bot ID",
+            "example": "Botman123"
+          },
+          "to": {
+            "type": "string",
+            "description": "Phone number in +E.164 format",
+            "example": 13125551234
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "description": "A valid messaging profile ID"
+          },
+          "type": {
+            "type": "string",
+            "description": "Message type - must be set to \"RCS\"",
+            "example": "RCS",
+            "enum": [
+              "RCS"
+            ]
+          },
+          "agent_message": {
+            "$ref": "#/components/schemas/RCSAgentMessage"
+          }
+        }
+      },
+      "RCSOpenUrlAction": {
+        "required": [
+          "url",
+          "application",
+          "webview_view_mode"
+        ],
+        "type": "object",
+        "description": "Opens the user's default web browser app to the specified URL.",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "url",
+            "example": "http://example.com"
+          },
+          "application": {
+            "type": "string",
+            "example": "BROWSER",
+            "description": "URL open application, browser or webview.",
+            "enum": [
+              "OPEN_URL_APPLICATION_UNSPECIFIED",
+              "BROWSER",
+              "WEBVIEW"
+            ]
+          },
+          "webview_view_mode": {
+            "type": "string",
+            "example": "HALF",
+            "enum": [
+              "WEBVIEW_VIEW_MODE_UNSPECIFIED",
+              "FULL",
+              "HALF",
+              "TALL"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Accessbility description for webview."
+          }
+        }
+      },
+      "RCSReply": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text that is shown in the suggested reply (maximum 25 characters)"
+          },
+          "postback_data": {
+            "type": "string"
+          }
+        }
+      },
+      "RCSResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "record_type": {
+                "type": "string",
+                "example": "message"
+              },
+              "direction": {
+                "type": "string",
+                "example": "outbound"
+              },
+              "id": {
+                "type": "string",
+                "description": "message ID",
+                "example": "4031938e-60e4-4235-a8dd-0b1c55a23e7a"
+              },
+              "type": {
+                "type": "string",
+                "example": "RCS"
+              },
+              "organization_id": {
+                "type": "string",
+                "example": "9f61d8e1-7687-4d6d-9cae-9ff682985983"
+              },
+              "messaging_profile_id": {
+                "type": "string",
+                "example": "4001781e-626f-4a41-a914-b1b682150f94"
+              },
+              "from": {
+                "$ref": "#/components/schemas/RCSFrom"
+              },
+              "to": {
+                "$ref": "#/components/schemas/RCSTo"
+              },
+              "body": {
+                "$ref": "#/components/schemas/RCSAgentMessage"
+              },
+              "encoding": {
+                "type": "string",
+                "example": "utf-8"
+              },
+              "received_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "RCSRichCard": {
+        "type": "object",
+        "properties": {
+          "carousel_card": {
+            "$ref": "#/components/schemas/RCSCarouselCard"
+          },
+          "standalone_card": {
+            "$ref": "#/components/schemas/RCSStandaloneCard"
+          }
+        }
+      },
+      "RCSShareLocationAction": {
+        "type": "object",
+        "description": "Opens the RCS app's location chooser so the user can pick a location to send back to the agent."
+      },
+      "RCSStandaloneCard": {
+        "required": [
+          "card_orientation",
+          "thumbnail_image_alignment",
+          "card_content"
+        ],
+        "type": "object",
+        "description": "Standalone card",
+        "properties": {
+          "card_orientation": {
+            "type": "string",
+            "example": "HORIZONTAL",
+            "description": "Orientation of the card.",
+            "enum": [
+              "CARD_ORIENTATION_UNSPECIFIED",
+              "HORIZONTAL",
+              "VERTICAL"
+            ]
+          },
+          "thumbnail_image_alignment": {
+            "type": "string",
+            "example": "LEFT",
+            "description": "Image preview alignment for standalone cards with horizontal layout.",
+            "enum": [
+              "THUMBNAIL_IMAGE_ALIGNMENT_UNSPECIFIED",
+              "LEFT",
+              "RIGHT"
+            ]
+          },
+          "card_content": {
+            "$ref": "#/components/schemas/RCSCardContent"
+          }
+        }
+      },
+      "RCSSuggestion": {
+        "type": "object",
+        "properties": {
+          "reply": {
+            "$ref": "#/components/schemas/RCSReply"
+          },
+          "action": {
+            "$ref": "#/components/schemas/RCSAction"
+          }
+        }
+      },
+      "RCSTo": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RCSToItem"
+        }
+      },
+      "RCSToItem": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "example": "+13125551234"
+          },
+          "status": {
+            "type": "string",
+            "example": "queued"
+          },
+          "carrier": {
+            "type": "string",
+            "example": "Verizon Wireless"
+          },
+          "line_type": {
+            "type": "string",
+            "example": "Wireless"
+          }
+        }
+      },
+      "RCSViewLocationAction": {
+        "type": "object",
+        "description": "Opens the user's default map app and selects the agent-specified location.",
+        "properties": {
+          "lat_long": {
+            "$ref": "#/components/schemas/RCSLatLng"
+          },
+          "label": {
+            "type": "string",
+            "description": "The label of the pin dropped"
+          },
+          "query": {
+            "type": "string",
+            "description": "query string (Android only)"
           }
         }
       },
