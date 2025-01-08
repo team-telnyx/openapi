@@ -9073,6 +9073,118 @@ components:
           $ref: '#/components/schemas/CallAIGatherEnded'
       title: Call AI Gather Ended Event
       type: object
+    CallAIGatherPartialResults:
+      example:
+        event_type: call.ai_gather.partial_results
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_control_id: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          from: '+35319605860'
+          message_history:
+          - content: Hello, can you tell me your age and where you live?
+            role: assistant
+          - content: Hello, I'm 29 and I live in Paris?
+            role: user
+          partial_results:
+            age: 29
+            city: Paris
+          to: '+35319605860'
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.ai_gather.partial_results
+          example: call.ai_gather.partial_results
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Telnyx connection ID used in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            from:
+              description: Number or SIP URI placing the call.
+              example: '+35319605860'
+              type: string
+            message_history:
+              description: The history of the messages exchanged during the AI gather
+              items:
+                properties:
+                  content:
+                    description: The content of the message
+                    example: Hello, I'm 29 and I live in Paris.
+                    type: string
+                  role:
+                    description: The role of the message sender
+                    enum:
+                    - assistant
+                    - user
+                    example: user
+                    type: string
+                type: object
+              type: array
+            partial_results:
+              description: The partial result of the AI gather, its type depends of
+                the `parameters` provided in the command
+              example:
+                age: 29
+                city: Paris
+              type: object
+            to:
+              description: Destination number or SIP URI of the call.
+              example: '+13129457420'
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call AI Gather Partial Results
+      type: object
+    CallAIGatherPartialResultsEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallAIGatherPartialResults'
+      title: Call AI Gather Partial Results Event
+      type: object
     CallAnswered:
       example:
         event_type: call.answered
@@ -22009,6 +22121,14 @@ components:
             - location
             type: object
           type: object
+        send_partial_results:
+          description: Default is `false`. If set to `true`, the voice assistant will
+            send partial results via the `call.ai_gather.partial_results` callback
+            in real time as individual fields are gathered. If set to `false`, the
+            voice assistant will only send the final result via the `call.ai_gather.ended`
+            callback.
+          example: false
+          type: boolean
         transcription:
           $ref: '#/components/schemas/TranscriptionConfig'
         voice:
@@ -46568,12 +46688,25 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-      description: "**BETA** Gather parameters defined in the request payload using\
-        \ a voice assistant.\n\n You can pass parameters described as a JSON Schema\
-        \ object and the voice assistant will attempt to gather these informations.\
-        \ At the moment only English is supported.\n\n**Expected Webhooks (see [callback\
-        \ schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks)\
-        \ below):**\n\n- `call.ai_gather.ended`\n"
+        CallAIGatherPartialResults:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallAIGatherPartialResultsEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
+      description: "Gather parameters defined in the request payload using a voice\
+        \ assistant.\n\n You can pass parameters described as a JSON Schema object\
+        \ and the voice assistant will attempt to gather these informations. \n\n\
+        **Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks)\
+        \ below):**\n\n- `call.ai_gather.ended`\n- `call.ai_gather.partial_results`\
+        \ (if `send_partial_results` is set to `true`)\n"
       operationId: callGatherUsingAI
       parameters:
       - $ref: '#/components/parameters/CallControlId'
@@ -46589,7 +46722,7 @@ paths:
           $ref: '#/components/responses/CallControlCommandResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Gather using AI (BETA)
+      summary: Gather using AI
       tags:
       - Call Commands
       x-latency-category: interactive

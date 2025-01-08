@@ -4621,8 +4621,8 @@
     },
     "/calls/{call_control_id}/actions/gather_using_ai": {
       "post": {
-        "summary": "Gather using AI (BETA)",
-        "description": "**BETA** Gather parameters defined in the request payload using a voice assistant.\n\n You can pass parameters described as a JSON Schema object and the voice assistant will attempt to gather these informations. At the moment only English is supported.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks) below):**\n\n- `call.ai_gather.ended`\n",
+        "summary": "Gather using AI",
+        "description": "Gather parameters defined in the request payload using a voice assistant.\n\n You can pass parameters described as a JSON Schema object and the voice assistant will attempt to gather these informations. \n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks) below):**\n\n- `call.ai_gather.ended`\n- `call.ai_gather.partial_results` (if `send_partial_results` is set to `true`)\n",
         "operationId": "callGatherUsingAI",
         "tags": [
           "Call Commands"
@@ -4661,6 +4661,27 @@
                     "application/json": {
                       "schema": {
                         "$ref": "#/components/schemas/CallAIGatherEndedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
+          },
+          "CallAIGatherPartialResults": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/CallAIGatherPartialResultsEvent"
                       }
                     }
                   }
@@ -45376,6 +45397,149 @@
           }
         }
       },
+      "CallAIGatherPartialResults": {
+        "type": "object",
+        "title": "Call AI Gather Partial Results",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.ai_gather.partial_results",
+            "enum": [
+              "call.ai_gather.partial_results"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Telnyx connection ID used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "from": {
+                "type": "string",
+                "example": "+35319605860",
+                "description": "Number or SIP URI placing the call."
+              },
+              "to": {
+                "type": "string",
+                "example": "+13129457420",
+                "description": "Destination number or SIP URI of the call."
+              },
+              "message_history": {
+                "description": "The history of the messages exchanged during the AI gather",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "example": "Hello, I'm 29 and I live in Paris.",
+                      "description": "The content of the message"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "assistant",
+                        "user"
+                      ],
+                      "example": "user",
+                      "description": "The role of the message sender"
+                    }
+                  }
+                }
+              },
+              "partial_results": {
+                "type": "object",
+                "description": "The partial result of the AI gather, its type depends of the `parameters` provided in the command",
+                "example": {
+                  "age": 29,
+                  "city": "Paris"
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.ai_gather.partial_results",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2018-02-02T22:25:27.521992Z",
+          "payload": {
+            "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "from": "+35319605860",
+            "to": "+35319605860",
+            "message_history": [
+              {
+                "content": "Hello, can you tell me your age and where you live?",
+                "role": "assistant"
+              },
+              {
+                "content": "Hello, I'm 29 and I live in Paris?",
+                "role": "user"
+              }
+            ],
+            "partial_results": {
+              "age": 29,
+              "city": "Paris"
+            }
+          }
+        }
+      },
+      "CallAIGatherPartialResultsEvent": {
+        "type": "object",
+        "title": "Call AI Gather Partial Results Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallAIGatherPartialResults"
+          }
+        }
+      },
       "CallAnswered": {
         "type": "object",
         "title": "Call Answered",
@@ -60784,6 +60948,11 @@
             "description": "Text that will be played when the gathering starts, if none then nothing will be played when the gathering starts. The greeting can be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There is a 3,000 character limit.",
             "type": "string",
             "example": "Hello, can you tell me your age and where you live?"
+          },
+          "send_partial_results": {
+            "description": "Default is `false`. If set to `true`, the voice assistant will send partial results via the `call.ai_gather.partial_results` callback in real time as individual fields are gathered. If set to `false`, the voice assistant will only send the final result via the `call.ai_gather.ended` callback.",
+            "type": "boolean",
+            "example": false
           },
           "assistant": {
             "$ref": "#/components/schemas/Assistant"
