@@ -46,7 +46,7 @@
     },
     {
       "name": "Audit Logs",
-      "description": "Record of significant account related changes"
+      "description": "Audit log operations."
     },
     {
       "name": "AutoRechargePreferences",
@@ -2107,7 +2107,8 @@
     "/audit_events": {
       "get": {
         "summary": "List Audit Logs",
-        "description": "List all audit log entries. Audit logs are a best-effort, eventually consistent record of significant account related changes.",
+        "description": "Retrieve a list of audit log entries. Audit logs are a best-effort, eventually consistent record of significant account-related changes.",
+        "operationId": "ListAuditLogs",
         "tags": [
           "Audit Logs"
         ],
@@ -2130,7 +2131,10 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ListAuditLogsResponse"
+            "$ref": "#/components/responses/AuditLogListResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
           }
         },
         "x-latency-category": "responsive"
@@ -34256,6 +34260,7 @@
         "name": "filter[created_after]",
         "in": "query",
         "description": "Filter for audit events created after a specific date.",
+        "required": false,
         "schema": {
           "type": "string",
           "format": "date-time",
@@ -34276,6 +34281,7 @@
         "name": "filter[created_before]",
         "in": "query",
         "description": "Filter for audit events created before a specific date.",
+        "required": false,
         "schema": {
           "type": "string",
           "format": "date-time",
@@ -34912,19 +34918,21 @@
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
-        "description": "Page number to load",
+        "description": "Page number to load.",
+        "required": false,
         "schema": {
-          "type": "number",
-          "example": 4
+          "type": "integer",
+          "example": 1
         }
       },
       "PageSize": {
         "name": "page[size]",
         "in": "query",
-        "description": "Size of the page",
+        "description": "Number of items per page.",
+        "required": false,
         "schema": {
-          "type": "number",
-          "example": 2
+          "type": "integer",
+          "example": 10
         }
       },
       "PageSizeTexml": {
@@ -35141,13 +35149,15 @@
       "Sort": {
         "name": "sort",
         "in": "query",
-        "description": "Set how the results will be ordered by the creation date.",
+        "description": "Set the order of the results by the creation date.",
+        "required": false,
         "schema": {
           "type": "string",
           "enum": [
             "asc",
             "desc"
-          ]
+          ],
+          "example": "desc"
         }
       },
       "SortAddress": {
@@ -36236,6 +36246,16 @@
                   "title": "Orders"
                 }
               }
+            }
+          }
+        }
+      },
+      "AuditLogListResponse": {
+        "description": "A list of audit log entries.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AuditLogList"
             }
           }
         }
@@ -37468,6 +37488,26 @@
           }
         }
       },
+      "FilterCreatedAfter": {
+        "name": "filter[created_after]",
+        "in": "query",
+        "description": "Filter for audit events created after a specific date.",
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2021-01-01T00:00:00Z"
+        }
+      },
+      "FilterCreatedBefore": {
+        "name": "filter[created_before]",
+        "in": "query",
+        "description": "Filter for audit events created before a specific date.",
+        "schema": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2021-01-01T00:00:00Z"
+        }
+      },
       "Forbidden": {
         "description": "Forbidden",
         "content": {
@@ -37531,7 +37571,7 @@
         }
       },
       "GenericErrorResponse": {
-        "description": "Unexpected error",
+        "description": "Unexpected error.",
         "content": {
           "application/json": {
             "schema": {
@@ -38488,27 +38528,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PortingOrdersAllowedFocWindow"
-                  }
-                },
-                "meta": {
-                  "$ref": "#/components/schemas/PaginationMeta"
-                }
-              }
-            }
-          }
-        }
-      },
-      "ListAuditLogsResponse": {
-        "description": "List of audit log entries",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditLogEntry"
                   }
                 },
                 "meta": {
@@ -41728,6 +41747,18 @@
           }
         }
       },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "description": "Set how the results will be ordered by the creation date.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
       "SpecificCountryResponse": {
         "description": "Response for specific country coverage",
         "content": {
@@ -43827,79 +43858,63 @@
           "text"
         ]
       },
-      "AuditLogEntry": {
+      "AuditLog": {
         "type": "object",
+        "title": "Audit Log Entry",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid",
-            "description": "Unique identifier for the audit log entry"
+            "description": "Unique identifier for the audit log entry.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
           },
           "user_id": {
             "type": "string",
             "format": "uuid",
-            "description": "Unique identifier for the user who made the change"
+            "description": "Unique identifier for the user who made the change.",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
           },
           "record_type": {
             "type": "string",
-            "description": "Identifies the type of the resource.",
+            "description": "The type of the resource being audited.",
             "example": "audit_event"
           },
           "resource_id": {
             "type": "string",
-            "description": "Unique identifier for the resource that was changed"
+            "description": "Unique identifier for the resource that was changed.",
+            "example": "550e8400-e29b-41d4-a716-446655440002"
           },
           "organization_id": {
             "type": "string",
             "format": "uuid",
-            "description": "Unique identifier for the organization that owns the resource"
-          },
-          "changes": {
-            "type": "array",
-            "nullable": true,
-            "items": {
-              "type": "object",
-              "properties": {
-                "field": {
-                  "type": "string",
-                  "description": "Identifies the name of the field that was changed",
-                  "example": "inbound.timeout_1xx_secs"
-                },
-                "from": {
-                  "description": "Value of the field before the change was made. This field can be any JSON type.",
-                  "nullable": true,
-                  "required": false
-                },
-                "to": {
-                  "description": "Value of the field after the change was made. This field can be any JSON type.",
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "change_made_by": {
-            "type": "string",
-            "description": "Indicates what type of user made the change",
-            "enum": [
-              "account_owner",
-              "organization_member",
-              "account_manager",
-              "telnyx"
-            ]
-          },
-          "resource_type": {
-            "type": "string",
-            "description": "Identifies the type of the resource that was changed"
+            "description": "Unique identifier for the organization that owns the resource.",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
           },
           "change_type": {
             "type": "string",
-            "description": "Identifies the type of change that was made"
+            "description": "The type of change that occurred.",
+            "example": "update"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "description": "ISO 8601 formatted date indicating when the change was made",
-            "example": "2020-01-01T00:00:00Z"
+            "description": "ISO 8601 formatted date indicating when the change occurred.",
+            "example": "2023-01-01T00:00:00Z"
+          }
+        }
+      },
+      "AuditLogList": {
+        "type": "object",
+        "title": "Audit Log List",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
           }
         }
       },

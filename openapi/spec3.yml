@@ -576,6 +576,7 @@ components:
       description: Filter for audit events created after a specific date.
       in: query
       name: filter[created_after]
+      required: false
       schema:
         example: '2021-01-01T00:00:00Z'
         format: date-time
@@ -593,6 +594,7 @@ components:
       description: Filter for audit events created before a specific date.
       in: query
       name: filter[created_before]
+      required: false
       schema:
         example: '2021-01-01T00:00:00Z'
         format: date-time
@@ -1118,19 +1120,21 @@ components:
         minimum: 1
         type: integer
     PageNumber:
-      description: Page number to load
+      description: Page number to load.
       in: query
       name: page[number]
+      required: false
       schema:
-        example: 4
-        type: number
+        example: 1
+        type: integer
     PageSize:
-      description: Size of the page
+      description: Number of items per page.
       in: query
       name: page[size]
+      required: false
       schema:
-        example: 2
-        type: number
+        example: 10
+        type: integer
     PageSizeTexml:
       description: The number of records to be displayed on a page
       example: 10
@@ -1300,13 +1304,15 @@ components:
       schema:
         type: string
     Sort:
-      description: Set how the results will be ordered by the creation date.
+      description: Set the order of the results by the creation date.
       in: query
       name: sort
+      required: false
       schema:
         enum:
         - asc
         - desc
+        example: desc
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -2136,6 +2142,12 @@ components:
                   - ordered
                   type: string
       description: An Advanced Order Response
+    AuditLogListResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuditLogList'
+      description: A list of audit log entries.
     AutoRechargePrefResponse:
       content:
         application/json:
@@ -2955,6 +2967,22 @@ components:
             title: Fax Application Response
             type: object
       description: Successful response
+    FilterCreatedAfter:
+      description: Filter for audit events created after a specific date.
+      in: query
+      name: filter[created_after]
+      schema:
+        example: '2021-01-01T00:00:00Z'
+        format: date-time
+        type: string
+    FilterCreatedBefore:
+      description: Filter for audit events created before a specific date.
+      in: query
+      name: filter[created_before]
+      schema:
+        example: '2021-01-01T00:00:00Z'
+        format: date-time
+        type: string
     Forbidden:
       content:
         application/json:
@@ -3000,7 +3028,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Errors'
-      description: Unexpected error
+      description: Unexpected error.
     GetAllAddressResponse:
       content:
         application/json:
@@ -3593,19 +3621,6 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
-    ListAuditLogsResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/AuditLogEntry'
-                type: array
-              meta:
-                $ref: '#/components/schemas/PaginationMeta'
-            type: object
-      description: List of audit log entries
     ListAvailablePhoneNumbersBlockResponse:
       content:
         application/json:
@@ -5647,6 +5662,15 @@ components:
             title: List Phone Numbers Response
             type: object
       description: Successful response with a list of phone numbers.
+    Sort:
+      description: Set how the results will be ordered by the creation date.
+      in: query
+      name: sort
+      schema:
+        enum:
+        - asc
+        - desc
+        type: string
     SpecificCountryResponse:
       content:
         application/json:
@@ -7176,65 +7200,51 @@ components:
       - end
       - text
       type: object
-    AuditLogEntry:
+    AuditLog:
       properties:
-        change_made_by:
-          description: Indicates what type of user made the change
-          enum:
-          - account_owner
-          - organization_member
-          - account_manager
-          - telnyx
-          type: string
         change_type:
-          description: Identifies the type of change that was made
+          description: The type of change that occurred.
+          example: update
           type: string
-        changes:
-          items:
-            properties:
-              field:
-                description: Identifies the name of the field that was changed
-                example: inbound.timeout_1xx_secs
-                type: string
-              from:
-                description: Value of the field before the change was made. This field
-                  can be any JSON type.
-                nullable: true
-                required: false
-              to:
-                description: Value of the field after the change was made. This field
-                  can be any JSON type.
-                nullable: true
-            type: object
-          nullable: true
-          type: array
         created_at:
-          description: ISO 8601 formatted date indicating when the change was made
-          example: '2020-01-01T00:00:00Z'
+          description: ISO 8601 formatted date indicating when the change occurred.
+          example: '2023-01-01T00:00:00Z'
           format: date-time
           type: string
         id:
-          description: Unique identifier for the audit log entry
+          description: Unique identifier for the audit log entry.
+          example: 550e8400-e29b-41d4-a716-446655440000
           format: uuid
           type: string
         organization_id:
-          description: Unique identifier for the organization that owns the resource
+          description: Unique identifier for the organization that owns the resource.
+          example: 550e8400-e29b-41d4-a716-446655440003
           format: uuid
           type: string
         record_type:
-          description: Identifies the type of the resource.
+          description: The type of the resource being audited.
           example: audit_event
           type: string
         resource_id:
-          description: Unique identifier for the resource that was changed
-          type: string
-        resource_type:
-          description: Identifies the type of the resource that was changed
+          description: Unique identifier for the resource that was changed.
+          example: 550e8400-e29b-41d4-a716-446655440002
           type: string
         user_id:
-          description: Unique identifier for the user who made the change
+          description: Unique identifier for the user who made the change.
+          example: 550e8400-e29b-41d4-a716-446655440001
           format: uuid
           type: string
+      title: Audit Log Entry
+      type: object
+    AuditLogList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/AuditLog'
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      title: Audit Log List
       type: object
     AuthenticationProvider:
       properties:
@@ -44437,8 +44447,9 @@ paths:
       x-latency-category: responsive
   /audit_events:
     get:
-      description: List all audit log entries. Audit logs are a best-effort, eventually
-        consistent record of significant account related changes.
+      description: Retrieve a list of audit log entries. Audit logs are a best-effort,
+        eventually consistent record of significant account-related changes.
+      operationId: ListAuditLogs
       parameters:
       - $ref: '#/components/parameters/PageNumber'
       - $ref: '#/components/parameters/PageSize'
@@ -44447,7 +44458,9 @@ paths:
       - $ref: '#/components/parameters/Sort'
       responses:
         '200':
-          $ref: '#/components/responses/ListAuditLogsResponse'
+          $ref: '#/components/responses/AuditLogListResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: List Audit Logs
       tags:
       - Audit Logs
@@ -65707,7 +65720,7 @@ tags:
   name: Assistants
 - description: Turn audio into text or text into audio.
   name: Audio
-- description: Record of significant account related changes
+- description: Audit log operations.
   name: Audit Logs
 - description: V2 Auto Recharge Preferences API
   name: AutoRechargePreferences
