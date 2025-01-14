@@ -13465,6 +13465,96 @@ components:
       - added
       title: CloudflareSyncStatus
       type: string
+    ClusterNode:
+      properties:
+        filename:
+          description: The corresponding source file of your embedded storage bucket
+            that the node is from.
+          title: Filename
+          type: string
+        text:
+          description: The text of the node.
+          title: Text
+          type: string
+      required:
+      - filename
+      - text
+      title: ClusterNode
+      type: object
+    ClusteringRequestInfo:
+      properties:
+        bucket:
+          title: Bucket
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        finished_at:
+          format: date-time
+          title: Finished At
+          type: string
+        min_cluster_size:
+          title: Min Cluster Size
+          type: integer
+        min_subcluster_size:
+          title: Min Subcluster Size
+          type: integer
+        request_id:
+          title: Request Id
+          type: string
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+      required:
+      - request_id
+      - status
+      - bucket
+      - created_at
+      - finished_at
+      - min_cluster_size
+      - min_subcluster_size
+      title: ClusteringRequestInfo
+      type: object
+    ClusteringRequestInfoData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ClusteringRequestInfo'
+          title: Data
+          type: array
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - meta
+      title: ClusteringRequestInfoData
+      type: object
+    ClusteringStatusResponse:
+      properties:
+        bucket:
+          title: Bucket
+          type: string
+        clusters:
+          items:
+            $ref: '#/components/schemas/RecursiveCluster'
+          title: Clusters
+          type: array
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+      required:
+      - status
+      - bucket
+      - clusters
+      title: ClusteringStatusResponse
+      type: object
+    ClusteringStatusResponseData:
+      properties:
+        data:
+          $ref: '#/components/schemas/ClusteringStatusResponse'
+      required:
+      - data
+      title: ClusteringStatusResponseData
+      type: object
     CnamListing:
       description: The CNAM listing settings for a phone number.
       example:
@@ -20740,6 +20830,15 @@ components:
         meta:
           $ref: '#/components/schemas/PaginationMeta'
       type: object
+    FailClusteringProcessRequest:
+      properties:
+        error:
+          title: Error
+          type: string
+      required:
+      - error
+      title: FailClusteringProcessRequest
+      type: object
     Fax:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -25472,17 +25571,23 @@ components:
     Meta:
       properties:
         page_number:
-          example: 2
+          title: Page Number
           type: integer
         page_size:
-          example: 25
+          title: Page Size
           type: integer
         total_pages:
-          example: 3
+          title: Total Pages
           type: integer
         total_results:
-          example: 55
+          title: Total Results
           type: integer
+      required:
+      - total_pages
+      - total_results
+      - page_number
+      - page_size
+      title: Meta
       type: object
     MetaResponse:
       properties:
@@ -31068,6 +31173,41 @@ components:
       allOf:
       - $ref: '#/components/schemas/PublicInternetGateway'
       - $ref: '#/components/schemas/RegionOut'
+    PublicTextClusteringRequest:
+      properties:
+        bucket:
+          description: The embedded storage bucket to compute the clusters from. The
+            bucket must already be [embedded](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding).
+          title: Bucket
+          type: string
+        files:
+          description: Array of files to filter which are included.
+          items:
+            type: string
+          title: Files
+          type: array
+        min_cluster_size:
+          default: 5
+          description: Smallest number of related text chunks to qualify as a cluster.
+            Top-level clusters should be thought of as identifying broad themes in
+            your data.
+          title: Min Cluster Size
+          type: integer
+        prefix:
+          description: Prefix to filter whcih files in the buckets are included.
+          title: Prefix
+          type: string
+        subclusters_min_cluster_size:
+          default: 2
+          description: Smallest number of related text chunks to qualify as a sub-cluster.
+            Sub-clusters should be thought of as identifying more specific topics
+            within a broader theme.
+          title: Subclusters Min Cluster Size
+          type: integer
+      required:
+      - bucket
+      title: PublicTextClusteringRequest
+      type: object
     PushCredential:
       properties:
         alias:
@@ -31912,6 +32052,36 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           type: string
       title: RecordingTranscriptionsResponseData
+      type: object
+    RecursiveCluster:
+      properties:
+        cluster_header:
+          title: Cluster Header
+          type: string
+        cluster_id:
+          title: Cluster Id
+          type: string
+        cluster_summary:
+          title: Cluster Summary
+          type: string
+        nodes:
+          items:
+            $ref: '#/components/schemas/ClusterNode'
+          title: Nodes
+          type: array
+        subclusters:
+          items:
+            $ref: '#/components/schemas/RecursiveCluster'
+          title: Subclusters
+          type: array
+        total_number_of_nodes:
+          title: Total Number Of Nodes
+          type: integer
+      required:
+      - cluster_id
+      - cluster_summary
+      - total_number_of_nodes
+      title: RecursiveCluster
       type: object
     ReferRequest:
       example:
@@ -35824,10 +35994,10 @@ components:
       title: VerificationStatus
       type: string
     TaskStatus:
-      description: An enumeration.
       enum:
       - pending
-      - processing
+      - starting
+      - running
       - completed
       - failed
       title: TaskStatus
@@ -37676,6 +37846,23 @@ components:
           example: https://api.telnyx.com/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18123/Calls/v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-ai/Siprec/61bf923e-5e4d-4595-a110-56190ea18123
           type: string
       title: Update Siprec Session Response
+      type: object
+    TextClusteringResponse:
+      properties:
+        cluster_id:
+          title: Cluster Id
+          type: string
+      required:
+      - cluster_id
+      title: TextClusteringResponse
+      type: object
+    TextClusteringResponseData:
+      properties:
+        data:
+          $ref: '#/components/schemas/TextClusteringResponse'
+      required:
+      - data
+      title: TextClusteringResponseData
       type: object
     TnReleaseEntry:
       properties:
@@ -44142,6 +44329,168 @@ paths:
       summary: Create a chat completion
       tags:
       - Chat
+      x-latency-category: responsive
+  /ai/clusters:
+    get:
+      operationId: list_all_requested_clusters_public_text_clusters_get
+      parameters:
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 0
+          title: Page[Number]
+          type: integer
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          title: Page[Size]
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusteringRequestInfoData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List all clusters
+      tags:
+      - Clusters
+      x-latency-category: responsive
+    post:
+      description: Starts a background task to compute how the data in an [embedded
+        storage bucket](https://developers.telnyx.com/api/inference/inference-embedding/post-embedding)
+        is clustered. This helps identify common themes and patterns in the data.
+      operationId: compute_new_cluster_public_text_clusters_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicTextClusteringRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextClusteringResponseData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Compute new clusters
+      tags:
+      - Clusters
+      x-latency-category: responsive
+  /ai/clusters/{id}:
+    delete:
+      operationId: delete_cluster_by_id_public_text_clusters__id__delete
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete a cluster
+      tags:
+      - Clusters
+      x-latency-category: responsive
+    get:
+      operationId: fetch_cluster_by_id_public_text_clusters__id__get
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+      - description: The number of nodes in the cluster to return in the response.
+          Nodes will be sorted by their centrality within the cluster.
+        in: query
+        name: top_n_nodes
+        required: false
+        schema:
+          default: 0
+          title: Top N Nodes
+          type: integer
+      - description: Whether or not to include subclusters and their nodes in the
+          response.
+        in: query
+        name: show_subclusters
+        required: false
+        schema:
+          default: 'false'
+          title: Show Subclusters
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusteringStatusResponseData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Fetch a cluster
+      tags:
+      - Clusters
+      x-latency-category: responsive
+  /ai/clusters/{id}/graph:
+    get:
+      operationId: fetch_cluster_image_by_id_public_text_clusters__id__image_get
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+      - in: query
+        name: subcluster_id
+        required: false
+        schema:
+          title: Subcluster Id
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Fetch a cluster visualization
+      tags:
+      - Clusters
       x-latency-category: responsive
   /ai/embeddings:
     get:
@@ -66125,6 +66474,8 @@ tags:
   name: Channel zones
 - description: Generate text with LLMs
   name: Chat
+- description: Identify common themes and patterns in your embedded documents
+  name: Clusters
 - description: Conference command operations
   name: Conference Commands
 - description: Connections operations
