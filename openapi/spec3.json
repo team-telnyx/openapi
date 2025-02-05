@@ -24634,7 +24634,83 @@
         "x-latency-category": "responsive"
       }
     },
+    "/queues": {
+      "post": {
+        "summary": "Create a queue",
+        "description": "Create a new call queue with the specified name and maximum size.",
+        "operationId": "CreateQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "requestBody": {
+          "description": "Queue creation request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "queue_name"
+                ],
+                "properties": {
+                  "queue_name": {
+                    "type": "string",
+                    "description": "Name of the queue to create",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "example": "support"
+                  },
+                  "max_size": {
+                    "$ref": "#/components/schemas/QueueMaxSize"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/queues/{queue_name}": {
+      "delete": {
+        "summary": "Delete a queue",
+        "description": "Delete an existing queue. The queue must be empty (no calls in it) to be deleted.",
+        "operationId": "DeleteQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Queue successfully deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
       "get": {
         "summary": "Retrieve a call queue",
         "description": "Retrieve an existing call queue",
@@ -24659,6 +24735,56 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "post": {
+        "summary": "Update queue max size",
+        "description": "Update the maximum size of an existing queue",
+        "operationId": "UpdateQueueMaxSize",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Queue max size update request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "max_size"
+                ],
+                "properties": {
+                  "max_size": {
+                    "$ref": "#/components/schemas/QueueMaxSize"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
           }
         },
         "x-latency-category": "interactive"
@@ -73723,9 +73849,7 @@
             "example": 20
           },
           "max_size": {
-            "type": "integer",
-            "description": "The maximum number of calls allowed in the queue",
-            "example": 50
+            "$ref": "#/components/schemas/QueueMaxSize"
           },
           "average_wait_time_secs": {
             "type": "integer",
@@ -73833,6 +73957,14 @@
             "example": "ae1626cc-6f42-11ea-becd-02420a0f8b69"
           }
         }
+      },
+      "QueueMaxSize": {
+        "type": "integer",
+        "description": "Maximum number of calls that can be in the queue at once",
+        "minimum": 1,
+        "maximum": 300,
+        "default": 300,
+        "example": 100
       },
       "RCSAction": {
         "type": "object",

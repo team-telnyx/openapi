@@ -31454,9 +31454,7 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
           type: string
         max_size:
-          description: The maximum number of calls allowed in the queue
-          example: 50
-          type: integer
+          $ref: '#/components/schemas/QueueMaxSize'
         name:
           description: Name of the queue
           example: support
@@ -31560,6 +31558,13 @@ components:
       - queue_id
       title: QueueCall
       type: object
+    QueueMaxSize:
+      default: 300
+      description: Maximum number of calls that can be in the queue at once
+      example: 100
+      maximum: 300
+      minimum: 1
+      type: integer
     RCSAction:
       description: When tapped, initiates the corresponding native action on the device.
       properties:
@@ -60133,7 +60138,60 @@ paths:
       tags:
       - Public Internet Gateways
       x-latency-category: responsive
+  /queues:
+    post:
+      description: Create a new call queue with the specified name and maximum size.
+      operationId: CreateQueue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                max_size:
+                  $ref: '#/components/schemas/QueueMaxSize'
+                queue_name:
+                  description: Name of the queue to create
+                  example: support
+                  maxLength: 255
+                  minLength: 1
+                  type: string
+              required:
+              - queue_name
+              type: object
+        description: Queue creation request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Create a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
   /queues/{queue_name}:
+    delete:
+      description: Delete an existing queue. The queue must be empty (no calls in
+        it) to be deleted.
+      operationId: DeleteQueue
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Queue successfully deleted
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Delete a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
     get:
       description: Retrieve an existing call queue
       operationId: RetrieveCallQueue
@@ -60150,6 +60208,39 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a call queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
+    post:
+      description: Update the maximum size of an existing queue
+      operationId: UpdateQueueMaxSize
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                max_size:
+                  $ref: '#/components/schemas/QueueMaxSize'
+              required:
+              - max_size
+              type: object
+        description: Queue max size update request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Update queue max size
       tags:
       - Queue Commands
       x-latency-category: interactive
