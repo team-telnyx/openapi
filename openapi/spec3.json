@@ -3,8 +3,8 @@
   "info": {
     "version": "2.0.0",
     "title": "Telnyx API",
-    "x-endpoint-cost": "light",
     "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
+    "x-endpoint-cost": "light",
     "license": {
       "name": "MIT"
     },
@@ -83,6 +83,10 @@
     {
       "name": "Bulk Small Business",
       "description": "Endpoints for creating and checking the status of campaigns, brands, and phone numbers"
+    },
+    {
+      "name": "Bundle Pricing",
+      "description": "Bundle Pricing operations"
     },
     {
       "name": "Call Commands",
@@ -32246,6 +32250,122 @@
         "x-latency-category": "responsive"
       }
     },
+    "/v2/bundle-pricing/billing_bundles": {
+      "get": {
+        "tags": [
+          "Billing Bundles"
+        ],
+        "summary": "Retrieve User Billing Bundles",
+        "description": "Get all billing bundles allowed for the current user.",
+        "operationId": "GetUserBillingBundles",
+        "parameters": [
+          {
+            "required": false,
+            "schema": {
+              "title": "Filter[Country Iso]",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "name": "filter[country_iso]",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Page[Number]",
+              "type": "integer",
+              "default": 1
+            },
+            "name": "page[number]",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Page[Size]",
+              "exclusiveMinimum": 0,
+              "type": "integer",
+              "default": 100,
+              "lte": 1000
+            },
+            "name": "page[size]",
+            "in": "query"
+          },
+          {
+            "description": "public authorization header",
+            "required": false,
+            "schema": {
+              "title": "Telnyx-Auth-Rev2",
+              "type": "string",
+              "description": "public authorization header"
+            },
+            "name": "telnyx-auth-rev2",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedBillingBundlesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/v2/bundle-pricing/user_bundles/bulk": {
+      "post": {
+        "summary": "Create User Bundles",
+        "description": "Creates multiple User Bundles for the user.",
+        "operationId": "CreateUserBundlesBulk",
+        "tags": [
+          "User Bundles"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserBundlesBulkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/responses/CreatedUserBundlesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/verifications/by_phone_number/{phone_number}": {
       "get": {
         "tags": [
@@ -34673,11 +34793,12 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
+        "description": "Telnyx connection id",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "1293384261075731461"
         }
       },
       "CreatedAtGtFilter": {
@@ -35166,7 +35287,8 @@
         "description": "If present, connections with <code>connection_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
-          "default": null
+          "default": null,
+          "example": "My Connection"
         }
       },
       "FilterCostByAmount": {
@@ -36089,16 +36211,15 @@
       "Sort": {
         "name": "sort",
         "in": "query",
+        "description": "Set the order of the results by the creation date.",
         "required": false,
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>: sorts the result by the\n    <code>email</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n    <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
-            "created_at",
-            "email"
+            "asc",
+            "desc"
           ],
-          "example": "email",
-          "default": "created_at"
+          "example": "desc"
         }
       },
       "SortAddress": {
@@ -36122,21 +36243,22 @@
       "SortApplication": {
         "name": "sort",
         "in": "query",
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>: sorts the result by the\n    <code>application_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the result by the\n    <code>application_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
             "created_at",
-            "friendly_name",
+            "application_name",
             "active"
           ],
-          "example": "friendly_name",
+          "example": "application_name",
           "default": "created_at"
         }
       },
       "SortConnection": {
         "name": "sort",
         "in": "query",
+        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -36222,23 +36344,21 @@
         "example": "2023-05-22"
       },
       "Status": {
-        "name": "filter[status][eq]",
+        "name": "Status",
         "in": "query",
-        "description": "The status of a notification setting",
+        "required": false,
+        "description": "Filters calls by status.",
         "schema": {
           "type": "string",
           "enum": [
-            "enabled",
-            "enable-received",
-            "enable-pending",
-            "enable-submtited",
-            "delete-received",
-            "delete-pending",
-            "delete-submitted",
-            "deleted"
-          ],
-          "example": "enable-received"
-        }
+            "canceled",
+            "completed",
+            "failed",
+            "busy",
+            "no-answer"
+          ]
+        },
+        "example": "no-answer"
       },
       "StatusEqFilter": {
         "name": "filter[status][eq]",
@@ -38153,6 +38273,24 @@
           }
         }
       },
+      "CreatedUserBundlesResponse": {
+        "description": "User bundles created",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserBundle"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "CredentialConnectionResponse": {
         "description": "Successful response with details about a credential connection.",
         "content": {
@@ -38452,7 +38590,19 @@
         }
       },
       "ForbiddenResponse": {
-        "description": "Unauthorized response. Happens when the current user is not authorized to access the endpoint."
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "examples": {
+              "Not authorized": {
+                "$ref": "#/components/examples/NotAuthorized"
+              }
+            }
+          }
+        }
       },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
@@ -39379,13 +39529,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "type": "object",
-              "title": "Initiate TeXML Call Response",
-              "properties": {
-                "data": {
-                  "$ref": "#/components/schemas/InitiateCallResult"
-                }
-              }
+              "$ref": "#/components/schemas/InitiateCallResult"
             }
           }
         }
@@ -41421,33 +41565,7 @@
         }
       },
       "NotFoundResponse": {
-        "description": "The requested resource doesn't exist.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "notFound": {
-                "value": {
-                  "errors": [
-                    {
-                      "code": "10005",
-                      "title": "Resource not found",
-                      "detail": "The requested resource or URL could not be found.",
-                      "meta": {
-                        "url": "https://developers.telnyx.com/docs/overview/errors/10005"
-                      },
-                      "source": {
-                        "pointer": "/"
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
+        "description": "Fax does not exist"
       },
       "NumberBlockOrderResponse": {
         "description": "Successful response with details about a number block order.",
@@ -41618,7 +41736,7 @@
         }
       },
       "PhoneNumberWithMessagingSettingsResponse": {
-        "description": "Successful response with details about a phone number including voice settings.",
+        "description": "Successful response with details about a phone number including messaging settings.",
         "content": {
           "application/json": {
             "schema": {
@@ -42926,7 +43044,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthenticated response. Happens when the current user cannot be authenticated."
+        "description": "Unauthorized"
       },
       "UnexpectedErrorResponse": {
         "description": "An unexpected error occurred.",
@@ -45470,6 +45588,60 @@
           "data"
         ],
         "title": "BackgroundTasksQueryResponseData"
+      },
+      "BillingBundleSummary": {
+        "title": "BillingBundleSummary",
+        "required": [
+          "id",
+          "name",
+          "cost_code",
+          "is_public",
+          "created_at"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "cost_code": {
+            "title": "Cost Code",
+            "type": "string"
+          },
+          "is_public": {
+            "title": "Is Public",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string",
+            "format": "date"
+          },
+          "mrc_price": {
+            "title": "Mrc Price",
+            "type": "number"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "specs": {
+            "title": "Specs",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "BillingGroup": {
         "type": "object",
@@ -57092,6 +57264,25 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9 ]{1,11}$",
             "nullable": true
+          },
+          "daily_spend_limit": {
+            "description": "The maximum amount of money (in USD) that can be spent by this profile before midnight UTC.",
+            "type": "string",
+            "pattern": "^[0-9]+(?:\\.[0-9]+)?$"
+          },
+          "daily_spend_limit_enabled": {
+            "description": "Whether to enforce the value configured by `daily_spend_limit`.",
+            "type": "boolean"
+          },
+          "mms_fall_back_to_sms": {
+            "description": "enables SMS fallback for MMS messages.",
+            "type": "boolean",
+            "default": false
+          },
+          "mms_transcoding": {
+            "description": "enables automated resizing of MMS media.",
+            "type": "boolean",
+            "default": false
           }
         },
         "example": {
@@ -58001,6 +58192,38 @@
           }
         }
       },
+      "CreateUserBundlesBulkRequest": {
+        "properties": {
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "billing_bundle_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "12ade33a-21c0-473b-b055-b3c836e1c292",
+                  "description": "Quantity of user bundles to order."
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Quantity of user bundles to order."
+                }
+              },
+              "required": [
+                "billing_bundle_id",
+                "quantity"
+              ]
+            },
+            "writeOnly": true
+          }
+        }
+      },
       "CreateVerificationRequestCall": {
         "title": "CreateVerificationRequestCall",
         "description": "The request body when creating a verification.",
@@ -58250,10 +58473,10 @@
         }
       },
       "CreatedAt": {
-        "title": "Created At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was created.",
-        "example": "2020-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "CreationStatus": {
         "description": "An enumeration.",
@@ -58708,15 +58931,19 @@
           "cursors": {
             "$ref": "#/components/schemas/Cursor"
           },
+          "total_items": {
+            "type": "integer",
+            "example": 50
+          },
           "next": {
             "type": "string",
             "description": "Path to next page.",
-            "example": "/v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           },
           "previous": {
             "type": "string",
             "description": "Path to previous page.",
-            "example": "/v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           }
         }
       },
@@ -63817,9 +64044,8 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "description": "Identifies the resource.",
-        "readOnly": true,
-        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+        "description": "Identifies the type of resource."
       },
       "ImportExternalVetting": {
         "title": "ImportExternalVetting",
@@ -64550,9 +64776,14 @@
         "title": "Initiate Call Request",
         "required": [
           "To",
-          "From"
+          "From",
+          "ApplicationSid"
         ],
         "properties": {
+          "ApplicationSid": {
+            "description": "The ID of the TeXML Application.",
+            "type": "string"
+          },
           "To": {
             "description": "The phone number of the called party. Phone numbers are formatted with a `+` and country code.",
             "example": "+16175551212",
@@ -66702,6 +66933,16 @@
             "format": "uuid",
             "readOnly": true
           },
+          "mms_fall_back_to_sms": {
+            "description": "enables SMS fallback for MMS messages.",
+            "type": "boolean",
+            "default": false
+          },
+          "mms_transcoding": {
+            "description": "enables automated resizing of MMS media.",
+            "type": "boolean",
+            "default": false
+          },
           "name": {
             "description": "A user friendly name for the messaging profile.",
             "type": "string"
@@ -66767,6 +67008,15 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9 ]{1,11}$",
             "nullable": true
+          },
+          "daily_spend_limit": {
+            "description": "The maximum amount of money (in USD) that can be spent by this profile before midnight UTC.",
+            "type": "string",
+            "pattern": "^[0-9]+(?:\\.[0-9]+)?$"
+          },
+          "daily_spend_limit_enabled": {
+            "description": "Whether to enforce the value configured by `daily_spend_limit`.",
+            "type": "boolean"
           }
         },
         "example": {
@@ -69550,6 +69800,26 @@
           }
         }
       },
+      "PaginatedBillingBundlesResponse": {
+        "title": "PaginatedBillingBundlesResponse",
+        "required": [
+          "meta",
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/PaginationResponse"
+          },
+          "data": {
+            "title": "Data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingBundleSummary"
+            }
+          }
+        }
+      },
       "Paginated_VerificationRequestStatus_": {
         "title": "Paginated[VerificationRequestStatus]",
         "type": "object",
@@ -69636,6 +69906,34 @@
           "total_results": {
             "type": "integer",
             "example": 55
+          }
+        }
+      },
+      "PaginationResponse": {
+        "title": "PaginationResponse",
+        "required": [
+          "total_results",
+          "total_pages",
+          "page_number",
+          "page_size"
+        ],
+        "type": "object",
+        "properties": {
+          "total_results": {
+            "title": "Total Results",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          },
+          "page_number": {
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
           }
         }
       },
@@ -74653,8 +74951,11 @@
       },
       "RecordType": {
         "type": "string",
-        "description": "Identifies record type.",
-        "pattern": "custom_storage_credentials"
+        "example": "event",
+        "enum": [
+          "event"
+        ],
+        "description": "Identifies the type of the resource."
       },
       "RecordingResponse": {
         "type": "object",
@@ -75489,28 +75790,33 @@
         }
       },
       "ResourceNotFoundError": {
-        "type": "object",
-        "title": "Resource not found",
-        "example": {
-          "errors": [
-            {
-              "detail": "Resource not found"
-            }
-          ]
-        },
-        "properties": {
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "string"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10005"
+              },
+              "title": {
+                "example": "Resource not found"
+              },
+              "detail": {
+                "example": "The requested resource or URL could not be found."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
+                  }
                 }
               }
             }
           }
-        }
+        ]
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -82448,39 +82754,42 @@
         ]
       },
       "UnprocessableEntityError": {
-        "required": [
-          "code",
-          "title"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "format": "int"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
           },
-          "title": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "source": {
-            "type": "object",
+          {
             "properties": {
-              "pointer": {
-                "description": "JSON pointer (RFC6901) to the offending entity.",
-                "type": "string",
-                "format": "json-pointer"
+              "code": {
+                "example": "10002"
               },
-              "parameter": {
-                "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+              "title": {
+                "example": "Invalid phone number"
+              },
+              "detail": {
+                "example": "The phone number is invalid."
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "pointer": {
+                    "type": "string",
+                    "example": "/phone_numbers"
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
+                  }
+                }
               }
             }
-          },
-          "meta": {
-            "type": "object"
           }
-        }
+        ]
       },
       "UpdateAssistantRequest": {
         "properties": {
@@ -83408,7 +83717,7 @@
       },
       "UpdateCommandResult": {
         "type": "object",
-        "title": "TeXml REST Update Command Result",
+        "title": "Update Call Result",
         "example": {
           "sid": "c46e06d7-b78f-4b13-96b6-c576af9640ff",
           "status": "accepted"
@@ -83497,31 +83806,54 @@
         }
       },
       "UpdateConferenceRequest": {
+        "required": [
+          "call_control_id",
+          "supervisor_role"
+        ],
         "type": "object",
         "title": "Update Conference Request",
         "properties": {
-          "Status": {
-            "description": "The new status of the resource. Specifying `completed` will end the conference and hang up all participants.",
-            "example": "completed",
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call",
+            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
             "type": "string"
           },
-          "AnnounceUrl": {
-            "description": "The URL we should call to announce something into the conference. The URL may return an MP3 file, a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.",
-            "example": "https://www.example.com/announce.xml",
+          "command_id": {
+            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
             "type": "string"
           },
-          "AnnounceMethod": {
-            "description": "The HTTP method used to call the `AnnounceUrl`. Defaults to `POST`.",
-            "example": "GET",
+          "supervisor_role": {
+            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
+            "example": "whisper",
             "type": "string",
             "enum": [
-              "GET",
-              "POST"
+              "barge",
+              "monitor",
+              "none",
+              "whisper"
             ]
+          },
+          "whisper_call_control_ids": {
+            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
+            "example": [
+              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
-          "Status": "completed"
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "supervisor_role": "whisper",
+          "whisper_call_control_ids": [
+            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+          ]
         }
       },
       "UpdateCredentialConnectionRequest": {
@@ -84309,6 +84641,25 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9 ]{1,11}$",
             "nullable": true
+          },
+          "daily_spend_limit": {
+            "description": "The maximum amount of money (in USD) that can be spent by this profile before midnight UTC.",
+            "type": "string",
+            "pattern": "^[0-9]+(?:\\.[0-9]+)?$"
+          },
+          "daily_spend_limit_enabled": {
+            "description": "Whether to enforce the value configured by `daily_spend_limit`.",
+            "type": "boolean"
+          },
+          "mms_fall_back_to_sms": {
+            "description": "enables SMS fallback for MMS messages.",
+            "type": "boolean",
+            "default": false
+          },
+          "mms_transcoding": {
+            "description": "enables automated resizing of MMS media.",
+            "type": "boolean",
+            "default": false
           }
         },
         "example": {
@@ -84546,11 +84897,11 @@
         "properties": {
           "messaging_profile_id": {
             "type": "string",
-            "description": "Unique identifier for a messaging profile."
+            "description": "Configure the messaging profile this phone number is assigned to:\n\n* Omit this field or set its value to `null` to keep the current value.\n* Set this field to `\"\"` to unassign the number from its messaging profile\n* Set this field to a quoted UUID of a messaging profile to assign this number to that messaging profile"
           },
           "messaging_product": {
             "type": "string",
-            "description": "The requested messaging product the number should be on",
+            "description": "Configure the messaging product for this number:\n\n* Omit this field or set its value to `null` to keep the current value.\n* Set this field to a quoted product ID to set this phone number to that product",
             "example": "P2P"
           }
         },
@@ -85065,10 +85416,10 @@
         }
       },
       "UpdatedAt": {
-        "title": "Updated At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was updated.",
-        "example": "2020-02-03T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "UplinkData": {
         "type": "object",
@@ -85661,6 +86012,94 @@
           "credit_limit": "100.00",
           "available_credit": "400.00",
           "currency": "USD"
+        }
+      },
+      "UserBundle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "ca1d2263-d1f1-43ac-ba53-248e7a4bb26a"
+          },
+          "active": {
+            "type": "boolean",
+            "example": true
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "16856d8c-cd59-4b08-9ac2-1ebb01d419e1"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-01-20"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": "2025-01-20"
+          },
+          "billing_bundle": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "042ef1ca-80e9-437a-9a8b-91f3f5352071"
+              },
+              "name": {
+                "type": "string",
+                "example": "Test Bundle"
+              },
+              "slug": {
+                "type": "string",
+                "nullable": true,
+                "example": "test-bundle"
+              },
+              "cost_code": {
+                "type": "string",
+                "example": "TEST-COST-CODE"
+              },
+              "is_public": {
+                "type": "boolean",
+                "example": true
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date",
+                "example": "2025-01-20"
+              },
+              "mrc_price": {
+                "type": "number",
+                "format": "decimal",
+                "nullable": true,
+                "example": "10.00"
+              },
+              "currency": {
+                "type": "string",
+                "nullable": true,
+                "example": "USD"
+              },
+              "specs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "example": null
+              }
+            }
+          },
+          "resources": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "example": []
+          }
         }
       },
       "UserEmbeddedBuckets": {
@@ -86284,18 +86723,6 @@
             "title": "Reason",
             "type": "string",
             "example": "Unfortunately, we have to cancel this request as we do not support non tollfree US numbers."
-          },
-          "createdAt": {
-            "title": "Createdat",
-            "type": "string",
-            "format": "date-time",
-            "example": "2024-01-23T18:10:02.574Z"
-          },
-          "updatedAt": {
-            "title": "Updatedat",
-            "type": "string",
-            "format": "date-time",
-            "example": "2024-01-23T18:10:02.574Z"
           }
         },
         "description": "A verification request and its status, suitable for returning to users"
