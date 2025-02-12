@@ -8855,6 +8855,108 @@ components:
           $ref: '#/components/schemas/CallAIGatherEnded'
       title: Call AI Gather Ended Event
       type: object
+    CallAIGatherMessageHistoryUpdated:
+      example:
+        event_type: call.ai_gather.message_history_updated
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_control_id: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          from: '+35319605860'
+          message_history:
+          - content: Hello, can you tell me your age and where you live?
+            role: assistant
+          - content: Hello, I'm 29 and I live in Paris?
+            role: user
+          to: '+35319605860'
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.ai_gather.message_history_updated
+          example: call.ai_gather.message_history_updated
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type: string
+            connection_id:
+              description: Telnyx connection ID used in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            from:
+              description: Number or SIP URI placing the call.
+              example: '+35319605860'
+              type: string
+            message_history:
+              description: The history of the messages exchanged during the AI gather
+              items:
+                properties:
+                  content:
+                    description: The content of the message
+                    example: Hello, I'm 29 and I live in Paris.
+                    type: string
+                  role:
+                    description: The role of the message sender
+                    enum:
+                    - assistant
+                    - user
+                    example: user
+                    type: string
+                type: object
+              type: array
+            to:
+              description: Destination number or SIP URI of the call.
+              example: '+13129457420'
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call AI Gather Message History Updated
+      type: object
+    CallAIGatherMessageHistoryUpdatedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallAIGatherMessageHistoryUpdated'
+      title: Call AI Gather Message History Updated Event
+      type: object
     CallAIGatherPartialResults:
       example:
         event_type: call.ai_gather.partial_results
@@ -20893,33 +20995,19 @@ components:
           enum:
           - external_tool
           type: string
-        headers:
-          description: The headers to be sent to the external tool.
-          items:
-            properties:
-              name:
-                type: string
-              value:
-                description: The value of the header. Note that we support mustache
-                  templating for the value. For example you can use `Bearer {{#integration_secret}}test-secret{{/integration_secret}}`
-                  to pass the value of the integration secret as the bearer token.
-                type: string
-            type: object
-          type: array
+        external_tool:
+          $ref: '#/components/schemas/ExternalTool'
         name:
           type: string
         parameters:
+          description: The parameters of the external tool. In case of an external
+            tool of type `calcom_check_availability` or `calcom_book_appointment`
+            the parameters are not needed.
           type: object
-        url:
-          description: The URL of the external tool to be called. This URL is going
-            to be used for the `call.ai_gather.tool_call` [callback](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks).
-          example: https://example.com/api/v1/function
-          type: string
       required:
       - name
-      - url
-      - parameters
       - description
+      - external_tool
       title: ExternalFunctionDefinition
       type: object
     ExternalSipConnection:
@@ -20939,6 +21027,80 @@ components:
       example: zoom
       title: External SIP Connection
       type: string
+    ExternalTool:
+      properties:
+        external_tool_settings:
+          oneOf:
+          - $ref: '#/components/schemas/ExternalToolCustom'
+          - $ref: '#/components/schemas/ExternalToolCalcomCheckAvailability'
+          - $ref: '#/components/schemas/ExternalToolCalcomBookAppointment'
+        type:
+          enum:
+          - custom
+          - calcom_check_availability
+          - calcom_book_appointment
+          type: string
+      required:
+      - type
+      - external_tool_settings
+      title: ExternalTool
+      type: object
+    ExternalToolCalcomBookAppointment:
+      properties:
+        api_key_ref:
+          description: Reference to an integration secret that contains your Cal.com
+            API key. You would pass the `identifier` for an integration secret [/v2/integration_secrets](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)
+            that refers to your Cal.com API key.
+          example: my_calcom_api_key
+          type: string
+        event_type_id:
+          description: Event Type ID for which slots are being fetched. [cal.com](https://cal.com/docs/api-reference/v2/slots/reserve-a-slot#body-event-type-id)
+          type: integer
+      required:
+      - event_type_id
+      - api_key_ref
+      title: ExternalToolCalcomBookAppointment
+      type: object
+    ExternalToolCalcomCheckAvailability:
+      properties:
+        api_key_ref:
+          description: Reference to an integration secret that contains your Cal.com
+            API key. You would pass the `identifier` for an integration secret [/v2/integration_secrets](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)
+            that refers to your Cal.com API key.
+          example: my_calcom_api_key
+          type: string
+        event_type_id:
+          description: Event Type ID for which slots are being fetched. [cal.com](https://cal.com/docs/api-reference/v2/slots/get-available-slots#parameter-event-type-id)
+          type: integer
+      required:
+      - event_type_id
+      - api_key_ref
+      title: ExternalToolCalcomCheckAvailability
+      type: object
+    ExternalToolCustom:
+      properties:
+        headers:
+          description: The headers to be sent to the external tool.
+          items:
+            properties:
+              name:
+                type: string
+              value:
+                description: The value of the header. Note that we support mustache
+                  templating for the value. For example you can use `Bearer {{#integration_secret}}test-secret{{/integration_secret}}`
+                  to pass the value of the integration secret as the bearer token.
+                type: string
+            type: object
+          type: array
+        url:
+          description: The URL of the external tool to be called. This URL is going
+            to be used for the `call.ai_gather.tool_call` [callback](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks).
+          example: https://example.com/api/v1/function
+          type: string
+      required:
+      - url
+      title: ExternalToolCustom
+      type: object
     ExternalToolParam:
       properties:
         function:
@@ -22005,6 +22167,8 @@ components:
           - age
           - location
           type: object
+        send_message_history_updates: true
+        send_partial_results: true
         voice: Telnyx.KokoroTTS.af
       properties:
         assistant:
@@ -22064,6 +22228,13 @@ components:
             - location
             type: object
           type: object
+        send_message_history_updates:
+          description: Default is `false`. If set to `true`, the voice assistant will
+            send updates to the message history via the `call.ai_gather.message_history_updated`
+            [callback](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks)
+            in real time as the message history is updated.
+          example: false
+          type: boolean
         send_partial_results:
           description: Default is `false`. If set to `true`, the voice assistant will
             send partial results via the `call.ai_gather.partial_results` [callback](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks)
@@ -28316,8 +28487,7 @@ components:
           type: string
         recording_id:
           description: Use this field to pause specific recording.
-          example: 86e00ab49-9487-4364-8ad6-23965965afb2
-          format: uuid
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
       title: Pause Recording Request
       type: object
@@ -31544,7 +31714,9 @@ components:
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
           type: string
         max_size:
-          $ref: '#/components/schemas/QueueMaxSize'
+          description: The maximum number of calls allowed in the queue
+          example: 50
+          type: integer
         name:
           description: Name of the queue
           example: support
@@ -31648,13 +31820,6 @@ components:
       - queue_id
       title: QueueCall
       type: object
-    QueueMaxSize:
-      default: 300
-      description: Maximum number of calls that can be in the queue at once
-      example: 100
-      maximum: 300
-      minimum: 1
-      type: integer
     RCSAction:
       description: When tapped, initiates the corresponding native action on the device.
       properties:
@@ -32779,7 +32944,7 @@ components:
           type: string
         recording_id:
           description: Use this field to resume specific recording.
-          example: 6e00ab49-9487-4364-8ad6-23965965afb2
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
       title: Pause Recording Request
       type: object
@@ -35619,7 +35784,7 @@ components:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
-        recording_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        recording_id: 6e00ab49-9487-4364-8ad6-23965965afb2
       properties:
         client_state:
           description: Use this field to add state to every subsequent webhook. It
@@ -46527,7 +46692,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call answered
         callBridged:
           '{$request.body#/webhook_url}':
             post:
@@ -46541,7 +46705,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call bridged
         callHangup:
           '{$request.body#/webhook_url}':
             post:
@@ -46555,7 +46718,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call hangup
         callInitiated:
           '{$request.body#/webhook_url}':
             post:
@@ -46569,7 +46731,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call initiated
         callMachineDetectionEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -46583,7 +46744,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call machine detection ended
         callMachineGreetingEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -46597,7 +46757,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call machine greeting ended
         callMachinePremiumDetectionEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -46611,7 +46770,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call machine premium detection ended
         callMachinePremiumGreetingEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -46625,7 +46783,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls call machine premium greeting ended
         streamingFailed:
           '{$request.body#/webhook_url}':
             post:
@@ -46639,7 +46796,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls steaming failed
         streamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -46653,7 +46809,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls steaming started
         streamingStopped:
           '{$request.body#/webhook_url}':
             post:
@@ -46667,7 +46822,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls steaming stopped
       description: 'Dial a number or SIP URI from a given connection. A successful
         response will include a `call_leg_id` which can be used to correlate the command
         with subsequent webhooks.
@@ -46789,7 +46943,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls answer call answered
         streamingFailed:
           '{$request.body#/webhook_url}':
             post:
@@ -46803,7 +46956,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls answer streaming failed
         streamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -46817,7 +46969,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls answer streaming started
         streamingStopped:
           '{$request.body#/webhook_url}':
             post:
@@ -46831,7 +46982,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls answer streaming stopped
       description: 'Answer an incoming call. You must issue this command before executing
         subsequent commands on an incoming call.
 
@@ -46881,7 +47031,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls bridge call bridged
       description: 'Bridge two call control calls.
 
 
@@ -46952,7 +47101,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls enqueue call enqueued
         callLeftQueue:
           '{$request.body#/webhook_url}':
             post:
@@ -46966,7 +47114,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls enqueue call left queue
       description: Put the call in a queue.
       operationId: EnqueueCall
       parameters:
@@ -47003,7 +47150,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls fork start call fork started
         callForkStopped:
           '{$request.body#/webhook_url}':
             post:
@@ -47017,7 +47163,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls fork start call fork stopped
       description: "Call forking allows you to stream the media from a call to a specific\
         \ target in realtime. \nThis stream can be used to enable realtime audio analysis\
         \ to support a \nvariety of use cases, including fraud detection, or the creation\
@@ -47060,7 +47205,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls fork stop call fork stopped
       description: 'Stop forking a call.
 
 
@@ -47106,7 +47250,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather call dtmf recieved
         callGatherEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -47120,7 +47263,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather call gather ended
       description: 'Gather DTMF signals to build interactive menus.
 
 
@@ -47172,7 +47314,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather stop call gather ended
       description: 'Stop current gather.
 
 
@@ -47218,7 +47359,19 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using ai call ai gather ended
+        CallAIGatherMessageHistoryUpdated:
+          '{$request.body#/webhook_url}':
+            post:
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/CallAIGatherMessageHistoryUpdatedEvent'
+                required: true
+              responses:
+                '200':
+                  description: The server must return an HTTP 200, otherwise we will
+                    reattempt delivery at the failover webhook URL.
         CallAIGatherPartialResults:
           '{$request.body#/webhook_url}':
             post:
@@ -47232,7 +47385,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using ai call ai gather partial results
         CallAIGatherToolCall:
           '{$request.body#/webhook_url}':
             post:
@@ -47251,14 +47403,14 @@ paths:
                         type: object
                   description: The server must return an HTTP 200. The body of the
                     response will be used as the result of the tool call.
-              summary: Call gather using ai call ai gather tool call
       description: "Gather parameters defined in the request payload using a voice\
         \ assistant.\n\n You can pass parameters described as a JSON Schema object\
         \ and the voice assistant will attempt to gather these informations. \n\n\
         **Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks)\
         \ below):**\n\n- `call.ai_gather.ended`\n- `call.ai_gather.partial_results`\
         \ (if `send_partial_results` is set to `true`)\n- `call.ai_gather.tool_call`\
-        \ (if `assistant.tools` are configured)"
+        \ (if `assistant.tools` are configured)\n- `call.ai_gather.message_history_updated`\
+        \ (if `send_message_history_updates` is set to `true`)\n"
       operationId: callGatherUsingAI
       parameters:
       - $ref: '#/components/parameters/CallControlId'
@@ -47294,7 +47446,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call Gather DTMF received
         callGatherEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -47308,7 +47459,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using speak call gather ended
         callPlaybackEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -47322,7 +47472,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using audio call playback ended
         callPlaybackStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -47336,7 +47485,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using audio call playback started
       description: 'Play an audio file on the call until the required DTMF signals
         are gathered to build interactive menus.
 
@@ -47395,7 +47543,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using speak call dtmf recieved
         callGatherEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -47409,7 +47556,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls gather using speak call ai gather ended
       description: 'Convert text to speech and play it on the call until the required
         DTMF signals are gathered to build interactive menus.
 
@@ -47464,7 +47610,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls hangup call hangup
         callRecordingError:
           '{$request.body#/webhook_url}':
             post:
@@ -47478,7 +47623,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls hangup call recording error
         callRecordingSaved:
           '{$request.body#/webhook_url}':
             post:
@@ -47492,7 +47636,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls hangup call recording saved
       description: 'Hang up the call.
 
 
@@ -47540,7 +47683,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls leave queue call left queue
       description: Removes the call from a queue.
       operationId: LeaveQueue
       parameters:
@@ -47578,7 +47720,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls playback start call playback ended
         callPlaybackStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -47592,7 +47733,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls playback start call playback started
       description: 'Play an audio file on the call. If multiple play audio commands
         are issued consecutively,
 
@@ -47652,7 +47792,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls playback stop call playback ended
         callSpeakEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -47666,7 +47805,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls playback stop call speak ended
       description: 'Stop audio being played on the call.
 
 
@@ -47773,7 +47911,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls record start call recording error
         callRecordingSaved:
           '{$request.body#/webhook_url}':
             post:
@@ -47787,7 +47924,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls record start call recording saved
       description: 'Start recording the call. Recording will stop on call hang-up,
         or can be initiated via the Stop Recording command.
 
@@ -47834,7 +47970,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls record stop call recording error
         callRecordingSaved:
           '{$request.body#/webhook_url}':
             post:
@@ -47848,7 +47983,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls record stop call recording saved
       description: 'Stop recording the call.
 
 
@@ -47894,7 +48028,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls refer call refer completed
         callReferFailed:
           '{$request.body#/webhook_url}':
             post:
@@ -47908,7 +48041,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls refer call refer failed
         callReferStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -47922,7 +48054,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls refer call refer started
       description: 'Initiate a SIP Refer on a Call Control call. You can initiate
         a SIP Refer at any point in the duration of a call.
 
@@ -47973,7 +48104,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls reject call hangup
       description: 'Reject an incoming call.
 
 
@@ -48080,7 +48210,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls siprec start call siprec failed
         callSiprecStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -48094,7 +48223,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls siprec start call siprec started
         callSiprecStopped:
           '{$request.body#/webhook_url}':
             post:
@@ -48108,7 +48236,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls siprec start call siprec stopped
       description: "Start siprec session to configured in SIPREC connector SRS. \n\
         \n**Expected Webhooks:**\n\n- `siprec.started`\n- `siprec.stopped`\n- `siprec.failed`\n"
       operationId: StartSiprecSession
@@ -48146,7 +48273,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls siprec stop call streaming stopped
       description: 'Stop SIPREC session.
 
 
@@ -48191,7 +48317,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls speak call speak ended
         callSpeakStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -48205,7 +48330,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls speak call speak started
       description: 'Convert text to speech and play it back on the call. If multiple
         speak text commands are issued consecutively, the audio files will be placed
         in a queue awaiting playback.
@@ -48255,7 +48379,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls streaming start call streaming failed
         callStreamingStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -48269,7 +48392,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls streaming start call streaming started
         callStreamingStopped:
           '{$request.body#/webhook_url}':
             post:
@@ -48283,7 +48405,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls streaming start call streaming stopped
       description: 'Start streaming the media from a call to a specific WebSocket
         address or Dialogflow connection in near-realtime. Audio will be delivered
         as base64-encoded RTP payload (raw audio), wrapped in JSON payloads.
@@ -48326,7 +48447,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls streaming stop call streaming stopped
       description: 'Stop streaming a call to a WebSocket.
 
 
@@ -48414,7 +48534,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Calls transcription start transcription
       description: 'Start real-time transcription. Transcription will stop on call
         hang-up, or can be initiated via the Transcription stop command.
 
@@ -48483,7 +48602,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call answered
         callBridged:
           '{$request.body#/webhook_url}':
             post:
@@ -48497,7 +48615,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call bridged
         callHangup:
           '{$request.body#/webhook_url}':
             post:
@@ -48511,7 +48628,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call hangup
         callInitiated:
           '{$request.body#/webhook_url}':
             post:
@@ -48525,7 +48641,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer callbacks
         callMachineDetectionEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -48539,7 +48654,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call machine detection ended
         callMachineGreetingEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -48553,7 +48667,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call machine greeting ended
         callMachinePremiumDetectionEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -48567,7 +48680,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call machine premium detection ended
         callMachinePremiumGreetingEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -48581,7 +48693,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Call transfer call machine premium greeting ended
       description: 'Transfer a call to a new destination. If the transfer is unsuccessful,
         a `call.hangup` webhook for the other call (Leg B) will be sent indicating
         that the transfer could not be completed. The original call will remain active
@@ -49295,7 +49406,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference conference created
         conferenceEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -49309,7 +49419,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conferences conference ended
         conferenceFloorChanged:
           '{$request.body#/webhook_url}':
             post:
@@ -49323,7 +49432,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conferences conference floor changed
         conferenceParticipantJoined:
           '{$request.body#/webhook_url}':
             post:
@@ -49337,7 +49445,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conferences conference participant joined
         conferenceParticipantLeft:
           '{$request.body#/webhook_url}':
             post:
@@ -49351,7 +49458,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conferences conference participant left
       description: 'Create a conference from an existing call leg using a `call_control_id`
         and a conference name. Upon creating the conference, the call will be automatically
         bridged to the conference. Conferences will expire after all participants
@@ -49505,7 +49611,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference join conference participant joined
         conferenceParticipantLeft:
           '{$request.body#/webhook_url}':
             post:
@@ -49519,7 +49624,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference join conference participant left
       description: "Join an existing call leg to a conference. Issue the Join Conference\
         \ command with the conference ID in the path and the `call_control_id` of\
         \ the leg you wish to join to the conference as an attribute. The conference\
@@ -49569,7 +49673,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference leave conference participant left
       description: "Removes a call leg from a conference and moves it back to parked\
         \ state. \n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/leave-conference#callbacks)\
         \ below):**\n\n- `conference.participant.left`\n"
@@ -49645,7 +49748,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference play conference participant playback ended
         conferenceParticipantPlaybackStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -49659,7 +49761,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference play conference participant playback started
         conferencePlaybackEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -49673,7 +49774,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference play conference playback ended
         conferencePlaybackStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -49687,7 +49787,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference play conference playback started
       description: Play audio to all or some participants on a conference call.
       operationId: PlayConferenceAudio
       parameters:
@@ -49830,7 +49929,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference recording stop conference recording saved
       description: 'Stop recording the conference.
 
 
@@ -49885,7 +49983,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference speak conference participant speak ended
         conferenceParticipantSpeakStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -49899,7 +49996,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference speak conference participant speak started
         conferenceSpeakEnded:
           '{$request.body#/webhook_url}':
             post:
@@ -49913,7 +50009,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference speak conference speak ended
         conferenceSpeakStarted:
           '{$request.body#/webhook_url}':
             post:
@@ -49927,7 +50022,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference speak conference speak started
       description: Convert text to speech and play it to all or some participants.
       operationId: SpeakTextToConference
       parameters:
@@ -49972,7 +50066,6 @@ paths:
                 '200':
                   description: The server must return an HTTP 200, otherwise we will
                     reattempt delivery at the failover webhook URL.
-              summary: Conference stop conference participant playback ended
       description: Stop audio being played to all or some participants on a conference
         call.
       operationId: StopConferenceAudio
@@ -60356,60 +60449,7 @@ paths:
       tags:
       - Public Internet Gateways
       x-latency-category: responsive
-  /queues:
-    post:
-      description: Create a new call queue with the specified name and maximum size.
-      operationId: CreateQueue
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                max_size:
-                  $ref: '#/components/schemas/QueueMaxSize'
-                queue_name:
-                  description: Name of the queue to create
-                  example: support
-                  maxLength: 255
-                  minLength: 1
-                  type: string
-              required:
-              - queue_name
-              type: object
-        description: Queue creation request
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/QueueResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Create a queue
-      tags:
-      - Queue Commands
-      x-latency-category: interactive
   /queues/{queue_name}:
-    delete:
-      description: Delete an existing queue. The queue must be empty (no calls in
-        it) to be deleted.
-      operationId: DeleteQueue
-      parameters:
-      - description: Uniquely identifies the queue by name
-        in: path
-        name: queue_name
-        required: true
-        schema:
-          type: string
-      responses:
-        '204':
-          description: Queue successfully deleted
-        '404':
-          $ref: '#/components/responses/NotFoundResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Delete a queue
-      tags:
-      - Queue Commands
-      x-latency-category: interactive
     get:
       description: Retrieve an existing call queue
       operationId: RetrieveCallQueue
@@ -60426,39 +60466,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a call queue
-      tags:
-      - Queue Commands
-      x-latency-category: interactive
-    post:
-      description: Update the maximum size of an existing queue
-      operationId: UpdateQueueMaxSize
-      parameters:
-      - description: Uniquely identifies the queue by name
-        in: path
-        name: queue_name
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                max_size:
-                  $ref: '#/components/schemas/QueueMaxSize'
-              required:
-              - max_size
-              type: object
-        description: Queue max size update request
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/QueueResponse'
-        '404':
-          $ref: '#/components/responses/NotFoundResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Update queue max size
       tags:
       - Queue Commands
       x-latency-category: interactive
