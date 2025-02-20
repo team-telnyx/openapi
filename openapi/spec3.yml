@@ -97,6 +97,22 @@ components:
         - phone_number
         example: phone_number
         type: string
+    AuthorizationBearer:
+      in: header
+      name: 'Authorization: Bearer <TOKEN>'
+      schema:
+        description: Authenticates the request with your Telnyx API V2 KEY
+        type: string
+    BundleId:
+      in: path
+      name: billing_bundle_id
+      required: true
+      schema:
+        description: Bundle's ID, this is used to identify the bundle in the API.
+        example: 8661948c-a386-4385-837f-af00f40f111a
+        format: uuid
+        title: Bundle Id
+        type: string
     CallControlId:
       description: Unique identifier and token for controlling the call
       in: path
@@ -577,6 +593,17 @@ components:
         items:
           description: The ISO 3166-1 alpha-2 country code (2 characters)
           type: string
+        type: array
+    FilterCountryIso:
+      description: Filter by country code.
+      in: query
+      name: filter[country_iso]
+      required: false
+      schema:
+        items:
+          example: US
+          type: string
+        title: Filter[Country Iso]
         type: array
     FilterCreatedAfter:
       description: Filter for audit events created after a specific date.
@@ -2712,17 +2739,6 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
-    CreatedUserBundlesResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                items:
-                  $ref: '#/components/schemas/UserBundle'
-                type: array
-            type: object
-      description: User bundles created
     CredentialConnectionResponse:
       content:
         application/json:
@@ -7581,35 +7597,115 @@ components:
       - data
       title: BackgroundTasksQueryResponseData
       type: object
-    BillingBundleSummary:
+    BillingBundleResponse:
       properties:
+        data:
+          $ref: '#/components/schemas/BillingBundleSchema'
+      required:
+      - data
+      title: BillingBundleResponse
+      type: object
+    BillingBundleSchema:
+      properties:
+        active:
+          description: If that bundle is active or not.
+          title: Active
+          type: boolean
+        bundle_limits:
+          items:
+            $ref: '#/components/schemas/BundleLimitSchema'
+          title: Bundle Limits
+          type: array
         cost_code:
+          description: Bundle's cost code, this is used to identify the bundle in
+            the billing system.
+          example: BUNDLE-PRICING-BASIC-MRC
           title: Cost Code
           type: string
         created_at:
+          description: Date the bundle was created.
           format: date
           title: Created At
           type: string
-        currency:
-          title: Currency
-          type: string
         id:
+          description: Bundle's ID, this is used to identify the bundle in the API.
+          example: 7ecd040e-6bac-4139-9160-3c0427d98fea
           format: uuid
           title: Id
           type: string
         is_public:
+          description: Available to all customers or only to specific customers.
           title: Is Public
           type: boolean
-        mrc_price:
-          title: Mrc Price
-          type: number
         name:
+          description: Bundle's name, this is used to identify the bundle in the UI.
+          example: Australia Basic
           title: Name
           type: string
         slug:
+          description: Slugified version of the bundle's name.
+          example: basic-au-e4f8
+          title: Slug
+          type: string
+      required:
+      - id
+      - name
+      - cost_code
+      - active
+      - is_public
+      - created_at
+      - bundle_limits
+      title: BillingBundleSchema
+      type: object
+    BillingBundleSummary:
+      properties:
+        cost_code:
+          description: Bundle's cost code, this is used to identify the bundle in
+            the billing system.
+          example: BUNDLE-PRICING-BASIC-MRC
+          title: Cost Code
+          type: string
+        created_at:
+          description: Date the bundle was created.
+          format: date
+          title: Created At
+          type: string
+        currency:
+          description: Bundle's currency code.
+          example: USD
+          title: Currency
+          type: string
+        id:
+          description: Bundle's ID, this is used to identify the bundle in the API.
+          example: 7ecd040e-6bac-4139-9160-3c0427d98fea
+          format: uuid
+          title: Id
+          type: string
+        is_public:
+          description: Available to all customers or only to specific customers.
+          title: Is Public
+          type: boolean
+        mrc_price:
+          description: Monthly recurring charge price.
+          example: 2.0
+          format: float
+          title: Mrc Price
+          type: number
+        name:
+          description: Bundle's name, this is used to identify the bundle in the UI.
+          example: Australia Basic
+          title: Name
+          type: string
+        slug:
+          description: Slugified version of the bundle's name.
+          example: basic-au-e4f8
           title: Slug
           type: string
         specs:
+          example:
+          - 1 AU Number
+          - Emergency Calling
+          - All inbound and outbound calling billed pay-as-you-go
           items:
             type: string
           title: Specs
@@ -8264,6 +8360,77 @@ components:
           type: array
         updated_at:
           $ref: '#/components/schemas/UpdatedAt'
+      type: object
+    BundleLimitDirection:
+      description: An enumeration.
+      enum:
+      - inbound
+      - outbound
+      title: BundleLimitDirection
+      type: string
+    BundleLimitSchema:
+      properties:
+        billing_service:
+          example: emergency
+          title: Billing Service
+          type: string
+        country:
+          deprecated: true
+          description: Use country_iso instead
+          title: Country
+          type: string
+        country_code:
+          example: 61
+          title: Country Code
+          type: integer
+        country_iso:
+          example: AU
+          title: Country Iso
+          type: string
+        created_at:
+          format: date
+          title: Created At
+          type: string
+        direction:
+          $ref: '#/components/schemas/BundleLimitDirection'
+        id:
+          example: e6a32ea9-953b-4622-bbba-9f7bcf7e6717
+          format: uuid
+          title: Id
+          type: string
+        limit:
+          example: 1
+          title: Limit
+          type: integer
+        metric:
+          example: number
+          title: Metric
+          type: string
+        rate:
+          example: '5'
+          title: Rate
+          type: string
+        service:
+          example: E911
+          title: Service
+          type: string
+        types:
+          items:
+            example: local
+            type: string
+          title: Types
+          type: array
+        updated_at:
+          format: date
+          title: Updated At
+          type: string
+      required:
+      - id
+      - service
+      - metric
+      - created_at
+      - updated_at
+      title: BundleLimitSchema
       type: object
     Call:
       example:
@@ -17819,6 +17986,8 @@ components:
     CreateUserBundlesBulkRequest:
       properties:
         idempotency_key:
+          description: Idempotency key for the request. Can be any UUID, but should
+            always be unique for each request.
           example: 12ade33a-21c0-473b-b055-b3c836e1c292
           format: uuid
           type: string
@@ -18054,6 +18223,16 @@ components:
       example: '2018-02-02T22:25:27.521Z'
       readOnly: true
       type: string
+    CreatedUserBundlesResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UserBundle'
+          type: array
+      required:
+      - data
+      title: CreatedUserBundlesResponse
+      type: object
     CredentialActive:
       default: false
       description: If the credential associated with this service is active.
@@ -27456,6 +27635,20 @@ components:
       - data
       title: PaginatedBillingBundlesResponse
       type: object
+    PaginatedUserBundlesResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UserBundle'
+          title: Data
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationResponse'
+      required:
+      - meta
+      - data
+      title: PaginatedUserBundlesResponse
+      type: object
     Paginated_VerificationRequestStatus_:
       description: A paginated response
       properties:
@@ -27525,15 +27718,23 @@ components:
     PaginationResponse:
       properties:
         page_number:
+          description: The current page number.
+          example: 2
           title: Page Number
           type: integer
         page_size:
+          description: The number of results per page.
+          example: 25
           title: Page Size
           type: integer
         total_pages:
+          description: Total number of pages from the results.
+          example: 3
           title: Total Pages
           type: integer
         total_results:
+          description: Total number of results returned.
+          example: 55
           title: Total Results
           type: integer
       required:
@@ -38123,6 +38324,36 @@ components:
             type: object
           title:
             example: Invalid phone number
+    UnusedUserBundlesResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UnusedUserBundlesSchema'
+          title: Data
+          type: array
+      required:
+      - data
+      title: UnusedUserBundlesResponse
+      type: object
+    UnusedUserBundlesSchema:
+      properties:
+        billing_bundle:
+          $ref: '#/components/schemas/BillingBundleSummary'
+        user_bundle_ids:
+          description: List of User Bundle IDs for given Bundle.
+          example:
+          - 1e650b96-4c6a-4d6f-b8ed-87c3fcacf595
+          - 53beb701-1231-4548-8abf-c802f38b14aa
+          items:
+            format: uuid
+            type: string
+          title: User Bundle Ids
+          type: array
+      required:
+      - billing_bundle
+      - user_bundle_ids
+      title: UnusedUserBundlesSchema
+      type: object
     UpdateAssistantRequest:
       properties:
         description:
@@ -40465,69 +40696,151 @@ components:
     UserBundle:
       properties:
         active:
+          description: Status of the user bundle.
           example: true
           type: boolean
         billing_bundle:
-          properties:
-            cost_code:
-              example: TEST-COST-CODE
-              type: string
-            created_at:
-              example: '2025-01-20'
-              format: date
-              type: string
-            currency:
-              example: USD
-              nullable: true
-              type: string
-            id:
-              example: 042ef1ca-80e9-437a-9a8b-91f3f5352071
-              format: uuid
-              type: string
-            is_public:
-              example: true
-              type: boolean
-            mrc_price:
-              example: '10.00'
-              format: decimal
-              nullable: true
-              type: number
-            name:
-              example: Test Bundle
-              type: string
-            slug:
-              example: test-bundle
-              nullable: true
-              type: string
-            specs:
-              example: null
-              items:
-                type: string
-              nullable: true
-              type: array
-          type: object
+          $ref: '#/components/schemas/BillingBundleSummary'
         created_at:
+          description: Date the user bundle was created.
           example: '2025-01-20'
           format: date
           type: string
         id:
+          description: User bundle's ID, this is used to identify the user bundle
+            in the API.
           example: ca1d2263-d1f1-43ac-ba53-248e7a4bb26a
           format: uuid
           type: string
         resources:
           example: []
           items:
-            type: object
+            $ref: '#/components/schemas/UserBundleResourceSchema'
           type: array
         updated_at:
+          description: Date the user bundle was last updated.
           example: '2025-01-20'
           format: date
           nullable: true
           type: string
         user_id:
+          description: The customer's ID that owns this user bundle.
           example: 16856d8c-cd59-4b08-9ac2-1ebb01d419e1
           format: uuid
           type: string
+      required:
+      - id
+      - active
+      - user_id
+      - created_at
+      - billing_bundle
+      - resources
+      type: object
+    UserBundleCreateRequest:
+      properties:
+        billing_bundle_id:
+          format: uuid
+          title: Billing Bundle Id
+          type: string
+      required:
+      - billing_bundle_id
+      title: UserBundleCreateRequest
+      type: object
+    UserBundleCreateResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/UserBundle'
+      required:
+      - data
+      title: UserBundleCreateResponse
+      type: object
+    UserBundleResourceSchema:
+      properties:
+        created_at:
+          description: Date the resource was created.
+          example: '2025-01-20'
+          format: date
+          type: string
+        id:
+          description: Resource's ID.
+          example: ca1d2263-d1f1-43ac-ba53-248e7a4bb26a
+          format: uuid
+          type: string
+        resource:
+          description: The resource itself (usually a phone number).
+          example: '+15617819942'
+          type: string
+        resource_type:
+          description: The type of the resource (usually 'number').
+          example: number
+          type: string
+        updated_at:
+          description: Date the resource was last updated.
+          example: '2025-01-20'
+          format: date
+          nullable: true
+          type: string
+      required:
+      - id
+      - resource
+      - resource_type
+      - created_at
+      title: UserBundleResourceSchema
+      type: object
+    UserBundleResourcesResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/UserBundleResourceSchema'
+          title: Data
+          type: array
+      required:
+      - data
+      title: UserBundleResourcesResponse
+      type: object
+    UserBundleResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/UserBundle'
+      required:
+      - data
+      title: UserBundleResponse
+      type: object
+    UserBundleSummary:
+      properties:
+        active:
+          title: Active
+          type: boolean
+        billing_bundle:
+          $ref: '#/components/schemas/BillingBundleSummary'
+        created_at:
+          format: date
+          title: Created At
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        resources:
+          items:
+            $ref: '#/components/schemas/UserBundleResourceSchema'
+          title: Resources
+          type: array
+        updated_at:
+          format: date
+          title: Updated At
+          type: string
+        user_id:
+          title: User Id
+          type: string
+      required:
+      - id
+      - active
+      - user_id
+      - created_at
+      - billing_bundle
+      - resources
+      title: UserBundleSummary
       type: object
     UserEmbeddedBuckets:
       properties:
@@ -45347,6 +45660,197 @@ paths:
       summary: Get bulk SIM card action details
       tags:
       - SIM Card Actions
+      x-latency-category: responsive
+  /bundle-pricing/billing_bundles:
+    get:
+      description: Get all allowed bundles.
+      operationId: GetUserBillingBundles
+      parameters:
+      - $ref: '#/components/parameters/FilterCountryIso'
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBillingBundlesResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+      summary: Retrieve Bundles
+      tags:
+      - Bundles
+      x-latency-category: responsive
+  /bundle-pricing/billing_bundles/{bundle_id}:
+    get:
+      description: Get a single bundle by ID.
+      operationId: GetBillingBundleById
+      parameters:
+      - $ref: '#/components/parameters/BundleId'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingBundleResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Resource not found
+      summary: Get Bundle By Id
+      tags:
+      - Bundles
+      x-latency-category: responsive
+  /bundle-pricing/user_bundles:
+    get:
+      description: Get a paginated list of user bundles.
+      operationId: GetUserBundles
+      parameters:
+      - $ref: '#/components/parameters/FilterCountryIso'
+      - description: Filter by resource.
+        in: query
+        name: filter[resource]
+        required: false
+        schema:
+          items:
+            description: Filter by resource.
+            example: '+15617819942'
+            type: string
+          title: Filter[Resource]
+          type: array
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserBundlesResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+      summary: Get User Bundles
+      tags:
+      - User Bundles
+      x-latency-category: responsive
+  /bundle-pricing/user_bundles/bulk:
+    post:
+      description: Creates multiple user bundles for the user.
+      operationId: CreateUserBundlesBulk
+      parameters:
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserBundlesBulkRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedUserBundlesResponse'
+          description: Successful Response
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+      summary: Create User Bundles
+      tags:
+      - User Bundles
+      x-latency-category: responsive
+  /bundle-pricing/user_bundles/unused:
+    get:
+      description: Returns all User Bundles that aren't in use.
+      operationId: GetUnusedUserBundles
+      parameters:
+      - $ref: '#/components/parameters/FilterCountryIso'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnusedUserBundlesResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+      summary: Get Unused User Bundles
+      tags:
+      - User Bundles
+      x-latency-category: responsive
+  /bundle-pricing/user_bundles/{user_bundle_id}:
+    delete:
+      description: Deactivates a user bundle by its ID.
+      operationId: DeactivateUserBundle
+      parameters:
+      - $ref: '#/components/parameters/BundleId'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBundleCreateResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+      summary: Deactivate User Bundle
+      tags:
+      - User Bundles
+      x-latency-category: responsive
+    get:
+      description: Retrieves a User Bundle by its ID.
+      operationId: GetUserBundleById
+      parameters:
+      - $ref: '#/components/parameters/BundleId'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBundleResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+      summary: Get User Bundle by Id
+      tags:
+      - User Bundles
+      x-latency-category: responsive
+  /bundle-pricing/user_bundles/{user_bundle_id}/resources:
+    get:
+      description: Retrieves the resources of a user bundle by its ID.
+      operationId: GetUserBundleResources
+      parameters:
+      - $ref: '#/components/parameters/BundleId'
+      - $ref: '#/components/parameters/AuthorizationBearer'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserBundleResourcesResponse'
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+      summary: Get User Bundle Resources
+      tags:
+      - User Bundles
       x-latency-category: responsive
   /call_control_applications:
     get:
@@ -64484,83 +64988,6 @@ paths:
       summary: List User Tags
       tags:
       - User Tags
-      x-latency-category: responsive
-  /v2/bundle-pricing/billing_bundles:
-    get:
-      description: Get all billing bundles allowed for the current user.
-      operationId: GetUserBillingBundles
-      parameters:
-      - in: query
-        name: filter[country_iso]
-        required: false
-        schema:
-          items:
-            type: string
-          title: Filter[Country Iso]
-          type: array
-      - in: query
-        name: page[number]
-        required: false
-        schema:
-          default: 1
-          title: Page[Number]
-          type: integer
-      - in: query
-        name: page[size]
-        required: false
-        schema:
-          default: 100
-          exclusiveMinimum: 0
-          lte: 1000
-          title: Page[Size]
-          type: integer
-      - description: public authorization header
-        in: header
-        name: telnyx-auth-rev2
-        required: false
-        schema:
-          description: public authorization header
-          title: Telnyx-Auth-Rev2
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedBillingBundlesResponse'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-      summary: Retrieve User Billing Bundles
-      tags:
-      - Billing Bundles
-      x-latency-category: responsive
-  /v2/bundle-pricing/user_bundles/bulk:
-    post:
-      description: Creates multiple User Bundles for the user.
-      operationId: CreateUserBundlesBulk
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateUserBundlesBulkRequest'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/responses/CreatedUserBundlesResponse'
-          description: Successful Response
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Create User Bundles
-      tags:
-      - User Bundles
       x-latency-category: responsive
   /verifications/by_phone_number/{phone_number}:
     get:
