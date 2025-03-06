@@ -5591,7 +5591,7 @@
     "/calls/{call_control_id}/actions/gather_using_ai": {
       "post": {
         "summary": "Gather using AI",
-        "description": "Gather parameters defined in the request payload using a voice assistant.\n\n You can pass parameters described as a JSON Schema object and the voice assistant will attempt to gather these informations. \n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks) below):**\n\n- `call.ai_gather.ended`\n- `call.ai_gather.partial_results` (if `send_partial_results` is set to `true`)\n- `call.ai_gather.tool_call` (if `assistant.tools` are configured)\n- `call.ai_gather.message_history_updated` (if `send_message_history_updates` is set to `true`)\n",
+        "description": "Gather parameters defined in the request payload using a voice assistant.\n\n You can pass parameters described as a JSON Schema object and the voice assistant will attempt to gather these informations. \n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks) below):**\n\n- `call.ai_gather.ended`\n- `call.ai_gather.partial_results` (if `send_partial_results` is set to `true`)\n- `call.ai_gather.message_history_updated` (if `send_message_history_updates` is set to `true`)\n",
         "operationId": "callGatherUsingAI",
         "tags": [
           "Call Commands"
@@ -5679,35 +5679,6 @@
                 "responses": {
                   "200": {
                     "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
-                  }
-                }
-              }
-            }
-          },
-          "CallAIGatherToolCall": {
-            "{$request.body#/webhook_url}": {
-              "post": {
-                "requestBody": {
-                  "required": true,
-                  "content": {
-                    "application/json": {
-                      "schema": {
-                        "$ref": "#/components/schemas/CallAIGatherToolCallEvent"
-                      }
-                    }
-                  }
-                },
-                "responses": {
-                  "200": {
-                    "description": "The server must return an HTTP 200. The body of the response will be used as the result of the tool call.",
-                    "content": {
-                      "application/json": {
-                        "schema": {
-                          "type": "object",
-                          "title": "Tool Call Response"
-                        }
-                      }
-                    }
                   }
                 }
               }
@@ -47291,113 +47262,6 @@
           }
         }
       },
-      "CallAIGatherToolCallEvent": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "object",
-            "properties": {
-              "record_type": {
-                "type": "string",
-                "enum": [
-                  "event"
-                ]
-              },
-              "event_type": {
-                "type": "string",
-                "enum": [
-                  "call.ai_gather.tool_call"
-                ]
-              },
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "occurred_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "payload": {
-                "type": "object",
-                "properties": {
-                  "call_control_id": {
-                    "type": "string"
-                  },
-                  "tool_call": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "function"
-                        ]
-                      },
-                      "function": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "arguments": {
-                            "type": "object"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "arguments"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "type",
-                      "function"
-                    ]
-                  }
-                },
-                "required": [
-                  "call_control_id",
-                  "tool_call"
-                ]
-              }
-            },
-            "required": [
-              "record_type",
-              "event_type",
-              "id",
-              "occurred_at",
-              "payload"
-            ]
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "example": {
-          "data": {
-            "record_type": "event",
-            "event_type": "call.ai_gather.tool_call",
-            "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-            "occurred_at": "2025-01-16T12:00:00.000000Z",
-            "payload": {
-              "call_control_id": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQ",
-              "tool_call": {
-                "id": "call_abc123",
-                "type": "function",
-                "function": {
-                  "name": "get_current_weather",
-                  "arguments": {
-                    "location": "Boston, MA"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "CallAnswered": {
         "type": "object",
         "title": "Call Answered",
@@ -87431,9 +87295,21 @@
             "description": "The description of the tool."
           },
           "url": {
-            "description": "The URL of the external tool to be called. This URL is going to be used for the `call.ai_gather.tool_call` [callback](https://developers.telnyx.com/api/call-control/call-gather-using-ai#callbacks).",
+            "description": "The URL of the external tool to be called. This URL is going to be used by the assistant. The URL can be templated like: `https://example.com/api/v1/{id}`, where `{id}` is a placeholder for a value that will be provided by the assistant if `path_parameters` are provided with the `id` attribute.",
             "type": "string",
             "example": "https://example.com/api/v1/function"
+          },
+          "method": {
+            "description": "The HTTP method to be used when calling the external tool.",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "DELETE",
+              "PATCH"
+            ],
+            "default": "POST"
           },
           "headers": {
             "description": "The headers to be sent to the external tool.",
@@ -87451,9 +87327,28 @@
               }
             }
           },
-          "parameters": {
-            "description": "The parameters the webhook tool accepts, described as a JSON Schema object. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format",
+          "body_parameters": {
+            "description": "The body parameters the webhook tool accepts, described as a JSON Schema object. These parameters will be passed to the webhook as the body of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format",
             "type": "object",
+            "properties": {
+              "properties": {
+                "description": "The properties of the body parameters.",
+                "type": "object"
+              },
+              "required": {
+                "description": "The required properties of the body parameters.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "object"
+                ]
+              }
+            },
             "example": {
               "properties": {
                 "age": {
@@ -87468,6 +87363,76 @@
               "required": [
                 "age",
                 "location"
+              ],
+              "type": "object"
+            }
+          },
+          "path_parameters": {
+            "description": "The path parameters the webhook tool accepts, described as a JSON Schema object. These parameters will be passed to the webhook as the path of the request if the URL contains a placeholder for a value. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format",
+            "type": "object",
+            "properties": {
+              "properties": {
+                "description": "The properties of the path parameters.",
+                "type": "object"
+              },
+              "required": {
+                "description": "The required properties of the path parameters.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "object"
+                ]
+              }
+            },
+            "example": {
+              "properties": {
+                "id": {
+                  "description": "The id of the customer.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
+            }
+          },
+          "query_parameters": {
+            "description": "The query parameters the webhook tool accepts, described as a JSON Schema object. These parameters will be passed to the webhook as the query of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema) for documentation about the format",
+            "type": "object",
+            "properties": {
+              "properties": {
+                "description": "The properties of the query parameters.",
+                "type": "object"
+              },
+              "required": {
+                "description": "The required properties of the query parameters.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "object"
+                ]
+              }
+            },
+            "example": {
+              "properties": {
+                "page": {
+                  "description": "The page number.",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "page"
               ],
               "type": "object"
             }
