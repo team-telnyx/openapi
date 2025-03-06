@@ -3,8 +3,8 @@
   "info": {
     "version": "2.0.0",
     "title": "Telnyx API",
-    "x-endpoint-cost": "light",
     "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
+    "x-endpoint-cost": "light",
     "license": {
       "name": "MIT"
     },
@@ -4127,7 +4127,7 @@
         "operationId": "GetBillingBundleById",
         "parameters": [
           {
-            "$ref": "#/components/parameters/BundleId"
+            "$ref": "#/components/parameters/BillingBundleId"
           },
           {
             "$ref": "#/components/parameters/AuthorizationBearer"
@@ -4300,7 +4300,7 @@
         "operationId": "DeactivateUserBundle",
         "parameters": [
           {
-            "$ref": "#/components/parameters/BundleId"
+            "$ref": "#/components/parameters/UserBundleId"
           },
           {
             "$ref": "#/components/parameters/AuthorizationBearer"
@@ -4335,7 +4335,7 @@
         "operationId": "GetUserBundleById",
         "parameters": [
           {
-            "$ref": "#/components/parameters/BundleId"
+            "$ref": "#/components/parameters/UserBundleId"
           },
           {
             "$ref": "#/components/parameters/AuthorizationBearer"
@@ -4372,7 +4372,7 @@
         "operationId": "GetUserBundleResources",
         "parameters": [
           {
-            "$ref": "#/components/parameters/BundleId"
+            "$ref": "#/components/parameters/UserBundleId"
           },
           {
             "$ref": "#/components/parameters/AuthorizationBearer"
@@ -8023,6 +8023,7 @@
           "campaignStatusUpdate": {
             "{$request.body#/webhook_url}": {
               "post": {
+                "summary": "Campaign status update webhook",
                 "requestBody": {
                   "required": true,
                   "content": {
@@ -12017,9 +12018,6 @@
           },
           {
             "$ref": "#/components/parameters/FilterPhoneNumberContains"
-          },
-          {
-            "$ref": "#/components/parameters/FilterPhoneNumber"
           },
           {
             "$ref": "#/components/parameters/FilterCivicAddressId"
@@ -29878,12 +29876,34 @@
       }
     },
     "/siprec_connectors": {
-      "delete": {
-        "summary": "Delete stored Siprec Connection",
-        "description": "Deletes a stored Siprec Connection.",
-        "operationId": "DeleteSiprecConnection",
+      "post": {
+        "summary": "Create a SIPREC connector",
+        "description": "Creates a new SIPREC connector configuration.",
+        "operationId": "createSiprecConnector",
         "tags": [
-          "Siprec Connector"
+          "SIPREC Connectors"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/SiprecConnectorRequest"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/SiprecConnectorResponseBody"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/siprec_connectors/{connector_name}": {
+      "delete": {
+        "summary": "Delete a SIPREC connector",
+        "description": "Deletes a stored SIPREC connector.",
+        "operationId": "deleteSiprecConnector",
+        "tags": [
+          "SIPREC Connectors"
         ],
         "parameters": [
           {
@@ -29901,11 +29921,11 @@
         "x-latency-category": "responsive"
       },
       "get": {
-        "summary": "Retrieve stored Siprec Connection",
-        "description": "Return details of the Siprec connection.",
-        "operationId": "GetSiprecConnection",
+        "summary": "Retrieve a SIPREC connector",
+        "description": "Returns details of a stored SIPREC connector.",
+        "operationId": "getSiprecConnector",
         "tags": [
-          "Siprec Connector"
+          "SIPREC Connectors"
         ],
         "parameters": [
           {
@@ -29922,32 +29942,12 @@
         },
         "x-latency-category": "responsive"
       },
-      "post": {
-        "summary": "Creates a siprec connector",
-        "description": "Saves a siprec connector configuration.",
-        "operationId": "CreateSiprecConnector",
-        "tags": [
-          "Siprec Connector"
-        ],
-        "requestBody": {
-          "$ref": "#/components/requestBodies/SiprecConnectorRequest"
-        },
-        "responses": {
-          "201": {
-            "$ref": "#/components/responses/SiprecConnectorResponseBody"
-          },
-          "default": {
-            "$ref": "#/components/responses/GenericErrorResponse"
-          }
-        },
-        "x-latency-category": "responsive"
-      },
       "put": {
-        "summary": "Update stored SIPREC connector",
-        "description": "Updates a stored SIPREC connector",
-        "operationId": "UpdateSiprecConnector",
+        "summary": "Update a SIPREC connector",
+        "description": "Updates a stored SIPREC connector configuration.",
+        "operationId": "updateSiprecConnector",
         "tags": [
-          "Siprec Connector"
+          "SIPREC Connectors"
         ],
         "parameters": [
           {
@@ -34174,11 +34174,6 @@
         "tags": [
           "WireGuard Interfaces"
         ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ResourceId"
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -35131,18 +35126,19 @@
         "schema": {
           "type": "string",
           "description": "Authenticates the request with your Telnyx API V2 KEY"
-        }
+        },
+        "description": "Format: Bearer <TOKEN>"
       },
-      "BundleId": {
+      "BillingBundleId": {
         "required": true,
         "schema": {
           "title": "Bundle Id",
           "type": "string",
           "format": "uuid",
           "example": "8661948c-a386-4385-837f-af00f40f111a",
-          "description": "Bundle's ID, this is used to identify the bundle in the API."
+          "description": "Billing bundle's ID, this is used to identify the billing bundle in the API."
         },
-        "name": "billing_bundle_id",
+        "name": "bundle_id",
         "in": "path"
       },
       "CallControlId": {
@@ -35204,11 +35200,12 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
+        "description": "Telnyx connection id",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "1293384261075731461"
         }
       },
       "CreatedAtGtFilter": {
@@ -35697,7 +35694,8 @@
         "description": "If present, connections with <code>connection_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
-          "default": null
+          "default": null,
+          "example": "My Connection"
         }
       },
       "FilterCostByAmount": {
@@ -35930,7 +35928,7 @@
         }
       },
       "FilterPhoneNumber": {
-        "name": "filter[phone_number][contains]",
+        "name": "filter[phone_number][eq]",
         "in": "query",
         "description": "If present, connections associated with the given phone_number will be returned. A full match is necessary with a e164 format.",
         "schema": {
@@ -36392,7 +36390,7 @@
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
-        "description": "The page number to load.",
+        "description": "The page number to load",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -36402,7 +36400,7 @@
       "PageSize": {
         "name": "page[size]",
         "in": "query",
-        "description": "The size of the page.",
+        "description": "The size of the page",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -36615,9 +36613,9 @@
       },
       "SiprecConnectorName": {
         "name": "connector_name",
-        "description": "Uniquely identifies a SIPREC connector",
         "in": "path",
         "required": true,
+        "description": "Uniquely identifies a SIPREC connector.",
         "schema": {
           "type": "string"
         }
@@ -36625,16 +36623,15 @@
       "Sort": {
         "name": "sort",
         "in": "query",
+        "description": "Set the order of the results by the creation date.",
         "required": false,
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>: sorts the result by the\n    <code>email</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n    <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
-            "created_at",
-            "email"
+            "asc",
+            "desc"
           ],
-          "example": "email",
-          "default": "created_at"
+          "example": "desc"
         }
       },
       "SortAddress": {
@@ -36658,21 +36655,22 @@
       "SortApplication": {
         "name": "sort",
         "in": "query",
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>: sorts the result by the\n    <code>application_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the result by the\n    <code>application_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
             "created_at",
-            "friendly_name",
+            "application_name",
             "active"
           ],
-          "example": "friendly_name",
+          "example": "application_name",
           "default": "created_at"
         }
       },
       "SortConnection": {
         "name": "sort",
         "in": "query",
+        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -36758,23 +36756,21 @@
         "example": "2023-05-22"
       },
       "Status": {
-        "name": "filter[status][eq]",
+        "name": "Status",
         "in": "query",
-        "description": "The status of a notification setting",
+        "required": false,
+        "description": "Filters calls by status.",
         "schema": {
           "type": "string",
           "enum": [
-            "enabled",
-            "enable-received",
-            "enable-pending",
-            "enable-submtited",
-            "delete-received",
-            "delete-pending",
-            "delete-submitted",
-            "deleted"
-          ],
-          "example": "enable-received"
-        }
+            "canceled",
+            "completed",
+            "failed",
+            "busy",
+            "no-answer"
+          ]
+        },
+        "example": "no-answer"
       },
       "StatusEqFilter": {
         "name": "filter[status][eq]",
@@ -36860,6 +36856,18 @@
           "type": "string"
         },
         "example": "+1312345678"
+      },
+      "UserBundleId": {
+        "required": true,
+        "schema": {
+          "title": "User Bundle Id",
+          "type": "string",
+          "format": "uuid",
+          "example": "ca1d2263-d1f1-43ac-ba53-248e7a4bb26a",
+          "description": "User bundle's ID, this is used to identify the user bundle in the API."
+        },
+        "name": "user_bundle_id",
+        "in": "path"
       },
       "address_id": {
         "name": "address_id",
@@ -37441,7 +37449,7 @@
         }
       },
       "SiprecConnectorRequest": {
-        "description": "The params expected to create/update a SIPREC connector",
+        "description": "The parameters required to create or update a SIPREC connector.",
         "required": true,
         "content": {
           "application/json": {
@@ -38808,26 +38816,6 @@
           }
         }
       },
-      "FilterCreatedAfter": {
-        "name": "filter[created_after]",
-        "in": "query",
-        "description": "Filter for audit events created after a specific date.",
-        "schema": {
-          "type": "string",
-          "format": "date-time",
-          "example": "2021-01-01T00:00:00Z"
-        }
-      },
-      "FilterCreatedBefore": {
-        "name": "filter[created_before]",
-        "in": "query",
-        "description": "Filter for audit events created before a specific date.",
-        "schema": {
-          "type": "string",
-          "format": "date-time",
-          "example": "2021-01-01T00:00:00Z"
-        }
-      },
       "Forbidden": {
         "description": "Forbidden",
         "content": {
@@ -38856,7 +38844,19 @@
         }
       },
       "ForbiddenResponse": {
-        "description": "Unauthorized response. Happens when the current user is not authorized to access the endpoint."
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Errors"
+            },
+            "examples": {
+              "Not authorized": {
+                "$ref": "#/components/examples/NotAuthorized"
+              }
+            }
+          }
+        }
       },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
@@ -39783,13 +39783,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "type": "object",
-              "title": "Initiate TeXML Call Response",
-              "properties": {
-                "data": {
-                  "$ref": "#/components/schemas/InitiateCallResult"
-                }
-              }
+              "$ref": "#/components/schemas/InitiateCallResult"
             }
           }
         }
@@ -41694,33 +41688,7 @@
         }
       },
       "NotFoundResponse": {
-        "description": "The requested resource doesn't exist.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "notFound": {
-                "value": {
-                  "errors": [
-                    {
-                      "code": "10005",
-                      "title": "Resource not found",
-                      "detail": "The requested resource or URL could not be found.",
-                      "meta": {
-                        "url": "https://developers.telnyx.com/docs/overview/errors/10005"
-                      },
-                      "source": {
-                        "pointer": "/"
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        }
+        "description": "Fax does not exist"
       },
       "NumberBlockOrderResponse": {
         "description": "Successful response with details about a number block order.",
@@ -42841,7 +42809,7 @@
         }
       },
       "SiprecConnectorResponseBody": {
-        "description": "Return details of the SIPREC connector associated with the given name.",
+        "description": "Return details of the SIPREC connector.",
         "content": {
           "application/json": {
             "schema": {
@@ -42870,18 +42838,6 @@
               }
             }
           }
-        }
-      },
-      "Sort": {
-        "name": "sort",
-        "in": "query",
-        "description": "Set how the results will be ordered by the creation date.",
-        "schema": {
-          "type": "string",
-          "enum": [
-            "asc",
-            "desc"
-          ]
         }
       },
       "SpecificCountryResponse": {
@@ -43159,7 +43115,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthenticated response. Happens when the current user cannot be authenticated."
+        "description": "Unauthorized"
       },
       "UnexpectedErrorResponse": {
         "description": "An unexpected error occurred.",
@@ -45059,11 +45015,13 @@
               },
               {
                 "type": "array"
+              },
+              {
+                "type": "null"
               }
             ],
             "description": "The new value of the field. Can be any JSON type.",
-            "example": 12345,
-            "nullable": true
+            "example": 12345
           },
           "from": {
             "anyOf": [
@@ -45081,12 +45039,13 @@
               },
               {
                 "type": "array"
+              },
+              {
+                "type": "null"
               }
             ],
             "description": "The previous value of the field. Can be any JSON type.",
-            "example": 54321,
-            "nullable": true,
-            "required": false
+            "example": 54321
           }
         }
       },
@@ -58502,10 +58461,10 @@
         }
       },
       "CreatedAt": {
-        "title": "Created At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was created.",
-        "example": "2020-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was created.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "CreatedUserBundlesResponse": {
         "title": "CreatedUserBundlesResponse",
@@ -58965,15 +58924,19 @@
           "cursors": {
             "$ref": "#/components/schemas/Cursor"
           },
+          "total_items": {
+            "type": "integer",
+            "example": 50
+          },
           "next": {
             "type": "string",
             "description": "Path to next page.",
-            "example": "/v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           },
           "previous": {
             "type": "string",
             "description": "Path to previous page.",
-            "example": "/v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           }
         }
       },
@@ -60801,14 +60764,15 @@
         "example": "{\"page\": 1, \"records\": [{\"isin\": \"US68243Q1067\", \"iso2\": \"US\", \"symbol\": \"FLWS\", \"exchange\": \"NASDAQ\", \"displayName\": \"1-800 FLOWERS.COM, Inc.\"}, {\"isin\": \"US88025U1097\", \"iso2\": \"US\", \"symbol\": \"TXG\", \"exchange\": \"NASDAQ\", \"displayName\": \"10X GENOMICS INC CLASS A\"}], \"totalRecords\": 2}"
       },
       "Error": {
+        "type": "object",
         "required": [
           "code",
           "title"
         ],
         "properties": {
           "code": {
-            "type": "string",
-            "format": "int"
+            "type": "integer",
+            "format": "int32"
           },
           "title": {
             "type": "string"
@@ -60826,13 +60790,13 @@
               },
               "parameter": {
                 "description": "Indicates which query parameter caused the error.",
-                "type": "string",
-                "example": "+15617819942"
+                "type": "string"
               }
             }
           },
           "meta": {
-            "type": "object"
+            "type": "object",
+            "properties": {}
           }
         }
       },
@@ -60902,6 +60866,7 @@
         }
       },
       "Errors": {
+        "type": "object",
         "properties": {
           "errors": {
             "type": "array",
@@ -63961,17 +63926,17 @@
         ]
       },
       "HTTPValidationError": {
-        "title": "HTTPValidationError",
-        "type": "object",
         "properties": {
           "detail": {
-            "title": "Detail",
-            "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationError"
-            }
+            },
+            "type": "array",
+            "title": "Detail"
           }
-        }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "HangupRequest": {
         "type": "object",
@@ -64064,9 +64029,8 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "description": "Identifies the resource.",
-        "readOnly": true,
-        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+        "description": "Identifies the type of resource."
       },
       "ImportExternalVetting": {
         "title": "ImportExternalVetting",
@@ -64797,9 +64761,14 @@
         "title": "Initiate Call Request",
         "required": [
           "To",
-          "From"
+          "From",
+          "ApplicationSid"
         ],
         "properties": {
+          "ApplicationSid": {
+            "description": "The ID of the TeXML Application.",
+            "type": "string"
+          },
           "To": {
             "description": "The phone number of the called party. Phone numbers are formatted with a `+` and country code.",
             "example": "+16175551212",
@@ -67303,34 +67272,36 @@
         }
       },
       "Metadata": {
-        "type": "object",
-        "title": "Metadata",
         "properties": {
-          "total_pages": {
-            "type": "number",
-            "description": "Total number of pages based on pagination settings",
-            "example": 13,
-            "format": "double"
-          },
-          "total_results": {
-            "type": "number",
-            "description": "Total number of results",
-            "example": 13,
-            "format": "double"
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "example": 25
           },
           "page_number": {
-            "type": "number",
-            "description": "Current Page based on pagination settings (included when defaults are used.)",
-            "example": 3,
-            "format": "double"
+            "type": "integer",
+            "title": "Page Number",
+            "example": 1
           },
-          "page_size": {
-            "type": "number",
-            "description": "Number of results to return per page based on pagination settings (included when defaults are used.)",
-            "example": 1,
-            "format": "double"
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "example": 10
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Items",
+            "example": 250
           }
-        }
+        },
+        "required": [
+          "page_size",
+          "page_number",
+          "total_pages",
+          "total_results"
+        ],
+        "type": "object",
+        "title": "Metadata"
       },
       "MigrationParams": {
         "type": "object",
@@ -69801,27 +69772,19 @@
         "properties": {
           "page_number": {
             "type": "integer",
-            "example": [
-              2
-            ]
+            "example": 2
           },
           "page_size": {
             "type": "integer",
-            "example": [
-              25
-            ]
+            "example": 25
           },
           "total_pages": {
             "type": "integer",
-            "example": [
-              3
-            ]
+            "example": 3
           },
           "total_results": {
             "type": "integer",
-            "example": [
-              55
-            ]
+            "example": 55
           }
         }
       },
@@ -74754,10 +74717,11 @@
       },
       "RecordType": {
         "type": "string",
-        "description": "Identifies record type.",
+        "example": "event",
         "enum": [
-          "custom_storage_credentials"
-        ]
+          "event"
+        ],
+        "description": "Identifies the type of the resource."
       },
       "RecordingResponse": {
         "type": "object",
@@ -75592,28 +75556,33 @@
         }
       },
       "ResourceNotFoundError": {
-        "type": "object",
-        "title": "Resource not found",
-        "example": {
-          "errors": [
-            {
-              "detail": "Resource not found"
-            }
-          ]
-        },
-        "properties": {
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "string"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
+          },
+          {
+            "properties": {
+              "code": {
+                "example": "10005"
+              },
+              "title": {
+                "example": "Resource not found"
+              },
+              "detail": {
+                "example": "The requested resource or URL could not be found."
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
+                  }
                 }
               }
             }
           }
-        }
+        ]
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -78041,22 +78010,22 @@
         ],
         "properties": {
           "host": {
-            "description": "Hostname/IPv4 address of SIPREC SRS to be used",
+            "description": "Hostname/IPv4 address of the SIPREC SRS.",
             "type": "string",
             "example": "siprec.telnyx.com"
           },
           "port": {
-            "description": "Port for SIPREC SRS to be used",
+            "description": "Port for the SIPREC SRS.",
             "type": "integer",
             "example": 5060
           },
           "name": {
-            "description": "Name for the siprec connector resource.",
+            "description": "Name for the SIPREC connector resource.",
             "type": "string",
             "example": "my-siprec-connector"
           },
           "app_subdomain": {
-            "description": "Sip subdomain to route the call when using Telnyx SRS. Not required if non-Telnyx SRS is used.",
+            "description": "Subdomain to route the call when using Telnyx SRS (optional for non-Telnyx SRS).",
             "type": "string",
             "example": "my-app-domain"
           }
@@ -78070,14 +78039,14 @@
       },
       "SiprecConnectorResponse": {
         "type": "object",
-        "title": "Siprec Connector Response",
+        "title": "SIPREC Connector Response",
         "required": [
           "data"
         ],
         "properties": {
           "data": {
             "type": "object",
-            "title": "Siprec Connector",
+            "title": "SIPREC Connector",
             "properties": {
               "record_type": {
                 "type": "string",
@@ -78085,32 +78054,32 @@
               },
               "name": {
                 "type": "string",
-                "example": "siprec-connector",
-                "description": "Name for the siprec connector resource."
+                "description": "Name for the SIPREC connector resource.",
+                "example": "siprec-connector"
               },
               "host": {
                 "type": "string",
-                "description": "Hostname/IPv4 address of SIPREC SRS to be used",
+                "description": "Hostname/IPv4 address of the SIPREC SRS.",
                 "example": "siprec.telnyx.com"
               },
               "port": {
                 "type": "integer",
-                "description": "Port for SIPREC SRS to be used",
+                "description": "Port for the SIPREC SRS.",
                 "example": 5060
               },
               "app_subdomain": {
-                "description": "Sip subdomain to route the call when using Telnyx SRS Not required if non-Telnyx SRS is used.",
                 "type": "string",
+                "description": "Subdomain to route calls when using Telnyx SRS (optional).",
                 "example": "my-app-domain"
               },
               "created_at": {
                 "type": "string",
-                "description": "ISO 8601 formatted date of when the resource was created",
+                "description": "ISO 8601 formatted date/time of creation.",
                 "example": "2024-01-23T18:10:02.574Z"
               },
               "updated_at": {
                 "type": "string",
-                "description": "ISO 8601 formatted date of when the resource was last updated",
+                "description": "ISO 8601 formatted date/time of last update.",
                 "example": "2024-01-23T18:10:02.574Z"
               }
             }
@@ -82603,39 +82572,42 @@
         ]
       },
       "UnprocessableEntityError": {
-        "required": [
-          "code",
-          "title"
-        ],
-        "properties": {
-          "code": {
-            "type": "string",
-            "format": "int"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GenericError"
           },
-          "title": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
-          },
-          "source": {
-            "type": "object",
+          {
             "properties": {
-              "pointer": {
-                "description": "JSON pointer (RFC6901) to the offending entity.",
-                "type": "string",
-                "format": "json-pointer"
+              "code": {
+                "example": "10002"
               },
-              "parameter": {
-                "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+              "title": {
+                "example": "Invalid phone number"
+              },
+              "detail": {
+                "example": "The phone number is invalid."
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "pointer": {
+                    "type": "string",
+                    "example": "/phone_numbers"
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
+                  }
+                }
               }
             }
-          },
-          "meta": {
-            "type": "object"
           }
-        }
+        ]
       },
       "UnusedUserBundlesResponse": {
         "title": "UnusedUserBundlesResponse",
@@ -83272,31 +83244,54 @@
         }
       },
       "UpdateConferenceRequest": {
+        "required": [
+          "call_control_id",
+          "supervisor_role"
+        ],
         "type": "object",
         "title": "Update Conference Request",
         "properties": {
-          "Status": {
-            "description": "The new status of the resource. Specifying `completed` will end the conference and hang up all participants.",
-            "example": "completed",
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call",
+            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
             "type": "string"
           },
-          "AnnounceUrl": {
-            "description": "The URL we should call to announce something into the conference. The URL may return an MP3 file, a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.",
-            "example": "https://www.example.com/announce.xml",
+          "command_id": {
+            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
             "type": "string"
           },
-          "AnnounceMethod": {
-            "description": "The HTTP method used to call the `AnnounceUrl`. Defaults to `POST`.",
-            "example": "GET",
+          "supervisor_role": {
+            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
+            "example": "whisper",
             "type": "string",
             "enum": [
-              "GET",
-              "POST"
+              "barge",
+              "monitor",
+              "none",
+              "whisper"
             ]
+          },
+          "whisper_call_control_ids": {
+            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
+            "example": [
+              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
-          "Status": "completed"
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "supervisor_role": "whisper",
+          "whisper_call_control_ids": [
+            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
+            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
+          ]
         }
       },
       "UpdateCredentialConnectionRequest": {
@@ -84804,10 +84799,10 @@
         }
       },
       "UpdatedAt": {
-        "title": "Updated At",
         "type": "string",
-        "description": "ISO 8601 formatted date indicating when the resource was updated.",
-        "example": "2020-02-03T22:25:27.521Z"
+        "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
+        "readOnly": true,
+        "example": "2018-02-02T22:25:27.521Z"
       },
       "UplinkData": {
         "type": "object",
@@ -85731,17 +85726,8 @@
         ]
       },
       "ValidationError": {
-        "title": "ValidationError",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "type": "object",
         "properties": {
           "loc": {
-            "title": "Location",
-            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -85751,17 +85737,26 @@
                   "type": "integer"
                 }
               ]
-            }
+            },
+            "type": "array",
+            "title": "Location"
           },
           "msg": {
-            "title": "Message",
-            "type": "string"
+            "type": "string",
+            "title": "Message"
           },
           "type": {
-            "title": "Error Type",
-            "type": "string"
+            "type": "string",
+            "title": "Error Type"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       },
       "Verification": {
         "title": "Verification",
