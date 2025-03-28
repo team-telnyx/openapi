@@ -3,8 +3,8 @@
   "info": {
     "version": "2.0.0",
     "title": "Telnyx API",
-    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "x-endpoint-cost": "light",
+    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "license": {
       "name": "MIT"
     },
@@ -4670,7 +4670,7 @@
     "/calls": {
       "post": {
         "summary": "Dial",
-        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks (see [schema](https://developers.telnyx.com/api/call-control/dial-call#callbacks) below):**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was requested to detect the end of machine greeting\n- `call.machine.premium.detection.ended` if `answering_machine_detection=premium` was requested\n- `call.machine.premium.greeting.ended` if `answering_machine_detection=premium` was requested and a beep was detected\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n",
+        "description": "Dial a number or SIP URI from a given connection. A successful response will include a `call_leg_id` which can be used to correlate the command with subsequent webhooks.\n\n**Expected Webhooks (see [schema](https://developers.telnyx.com/api/call-control/dial-call#callbacks) below):**\n\n- `call.initiated`\n- `call.answered` or `call.hangup`\n- `call.machine.detection.ended` if `answering_machine_detection` was requested\n- `call.machine.greeting.ended` if `answering_machine_detection` was requested to detect the end of machine greeting\n- `call.machine.premium.detection.ended` if `answering_machine_detection=premium` was requested\n- `call.machine.premium.greeting.ended` if `answering_machine_detection=premium` was requested and a beep was detected\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n\nWhen the `record` parameter is set to `record-from-answer`, the response will include a `recording_id` field.\n",
         "operationId": "DialCall",
         "tags": [
           "Call Commands"
@@ -4688,7 +4688,7 @@
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/RetrieveCallStatusResponse"
+            "$ref": "#/components/responses/RetrieveCallStatusResponseWithRecordingId"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -5027,7 +5027,7 @@
     "/calls/{call_control_id}/actions/answer": {
       "post": {
         "summary": "Answer call",
-        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/answer-call#callbacks) below):**\n\n- `call.answered`\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n",
+        "description": "Answer an incoming call. You must issue this command before executing subsequent commands on an incoming call.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/answer-call#callbacks) below):**\n\n- `call.answered`\n- `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url` was set\n\nWhen the `record` parameter is set to `record-from-answer`, the response will include a `recording_id` field.\n",
         "operationId": "AnswerCall",
         "tags": [
           "Call Commands"
@@ -5050,7 +5050,7 @@
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/CallControlCommandResponse"
+            "$ref": "#/components/responses/CallControlCommandResponseWithRecordingId"
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
@@ -35175,12 +35175,11 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Telnyx connection id",
+        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string",
-          "example": "1293384261075731461"
+          "type": "string"
         }
       },
       "CreatedAtGtFilter": {
@@ -35669,8 +35668,7 @@
         "description": "If present, connections with <code>connection_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
-          "default": null,
-          "example": "My Connection"
+          "default": null
         }
       },
       "FilterCostByAmount": {
@@ -36365,7 +36363,7 @@
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
-        "description": "The page number to load",
+        "description": "The page number to load.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -36375,7 +36373,7 @@
       "PageSize": {
         "name": "page[size]",
         "in": "query",
-        "description": "The size of the page",
+        "description": "The size of the page.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -36598,15 +36596,16 @@
       "Sort": {
         "name": "sort",
         "in": "query",
-        "description": "Set the order of the results by the creation date.",
         "required": false,
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>: sorts the result by the\n    <code>email</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n    <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
-            "asc",
-            "desc"
+            "created_at",
+            "email"
           ],
-          "example": "desc"
+          "example": "email",
+          "default": "created_at"
         }
       },
       "SortAddress": {
@@ -36630,22 +36629,21 @@
       "SortApplication": {
         "name": "sort",
         "in": "query",
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>: sorts the result by the\n    <code>application_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the result by the\n    <code>application_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
             "created_at",
-            "application_name",
+            "friendly_name",
             "active"
           ],
-          "example": "application_name",
+          "example": "friendly_name",
           "default": "created_at"
         }
       },
       "SortConnection": {
         "name": "sort",
         "in": "query",
-        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -36731,21 +36729,23 @@
         "example": "2023-05-22"
       },
       "Status": {
-        "name": "Status",
+        "name": "filter[status][eq]",
         "in": "query",
-        "required": false,
-        "description": "Filters calls by status.",
+        "description": "The status of a notification setting",
         "schema": {
           "type": "string",
           "enum": [
-            "canceled",
-            "completed",
-            "failed",
-            "busy",
-            "no-answer"
-          ]
-        },
-        "example": "no-answer"
+            "enabled",
+            "enable-received",
+            "enable-pending",
+            "enable-submtited",
+            "delete-received",
+            "delete-pending",
+            "delete-submitted",
+            "deleted"
+          ],
+          "example": "enable-received"
+        }
       },
       "StatusEqFilter": {
         "name": "filter[status][eq]",
@@ -37813,6 +37813,22 @@
           }
         }
       },
+      "CallControlCommandResponseWithRecordingId": {
+        "description": "Successful response upon making a call control command that includes recording_id.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Call Control Command Response With Recording ID",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/CallControlCommandResultWithRecordingId"
+                }
+              }
+            }
+          }
+        }
+      },
       "CancelFaxResponse": {
         "description": "Successful response upon accepting cancel fax command",
         "content": {
@@ -38819,19 +38835,7 @@
         }
       },
       "ForbiddenResponse": {
-        "description": "Forbidden",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Errors"
-            },
-            "examples": {
-              "Not authorized": {
-                "$ref": "#/components/examples/NotAuthorized"
-              }
-            }
-          }
-        }
+        "description": "Unauthorized response. Happens when the current user is not authorized to access the endpoint."
       },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
@@ -39758,7 +39762,13 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/InitiateCallResult"
+              "type": "object",
+              "title": "Initiate TeXML Call Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/InitiateCallResult"
+                }
+              }
             }
           }
         }
@@ -41663,7 +41673,33 @@
         }
       },
       "NotFoundResponse": {
-        "description": "Fax does not exist"
+        "description": "The requested resource doesn't exist.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "notFound": {
+                "value": {
+                  "errors": [
+                    {
+                      "code": "10005",
+                      "title": "Resource not found",
+                      "detail": "The requested resource or URL could not be found.",
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10005"
+                      },
+                      "source": {
+                        "pointer": "/"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
       },
       "NumberBlockOrderResponse": {
         "description": "Successful response with details about a number block order.",
@@ -42274,6 +42310,22 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/Call"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RetrieveCallStatusResponseWithRecordingId": {
+        "description": "Successful response with details about a call status that includes recording_id.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Retrieve Call Status Response With Recording ID",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/CallWithRecordingId"
                 }
               }
             }
@@ -43090,7 +43142,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized"
+        "description": "Unauthenticated response. Happens when the current user cannot be authenticated."
       },
       "UnexpectedErrorResponse": {
         "description": "An unexpected error occurred.",
@@ -47706,6 +47758,26 @@
           }
         }
       },
+      "CallControlCommandResultWithRecordingId": {
+        "type": "object",
+        "title": "Call Control Command Result With Recording ID",
+        "example": {
+          "result": "ok",
+          "recording_id": "d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a"
+        },
+        "properties": {
+          "result": {
+            "type": "string",
+            "example": "ok"
+          },
+          "recording_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a",
+            "description": "The ID of the recording. Only present when the record parameter is set to record-from-answer."
+          }
+        }
+      },
       "CallControlId": {
         "type": "string",
         "example": "v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA"
@@ -51631,6 +51703,72 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CallStreamingStopped"
+          }
+        }
+      },
+      "CallWithRecordingId": {
+        "type": "object",
+        "title": "Call With Recording ID",
+        "required": [
+          "call_control_id",
+          "call_leg_id",
+          "call_session_id",
+          "is_alive",
+          "record_type"
+        ],
+        "example": {
+          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+          "call_leg_id": "2dc6fc34-f9e0-11ea-b68e-02420a0f7768",
+          "call_session_id": "2dc1b3c8-f9e0-11ea-bc5a-02420a0f7768",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "is_alive": false,
+          "call_duration": 50,
+          "record_type": "call",
+          "recording_id": "d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a"
+        },
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "call"
+            ],
+            "example": "call"
+          },
+          "call_session_id": {
+            "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b68e-5013ef9657c1"
+          },
+          "call_leg_id": {
+            "description": "ID that is unique to the call and can be used to correlate webhook events",
+            "type": "string",
+            "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+          },
+          "call_control_id": {
+            "description": "Unique identifier and token for controlling the call.",
+            "type": "string",
+            "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
+          },
+          "is_alive": {
+            "description": "Indicates whether the call is alive or not. For Dial command it will always be `false` (dialing is asynchronous).",
+            "type": "boolean",
+            "example": true
+          },
+          "client_state": {
+            "description": "State received from a command.",
+            "type": "string",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "call_duration": {
+            "description": "Indicates the duration of the call in seconds",
+            "type": "integer",
+            "example": 50
+          },
+          "recording_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a",
+            "description": "The ID of the recording. Only present when the record parameter is set to record-from-answer."
           }
         }
       },
@@ -58329,10 +58467,10 @@
         }
       },
       "CreatedAt": {
+        "title": "Created At",
         "type": "string",
-        "description": "ISO 8601 formatted date-time indicating when the resource was created.",
-        "readOnly": true,
-        "example": "2018-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date indicating when the resource was created.",
+        "example": "2020-02-02T22:25:27.521Z"
       },
       "CreatedUserBundlesResponse": {
         "title": "CreatedUserBundlesResponse",
@@ -58792,19 +58930,15 @@
           "cursors": {
             "$ref": "#/components/schemas/Cursor"
           },
-          "total_items": {
-            "type": "integer",
-            "example": 50
-          },
           "next": {
             "type": "string",
             "description": "Path to next page.",
-            "example": "/v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           },
           "previous": {
             "type": "string",
             "description": "Path to previous page.",
-            "example": "/v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           }
         }
       },
@@ -60632,15 +60766,14 @@
         "example": "{\"page\": 1, \"records\": [{\"isin\": \"US68243Q1067\", \"iso2\": \"US\", \"symbol\": \"FLWS\", \"exchange\": \"NASDAQ\", \"displayName\": \"1-800 FLOWERS.COM, Inc.\"}, {\"isin\": \"US88025U1097\", \"iso2\": \"US\", \"symbol\": \"TXG\", \"exchange\": \"NASDAQ\", \"displayName\": \"10X GENOMICS INC CLASS A\"}], \"totalRecords\": 2}"
       },
       "Error": {
-        "type": "object",
         "required": [
           "code",
           "title"
         ],
         "properties": {
           "code": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "int"
           },
           "title": {
             "type": "string"
@@ -60658,13 +60791,13 @@
               },
               "parameter": {
                 "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+                "type": "string",
+                "example": "+15617819942"
               }
             }
           },
           "meta": {
-            "type": "object",
-            "properties": {}
+            "type": "object"
           }
         }
       },
@@ -60734,7 +60867,6 @@
         }
       },
       "Errors": {
-        "type": "object",
         "properties": {
           "errors": {
             "type": "array",
@@ -63794,17 +63926,17 @@
         ]
       },
       "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
         "properties": {
           "detail": {
+            "title": "Detail",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
+            }
           }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
+        }
       },
       "HangupRequest": {
         "type": "object",
@@ -63897,8 +64029,9 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-        "description": "Identifies the type of resource."
+        "description": "Identifies the resource.",
+        "readOnly": true,
+        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
       },
       "ImportExternalVetting": {
         "title": "ImportExternalVetting",
@@ -64629,14 +64762,9 @@
         "title": "Initiate Call Request",
         "required": [
           "To",
-          "From",
-          "ApplicationSid"
+          "From"
         ],
         "properties": {
-          "ApplicationSid": {
-            "description": "The ID of the TeXML Application.",
-            "type": "string"
-          },
           "To": {
             "description": "The phone number of the called party. Phone numbers are formatted with a `+` and country code.",
             "example": "+16175551212",
@@ -67140,36 +67268,34 @@
         }
       },
       "Metadata": {
+        "type": "object",
+        "title": "Metadata",
         "properties": {
-          "page_size": {
-            "type": "integer",
-            "title": "Page Size",
-            "example": 25
-          },
-          "page_number": {
-            "type": "integer",
-            "title": "Page Number",
-            "example": 1
-          },
           "total_pages": {
-            "type": "integer",
-            "title": "Total Pages",
-            "example": 10
+            "type": "number",
+            "description": "Total number of pages based on pagination settings",
+            "example": 13,
+            "format": "double"
           },
           "total_results": {
-            "type": "integer",
-            "title": "Total Items",
-            "example": 250
+            "type": "number",
+            "description": "Total number of results",
+            "example": 13,
+            "format": "double"
+          },
+          "page_number": {
+            "type": "number",
+            "description": "Current Page based on pagination settings (included when defaults are used.)",
+            "example": 3,
+            "format": "double"
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Number of results to return per page based on pagination settings (included when defaults are used.)",
+            "example": 1,
+            "format": "double"
           }
-        },
-        "required": [
-          "page_size",
-          "page_number",
-          "total_pages",
-          "total_results"
-        ],
-        "type": "object",
-        "title": "Metadata"
+        }
       },
       "MigrationParams": {
         "type": "object",
@@ -69640,19 +69766,27 @@
         "properties": {
           "page_number": {
             "type": "integer",
-            "example": 2
+            "example": [
+              2
+            ]
           },
           "page_size": {
             "type": "integer",
-            "example": 25
+            "example": [
+              25
+            ]
           },
           "total_pages": {
             "type": "integer",
-            "example": 3
+            "example": [
+              3
+            ]
           },
           "total_results": {
             "type": "integer",
-            "example": 55
+            "example": [
+              55
+            ]
           }
         }
       },
@@ -74590,11 +74724,10 @@
       },
       "RecordType": {
         "type": "string",
-        "example": "event",
+        "description": "Identifies record type.",
         "enum": [
-          "event"
-        ],
-        "description": "Identifies the type of the resource."
+          "custom_storage_credentials"
+        ]
       },
       "RecordingResponse": {
         "type": "object",
@@ -75429,33 +75562,28 @@
         }
       },
       "ResourceNotFoundError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/GenericError"
-          },
-          {
-            "properties": {
-              "code": {
-                "example": "10005"
-              },
-              "title": {
-                "example": "Resource not found"
-              },
-              "detail": {
-                "example": "The requested resource or URL could not be found."
-              },
-              "meta": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
-                  }
+        "type": "object",
+        "title": "Resource not found",
+        "example": {
+          "errors": [
+            {
+              "detail": "Resource not found"
+            }
+          ]
+        },
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string"
                 }
               }
             }
           }
-        ]
+        }
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -82456,42 +82584,39 @@
         ]
       },
       "UnprocessableEntityError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/GenericError"
+        "required": [
+          "code",
+          "title"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "int"
           },
-          {
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
             "properties": {
-              "code": {
-                "example": "10002"
+              "pointer": {
+                "description": "JSON pointer (RFC6901) to the offending entity.",
+                "type": "string",
+                "format": "json-pointer"
               },
-              "title": {
-                "example": "Invalid phone number"
-              },
-              "detail": {
-                "example": "The phone number is invalid."
-              },
-              "source": {
-                "type": "object",
-                "properties": {
-                  "pointer": {
-                    "type": "string",
-                    "example": "/phone_numbers"
-                  }
-                }
-              },
-              "meta": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
-                  }
-                }
+              "parameter": {
+                "description": "Indicates which query parameter caused the error.",
+                "type": "string"
               }
             }
+          },
+          "meta": {
+            "type": "object"
           }
-        ]
+        }
       },
       "UnusedUserBundlesResponse": {
         "title": "UnusedUserBundlesResponse",
@@ -83128,54 +83253,31 @@
         }
       },
       "UpdateConferenceRequest": {
-        "required": [
-          "call_control_id",
-          "supervisor_role"
-        ],
         "type": "object",
         "title": "Update Conference Request",
         "properties": {
-          "call_control_id": {
-            "description": "Unique identifier and token for controlling the call",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
+          "Status": {
+            "description": "The new status of the resource. Specifying `completed` will end the conference and hang up all participants.",
+            "example": "completed",
             "type": "string"
           },
-          "command_id": {
-            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
-            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "AnnounceUrl": {
+            "description": "The URL we should call to announce something into the conference. The URL may return an MP3 file, a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.",
+            "example": "https://www.example.com/announce.xml",
             "type": "string"
           },
-          "supervisor_role": {
-            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
-            "example": "whisper",
+          "AnnounceMethod": {
+            "description": "The HTTP method used to call the `AnnounceUrl`. Defaults to `POST`.",
+            "example": "GET",
             "type": "string",
             "enum": [
-              "barge",
-              "monitor",
-              "none",
-              "whisper"
+              "GET",
+              "POST"
             ]
-          },
-          "whisper_call_control_ids": {
-            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
-            "example": [
-              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
         "example": {
-          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
-          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
-          "supervisor_role": "whisper",
-          "whisper_call_control_ids": [
-            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-          ]
+          "Status": "completed"
         }
       },
       "UpdateCredentialConnectionRequest": {
@@ -84683,10 +84785,10 @@
         }
       },
       "UpdatedAt": {
+        "title": "Updated At",
         "type": "string",
-        "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
-        "readOnly": true,
-        "example": "2018-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date indicating when the resource was updated.",
+        "example": "2020-02-03T22:25:27.521Z"
       },
       "UplinkData": {
         "type": "object",
@@ -85610,8 +85712,17 @@
         ]
       },
       "ValidationError": {
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "type": "object",
         "properties": {
           "loc": {
+            "title": "Location",
+            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -85621,26 +85732,17 @@
                   "type": "integer"
                 }
               ]
-            },
-            "type": "array",
-            "title": "Location"
+            }
           },
           "msg": {
-            "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Error Type"
+            "title": "Error Type",
+            "type": "string"
           }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
+        }
       },
       "Verification": {
         "title": "Verification",
