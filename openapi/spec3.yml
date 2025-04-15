@@ -161,12 +161,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Telnyx connection id
+      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
+        or Sip connection resource.
       in: path
       name: connection_id
       required: true
       schema:
-        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -566,7 +566,6 @@ components:
       name: filter[connection_name][contains]
       schema:
         default: null
-        example: My Connection
         type: string
     FilterCostByAmount:
       description: The total monetary amount of the order.
@@ -1138,7 +1137,7 @@ components:
         minimum: 1
         type: integer
     PageNumber:
-      description: The page number to load
+      description: The page number to load.
       in: query
       name: page[number]
       schema:
@@ -1146,7 +1145,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page
+      description: The size of the page.
       in: query
       name: page[size]
       schema:
@@ -1324,15 +1323,22 @@ components:
       schema:
         type: string
     Sort:
-      description: Set the order of the results by the creation date.
+      description: "Specifies the sort order for results. By default sorting direction\
+        \ is ascending. To have the results sorted in descending order add the <code>\
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
+        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
+        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
+        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
+        \ given, results are sorted by <code>created_at</code> in descending order."
       in: query
       name: sort
       required: false
       schema:
+        default: created_at
         enum:
-        - asc
-        - desc
-        example: desc
+        - created_at
+        - email
+        example: email
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1359,21 +1365,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
-        \ sorts the result by the\n    <code>application_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
-        \ result by the\n    <code>application_name</code> field in descending order.\n\
-        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
-        \ in descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
+        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
+        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
+        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
+        \ descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - application_name
+        - friendly_name
         - active
-        example: application_name
+        example: friendly_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1386,7 +1392,6 @@ components:
         \ in descending order."
       in: query
       name: sort
-      required: false
       schema:
         default: created_at
         enum:
@@ -1469,18 +1474,20 @@ components:
       schema:
         type: string
     Status:
-      description: Filters calls by status.
-      example: no-answer
+      description: The status of a notification setting
       in: query
-      name: Status
-      required: false
+      name: filter[status][eq]
       schema:
         enum:
-        - canceled
-        - completed
-        - failed
-        - busy
-        - no-answer
+        - enabled
+        - enable-received
+        - enable-pending
+        - enable-submtited
+        - delete-received
+        - delete-pending
+        - delete-submitted
+        - deleted
+        example: enable-received
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -2928,14 +2935,8 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      content:
-        application/json:
-          examples:
-            Not authorized:
-              $ref: '#/components/examples/NotAuthorized'
-          schema:
-            $ref: '#/components/schemas/Errors'
-      description: Forbidden
+      description: Unauthorized response. Happens when the current user is not authorized
+        to access the endpoint.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -3509,7 +3510,11 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/InitiateCallResult'
+            properties:
+              data:
+                $ref: '#/components/schemas/InitiateCallResult'
+            title: Initiate TeXML Call Response
+            type: object
       description: Successful response upon initiating a TeXML call.
     InventoryCoverageResponse:
       content:
@@ -4730,7 +4735,22 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      description: Fax does not exist
+      content:
+        application/json:
+          examples:
+            notFound:
+              value:
+                errors:
+                - code: '10005'
+                  detail: The requested resource or URL could not be found.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+                  source:
+                    pointer: /
+                  title: Resource not found
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The requested resource doesn't exist.
     NumberBlockOrderResponse:
       content:
         application/json:
@@ -5645,7 +5665,8 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthorized
+      description: Unauthenticated response. Happens when the current user cannot
+        be authenticated.
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -15650,6 +15671,53 @@ components:
           type: string
       title: ConsumedData
       type: object
+    Conversation:
+      properties:
+        created_at:
+          description: The datetime the conversation was created.
+          example: '2025-04-15T13:07:28.764Z'
+          format: date-time
+          type: string
+        id:
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          format: uuid
+          type: string
+        last_message_at:
+          description: The datetime of the latest message in the conversation.
+          example: '2025-04-15T13:07:28.764Z'
+          format: date-time
+          type: string
+        metadata:
+          additionalProperties:
+            type: string
+          description: Metadata associated with the conversation. Telnyx provides
+            several pieces of metadata, but customers can also add their own.
+          example:
+            assistant_id: assistant-123
+            telnyx_agent_target: '+13128675309'
+            telnyx_conversation_channel: phone_call
+            telnyx_end_user_target: '+13128675309'
+          type: object
+        name:
+          example: ''
+          type: string
+      required:
+      - id
+      - created_at
+      - metadata
+      - last_message_at
+      type: object
+    ConversationsListData:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Conversation'
+          title: Data
+          type: array
+      required:
+      - data
+      title: ConversationsListData
+      type: object
     CostInformation:
       example:
         currency: USD
@@ -18379,9 +18447,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was created.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was created.
+      example: '2020-02-02T22:25:27.521Z'
+      title: Created At
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -18796,15 +18864,12 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
-        total_items:
-          example: 50
-          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -20306,17 +20371,17 @@ components:
     Error:
       properties:
         code:
-          format: int32
-          type: integer
+          format: int
+          type: string
         detail:
           type: string
         meta:
-          properties: {}
           type: object
         source:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
+              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -20328,7 +20393,6 @@ components:
       required:
       - code
       - title
-      type: object
     ErrorRecord:
       properties:
         code:
@@ -20383,7 +20447,6 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
-      type: object
     ExportPortingOrdersCSVReport:
       description: The parameters for generating a porting orders CSV report.
       properties:
@@ -22950,9 +23013,10 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the type of resource.
-      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+      description: Identifies the resource.
+      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
       format: uuid
+      readOnly: true
       type: string
     ImportExternalVetting:
       properties:
@@ -23606,9 +23670,6 @@ components:
         To: '+13121230000'
         Url: https://www.example.com/texml.xml
       properties:
-        ApplicationSid:
-          description: The ID of the TeXML Application.
-          type: string
         AsyncAmd:
           default: false
           description: Select whether to perform answering machine detection in the
@@ -23815,7 +23876,6 @@ components:
       required:
       - To
       - From
-      - ApplicationSid
       title: Initiate Call Request
       type: object
     InitiateCallResult:
@@ -25710,26 +25770,27 @@ components:
     Metadata:
       properties:
         page_number:
-          example: 1
-          title: Page Number
-          type: integer
+          description: Current Page based on pagination settings (included when defaults
+            are used.)
+          example: 3
+          format: double
+          type: number
         page_size:
-          example: 25
-          title: Page Size
-          type: integer
+          description: Number of results to return per page based on pagination settings
+            (included when defaults are used.)
+          example: 1
+          format: double
+          type: number
         total_pages:
-          example: 10
-          title: Total Pages
-          type: integer
+          description: Total number of pages based on pagination settings
+          example: 13
+          format: double
+          type: number
         total_results:
-          example: 250
-          title: Total Items
-          type: integer
-      required:
-      - page_size
-      - page_number
-      - total_pages
-      - total_results
+          description: Total number of results
+          example: 13
+          format: double
+          type: number
       title: Metadata
       type: object
     MigrationParams:
@@ -27790,16 +27851,20 @@ components:
     PaginationMetaSimple:
       properties:
         page_number:
-          example: 2
+          example:
+          - 2
           type: integer
         page_size:
-          example: 25
+          example:
+          - 25
           type: integer
         total_pages:
-          example: 3
+          example:
+          - 3
           type: integer
         total_results:
-          example: 55
+          example:
+          - 55
           type: integer
       type: object
     PaginationResponse:
@@ -31833,10 +31898,9 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies the type of the resource.
+      description: Identifies record type.
       enum:
-      - event
-      example: event
+      - custom_storage_credentials
       type: string
     RecordingResponse:
       properties:
@@ -32481,21 +32545,19 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-          detail:
-            example: The requested resource or URL could not be found.
-          meta:
+      example:
+        errors:
+        - detail: Resource not found
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              detail:
                 type: string
             type: object
-          title:
-            example: Resource not found
+          type: array
+      title: Resource not found
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -38508,27 +38570,29 @@ components:
           title:
             example: Unexpected error
     UnprocessableEntityError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10002'
-          detail:
-            example: The phone number is invalid.
-          meta:
-            properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10002
-                type: string
-            type: object
-          source:
-            properties:
-              pointer:
-                example: /phone_numbers
-                type: string
-            type: object
-          title:
-            example: Invalid phone number
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -39097,50 +39161,27 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
-        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
-        supervisor_role: whisper
-        whisper_call_control_ids:
-        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+        Status: completed
       properties:
-        call_control_id:
-          description: Unique identifier and token for controlling the call
-          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
-          type: string
-        command_id:
-          description: Use this field to avoid execution of duplicate commands. Telnyx
-            will ignore subsequent commands with the same `command_id` as one that
-            has already been executed.
-          example: 891510ac-f3e4-11e8-af5b-de00688a4901
-          type: string
-        supervisor_role:
-          description: Sets the participant as a supervisor for the conference. A
-            conference can have multiple supervisors. "barge" means the supervisor
-            enters the conference as a normal participant. This is the same as "none".
-            "monitor" means the supervisor is muted but can hear all participants.
-            "whisper" means that only the specified "whisper_call_control_ids" can
-            hear the supervisor. Defaults to "none".
+        AnnounceMethod:
+          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
+            `POST`.
           enum:
-          - barge
-          - monitor
-          - none
-          - whisper
-          example: whisper
+          - GET
+          - POST
+          example: GET
           type: string
-        whisper_call_control_ids:
-          description: Array of unique call_control_ids the supervisor can whisper
-            to. If none provided, the supervisor will join the conference as a monitoring
-            participant only.
-          example:
-          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
-          items:
-            type: string
-          type: array
-      required:
-      - call_control_id
-      - supervisor_role
+        AnnounceUrl:
+          description: The URL we should call to announce something into the conference.
+            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
+            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
+          example: https://www.example.com/announce.xml
+          type: string
+        Status:
+          description: The new status of the resource. Specifying `completed` will
+            end the conference and hang up all participants.
+          example: completed
+          type: string
       title: Update Conference Request
       type: object
     UpdateCredentialConnectionRequest:
@@ -40459,9 +40500,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was updated.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was updated.
+      example: '2020-02-03T22:25:27.521Z'
+      title: Updated At
       type: string
     UplinkData:
       properties:
@@ -44570,6 +44611,102 @@ paths:
       summary: Fetch a cluster visualization
       tags:
       - Clusters
+      x-latency-category: responsive
+  /ai/conversations:
+    get:
+      description: Retrieve a list of all AI conversations configured by the user.
+        Supports [PostgREST-style query parameters](https://postgrest.org/en/stable/api.html#horizontal-filtering-rows)
+        for filtering. Examples are included for the standard metadata fields, but
+        you can filter on any field in the metadata JSON object. For example, to filter
+        by a custom field `metadata->custom_field`, use `metadata->custom_field=eq.value`.
+      operationId: get_conversations_public_conversations_get
+      parameters:
+      - description: Filter by conversation ID (e.g. id=eq.123)
+        in: query
+        name: id
+        required: false
+        schema:
+          type: string
+      - description: Filter by conversation Name (e.g. name=like.Voice%)
+        in: query
+        name: name
+        required: false
+        schema:
+          type: string
+      - description: Filter by creation datetime (e.g., created_at=gte.2025-01-01)
+        in: query
+        name: created_at
+        required: false
+        schema:
+          type: string
+      - description: Filter by last message datetime (e.g., last_message_at=lte.2025-06-01)
+        in: query
+        name: last_message_at
+        required: false
+        schema:
+          type: string
+      - description: Filter by assistant ID (e.g., metadata->assistant_id=eq.assistant-123)
+        in: query
+        name: metadata->assistant_id
+        required: false
+        schema:
+          type: string
+      - description: Filter by the phone number, SIP URI, or other identifier for
+          the agent (e.g., metadata->telnyx_agent_target=eq.+13128675309)
+        in: query
+        name: metadata->telnyx_agent_target
+        required: false
+        schema:
+          type: string
+      - description: Filter by the phone number, SIP URI, or other identifier for
+          the end user (e.g., metadata->telnyx_end_user_target=eq.+13128675309)
+        in: query
+        name: metadata->telnyx_end_user_target
+        required: false
+        schema:
+          type: string
+      - description: Filter by conversation channel (e.g., metadata->telnyx_conversation_channel=eq.phone_call)
+        in: query
+        name: metadata->telnyx_conversation_channel
+        required: false
+        schema:
+          type: string
+      - description: Limit the number of returned conversations (e.g., limit=10)
+        in: query
+        name: limit
+        required: false
+        schema:
+          minimum: 1
+          type: integer
+      - description: Order the results by specific fields (e.g., order=created_at.desc
+          or order=last_message_at.asc)
+        in: query
+        name: order
+        required: false
+        schema:
+          type: string
+      - description: Apply OR conditions using PostgREST syntax (e.g., or=(created_at.gte.2025-04-01,last_message_at.gte.2025-04-01))
+        in: query
+        name: or
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationsListData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List conversations
+      tags:
+      - Conversations
       x-latency-category: responsive
   /ai/embeddings:
     get:
@@ -67245,6 +67382,8 @@ tags:
   name: Conference Commands
 - description: Connections operations
   name: Connections
+- description: Manage historical AI assistant conversations
+  name: Conversations
 - description: Country Coverage
   name: Country Coverage
 - description: Credential connection operations
