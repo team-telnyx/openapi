@@ -161,12 +161,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
-        or Sip connection resource.
+      description: Telnyx connection id
       in: path
       name: connection_id
       required: true
       schema:
+        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -566,6 +566,7 @@ components:
       name: filter[connection_name][contains]
       schema:
         default: null
+        example: My Connection
         type: string
     FilterCostByAmount:
       description: The total monetary amount of the order.
@@ -1137,7 +1138,7 @@ components:
         minimum: 1
         type: integer
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -1145,11 +1146,20 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The size of the page
       in: query
       name: page[size]
       schema:
         default: 20
+        maximum: 250
+        minimum: 1
+        type: integer
+    PageSizeApp:
+      description: The size of the page
+      in: query
+      name: page[size]
+      schema:
+        default: 250
         maximum: 250
         minimum: 1
         type: integer
@@ -1323,22 +1333,15 @@ components:
       schema:
         type: string
     Sort:
-      description: "Specifies the sort order for results. By default sorting direction\
-        \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
-        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
-        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
-        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
-        \ given, results are sorted by <code>created_at</code> in descending order."
+      description: Set the order of the results by the creation date.
       in: query
       name: sort
       required: false
       schema:
-        default: created_at
         enum:
-        - created_at
-        - email
-        example: email
+        - asc
+        - desc
+        example: desc
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1365,21 +1368,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
-        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
-        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
-        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
-        \ descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
+        \ sorts the result by the\n    <code>application_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
+        \ result by the\n    <code>application_name</code> field in descending order.\n\
+        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
+        \ in descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - friendly_name
+        - application_name
         - active
-        example: friendly_name
+        example: application_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1392,6 +1395,7 @@ components:
         \ in descending order."
       in: query
       name: sort
+      required: false
       schema:
         default: created_at
         enum:
@@ -2858,6 +2862,16 @@ components:
                 $ref: '#/components/schemas/WdrReport'
             type: object
       description: Successful response
+    DeprecatedInitiateCallResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/InitiateCallResult'
+            title: Initiate TeXML Call Response
+            type: object
+      description: Successful response upon initiating a TeXML call.
     DialParticipantResponse:
       content:
         application/json:
@@ -2935,8 +2949,14 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      description: Unauthorized response. Happens when the current user is not authorized
-        to access the endpoint.
+      content:
+        application/json:
+          examples:
+            Not authorized:
+              $ref: '#/components/examples/NotAuthorized'
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Forbidden
     FqdnConnectionResponse:
       content:
         application/json:
@@ -3510,11 +3530,7 @@ components:
       content:
         application/json:
           schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/InitiateCallResult'
-            title: Initiate TeXML Call Response
-            type: object
+            $ref: '#/components/schemas/InitiateCallResult'
       description: Successful response upon initiating a TeXML call.
     InventoryCoverageResponse:
       content:
@@ -4735,6 +4751,8 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
+      description: Fax does not exist
+    NotFoundResponseApp:
       content:
         application/json:
           examples:
@@ -5665,8 +5683,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthenticated response. Happens when the current user cannot
-        be authenticated.
+      description: Unauthorized
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -18447,9 +18464,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date indicating when the resource was created.
-      example: '2020-02-02T22:25:27.521Z'
-      title: Created At
+      description: ISO 8601 formatted date-time indicating when the resource was created.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -18864,12 +18881,15 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
+        total_items:
+          example: 50
+          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -19192,6 +19212,221 @@ components:
         name: Delete
         wrapped: true
     DeleteObjectsResponse:
+      type: object
+    DeprecatedInitiateCallRequest:
+      example:
+        From: '+13120001234'
+        StatusCallback: https://www.example.com/statuscallback-listener
+        To: '+13121230000'
+        Url: https://www.example.com/texml.xml
+      properties:
+        AsyncAmd:
+          default: false
+          description: Select whether to perform answering machine detection in the
+            background. By default execution is blocked until Answering Machine Detection
+            is completed.
+          example: true
+          type: boolean
+        AsyncAmdStatusCallback:
+          description: URL destination for Telnyx to send AMD callback events to for
+            the call.
+          example: https://www.example.com/callback
+          type: string
+        AsyncAmdStatusCallbackMethod:
+          default: POST
+          description: HTTP request type used for `AsyncAmdStatusCallback`. The default
+            value is inherited from TeXML Application setting.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        CallerId:
+          description: To be used as the caller id name (SIP From Display Name) presented
+            to the destination (`To` number). The string should have a maximum of
+            128 characters, containing only letters, numbers, spaces, and `-_~!.+`
+            special characters. If ommited, the display name will be the same as the
+            number in the `From` field.
+          example: Info
+          type: string
+        CancelPlaybackOnDetectMessageEnd:
+          default: true
+          description: Whether to cancel ongoing playback on `greeting ended` detection.
+            Defaults to `true`.
+          example: false
+          type: boolean
+        CancelPlaybackOnMachineDetection:
+          default: true
+          description: Whether to cancel ongoing playback on `machine` detection.
+            Defaults to `true`.
+          example: false
+          type: boolean
+        DetectionMode:
+          default: Regular
+          description: Allows you to chose between Premium and Standard detections.
+          enum:
+          - Premium
+          - Regular
+          example: Premium
+          type: string
+        FallbackUrl:
+          description: A failover URL for which Telnyx will retrieve the TeXML call
+            instructions if the `Url` is not responding.
+          example: https://www.example.com/instructions-fallback.xml
+          type: string
+        From:
+          description: The phone number of the party that initiated the call. Phone
+            numbers are formatted with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        MachineDetection:
+          default: Disable
+          description: Enables Answering Machine Detection.
+          enum:
+          - Enable
+          - Disable
+          - DetectMessageEnd
+          example: Enable
+          type: string
+        MachineDetectionSilenceTimeout:
+          default: 3500
+          description: If initial silence duration is greater than this value, consider
+            it a machine. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionSpeechEndThreshold:
+          default: 800
+          description: Silence duration threshold after a greeting message or voice
+            for it be considered human. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionSpeechThreshold:
+          default: 3500
+          description: Maximum threshold of a human greeting. If greeting longer than
+            this value, considered machine. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionTimeout:
+          default: 30000
+          description: Maximum timeout threshold in milliseconds for overall detection.
+          example: 5000
+          maximum: 60000
+          minimum: 500
+          type: integer
+        PreferredCodecs:
+          description: The list of comma-separated codecs to be offered on a call.
+          example: PCMA,PCMU
+          type: string
+        Record:
+          description: Whether to record the entire participant's call leg. Defaults
+            to `false`.
+          example: false
+          type: boolean
+        RecordingChannels:
+          description: The number of channels in the final recording. Defaults to
+            `mono`.
+          enum:
+          - mono
+          - dual
+          example: dual
+          type: string
+        RecordingStatusCallback:
+          description: The URL the recording callbacks will be sent to.
+          example: https://example.com/recording_status_callback
+          type: string
+        RecordingStatusCallbackEvent:
+          description: 'The changes to the recording''s state that should generate
+            a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed`
+            and `absent`. Separate multiple values with a space. Defaults to `completed`.'
+          example: in-progress completed absent
+          type: string
+        RecordingStatusCallbackMethod:
+          description: HTTP request type used for `RecordingStatusCallback`. Defaults
+            to `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        RecordingTimeout:
+          default: 0
+          description: The number of seconds that Telnyx will wait for the recording
+            to be stopped if silence is detected. The timer only starts when the speech
+            is detected. Please note that the transcription is used to detect silence
+            and the related charge will be applied. The minimum value is 0. The default
+            value is 0 (infinite)
+          example: 5
+          type: integer
+        RecordingTrack:
+          description: The audio track to record for the call. The default is `both`.
+          enum:
+          - inbound
+          - outbound
+          - both
+          example: inbound
+          type: string
+        SipAuthPassword:
+          description: The password to use for SIP authentication.
+          example: '1234'
+          type: string
+        SipAuthUsername:
+          description: The username to use for SIP authentication.
+          example: user
+          type: string
+        StatusCallback:
+          description: URL destination for Telnyx to send status callback events to
+            for the call.
+          example: https://www.example.com/callback
+          type: string
+        StatusCallbackEvent:
+          default: completed
+          description: The call events for which Telnyx should send a webhook. Multiple
+            events can be defined when separated by a space.
+          enum:
+          - initiated
+          - ringing
+          - answered
+          - completed
+          example: iniated ringing
+          type: string
+        StatusCallbackMethod:
+          default: POST
+          description: HTTP request type used for `StatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        To:
+          description: The phone number of the called party. Phone numbers are formatted
+            with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        Trim:
+          description: Whether to trim any leading and trailing silence from the recording.
+            Defaults to `trim-silence`.
+          enum:
+          - trim-silence
+          - do-not-trim
+          example: false
+          type: string
+        Url:
+          description: The URL from which Telnyx will retrieve the TeXML call instructions.
+          example: https://www.example.com/instructions.xml
+          type: string
+        UrlMethod:
+          default: POST
+          description: HTTP request type used for `Url`. The default value is inherited
+            from TeXML Application setting.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+      required:
+      - To
+      - From
+      title: Initiate Call Request
       type: object
     DetailRecord:
       description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
@@ -20371,17 +20606,17 @@ components:
     Error:
       properties:
         code:
-          format: int
-          type: string
+          format: int32
+          type: integer
         detail:
           type: string
         meta:
+          properties: {}
           type: object
         source:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
-              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -20393,6 +20628,7 @@ components:
       required:
       - code
       - title
+      type: object
     ErrorRecord:
       properties:
         code:
@@ -20447,6 +20683,7 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
+      type: object
     ExportPortingOrdersCSVReport:
       description: The parameters for generating a porting orders CSV report.
       properties:
@@ -23013,10 +23250,9 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the resource.
-      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+      description: Identifies the type of resource.
+      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
-      readOnly: true
       type: string
     ImportExternalVetting:
       properties:
@@ -23670,6 +23906,9 @@ components:
         To: '+13121230000'
         Url: https://www.example.com/texml.xml
       properties:
+        ApplicationSid:
+          description: The ID of the TeXML Application.
+          type: string
         AsyncAmd:
           default: false
           description: Select whether to perform answering machine detection in the
@@ -23876,6 +24115,7 @@ components:
       required:
       - To
       - From
+      - ApplicationSid
       title: Initiate Call Request
       type: object
     InitiateCallResult:
@@ -25770,27 +26010,26 @@ components:
     Metadata:
       properties:
         page_number:
-          description: Current Page based on pagination settings (included when defaults
-            are used.)
-          example: 3
-          format: double
-          type: number
-        page_size:
-          description: Number of results to return per page based on pagination settings
-            (included when defaults are used.)
           example: 1
-          format: double
-          type: number
+          title: Page Number
+          type: integer
+        page_size:
+          example: 25
+          title: Page Size
+          type: integer
         total_pages:
-          description: Total number of pages based on pagination settings
-          example: 13
-          format: double
-          type: number
+          example: 10
+          title: Total Pages
+          type: integer
         total_results:
-          description: Total number of results
-          example: 13
-          format: double
-          type: number
+          example: 250
+          title: Total Items
+          type: integer
+      required:
+      - page_size
+      - page_number
+      - total_pages
+      - total_results
       title: Metadata
       type: object
     MigrationParams:
@@ -27851,20 +28090,16 @@ components:
     PaginationMetaSimple:
       properties:
         page_number:
-          example:
-          - 2
+          example: 2
           type: integer
         page_size:
-          example:
-          - 25
+          example: 25
           type: integer
         total_pages:
-          example:
-          - 3
+          example: 3
           type: integer
         total_results:
-          example:
-          - 55
+          example: 55
           type: integer
       type: object
     PaginationResponse:
@@ -31901,9 +32136,10 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies record type.
+      description: Identifies the type of the resource.
       enum:
-      - custom_storage_credentials
+      - event
+      example: event
       type: string
     RecordingResponse:
       properties:
@@ -32548,19 +32784,21 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      example:
-        errors:
-        - detail: Resource not found
-      properties:
-        errors:
-          items:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10005'
+          detail:
+            example: The requested resource or URL could not be found.
+          meta:
             properties:
-              detail:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10005
                 type: string
             type: object
-          type: array
-      title: Resource not found
-      type: object
+          title:
+            example: Resource not found
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -38573,29 +38811,27 @@ components:
           title:
             example: Unexpected error
     UnprocessableEntityError:
-      properties:
-        code:
-          format: int
-          type: string
-        detail:
-          type: string
-        meta:
-          type: object
-        source:
-          properties:
-            parameter:
-              description: Indicates which query parameter caused the error.
-              type: string
-            pointer:
-              description: JSON pointer (RFC6901) to the offending entity.
-              format: json-pointer
-              type: string
-          type: object
-        title:
-          type: string
-      required:
-      - code
-      - title
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10002'
+          detail:
+            example: The phone number is invalid.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10002
+                type: string
+            type: object
+          source:
+            properties:
+              pointer:
+                example: /phone_numbers
+                type: string
+            type: object
+          title:
+            example: Invalid phone number
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -39164,27 +39400,50 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        Status: completed
+        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        supervisor_role: whisper
+        whisper_call_control_ids:
+        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
       properties:
-        AnnounceMethod:
-          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
-            `POST`.
+        call_control_id:
+          description: Unique identifier and token for controlling the call
+          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
+          type: string
+        command_id:
+          description: Use this field to avoid execution of duplicate commands. Telnyx
+            will ignore subsequent commands with the same `command_id` as one that
+            has already been executed.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        supervisor_role:
+          description: Sets the participant as a supervisor for the conference. A
+            conference can have multiple supervisors. "barge" means the supervisor
+            enters the conference as a normal participant. This is the same as "none".
+            "monitor" means the supervisor is muted but can hear all participants.
+            "whisper" means that only the specified "whisper_call_control_ids" can
+            hear the supervisor. Defaults to "none".
           enum:
-          - GET
-          - POST
-          example: GET
+          - barge
+          - monitor
+          - none
+          - whisper
+          example: whisper
           type: string
-        AnnounceUrl:
-          description: The URL we should call to announce something into the conference.
-            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
-            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
-          example: https://www.example.com/announce.xml
-          type: string
-        Status:
-          description: The new status of the resource. Specifying `completed` will
-            end the conference and hang up all participants.
-          example: completed
-          type: string
+        whisper_call_control_ids:
+          description: Array of unique call_control_ids the supervisor can whisper
+            to. If none provided, the supervisor will join the conference as a monitoring
+            participant only.
+          example:
+          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+          items:
+            type: string
+          type: array
+      required:
+      - call_control_id
+      - supervisor_role
       title: Update Conference Request
       type: object
     UpdateCredentialConnectionRequest:
@@ -40503,9 +40762,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date indicating when the resource was updated.
-      example: '2020-02-03T22:25:27.521Z'
-      title: Updated At
+      description: ISO 8601 formatted date-time indicating when the resource was updated.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     UplinkData:
       properties:
@@ -65139,7 +65398,7 @@ paths:
           $ref: '#/components/responses/NotFoundResponse'
       summary: List recording transcriptions
       tags:
-      - TeXML Twilio-compatible REST Commands
+      - TeXML REST Commands
       x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/Accounts/{account_sid}/Transcriptions/{recording_transcription_sid}.json:
@@ -65156,7 +65415,7 @@ paths:
           $ref: '#/components/responses/NotFoundResponse'
       summary: Delete a recording transcription
       tags:
-      - TeXML Twilio-compatible REST Commands
+      - TeXML REST Commands
       x-group-parameters: 'true'
       x-latency-category: responsive
     get:
@@ -65173,27 +65432,27 @@ paths:
           $ref: '#/components/responses/NotFoundResponse'
       summary: Fetch a recording transcription resource
       tags:
-      - TeXML Twilio-compatible REST Commands
+      - TeXML REST Commands
       x-group-parameters: 'true'
       x-latency-category: responsive
   /texml/calls/{application_id}:
     post:
       description: Initiate an outbound TeXML call. Telnyx will request TeXML from
         the XML Request URL configured for the connection in the Mission Control Portal.
-      operationId: InitiateTexmlCall
+      operationId: DeprecatedInitiateTexmlCall
       parameters:
       - $ref: '#/components/parameters/ApplicationId'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InitiateCallRequest'
+              $ref: '#/components/schemas/DeprecatedInitiateCallRequest'
         description: Iniatiate Call request object
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/InitiateCallResponse'
-      summary: Initiate an outbound call
+          $ref: '#/components/responses/DeprecatedInitiateCallResponse'
+      summary: (Deprecated) Initiate an outbound call
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
@@ -65202,7 +65461,7 @@ paths:
     post:
       description: Update TeXML call. Please note that the keys present in the payload
         MUST BE formatted in CamelCase as specified in the example.
-      operationId: UpdateTexmlCall
+      operationId: DeprecatedUpdateTexmlCall
       parameters:
       - $ref: '#/components/parameters/CallSid'
       requestBody:
@@ -65215,7 +65474,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/UpdateTeXMLCallResponse'
-      summary: Update call
+      summary: (Deprecated) Update call
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
@@ -65250,7 +65509,7 @@ paths:
       operationId: FindTexmlApplications
       parameters:
       - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageSizeApp'
       - description: If present, applications with <code>friendly_name</code> containing
           the given value will be returned. Matching is not case-sensitive. Requires
           at least three characters.
@@ -65318,7 +65577,7 @@ paths:
         '403':
           $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          $ref: '#/components/responses/NotFoundResponse'
+          $ref: '#/components/responses/NotFoundResponseApp'
       summary: Deletes a TeXML Application
       tags:
       - TeXML Applications
@@ -65338,7 +65597,7 @@ paths:
         '403':
           $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          $ref: '#/components/responses/NotFoundResponse'
+          $ref: '#/components/responses/NotFoundResponseApp'
       summary: Retrieve a TeXML Application
       tags:
       - TeXML Applications
@@ -65365,7 +65624,7 @@ paths:
         '403':
           $ref: '#/components/responses/UnauthorizedResponse'
         '404':
-          $ref: '#/components/responses/NotFoundResponse'
+          $ref: '#/components/responses/NotFoundResponseApp'
         '422':
           $ref: '#/components/responses/UnprocessableEntityResponse'
       summary: Update a TeXML Application
@@ -67550,8 +67809,6 @@ tags:
   name: TeXML Applications
 - description: TeXML REST Commands
   name: TeXML REST Commands
-- description: TeXML Twilio-compatible REST Commands
-  name: TeXML Twilio-compatible REST Commands
 - description: Text to Speech commands operations
   name: Text to Speech Commands
 - description: Usage data reporting across Telnyx products
