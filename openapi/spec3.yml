@@ -161,12 +161,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Telnyx connection id
+      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
+        or Sip connection resource.
       in: path
       name: connection_id
       required: true
       schema:
-        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -566,7 +566,6 @@ components:
       name: filter[connection_name][contains]
       schema:
         default: null
-        example: My Connection
         type: string
     FilterCostByAmount:
       description: The total monetary amount of the order.
@@ -955,6 +954,13 @@ components:
       required: false
       schema:
         type: string
+    GcbChannelNumberZoneId:
+      description: Channel zone identifier
+      in: query
+      name: channel_zone_id
+      required: false
+      schema:
+        type: string
     GcbChannelZoneId:
       description: Channel zone identifier
       in: path
@@ -1138,7 +1144,7 @@ components:
         minimum: 1
         type: integer
     PageNumber:
-      description: The page number to load
+      description: The page number to load.
       in: query
       name: page[number]
       schema:
@@ -1146,7 +1152,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page
+      description: The size of the page.
       in: query
       name: page[size]
       schema:
@@ -1333,15 +1339,22 @@ components:
       schema:
         type: string
     Sort:
-      description: Set the order of the results by the creation date.
+      description: "Specifies the sort order for results. By default sorting direction\
+        \ is ascending. To have the results sorted in descending order add the <code>\
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
+        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
+        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
+        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
+        \ given, results are sorted by <code>created_at</code> in descending order."
       in: query
       name: sort
       required: false
       schema:
+        default: created_at
         enum:
-        - asc
-        - desc
-        example: desc
+        - created_at
+        - email
+        example: email
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1368,21 +1381,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
-        \ sorts the result by the\n    <code>application_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
-        \ result by the\n    <code>application_name</code> field in descending order.\n\
-        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
-        \ in descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
+        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
+        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
+        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
+        \ descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - application_name
+        - friendly_name
         - active
-        example: application_name
+        example: friendly_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1395,7 +1408,6 @@ components:
         \ in descending order."
       in: query
       name: sort
-      required: false
       schema:
         default: created_at
         enum:
@@ -1478,20 +1490,18 @@ components:
       schema:
         type: string
     Status:
-      description: The status of a notification setting
+      description: Filters calls by status.
+      example: no-answer
       in: query
-      name: filter[status][eq]
+      name: Status
+      required: false
       schema:
         enum:
-        - enabled
-        - enable-received
-        - enable-pending
-        - enable-submtited
-        - delete-received
-        - delete-pending
-        - delete-submitted
-        - deleted
-        example: enable-received
+        - canceled
+        - completed
+        - failed
+        - busy
+        - no-answer
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -1573,6 +1583,13 @@ components:
         example: ca1d2263-d1f1-43ac-ba53-248e7a4bb26a
         format: uuid
         title: User Bundle Id
+        type: string
+    UserId:
+      description: User identifier
+      in: path
+      name: user_id
+      required: true
+      schema:
         type: string
     address_id:
       description: Identifies a civic address or a location.
@@ -2949,14 +2966,8 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      content:
-        application/json:
-          examples:
-            Not authorized:
-              $ref: '#/components/examples/NotAuthorized'
-          schema:
-            $ref: '#/components/schemas/Errors'
-      description: Forbidden
+      description: Unauthorized response. Happens when the current user is not authorized
+        to access the endpoint.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -3195,6 +3206,40 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: A list of channel zones
+    GetGcbNumbersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  properties:
+                    number_of_channels:
+                      example: 7
+                      type: integer
+                    numbers:
+                      items:
+                        properties:
+                          country:
+                            example: FR
+                            type: string
+                          number:
+                            example: '+15554441234'
+                            type: string
+                        type: object
+                      type: array
+                    zone_id:
+                      example: 1653e6a1-4bfd-4857-97c6-6a51e1c34477
+                      type: string
+                    zone_name:
+                      example: Euro channel zone
+                      type: string
+                  type: object
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: A list of numbers using GCB, grouped by channel zone
     GetGcbPhoneNumbersRequestResponse:
       content:
         application/json:
@@ -4751,7 +4796,11 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      description: Fax does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceNotFoundError'
+      description: Resource not found
     NotFoundResponseApp:
       content:
         application/json:
@@ -5683,7 +5732,8 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthorized
+      description: Unauthenticated response. Happens when the current user cannot
+        be authenticated.
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -18578,9 +18628,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was created.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was created.
+      example: '2020-02-02T22:25:27.521Z'
+      title: Created At
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -18995,15 +19045,12 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
-        total_items:
-          example: 50
-          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -20769,17 +20816,17 @@ components:
     Error:
       properties:
         code:
-          format: int32
-          type: integer
+          format: int
+          type: string
         detail:
           type: string
         meta:
-          properties: {}
           type: object
         source:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
+              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -20791,7 +20838,6 @@ components:
       required:
       - code
       - title
-      type: object
     ErrorRecord:
       properties:
         code:
@@ -20846,7 +20892,6 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
-      type: object
     ExportPortingOrdersCSVReport:
       description: The parameters for generating a porting orders CSV report.
       properties:
@@ -23413,9 +23458,10 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the type of resource.
-      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+      description: Identifies the resource.
+      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
       format: uuid
+      readOnly: true
       type: string
     ImportExternalVetting:
       properties:
@@ -26173,26 +26219,27 @@ components:
     Metadata:
       properties:
         page_number:
-          example: 1
-          title: Page Number
-          type: integer
+          description: Current Page based on pagination settings (included when defaults
+            are used.)
+          example: 3
+          format: double
+          type: number
         page_size:
-          example: 25
-          title: Page Size
-          type: integer
+          description: Number of results to return per page based on pagination settings
+            (included when defaults are used.)
+          example: 1
+          format: double
+          type: number
         total_pages:
-          example: 10
-          title: Total Pages
-          type: integer
+          description: Total number of pages based on pagination settings
+          example: 13
+          format: double
+          type: number
         total_results:
-          example: 250
-          title: Total Items
-          type: integer
-      required:
-      - page_size
-      - page_number
-      - total_pages
-      - total_results
+          description: Total number of results
+          example: 13
+          format: double
+          type: number
       title: Metadata
       type: object
     MigrationParams:
@@ -28253,16 +28300,20 @@ components:
     PaginationMetaSimple:
       properties:
         page_number:
-          example: 2
+          example:
+          - 2
           type: integer
         page_size:
-          example: 25
+          example:
+          - 25
           type: integer
         total_pages:
-          example: 3
+          example:
+          - 3
           type: integer
         total_results:
-          example: 55
+          example:
+          - 55
           type: integer
       type: object
     PaginationResponse:
@@ -32299,10 +32350,9 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies the type of the resource.
+      description: Identifies record type.
       enum:
-      - event
-      example: event
+      - custom_storage_credentials
       type: string
     RecordingResponse:
       properties:
@@ -32947,21 +32997,19 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-          detail:
-            example: The requested resource or URL could not be found.
-          meta:
+      example:
+        errors:
+        - detail: Resource not found
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              detail:
                 type: string
             type: object
-          title:
-            example: Resource not found
+          type: array
+      title: Resource not found
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -38970,27 +39018,29 @@ components:
           title:
             example: Unexpected error
     UnprocessableEntityError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10002'
-          detail:
-            example: The phone number is invalid.
-          meta:
-            properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10002
-                type: string
-            type: object
-          source:
-            properties:
-              pointer:
-                example: /phone_numbers
-                type: string
-            type: object
-          title:
-            example: Invalid phone number
+      properties:
+        code:
+          format: int
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -39549,50 +39599,27 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
-        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
-        supervisor_role: whisper
-        whisper_call_control_ids:
-        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+        Status: completed
       properties:
-        call_control_id:
-          description: Unique identifier and token for controlling the call
-          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
-          type: string
-        command_id:
-          description: Use this field to avoid execution of duplicate commands. Telnyx
-            will ignore subsequent commands with the same `command_id` as one that
-            has already been executed.
-          example: 891510ac-f3e4-11e8-af5b-de00688a4901
-          type: string
-        supervisor_role:
-          description: Sets the participant as a supervisor for the conference. A
-            conference can have multiple supervisors. "barge" means the supervisor
-            enters the conference as a normal participant. This is the same as "none".
-            "monitor" means the supervisor is muted but can hear all participants.
-            "whisper" means that only the specified "whisper_call_control_ids" can
-            hear the supervisor. Defaults to "none".
+        AnnounceMethod:
+          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
+            `POST`.
           enum:
-          - barge
-          - monitor
-          - none
-          - whisper
-          example: whisper
+          - GET
+          - POST
+          example: GET
           type: string
-        whisper_call_control_ids:
-          description: Array of unique call_control_ids the supervisor can whisper
-            to. If none provided, the supervisor will join the conference as a monitoring
-            participant only.
-          example:
-          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
-          items:
-            type: string
-          type: array
-      required:
-      - call_control_id
-      - supervisor_role
+        AnnounceUrl:
+          description: The URL we should call to announce something into the conference.
+            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
+            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
+          example: https://www.example.com/announce.xml
+          type: string
+        Status:
+          description: The new status of the resource. Specifying `completed` will
+            end the conference and hang up all participants.
+          example: completed
+          type: string
       title: Update Conference Request
       type: object
     UpdateCredentialConnectionRequest:
@@ -40911,9 +40938,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was updated.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was updated.
+      example: '2020-02-03T22:25:27.521Z'
+      title: Updated At
       type: string
     UplinkData:
       properties:
@@ -49598,7 +49625,10 @@ paths:
       x-latency-category: responsive
   /channel_zones:
     get:
-      description: List of channel zones with their countries
+      description: Returns the non-US inbound channels for your account. Inbound channels
+        allow you to use Channel Billing for calls to your Telnyx phone numbers. Please
+        check the Telnyx Support Articles section for full information and examples
+        of how to utilize Channel Billing.
       operationId: GetChannelZones
       parameters:
       - $ref: '#/components/parameters/PageNumber'
@@ -49606,27 +49636,16 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/GetGcbChannelZonesRequestResponse'
-      summary: Get list of channel zones
+      summary: List your inbound channels for non-US zones
       tags:
-      - ChannelZones
+      - Voice Channels
       x-latency-category: interactive
   /channel_zones/{channel_zone_id}:
-    get:
-      description: Get a specific channel zone
-      operationId: GetChannelZone
-      responses:
-        '200':
-          $ref: '#/components/responses/GetGcbChannelZoneRequestResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Get a specific channel zone
-      tags:
-      - ChannelZones
-      x-latency-category: interactive
     parameters:
     - $ref: '#/components/parameters/GcbChannelZoneId'
-    patch:
-      description: Change the amount of reserved channels at a given channel zone
+    put:
+      description: Modify the number of reserved non-US inbound channels for a specified
+        channel zone. The update applies to all sub-users within the organization.
       operationId: PatchChannelZone
       requestBody:
         content:
@@ -49634,85 +49653,24 @@ paths:
             schema:
               properties:
                 channels:
+                  description: The number of reserved channels
                   format: int64
                   type: integer
+              required:
+              - channels
               type: object
-        description: Quantity of reserved channels
+        description: Quantity of reserved channels and organizational update option
         required: true
       responses:
         '200':
           $ref: '#/components/responses/PatchGcbChannelZoneRequestResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
-      summary: Patch a channel zone
+      summary: Update inbound channels for non-US Zones
       tags:
-      - ChannelZones
+      - Voice Channels
       x-codegen-request-body-name: body
       x-latency-category: interactive
-  /channel_zones/{channel_zone_id}/channel_zone_phone_numbers:
-    get:
-      description: Retrieve the assigned phone numbers in a channel zone. Phone numbers
-        assigned to a channel zone can receive concurrent calls up to the quantity
-        reserved in that channel zone. Additional concurrent calls are rejected with
-        a busy signal.
-      operationId: GetPhoneNumbers
-      parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      responses:
-        '200':
-          $ref: '#/components/responses/GetGcbPhoneNumbersRequestResponse'
-      summary: Get the list of phone numbers assigned to a channel zone
-      tags:
-      - ChannelZones
-      x-latency-category: interactive
-    parameters:
-    - $ref: '#/components/parameters/GcbChannelZoneId'
-    post:
-      description: You should own the phone number being assigned to the channel zone.
-        Remember that you should reserve channels in this channel zone, otherwise
-        you won't be able to receive incoming calls.
-      operationId: AssignPhoneNumber
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                phone_number:
-                  example: '+15554441234'
-                  format: +E.164
-                  type: string
-              required:
-              - phone_number
-              type: object
-        description: Phone number to assign to the channel zone. The phone number
-          should be in E.164 format.
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/PostGcbPhoneNumberRequestResponse'
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Assign a phone number to a channel zone
-      tags:
-      - ChannelZones
-      x-codegen-request-body-name: body
-      x-latency-category: interactive
-  /channel_zones/{channel_zone_id}/channel_zone_phone_numbers/{phone_number}:
-    delete:
-      operationId: UnassignPhoneNumber
-      responses:
-        '200':
-          description: The phone number is successfully deleted
-        default:
-          $ref: '#/components/responses/GenericErrorResponse'
-      summary: Unassign a phone number from a channel zone
-      tags:
-      - ChannelZones
-      x-latency-category: interactive
-    parameters:
-    - $ref: '#/components/parameters/GcbChannelZoneId'
-    - $ref: '#/components/parameters/GcbPhoneNumber'
   /comments:
     get:
       operationId: ListComments
@@ -54066,6 +54024,23 @@ paths:
       tags:
       - Reports
       x-latency-category: responsive
+  /list/{user_id}:
+    get:
+      description: Retrieve a list of phone numbers associated with inbound channels,
+        grouped by Zone. You can optionally provide a Zone ID to filter the numbers
+        within a specific Zone. Returns all of the Voice Channel Zones, including
+        US.
+      operationId: GetNumbersChannelZones
+      parameters:
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/GcbChannelNumberZoneId'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetGcbNumbersResponse'
+      summary: List your numbers using inbound channels
+      tags:
+      - Voice Channels
+      x-latency-category: interactive
   /managed_accounts:
     get:
       description: Lists the accounts managed by the current user. Users need to be
@@ -57877,13 +57852,11 @@ paths:
       x-latency-category: background
   /phone_numbers/inbound_channels:
     get:
-      deprecated: false
-      description: Returns the inbound channels for your account. Inbound channels
-        allows you to use Channel Billing for calls to your Telnyx phone numbers.
-        Please check the Telnyx Support Articles section for full information and
-        example of how to utilize Channel Billing.
+      description: Returns the US Zone inbound channels for your account. Inbound
+        channels allows you to use Channel Billing for calls to your Telnyx phone
+        numbers. Please check the Telnyx Support Articles section for full information
+        and examples of how to utilize Channel Billing.
       operationId: ListInboundChannels
-      parameters: []
       responses:
         '200':
           content:
@@ -57895,51 +57868,31 @@ paths:
                       channels:
                         description: The current number of concurrent channels set
                           for the account
-                        example:
-                        - 7
+                        example: 7
                         type: integer
                       record_type:
                         description: Identifies the type of the response
-                        example:
-                        - inbound_channels
+                        example: inbound_channels
                         type: string
                     type: object
                 type: object
           description: Inbound Channels Response
-          headers: {}
         '401':
-          content:
-            application/json:
-              schema:
-                properties: {}
-                type: object
           description: Unauthorized
-          headers: {}
         '404':
-          content:
-            application/json:
-              schema:
-                properties: {}
-                type: object
           description: Resource not found
-          headers: {}
         '422':
-          content:
-            application/json:
-              schema:
-                properties: {}
-                type: object
           description: Unprocessable entity. Check message field in response for details.
-          headers: {}
-      summary: List your inbound channels
+      summary: List your inbound channels for US Zone
       tags:
-      - Inbound Channels
-      x-latency-category: responsive
+      - Voice Channels
+      x-endpoint-cost: medium
+      x-latency-category: interactive
     patch:
-      deprecated: false
-      description: Update the inbound channels for the account
+      description: Update the number of Zone US channels for your account. This allows
+        your account to handle multiple simultaneous inbound calls. Use this endpoint
+        to increase or decrease your capacity based on expected call volume.
       operationId: UpdateOutboundChannels
-      parameters: []
       requestBody:
         content:
           application/json:
@@ -57947,12 +57900,13 @@ paths:
               properties:
                 channels:
                   description: The new number of concurrent channels for the account
-                  example:
-                  - 7
+                  example: 7
                   type: integer
               required:
               - channels
               type: object
+        description: Inbound channels update
+        required: true
       responses:
         '200':
           content:
@@ -57963,19 +57917,16 @@ paths:
                     properties:
                       channels:
                         description: The number of channels set for the account
-                        example:
-                        - 7
+                        example: 7
                         type: integer
                       record_type:
                         description: Identifies the type of the response
-                        example:
-                        - inbound_channels
+                        example: inbound_channels
                         type: string
                     type: object
                 type: object
           description: Expected Update response
-          headers: {}
-        '500':
+        default:
           content:
             application/json:
               schema:
@@ -57989,7 +57940,6 @@ paths:
                         detail:
                           type: string
                         meta:
-                          properties: {}
                           type: object
                         source:
                           properties:
@@ -58008,15 +57958,13 @@ paths:
                       required:
                       - code
                       - title
-                      type: object
                     type: array
-                type: object
           description: Unexpected error
-          headers: {}
-      summary: Update inbound channels
+      summary: Update inbound channels for US Zone
       tags:
-      - Inbound Channels
-      x-latency-category: responsive
+      - Voice Channels
+      x-endpoint-cost: medium
+      x-latency-category: interactive
   /phone_numbers/jobs:
     get:
       operationId: ListPhoneNumbersJobs
@@ -67883,8 +67831,6 @@ tags:
   name: Call Recordings
 - description: Campaign operations
   name: Campaign
-- description: Channel zones
-  name: Channel zones
 - description: Generate text with LLMs
   name: Chat
 - description: Identify common themes and patterns in your embedded documents
@@ -67937,8 +67883,6 @@ tags:
   name: IP Ranges
 - description: IP operations
   name: IPs
-- description: Inbound channels operations
-  name: Inbound Channels
 - description: Store and retrieve integration secrets
   name: Integration Secrets
 - description: Inventory Level
@@ -68070,6 +68014,8 @@ tags:
   name: Verify
 - description: Virtual Cross Connect operations
   name: Virtual Cross Connects
+- description: Voice Channels
+  name: Voice Channels
 - description: Voicemail API
   name: Voicemail
 - description: Webhooks operations
