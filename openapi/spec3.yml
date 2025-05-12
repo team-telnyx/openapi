@@ -11721,6 +11721,7 @@ components:
           enum:
           - disabled
           - SRTP
+          - DTLS
           type: string
         media_name:
           description: The media_name of a file to be played back to the callee when
@@ -38705,15 +38706,108 @@ components:
           description: 'The speech to text model to be used by the voice assistant.
 
 
-            - `distil-whisper/distil-large-v2` is lower latency but English-only
+            - `distil-whisper/distil-large-v2` is lower latency but English-only.
 
             - `openai/whisper-large-v3-turbo` is multi-lingual with automatic language
-            detection but slightly higher latency
+            detection but slightly higher latency.
 
             - `google` is a multi-lingual option, please describe the language in
             the `language` field.'
           example: distil-whisper/distil-large-v2
           type: string
+      type: object
+    TranscriptionEngineAConfig:
+      properties:
+        enable_speaker_diarization:
+          default: false
+          description: Enables speaker diarization.
+          example: true
+          type: boolean
+        hints:
+          default: []
+          description: Hints to improve transcription accuracy.
+          example:
+          - Telnyx
+          items:
+            type: string
+          type: array
+        interim_results:
+          default: false
+          description: Whether to send also interim results. If set to false, only
+            final results will be sent.
+          example: true
+          type: boolean
+        language:
+          $ref: '#/components/schemas/GoogleTranscriptionLanguage'
+        max_speaker_count:
+          default: 6
+          description: Defines maximum number of speakers in the conversation.
+          example: 4
+          format: int32
+          type: integer
+        min_speaker_count:
+          default: 2
+          description: Defines minimum number of speakers in the conversation.
+          example: 4
+          format: int32
+          type: integer
+        model:
+          description: The model to use for transcription.
+          enum:
+          - latest_long
+          - latest_short
+          - command_and_search
+          - phone_call
+          - video
+          - default
+          - medical_conversation
+          - medical_dictation
+          type: string
+        profanity_filter:
+          default: false
+          description: Enables profanity_filter.
+          example: true
+          type: boolean
+        speech_context:
+          description: Speech context to improve transcription accuracy.
+          items:
+            properties:
+              boost:
+                default: 1.0
+                description: Boost factor for the speech context.
+                example: 1.0
+                maximum: 20.0
+                minimum: 0.0
+                type: number
+              phrases:
+                default: []
+                example:
+                - Telnyx
+                items:
+                  type: string
+                type: array
+            type: object
+          type: array
+        use_enhanced:
+          default: false
+          description: Enables enhanced transcription, this works for models `phone_call`
+            and `video`.
+          example: true
+          type: boolean
+      title: Transcription engine A config
+      type: object
+    TranscriptionEngineBConfig:
+      properties:
+        language:
+          $ref: '#/components/schemas/TelnyxTranscriptionLanguage'
+        transcription_model:
+          default: openai/whisper-tiny
+          description: The model to use for transcription.
+          enum:
+          - openai/whisper-tiny
+          - openai/whisper-large-v3-turbo
+          type: string
+      title: Transcription engine B config
       type: object
     TranscriptionEvent:
       properties:
@@ -38749,40 +38843,6 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
-        enable_speaker_diarization:
-          default: false
-          description: Enables speaker diarization. Applies to `google` engine only.
-          example: true
-          type: boolean
-        interim_results:
-          default: false
-          description: Whether to send also interim results. If set to false, only
-            final results will be sent. Applies to `google` engine only.
-          example: true
-          type: boolean
-        language:
-          discriminator:
-            mapping:
-              A: '#/components/schemas/GoogleTranscriptionLanguage'
-              B: '#/components/schemas/TelnyxTranscriptionLanguage'
-            propertyName: transcription_engine
-          oneOf:
-          - $ref: '#/components/schemas/GoogleTranscriptionLanguage'
-          - $ref: '#/components/schemas/TelnyxTranscriptionLanguage'
-        max_speaker_count:
-          default: 6
-          description: Defines maximum number of speakers in the conversation. Applies
-            to `google` engine only.
-          example: 4
-          format: int32
-          type: integer
-        min_speaker_count:
-          default: 2
-          description: Defines minimum number of speakers in the conversation. Applies
-            to `google` engine only.
-          example: 4
-          format: int32
-          type: integer
         transcription_engine:
           default: A
           description: Engine to use for speech recognition. `A` - `Google`, `B` -
@@ -38792,6 +38852,15 @@ components:
           - B
           example: A
           type: string
+        transcription_engine_config:
+          discriminator:
+            mapping:
+              A: '#/components/schemas/TranscriptionEngineAConfig'
+              B: '#/components/schemas/TranscriptionEngineBConfig'
+            propertyName: transcription_engine
+          oneOf:
+          - $ref: '#/components/schemas/TranscriptionEngineAConfig'
+          - $ref: '#/components/schemas/TranscriptionEngineBConfig'
         transcription_tracks:
           default: inbound
           description: Indicates which leg of the call will be transcribed. Use `inbound`
@@ -39000,6 +39069,7 @@ components:
           enum:
           - disabled
           - SRTP
+          - DTLS
           type: string
         media_name:
           description: The media_name of a file to be played back when the transfer
@@ -42998,7 +43068,7 @@ components:
         \ to the `VoiceId` (e.g., `AWS.Polly.Danielle-Generative`). Check the [available\
         \ voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html)\
         \ for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural,\
-        \ Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, en-US-Ava:DragonHDLatestNeural.\
+        \ Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural.\
         \ For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n\
         - **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.BaseModel.John`).\
         \ The `ModelId` part is optional. To use ElevenLabs, you must provide your\

@@ -51394,7 +51394,8 @@
             "type": "string",
             "enum": [
               "disabled",
-              "SRTP"
+              "SRTP",
+              "DTLS"
             ]
           },
           "sip_auth_username": {
@@ -83723,10 +83724,127 @@
         "description": "The settings associated with speech to text for the voice assistant. This is only relevant if the assistant uses a text-to-text language model. Any assistant using a model with native audio support (e.g. `fixie-ai/ultravox-v0_4`) will ignore this field.",
         "properties": {
           "model": {
-            "description": "The speech to text model to be used by the voice assistant.\n\n- `distil-whisper/distil-large-v2` is lower latency but English-only\n- `openai/whisper-large-v3-turbo` is multi-lingual with automatic language detection but slightly higher latency\n- `google` is a multi-lingual option, please describe the language in the `language` field.",
+            "description": "The speech to text model to be used by the voice assistant.\n\n- `distil-whisper/distil-large-v2` is lower latency but English-only.\n- `openai/whisper-large-v3-turbo` is multi-lingual with automatic language detection but slightly higher latency.\n- `google` is a multi-lingual option, please describe the language in the `language` field.",
             "type": "string",
             "default": "distil-whisper/distil-large-v2",
             "example": "distil-whisper/distil-large-v2"
+          }
+        }
+      },
+      "TranscriptionEngineAConfig": {
+        "type": "object",
+        "title": "Transcription engine A config",
+        "properties": {
+          "language": {
+            "$ref": "#/components/schemas/GoogleTranscriptionLanguage"
+          },
+          "interim_results": {
+            "type": "boolean",
+            "description": "Whether to send also interim results. If set to false, only final results will be sent.",
+            "default": false,
+            "example": true
+          },
+          "enable_speaker_diarization": {
+            "type": "boolean",
+            "description": "Enables speaker diarization.",
+            "default": false,
+            "example": true
+          },
+          "min_speaker_count": {
+            "description": "Defines minimum number of speakers in the conversation.",
+            "type": "integer",
+            "example": 4,
+            "default": 2,
+            "format": "int32"
+          },
+          "max_speaker_count": {
+            "description": "Defines maximum number of speakers in the conversation.",
+            "type": "integer",
+            "example": 4,
+            "default": 6,
+            "format": "int32"
+          },
+          "profanity_filter": {
+            "description": "Enables profanity_filter.",
+            "type": "boolean",
+            "default": false,
+            "example": true
+          },
+          "use_enhanced": {
+            "description": "Enables enhanced transcription, this works for models `phone_call` and `video`.",
+            "type": "boolean",
+            "default": false,
+            "example": true
+          },
+          "model": {
+            "description": "The model to use for transcription.",
+            "type": "string",
+            "enum": [
+              "latest_long",
+              "latest_short",
+              "command_and_search",
+              "phone_call",
+              "video",
+              "default",
+              "medical_conversation",
+              "medical_dictation"
+            ]
+          },
+          "hints": {
+            "description": "Hints to improve transcription accuracy.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "example": [
+              "Telnyx"
+            ]
+          },
+          "speech_context": {
+            "description": "Speech context to improve transcription accuracy.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "phrases": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": [],
+                  "example": [
+                    "Telnyx"
+                  ]
+                },
+                "boost": {
+                  "type": "number",
+                  "description": "Boost factor for the speech context.",
+                  "default": 1.0,
+                  "minimum": 0.0,
+                  "maximum": 20.0,
+                  "example": 1.0
+                }
+              }
+            }
+          }
+        }
+      },
+      "TranscriptionEngineBConfig": {
+        "type": "object",
+        "title": "Transcription engine B config",
+        "properties": {
+          "language": {
+            "$ref": "#/components/schemas/TelnyxTranscriptionLanguage"
+          },
+          "transcription_model": {
+            "description": "The model to use for transcription.",
+            "type": "string",
+            "enum": [
+              "openai/whisper-tiny",
+              "openai/whisper-large-v3-turbo"
+            ],
+            "default": "openai/whisper-tiny"
           }
         }
       },
@@ -83762,48 +83880,22 @@
             "default": "A",
             "example": "A"
           },
-          "language": {
+          "transcription_engine_config": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/GoogleTranscriptionLanguage"
+                "$ref": "#/components/schemas/TranscriptionEngineAConfig"
               },
               {
-                "$ref": "#/components/schemas/TelnyxTranscriptionLanguage"
+                "$ref": "#/components/schemas/TranscriptionEngineBConfig"
               }
             ],
             "discriminator": {
               "propertyName": "transcription_engine",
               "mapping": {
-                "A": "#/components/schemas/GoogleTranscriptionLanguage",
-                "B": "#/components/schemas/TelnyxTranscriptionLanguage"
+                "A": "#/components/schemas/TranscriptionEngineAConfig",
+                "B": "#/components/schemas/TranscriptionEngineBConfig"
               }
             }
-          },
-          "interim_results": {
-            "type": "boolean",
-            "description": "Whether to send also interim results. If set to false, only final results will be sent. Applies to `google` engine only.",
-            "default": false,
-            "example": true
-          },
-          "enable_speaker_diarization": {
-            "type": "boolean",
-            "description": "Enables speaker diarization. Applies to `google` engine only.",
-            "default": false,
-            "example": true
-          },
-          "min_speaker_count": {
-            "description": "Defines minimum number of speakers in the conversation. Applies to `google` engine only.",
-            "type": "integer",
-            "example": 4,
-            "default": 2,
-            "format": "int32"
-          },
-          "max_speaker_count": {
-            "description": "Defines maximum number of speakers in the conversation. Applies to `google` engine only.",
-            "type": "integer",
-            "example": 4,
-            "default": 6,
-            "format": "int32"
           },
           "client_state": {
             "description": "Use this field to add state to every subsequent webhook. It must be a valid Base-64 encoded string.",
@@ -84077,7 +84169,8 @@
             "type": "string",
             "enum": [
               "disabled",
-              "SRTP"
+              "SRTP",
+              "DTLS"
             ]
           },
           "sip_auth_username": {
@@ -88839,7 +88932,7 @@
         ]
       },
       "VoiceConfig": {
-        "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). For long-form engine, append `-LongForm` to the `VoiceId` (e.g., `AWS.Polly.Danielle-LongForm`). For generative engine, the latest provided by AWS Polly, append `-Generative` to the `VoiceId` (e.g., `AWS.Polly.Danielle-Generative`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.BaseModel.John`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration secret under `\"voice_settings\": {\"api_key_ref\": \"<secret_id>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`",
+        "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). For long-form engine, append `-LongForm` to the `VoiceId` (e.g., `AWS.Polly.Danielle-LongForm`). For generative engine, the latest provided by AWS Polly, append `-Generative` to the `VoiceId` (e.g., `AWS.Polly.Danielle-Generative`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.BaseModel.John`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration secret under `\"voice_settings\": {\"api_key_ref\": \"<secret_id>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`",
         "type": "string",
         "default": "Telnyx.KokoroTTS.af",
         "example": "Telnyx.KokoroTTS.af"
