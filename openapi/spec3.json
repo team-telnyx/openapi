@@ -3,8 +3,8 @@
   "info": {
     "version": "2.0.0",
     "title": "Telnyx API",
-    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "x-endpoint-cost": "light",
+    "description": "SIP trunking, SMS, MMS, Call Control and Telephony Data Services.",
     "license": {
       "name": "MIT"
     },
@@ -5307,7 +5307,7 @@
     "/calls/{call_control_id}/actions/ai_assistant_start": {
       "post": {
         "summary": "Start AI Assistant",
-        "description": "Start an AI assistant on the call.",
+        "description": "Start an AI assistant on the call.\n\n**Expected Webhooks (see [callback schema](https://developers.telnyx.com/api/call-control/call-start-ai-assistant#callbacks) below):**\n\n- `call.conversation_insights.generated`\n",
         "operationId": "CallStartAIAssistant",
         "tags": [
           "Call Commands"
@@ -5334,6 +5334,29 @@
           },
           "default": {
             "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "callbacks": {
+          "callConversationInsightsGenerated": {
+            "{$request.body#/webhook_url}": {
+              "post": {
+                "requestBody": {
+                  "required": true,
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "$ref": "#/components/schemas/callConversationInsightsGeneratedEvent"
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+                  }
+                }
+              }
+            }
           }
         },
         "x-latency-category": "interactive"
@@ -35832,12 +35855,11 @@
       },
       "ConnectionId": {
         "name": "connection_id",
-        "description": "Telnyx connection id",
+        "description": "Uniquely identifies a Telnyx application (Call Control, TeXML) or Sip connection resource.",
         "in": "path",
         "required": true,
         "schema": {
-          "type": "string",
-          "example": "1293384261075731461"
+          "type": "string"
         }
       },
       "CreatedAtGtFilter": {
@@ -36326,8 +36348,7 @@
         "description": "If present, connections with <code>connection_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters.",
         "schema": {
           "type": "string",
-          "default": null,
-          "example": "My Connection"
+          "default": null
         }
       },
       "FilterCostByAmount": {
@@ -37031,7 +37052,7 @@
       "PageNumber": {
         "name": "page[number]",
         "in": "query",
-        "description": "The page number to load",
+        "description": "The page number to load.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -37041,7 +37062,7 @@
       "PageSize": {
         "name": "page[size]",
         "in": "query",
-        "description": "The size of the page",
+        "description": "The size of the page.",
         "schema": {
           "type": "integer",
           "minimum": 1,
@@ -37275,15 +37296,16 @@
       "Sort": {
         "name": "sort",
         "in": "query",
-        "description": "Set the order of the results by the creation date.",
         "required": false,
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>: sorts the result by the\n    <code>email</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n    <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
-            "asc",
-            "desc"
+            "created_at",
+            "email"
           ],
-          "example": "desc"
+          "example": "email",
+          "default": "created_at"
         }
       },
       "SortAddress": {
@@ -37307,22 +37329,21 @@
       "SortApplication": {
         "name": "sort",
         "in": "query",
-        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>: sorts the result by the\n    <code>application_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the result by the\n    <code>application_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
+        "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
           "enum": [
             "created_at",
-            "application_name",
+            "friendly_name",
             "active"
           ],
-          "example": "application_name",
+          "example": "friendly_name",
           "default": "created_at"
         }
       },
       "SortConnection": {
         "name": "sort",
         "in": "query",
-        "required": false,
         "description": "Specifies the sort order for results. By default sorting direction is ascending. To have the results sorted in descending order add the <code> -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in ascending order.\n  </li>\n\n  <li>\n    <code>-connection_name</code>: sorts the result by the\n    <code>connection_name</code> field in descending order.\n  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code> in descending order.",
         "schema": {
           "type": "string",
@@ -37408,23 +37429,21 @@
         "example": "2023-05-22"
       },
       "Status": {
-        "name": "filter[status][eq]",
+        "name": "Status",
         "in": "query",
-        "description": "The status of a notification setting",
+        "required": false,
+        "description": "Filters calls by status.",
         "schema": {
           "type": "string",
           "enum": [
-            "enabled",
-            "enable-received",
-            "enable-pending",
-            "enable-submtited",
-            "delete-received",
-            "delete-pending",
-            "delete-submitted",
-            "deleted"
-          ],
-          "example": "enable-received"
-        }
+            "canceled",
+            "completed",
+            "failed",
+            "busy",
+            "no-answer"
+          ]
+        },
+        "example": "no-answer"
       },
       "StatusEqFilter": {
         "name": "filter[status][eq]",
@@ -39539,19 +39558,7 @@
         }
       },
       "ForbiddenResponse": {
-        "description": "Forbidden",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Errors"
-            },
-            "examples": {
-              "Not authorized": {
-                "$ref": "#/components/examples/NotAuthorized"
-              }
-            }
-          }
-        }
+        "description": "Unauthorized response. Happens when the current user is not authorized to access the endpoint."
       },
       "FqdnConnectionResponse": {
         "description": "Successful response with details about an FQDN connection.",
@@ -42434,7 +42441,14 @@
         }
       },
       "NotFoundResponse": {
-        "description": "Fax does not exist"
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ResourceNotFoundError"
+            }
+          }
+        }
       },
       "NotFoundResponseApp": {
         "description": "The requested resource doesn't exist.",
@@ -43906,7 +43920,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized"
+        "description": "Unauthenticated response. Happens when the current user cannot be authenticated."
       },
       "UnexpectedErrorResponse": {
         "description": "An unexpected error occurred.",
@@ -44548,6 +44562,11 @@
               "openai_api_key_ref": {
                 "type": "string",
                 "description": "Reference to the OpenAI API key. Required only when using OpenAI models"
+              },
+              "instructions": {
+                "description": "The system instructions that the voice assistant uses during the start assistant command. This will overwrite the instructions set in the assistant configuration.",
+                "type": "string",
+                "example": "You are a friendly voice assistant."
               }
             }
           },
@@ -59654,10 +59673,10 @@
         }
       },
       "CreatedAt": {
+        "title": "Created At",
         "type": "string",
-        "description": "ISO 8601 formatted date-time indicating when the resource was created.",
-        "readOnly": true,
-        "example": "2018-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date indicating when the resource was created.",
+        "example": "2020-02-02T22:25:27.521Z"
       },
       "CreatedUserBundlesResponse": {
         "title": "CreatedUserBundlesResponse",
@@ -60132,19 +60151,15 @@
           "cursors": {
             "$ref": "#/components/schemas/Cursor"
           },
-          "total_items": {
-            "type": "integer",
-            "example": 50
-          },
           "next": {
             "type": "string",
             "description": "Path to next page.",
-            "example": "/v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           },
           "previous": {
             "type": "string",
             "description": "Path to previous page.",
-            "example": "/v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
+            "example": "/v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI="
           }
         }
       },
@@ -62296,15 +62311,14 @@
         "example": "{\"page\": 1, \"records\": [{\"isin\": \"US68243Q1067\", \"iso2\": \"US\", \"symbol\": \"FLWS\", \"exchange\": \"NASDAQ\", \"displayName\": \"1-800 FLOWERS.COM, Inc.\"}, {\"isin\": \"US88025U1097\", \"iso2\": \"US\", \"symbol\": \"TXG\", \"exchange\": \"NASDAQ\", \"displayName\": \"10X GENOMICS INC CLASS A\"}], \"totalRecords\": 2}"
       },
       "Error": {
-        "type": "object",
         "required": [
           "code",
           "title"
         ],
         "properties": {
           "code": {
-            "type": "integer",
-            "format": "int32"
+            "type": "string",
+            "format": "int"
           },
           "title": {
             "type": "string"
@@ -62322,13 +62336,13 @@
               },
               "parameter": {
                 "description": "Indicates which query parameter caused the error.",
-                "type": "string"
+                "type": "string",
+                "example": "+15617819942"
               }
             }
           },
           "meta": {
-            "type": "object",
-            "properties": {}
+            "type": "object"
           }
         }
       },
@@ -62398,7 +62412,6 @@
         }
       },
       "Errors": {
-        "type": "object",
         "properties": {
           "errors": {
             "type": "array",
@@ -65509,17 +65522,17 @@
         ]
       },
       "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
         "properties": {
           "detail": {
+            "title": "Detail",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
+            }
           }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
+        }
       },
       "HangupRequest": {
         "type": "object",
@@ -65611,8 +65624,9 @@
       "Id": {
         "type": "string",
         "format": "uuid",
-        "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
-        "description": "Identifies the type of resource."
+        "description": "Identifies the resource.",
+        "readOnly": true,
+        "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
       },
       "ImportExternalVetting": {
         "title": "ImportExternalVetting",
@@ -68891,36 +68905,34 @@
         }
       },
       "Metadata": {
+        "type": "object",
+        "title": "Metadata",
         "properties": {
-          "page_size": {
-            "type": "integer",
-            "title": "Page Size",
-            "example": 25
-          },
-          "page_number": {
-            "type": "integer",
-            "title": "Page Number",
-            "example": 1
-          },
           "total_pages": {
-            "type": "integer",
-            "title": "Total Pages",
-            "example": 10
+            "type": "number",
+            "description": "Total number of pages based on pagination settings",
+            "example": 13,
+            "format": "double"
           },
           "total_results": {
-            "type": "integer",
-            "title": "Total Items",
-            "example": 250
+            "type": "number",
+            "description": "Total number of results",
+            "example": 13,
+            "format": "double"
+          },
+          "page_number": {
+            "type": "number",
+            "description": "Current Page based on pagination settings (included when defaults are used.)",
+            "example": 3,
+            "format": "double"
+          },
+          "page_size": {
+            "type": "number",
+            "description": "Number of results to return per page based on pagination settings (included when defaults are used.)",
+            "example": 1,
+            "format": "double"
           }
-        },
-        "required": [
-          "page_size",
-          "page_number",
-          "total_pages",
-          "total_results"
-        ],
-        "type": "object",
-        "title": "Metadata"
+        }
       },
       "MigrationParams": {
         "type": "object",
@@ -71391,19 +71403,27 @@
         "properties": {
           "page_number": {
             "type": "integer",
-            "example": 2
+            "example": [
+              2
+            ]
           },
           "page_size": {
             "type": "integer",
-            "example": 25
+            "example": [
+              25
+            ]
           },
           "total_pages": {
             "type": "integer",
-            "example": 3
+            "example": [
+              3
+            ]
           },
           "total_results": {
             "type": "integer",
-            "example": 55
+            "example": [
+              55
+            ]
           }
         }
       },
@@ -76344,11 +76364,10 @@
       },
       "RecordType": {
         "type": "string",
-        "example": "event",
+        "description": "Identifies record type.",
         "enum": [
-          "event"
-        ],
-        "description": "Identifies the type of the resource."
+          "custom_storage_credentials"
+        ]
       },
       "RecordingResponse": {
         "type": "object",
@@ -77183,33 +77202,28 @@
         }
       },
       "ResourceNotFoundError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/GenericError"
-          },
-          {
-            "properties": {
-              "code": {
-                "example": "10005"
-              },
-              "title": {
-                "example": "Resource not found"
-              },
-              "detail": {
-                "example": "The requested resource or URL could not be found."
-              },
-              "meta": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "example": "https://developers.telnyx.com/docs/overview/errors/10005"
-                  }
+        "type": "object",
+        "title": "Resource not found",
+        "example": {
+          "errors": [
+            {
+              "detail": "Resource not found"
+            }
+          ]
+        },
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string"
                 }
               }
             }
           }
-        ]
+        }
       },
       "ResumeConferenceRecordingRequest": {
         "type": "object",
@@ -84383,42 +84397,39 @@
         ]
       },
       "UnprocessableEntityError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/GenericError"
+        "required": [
+          "code",
+          "title"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "int"
           },
-          {
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
             "properties": {
-              "code": {
-                "example": "10002"
+              "pointer": {
+                "description": "JSON pointer (RFC6901) to the offending entity.",
+                "type": "string",
+                "format": "json-pointer"
               },
-              "title": {
-                "example": "Invalid phone number"
-              },
-              "detail": {
-                "example": "The phone number is invalid."
-              },
-              "source": {
-                "type": "object",
-                "properties": {
-                  "pointer": {
-                    "type": "string",
-                    "example": "/phone_numbers"
-                  }
-                }
-              },
-              "meta": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "example": "https://developers.telnyx.com/docs/overview/errors/10002"
-                  }
-                }
+              "parameter": {
+                "description": "Indicates which query parameter caused the error.",
+                "type": "string"
               }
             }
+          },
+          "meta": {
+            "type": "object"
           }
-        ]
+        }
       },
       "UnusedUserBundlesResponse": {
         "title": "UnusedUserBundlesResponse",
@@ -85091,54 +85102,31 @@
         }
       },
       "UpdateConferenceRequest": {
-        "required": [
-          "call_control_id",
-          "supervisor_role"
-        ],
         "type": "object",
         "title": "Update Conference Request",
         "properties": {
-          "call_control_id": {
-            "description": "Unique identifier and token for controlling the call",
-            "example": "v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==",
+          "Status": {
+            "description": "The new status of the resource. Specifying `completed` will end the conference and hang up all participants.",
+            "example": "completed",
             "type": "string"
           },
-          "command_id": {
-            "description": "Use this field to avoid execution of duplicate commands. Telnyx will ignore subsequent commands with the same `command_id` as one that has already been executed.",
-            "example": "891510ac-f3e4-11e8-af5b-de00688a4901",
+          "AnnounceUrl": {
+            "description": "The URL we should call to announce something into the conference. The URL may return an MP3 file, a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.",
+            "example": "https://www.example.com/announce.xml",
             "type": "string"
           },
-          "supervisor_role": {
-            "description": "Sets the participant as a supervisor for the conference. A conference can have multiple supervisors. \"barge\" means the supervisor enters the conference as a normal participant. This is the same as \"none\". \"monitor\" means the supervisor is muted but can hear all participants. \"whisper\" means that only the specified \"whisper_call_control_ids\" can hear the supervisor. Defaults to \"none\".",
-            "example": "whisper",
+          "AnnounceMethod": {
+            "description": "The HTTP method used to call the `AnnounceUrl`. Defaults to `POST`.",
+            "example": "GET",
             "type": "string",
             "enum": [
-              "barge",
-              "monitor",
-              "none",
-              "whisper"
+              "GET",
+              "POST"
             ]
-          },
-          "whisper_call_control_ids": {
-            "description": "Array of unique call_control_ids the supervisor can whisper to. If none provided, the supervisor will join the conference as a monitoring participant only.",
-            "example": [
-              "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-              "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           }
         },
         "example": {
-          "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
-          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901",
-          "supervisor_role": "whisper",
-          "whisper_call_control_ids": [
-            "v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ",
-            "v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw"
-          ]
+          "Status": "completed"
         }
       },
       "UpdateCredentialConnectionRequest": {
@@ -86732,10 +86720,10 @@
         }
       },
       "UpdatedAt": {
+        "title": "Updated At",
         "type": "string",
-        "description": "ISO 8601 formatted date-time indicating when the resource was updated.",
-        "readOnly": true,
-        "example": "2018-02-02T22:25:27.521Z"
+        "description": "ISO 8601 formatted date indicating when the resource was updated.",
+        "example": "2020-02-03T22:25:27.521Z"
       },
       "UplinkData": {
         "type": "object",
@@ -87722,8 +87710,17 @@
         ]
       },
       "ValidationError": {
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "type": "object",
         "properties": {
           "loc": {
+            "title": "Location",
+            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -87733,26 +87730,17 @@
                   "type": "integer"
                 }
               ]
-            },
-            "type": "array",
-            "title": "Location"
+            }
           },
           "msg": {
-            "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "type": "string"
           },
           "type": {
-            "type": "string",
-            "title": "Error Type"
+            "title": "Error Type",
+            "type": "string"
           }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
+        }
       },
       "Verification": {
         "title": "Verification",
@@ -90057,6 +90045,140 @@
         "type": "string",
         "description": "The business name associated with the address. An address must have either a first last name or a business name.",
         "example": "Toy-O'Kon"
+      },
+      "callConversationInsightsGenerated": {
+        "type": "object",
+        "title": "Call Conversation Insights Generated",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "example": "event",
+            "enum": [
+              "event"
+            ],
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "example": "call.conversation_insights.generated",
+            "enum": [
+              "call.conversation_insights.generated"
+            ],
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Identifies the type of resource."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2018-02-02T22:25:27.521992Z",
+            "description": "ISO 8601 datetime of when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+                "description": "Call ID used to issue commands via Call Control API."
+              },
+              "connection_id": {
+                "type": "string",
+                "example": "7267xxxxxxxxxxxxxx",
+                "description": "Call Control App ID (formerly Telnyx connection ID) used in the call."
+              },
+              "call_leg_id": {
+                "type": "string",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+                "description": "ID that is unique to the call and can be used to correlate webhook events."
+              },
+              "call_session_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the call session and can be used to correlate webhook events. Call session is a group of related call legs that logically belong to the same phone call, e.g. an inbound and outbound leg of a transferred call."
+              },
+              "client_state": {
+                "type": "string",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+                "description": "State received from a command."
+              },
+              "calling_party_type": {
+                "type": "string",
+                "example": "pstn",
+                "enum": [
+                  "pstn",
+                  "sip"
+                ],
+                "description": "The type of calling party connection."
+              },
+              "insight_group_id": {
+                "type": "string",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "description": "ID that is unique to the insight group being generated for the call."
+              },
+              "results": {
+                "type": "array",
+                "description": "Array of insight results being generated for the call.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "insight_id": {
+                      "type": "string",
+                      "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                      "description": "ID that is unique to the insight result being generated for the call."
+                    },
+                    "result": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "description": "The result of the insight."
+                        },
+                        {
+                          "type": "string",
+                          "description": "The result of the insight."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.conversation_insights.generated",
+          "id": "898e96ef-be63-45aa-9e7d-01332bff9a97",
+          "occurred_at": "2025-02-19T17:02:49.371454Z",
+          "payload": {
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+            "calling_party_type": "pstn",
+            "insight_group_id": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+            "results": [
+              {
+                "insight_id": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+                "result": "The user inquired about the menu at Ember & Oak. The menu offers various options, including vegetarian, vegan, and gluten-free dishes, as well as a children's menu. The restaurant also has a daily happy hour from 4 PM to 6 PM and offers takeaway and delivery services. The user found the information helpful but had to leave without making any further decisions or requests. No specific preferences or goals were expressed beyond inquiring about the menu."
+              }
+            ]
+          }
+        }
+      },
+      "callConversationInsightsGeneratedEvent": {
+        "type": "object",
+        "title": "Call Conversation Insights Generated Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/callConversationInsightsGenerated"
+          }
+        }
       },
       "callRecordingError": {
         "type": "object",
