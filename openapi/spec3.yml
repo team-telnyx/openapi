@@ -7036,6 +7036,8 @@ components:
           type: string
         name:
           type: string
+        privacy_settings:
+          $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
           $ref: '#/components/schemas/TelephonySettings'
         tools:
@@ -15801,6 +15803,12 @@ components:
       - metadata
       - last_message_at
       type: object
+    ConversationChannelType:
+      enum:
+      - phone_call
+      - sms_chat
+      title: ConversationChannelType
+      type: string
     ConversationInsight:
       properties:
         conversation_insights:
@@ -16137,6 +16145,8 @@ components:
           type: string
         name:
           type: string
+        privacy_settings:
+          $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
           $ref: '#/components/schemas/TelephonySettings'
         tools:
@@ -18246,6 +18256,46 @@ components:
           minimum: 0
           nullable: true
           type: integer
+      type: object
+    CreateScheduledEventRequest:
+      properties:
+        conversation_metadata:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          description: Metadata associated with the conversation. Telnyx provides
+            several pieces of metadata, but customers can also add their own.
+          title: Conversation Metadata
+          type: object
+        scheduled_at_fixed_datetime:
+          description: The datetime at which the event should be scheduled. Formatted
+            as ISO 8601.
+          example: '2025-04-15T13:07:28.764Z'
+          format: date-time
+          title: Scheduled At Fixed Datetime
+          type: string
+        telnyx_agent_target:
+          description: The phone number, SIP URI, to schedule the call or text from.
+          title: Telnyx Agent Target
+          type: string
+        telnyx_conversation_channel:
+          $ref: '#/components/schemas/ConversationChannelType'
+        telnyx_end_user_target:
+          description: The phone number, SIP URI, to schedule the call or text to.
+          title: Telnyx End User Target
+          type: string
+        text:
+          description: Required for sms scheduled events. The text to be sent to the
+            end user.
+          type: string
+      required:
+      - telnyx_conversation_channel
+      - telnyx_end_user_target
+      - telnyx_agent_target
+      - scheduled_at_fixed_datetime
+      title: CreateScheduledEventRequest
       type: object
     CreateShortCodeMessageRequest:
       example:
@@ -21014,6 +21064,14 @@ components:
             $ref: '#/components/schemas/Error'
           type: array
       type: object
+    EventStatus:
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - failed
+      title: EventStatus
+      type: string
     ExportPortingOrdersCSVReport:
       description: The parameters for generating a porting orders CSV report.
       properties:
@@ -28391,6 +28449,22 @@ components:
       - data
       title: PaginatedBillingBundlesResponse
       type: object
+    PaginatedScheduledEventList:
+      properties:
+        data:
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/ScheduledPhoneCallEventResponse'
+            - $ref: '#/components/schemas/ScheduledSmsEventResponse'
+          title: Data
+          type: array
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - meta
+      - data
+      title: PaginatedScheduledEventList
+      type: object
     PaginatedUserBundlesResponse:
       properties:
         data:
@@ -31669,6 +31743,18 @@ components:
           minimum: 1
           type: integer
       type: object
+    PrivacySettings:
+      properties:
+        data_retention:
+          description: "If true, conversation history and insights will be stored.\
+            \ If false, they will not be stored. This in\u2011tool toggle governs\
+            \ solely the retention of conversation history and insights via the AI\
+            \ assistant. It has no effect on any separate recording, transcription,\
+            \ or storage configuration that you have set at the account, number, or\
+            \ application level. All such external settings remain in force regardless\
+            \ of your selection here."
+          type: boolean
+      type: object
     PrivateWirelessGateway:
       properties:
         assigned_resources:
@@ -34537,6 +34623,131 @@ components:
           - '2020-01-01T00:00:00Z'
           format: date-time
           type: string
+      type: object
+    ScheduledEventResponse:
+      anyOf:
+      - $ref: '#/components/schemas/ScheduledPhoneCallEventResponse'
+      - $ref: '#/components/schemas/ScheduledSmsEventResponse'
+      description: Union type for different scheduled event response types
+      title: ScheduledEventResponse
+    ScheduledPhoneCallEventResponse:
+      properties:
+        assistant_id:
+          title: Assistant Id
+          type: string
+        conversation_id:
+          title: Conversation Id
+          type: string
+        conversation_metadata:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          title: Conversation Metadata
+          type: object
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        errors:
+          items:
+            type: string
+          title: Errors
+          type: array
+        retry_attempts:
+          title: Retry Attempts
+          type: integer
+        retry_count:
+          default: 0
+          title: Retry Count
+          type: integer
+        scheduled_at_fixed_datetime:
+          format: date-time
+          title: Scheduled At Fixed Datetime
+          type: string
+        scheduled_event_id:
+          title: Scheduled Event Id
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EventStatus'
+          default: pending
+        telnyx_agent_target:
+          title: Telnyx Agent Target
+          type: string
+        telnyx_conversation_channel:
+          $ref: '#/components/schemas/ConversationChannelType'
+        telnyx_end_user_target:
+          title: Telnyx End User Target
+          type: string
+      required:
+      - telnyx_conversation_channel
+      - telnyx_end_user_target
+      - telnyx_agent_target
+      - scheduled_at_fixed_datetime
+      - assistant_id
+      title: ScheduledPhoneCallEventResponse
+      type: object
+    ScheduledSmsEventResponse:
+      properties:
+        assistant_id:
+          title: Assistant Id
+          type: string
+        conversation_id:
+          title: Conversation Id
+          type: string
+        conversation_metadata:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          title: Conversation Metadata
+          type: object
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        errors:
+          items:
+            type: string
+          title: Errors
+          type: array
+        retry_count:
+          default: 0
+          title: Retry Count
+          type: integer
+        scheduled_at_fixed_datetime:
+          format: date-time
+          title: Scheduled At Fixed Datetime
+          type: string
+        scheduled_event_id:
+          title: Scheduled Event Id
+          type: string
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EventStatus'
+          default: pending
+        telnyx_agent_target:
+          title: Telnyx Agent Target
+          type: string
+        telnyx_conversation_channel:
+          $ref: '#/components/schemas/ConversationChannelType'
+        telnyx_end_user_target:
+          title: Telnyx End User Target
+          type: string
+        text:
+          title: Text
+          type: string
+      required:
+      - telnyx_conversation_channel
+      - telnyx_end_user_target
+      - telnyx_agent_target
+      - scheduled_at_fixed_datetime
+      - assistant_id
+      - text
+      title: ScheduledSmsEventResponse
       type: object
     SearchedSIMCardGroup:
       properties:
@@ -39374,6 +39585,8 @@ components:
           type: string
         name:
           type: string
+        privacy_settings:
+          $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
           $ref: '#/components/schemas/TelephonySettings'
         tools:
@@ -45261,6 +45474,171 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Update an assistant
+      tags:
+      - Assistants
+      x-latency-category: responsive
+  /ai/assistants/{assistant_id}/scheduled_events:
+    get:
+      description: Get scheduled events for an assistant with pagination and filtering
+      operationId: get_scheduled_events
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          title: Page[Size]
+          type: integer
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          title: Page[Number]
+          type: integer
+      - in: query
+        name: from_date
+        required: false
+        schema:
+          format: date-time
+          title: From Date
+          type: string
+      - in: query
+        name: to_date
+        required: false
+        schema:
+          format: date-time
+          title: To Date
+          type: string
+      - in: query
+        name: conversation_channel
+        required: false
+        schema:
+          $ref: '#/components/schemas/ConversationChannelType'
+          title: Conversation Channel
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedScheduledEventList'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List scheduled events
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    post:
+      description: Create a scheduled event for an assistant
+      operationId: create_scheduled_event
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateScheduledEventRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledEventResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create a scheduled event
+      tags:
+      - Assistants
+      x-latency-category: responsive
+  /ai/assistants/{assistant_id}/scheduled_events/{event_id}:
+    delete:
+      description: If the event is pending, this will cancel the event. Otherwise,
+        this will simply remove the record of the event.
+      operationId: delete_scheduled_event
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      - in: path
+        name: event_id
+        required: true
+        schema:
+          title: Event Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete a scheduled event
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    get:
+      description: Retrieve a scheduled event by event ID
+      operationId: get_scheduled_event
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      - in: path
+        name: event_id
+        required: true
+        schema:
+          title: Event Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledEventResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get a scheduled event
       tags:
       - Assistants
       x-latency-category: responsive
