@@ -7025,6 +7025,8 @@ components:
           type: string
         id:
           type: string
+        import_metadata:
+          $ref: '#/components/schemas/ImportMetadata'
         insight_settings:
           $ref: '#/components/schemas/InsightSettings'
         instructions:
@@ -23733,6 +23735,23 @@ components:
       format: uuid
       readOnly: true
       type: string
+    ImportAssistantsRequest:
+      properties:
+        api_key_ref:
+          description: Integration secret pointer that refers to the API key for the
+            external provider. This should be an identifier for an integration secret
+            created via /v2/integration_secrets.
+          type: string
+        provider:
+          description: The external provider to import assistants from.
+          enum:
+          - elevenlabs
+          type: string
+      required:
+      - provider
+      - api_key_ref
+      title: ImportAssistantsRequest
+      type: object
     ImportExternalVetting:
       properties:
         evpId:
@@ -23754,6 +23773,17 @@ components:
       - evpId
       - vettingId
       title: ImportExternalVetting
+      type: object
+    ImportMetadata:
+      properties:
+        import_id:
+          description: ID of the assistant in the provider's system.
+          type: string
+        import_provider:
+          description: Provider the assistant was imported from.
+          enum:
+          - elevenlabs
+          type: string
       type: object
     InboundFqdn:
       example:
@@ -45875,6 +45905,35 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Create an assistant
+      tags:
+      - Assistants
+      x-latency-category: responsive
+  /ai/assistants/import:
+    post:
+      description: Import assistants from external providers. Any assistant that has
+        already been imported will be overwritten with its latest version from the
+        importing provider.
+      operationId: import_assistants_public_assistants_import_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportAssistantsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantsListData'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Import assistants from external provider
       tags:
       - Assistants
       x-latency-category: responsive
