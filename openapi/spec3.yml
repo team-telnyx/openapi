@@ -161,12 +161,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
-        or Sip connection resource.
+      description: Telnyx connection id
       in: path
       name: connection_id
       required: true
       schema:
+        example: '1293384261075731461'
         type: string
     CreatedAtGtFilter:
       description: Filters records to those created after a specific date.
@@ -566,6 +566,7 @@ components:
       name: filter[connection_name][contains]
       schema:
         default: null
+        example: My Connection
         type: string
     FilterCostByAmount:
       description: The total monetary amount of the order.
@@ -1144,7 +1145,7 @@ components:
         minimum: 1
         type: integer
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -1152,7 +1153,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The size of the page
       in: query
       name: page[size]
       schema:
@@ -1346,22 +1347,15 @@ components:
       schema:
         type: string
     Sort:
-      description: "Specifies the sort order for results. By default sorting direction\
-        \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
-        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
-        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
-        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
-        \ given, results are sorted by <code>created_at</code> in descending order."
+      description: Set the order of the results by the creation date.
       in: query
       name: sort
       required: false
       schema:
-        default: created_at
         enum:
-        - created_at
-        - email
-        example: email
+        - asc
+        - desc
+        example: desc
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1388,21 +1382,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
-        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
-        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
-        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
-        \ descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
+        \ sorts the result by the\n    <code>application_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
+        \ result by the\n    <code>application_name</code> field in descending order.\n\
+        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
+        \ in descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - friendly_name
+        - application_name
         - active
-        example: friendly_name
+        example: application_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1415,6 +1409,7 @@ components:
         \ in descending order."
       in: query
       name: sort
+      required: false
       schema:
         default: created_at
         enum:
@@ -1497,18 +1492,20 @@ components:
       schema:
         type: string
     Status:
-      description: Filters calls by status.
-      example: no-answer
+      description: The status of a notification setting
       in: query
-      name: Status
-      required: false
+      name: filter[status][eq]
       schema:
         enum:
-        - canceled
-        - completed
-        - failed
-        - busy
-        - no-answer
+        - enabled
+        - enable-received
+        - enable-pending
+        - enable-submtited
+        - delete-received
+        - delete-pending
+        - delete-submitted
+        - deleted
+        example: enable-received
         type: string
     StatusEqFilter:
       description: Filters records to those with a specific status.
@@ -2973,8 +2970,14 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      description: Unauthorized response. Happens when the current user is not authorized
-        to access the endpoint.
+      content:
+        application/json:
+          examples:
+            Not authorized:
+              $ref: '#/components/examples/NotAuthorized'
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Forbidden
     FqdnConnectionResponse:
       content:
         application/json:
@@ -4803,11 +4806,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ResourceNotFoundError'
-      description: Resource not found
+      description: Fax does not exist
     NotFoundResponseApp:
       content:
         application/json:
@@ -5739,8 +5738,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthenticated response. Happens when the current user cannot
-        be authenticated.
+      description: Unauthorized
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -18837,9 +18835,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date indicating when the resource was created.
-      example: '2020-02-02T22:25:27.521Z'
-      title: Created At
+      description: ISO 8601 formatted date-time indicating when the resource was created.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -18850,6 +18848,35 @@ components:
       required:
       - data
       title: CreatedUserBundlesResponse
+      type: object
+    CreatedVerificationCodesResponse:
+      properties:
+        created_verification_codes:
+          items:
+            properties:
+              id:
+                description: Unique identifier for the verification code
+                format: uuid
+                type: string
+              phone_number:
+                description: Phone number for which the verification code was created
+                format: +E.164
+                type: string
+              type:
+                description: Type of verification method used
+                enum:
+                - sms
+                - call
+                - flashcall
+                type: string
+            required:
+            - id
+            - phone_number
+            - type
+            type: object
+          type: array
+      required:
+      - created_verification_codes
       type: object
     CredentialActive:
       default: false
@@ -19265,12 +19292,15 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
+        total_items:
+          example: 50
+          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -20742,6 +20772,18 @@ components:
           description: The phone number in e164 format.
           type: string
       type: object
+    EligibilityNumbersRequest:
+      properties:
+        phone_numbers:
+          description: List of phone numbers to check eligibility
+          items:
+            description: Phone number to check eligibility
+            format: +E.164
+            type: string
+          type: array
+      required:
+      - phone_numbers
+      type: object
     EligibilityNumbersResponse:
       properties:
         phone_numbers:
@@ -21052,17 +21094,17 @@ components:
     Error:
       properties:
         code:
-          format: int
-          type: string
+          format: int32
+          type: integer
         detail:
           type: string
         meta:
+          properties: {}
           type: object
         source:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
-              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -21074,6 +21116,7 @@ components:
       required:
       - code
       - title
+      type: object
     ErrorRecord:
       properties:
         code:
@@ -21128,6 +21171,7 @@ components:
           items:
             $ref: '#/components/schemas/Error'
           type: array
+      type: object
     EventStatus:
       enum:
       - pending
@@ -23730,10 +23774,9 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the resource.
-      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+      description: Identifies the type of resource.
+      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
-      readOnly: true
       type: string
     ImportAssistantsRequest:
       properties:
@@ -26623,27 +26666,26 @@ components:
     Metadata:
       properties:
         page_number:
-          description: Current Page based on pagination settings (included when defaults
-            are used.)
-          example: 3
-          format: double
-          type: number
-        page_size:
-          description: Number of results to return per page based on pagination settings
-            (included when defaults are used.)
           example: 1
-          format: double
-          type: number
+          title: Page Number
+          type: integer
+        page_size:
+          example: 25
+          title: Page Size
+          type: integer
         total_pages:
-          description: Total number of pages based on pagination settings
-          example: 13
-          format: double
-          type: number
+          example: 10
+          title: Total Pages
+          type: integer
         total_results:
-          description: Total number of results
-          example: 13
-          format: double
-          type: number
+          example: 250
+          title: Total Items
+          type: integer
+      required:
+      - page_size
+      - page_number
+      - total_pages
+      - total_results
       title: Metadata
       type: object
     MigrationParams:
@@ -28827,20 +28869,16 @@ components:
     PaginationMetaSimple:
       properties:
         page_number:
-          example:
-          - 2
+          example: 2
           type: integer
         page_size:
-          example:
-          - 25
+          example: 25
           type: integer
         total_pages:
-          example:
-          - 3
+          example: 3
           type: integer
         total_results:
-          example:
-          - 55
+          example: 55
           type: integer
       type: object
     PaginationResponse:
@@ -32905,9 +32943,10 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies record type.
+      description: Identifies the type of the resource.
       enum:
-      - custom_storage_credentials
+      - event
+      example: event
       type: string
     RecordingResponse:
       properties:
@@ -33552,19 +33591,21 @@ components:
           readOnly: true
           type: string
     ResourceNotFoundError:
-      example:
-        errors:
-        - detail: Resource not found
-      properties:
-        errors:
-          items:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10005'
+          detail:
+            example: The requested resource or URL could not be found.
+          meta:
             properties:
-              detail:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10005
                 type: string
             type: object
-          type: array
-      title: Resource not found
-      type: object
+          title:
+            example: Resource not found
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -39915,29 +39956,27 @@ components:
           title:
             example: Unexpected error
     UnprocessableEntityError:
-      properties:
-        code:
-          format: int
-          type: string
-        detail:
-          type: string
-        meta:
-          type: object
-        source:
-          properties:
-            parameter:
-              description: Indicates which query parameter caused the error.
-              type: string
-            pointer:
-              description: JSON pointer (RFC6901) to the offending entity.
-              format: json-pointer
-              type: string
-          type: object
-        title:
-          type: string
-      required:
-      - code
-      - title
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10002'
+          detail:
+            example: The phone number is invalid.
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10002
+                type: string
+            type: object
+          source:
+            properties:
+              pointer:
+                example: /phone_numbers
+                type: string
+            type: object
+          title:
+            example: Invalid phone number
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -40506,27 +40545,50 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        Status: completed
+        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        supervisor_role: whisper
+        whisper_call_control_ids:
+        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
       properties:
-        AnnounceMethod:
-          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
-            `POST`.
+        call_control_id:
+          description: Unique identifier and token for controlling the call
+          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
+          type: string
+        command_id:
+          description: Use this field to avoid execution of duplicate commands. Telnyx
+            will ignore subsequent commands with the same `command_id` as one that
+            has already been executed.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        supervisor_role:
+          description: Sets the participant as a supervisor for the conference. A
+            conference can have multiple supervisors. "barge" means the supervisor
+            enters the conference as a normal participant. This is the same as "none".
+            "monitor" means the supervisor is muted but can hear all participants.
+            "whisper" means that only the specified "whisper_call_control_ids" can
+            hear the supervisor. Defaults to "none".
           enum:
-          - GET
-          - POST
-          example: GET
+          - barge
+          - monitor
+          - none
+          - whisper
+          example: whisper
           type: string
-        AnnounceUrl:
-          description: The URL we should call to announce something into the conference.
-            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
-            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
-          example: https://www.example.com/announce.xml
-          type: string
-        Status:
-          description: The new status of the resource. Specifying `completed` will
-            end the conference and hang up all participants.
-          example: completed
-          type: string
+        whisper_call_control_ids:
+          description: Array of unique call_control_ids the supervisor can whisper
+            to. If none provided, the supervisor will join the conference as a monitoring
+            participant only.
+          example:
+          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+          items:
+            type: string
+          type: array
+      required:
+      - call_control_id
+      - supervisor_role
       title: Update Conference Request
       type: object
     UpdateConversationRequest:
@@ -41917,9 +41979,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date indicating when the resource was updated.
-      example: '2020-02-03T22:25:27.521Z'
-      title: Updated At
+      description: ISO 8601 formatted date-time indicating when the resource was updated.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     UplinkData:
       properties:
@@ -42672,6 +42734,7 @@ components:
                 enum:
                 - verified
                 - rejected
+                - already_verified
                 type: string
             required:
             - phone_number
@@ -56401,15 +56464,15 @@ paths:
       - Messaging Hosted Number
       x-latency-category: responsive
   /messaging_hosted_number_orders/eligibility_numbers_check:
-    get:
+    post:
       operationId: CheckEligibilityNumbers
-      parameters:
-      - description: Comma-separated list of phone numbers to check eligibility
-        in: query
-        name: phone_numbers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EligibilityNumbersRequest'
+        description: Phone numbers to check eligibility
         required: true
-        schema:
-          type: string
       responses:
         '200':
           content:
@@ -56528,10 +56591,11 @@ paths:
               $ref: '#/components/schemas/VerificationCodesRequest'
         description: Message payload
       responses:
-        '201':
+        '200':
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/CreatedVerificationCodesResponse'
           description: Verification codes created and sent to the phone numbers of
             the hosted order.
         default:
