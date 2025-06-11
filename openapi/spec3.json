@@ -32188,6 +32188,111 @@
         "x-latency-category": "responsive"
       }
     },
+    "/sub_number_orders_report": {
+      "post": {
+        "summary": "Create a sub number orders report",
+        "description": "Create a CSV report for sub number orders. The report will be generated asynchronously and can be downloaded once complete.",
+        "operationId": "CreateSubNumberOrdersReport",
+        "tags": [
+          "Phone Number Orders"
+        ],
+        "x-endpoint-cost": "medium",
+        "x-latency-category": "background",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubNumberOrdersReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/SubNumberOrdersReportResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
+    "/sub_number_orders_report/{report_id}": {
+      "get": {
+        "summary": "Retrieve a sub number orders report",
+        "description": "Get the status and details of a sub number orders report.",
+        "operationId": "GetSubNumberOrdersReport",
+        "tags": [
+          "Phone Number Orders"
+        ],
+        "x-endpoint-cost": "light",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "description": "The unique identifier of the sub number orders report",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c293"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/SubNumberOrdersReportResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/sub_number_orders_report/{report_id}/download": {
+      "get": {
+        "summary": "Download a sub number orders report",
+        "description": "Download the CSV file for a completed sub number orders report. The report status must be 'success' before the file can be downloaded.",
+        "operationId": "DownloadSubNumberOrdersReport",
+        "tags": [
+          "Phone Number Orders"
+        ],
+        "x-endpoint-cost": "light",
+        "x-latency-category": "background",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "description": "The unique identifier of the sub number orders report",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c293"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file download",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                },
+                "example": "id,order_request_id,is_block_sub_number_order,status,phone_number_type,requirements_met,phone_numbers_count,country_code,user_id,customer_reference,created_at,updated_at\n1758d6ed-61a0-4d7a-bf57-b5dced413d33,f486fc2c-4fdf-4849-930d-b3045373e839,False,success,local,True,1,US,0d7ef697-df19-413a-b724-56b0539f5397,STRING,2025-05-23 14:33:12.376686,2025-05-23 14:33:15.624916"
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/GenericErrorResponse"
+          }
+        }
+      }
+    },
     "/telephony_credentials": {
       "get": {
         "description": "List all On-demand Credentials.",
@@ -44502,6 +44607,21 @@
               "properties": {
                 "data": {
                   "$ref": "#/components/schemas/SubNumberOrder"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SubNumberOrdersReportResponse": {
+        "description": "Sub number orders report response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/SubNumberOrdersReport"
                 }
               }
             }
@@ -60250,6 +60370,57 @@
           "webhook_failover_url": "https://backup.example.com/hooks",
           "use_profile_webhooks": true,
           "type": "MMS"
+        }
+      },
+      "CreateSubNumberOrdersReportRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Filter by order status",
+            "enum": [
+              "pending",
+              "success",
+              "failure"
+            ],
+            "example": "success"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "Filter by country code",
+            "example": "US"
+          },
+          "created_at_gt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Filter for orders created after this date",
+            "example": "2023-04-05T10:22:08.230549Z"
+          },
+          "created_at_lt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Filter for orders created before this date",
+            "example": "2025-06-05T10:22:08.230549Z"
+          },
+          "order_request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Filter by specific order request ID",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c293"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Filter by customer reference",
+            "example": "STRING"
+          }
+        },
+        "example": {
+          "status": "success",
+          "country_code": "US",
+          "created_at_gt": "2023-04-05T10:22:08.230549Z",
+          "created_at_lt": "2025-06-05T10:22:08.230549Z",
+          "order_request_id": "12ade33a-21c0-473b-b055-b3c836e1c293",
+          "customer_reference": "STRING"
         }
       },
       "CreateTeXMLSecretRequest": {
@@ -82791,6 +82962,106 @@
             "customer_reference": "missing",
             "record_type": "sub_number_order"
           }
+        }
+      },
+      "SubNumberOrdersReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "cada7e84-122b-4b47-bc66-58c7c3becd40",
+            "description": "Identifies the resource.",
+            "readOnly": true
+          },
+          "order_type": {
+            "type": "string",
+            "example": "sub_number_order",
+            "description": "The type of order report.",
+            "readOnly": true
+          },
+          "filters": {
+            "type": "object",
+            "description": "The filters that were applied to generate this report",
+            "properties": {
+              "status": {
+                "type": "string",
+                "example": "success"
+              },
+              "country_code": {
+                "type": "string",
+                "example": "US"
+              },
+              "created_at_gt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2023-04-05T10:22:08.230549Z"
+              },
+              "created_at_lt": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2025-06-05T10:22:08.230549Z"
+              },
+              "order_request_id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "991b8ff5-4daf-4826-9a22-e3991b444a9c"
+              },
+              "customer_reference": {
+                "type": "string",
+                "example": "STRING"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failed",
+              "expired"
+            ],
+            "default": "pending",
+            "example": "pending",
+            "description": "Indicates the completion level of the sub number orders report. The report must have a status of 'success' before it can be downloaded."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0d7ef697-df19-413a-b724-56b0539f5397",
+            "description": "The ID of the user who created the report.",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-11T13:21:40.967339+00:00",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-06-11T13:21:45.753260+00:00",
+            "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "readOnly": true
+          }
+        },
+        "example": {
+          "order_type": "sub_number_order",
+          "filters": {
+            "status": "success",
+            "country_code": "US",
+            "created_at_gt": "2023-04-05T10:22:08.230549Z",
+            "created_at_lt": "2025-06-05T10:22:08.230549Z",
+            "order_request_id": "991b8ff5-4daf-4826-9a22-e3991b444a9c",
+            "customer_reference": "STRING"
+          },
+          "status": "pending",
+          "created_at": "2025-06-11T13:21:40.967339+00:00",
+          "user_id": "0d7ef697-df19-413a-b724-56b0539f5397",
+          "updated_at": "2025-06-11T13:21:45.753260+00:00",
+          "id": "cada7e84-122b-4b47-bc66-58c7c3becd40"
         }
       },
       "SummaryRequest": {

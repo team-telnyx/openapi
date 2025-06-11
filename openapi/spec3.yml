@@ -5587,6 +5587,15 @@ components:
             title: Sub Number Order Response
             type: object
       description: Successful response with details about a sub number order.
+    SubNumberOrdersReportResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/SubNumberOrdersReport'
+            type: object
+      description: Sub number orders report response
     SubRequestByPortingOrder:
       content:
         application/json:
@@ -18503,6 +18512,47 @@ components:
       required:
       - from
       - to
+      type: object
+    CreateSubNumberOrdersReportRequest:
+      example:
+        country_code: US
+        created_at_gt: '2023-04-05T10:22:08.230549Z'
+        created_at_lt: '2025-06-05T10:22:08.230549Z'
+        customer_reference: STRING
+        order_request_id: 12ade33a-21c0-473b-b055-b3c836e1c293
+        status: success
+      properties:
+        country_code:
+          description: Filter by country code
+          example: US
+          type: string
+        created_at_gt:
+          description: Filter for orders created after this date
+          example: '2023-04-05T10:22:08.230549Z'
+          format: date-time
+          type: string
+        created_at_lt:
+          description: Filter for orders created before this date
+          example: '2025-06-05T10:22:08.230549Z'
+          format: date-time
+          type: string
+        customer_reference:
+          description: Filter by customer reference
+          example: STRING
+          type: string
+        order_request_id:
+          description: Filter by specific order request ID
+          example: 12ade33a-21c0-473b-b055-b3c836e1c293
+          format: uuid
+          type: string
+        status:
+          description: Filter by order status
+          enum:
+          - pending
+          - success
+          - failure
+          example: success
+          type: string
       type: object
     CreateTeXMLSecretRequest:
       example:
@@ -37145,6 +37195,88 @@ components:
               format: date-time
               type: string
           type: object
+      type: object
+    SubNumberOrdersReport:
+      example:
+        created_at: '2025-06-11T13:21:40.967339+00:00'
+        filters:
+          country_code: US
+          created_at_gt: '2023-04-05T10:22:08.230549Z'
+          created_at_lt: '2025-06-05T10:22:08.230549Z'
+          customer_reference: STRING
+          order_request_id: 991b8ff5-4daf-4826-9a22-e3991b444a9c
+          status: success
+        id: cada7e84-122b-4b47-bc66-58c7c3becd40
+        order_type: sub_number_order
+        status: pending
+        updated_at: '2025-06-11T13:21:45.753260+00:00'
+        user_id: 0d7ef697-df19-413a-b724-56b0539f5397
+      properties:
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2025-06-11T13:21:40.967339+00:00'
+          format: date-time
+          readOnly: true
+          type: string
+        filters:
+          description: The filters that were applied to generate this report
+          properties:
+            country_code:
+              example: US
+              type: string
+            created_at_gt:
+              example: '2023-04-05T10:22:08.230549Z'
+              format: date-time
+              type: string
+            created_at_lt:
+              example: '2025-06-05T10:22:08.230549Z'
+              format: date-time
+              type: string
+            customer_reference:
+              example: STRING
+              type: string
+            order_request_id:
+              example: 991b8ff5-4daf-4826-9a22-e3991b444a9c
+              format: uuid
+              type: string
+            status:
+              example: success
+              type: string
+          type: object
+        id:
+          description: Identifies the resource.
+          example: cada7e84-122b-4b47-bc66-58c7c3becd40
+          format: uuid
+          readOnly: true
+          type: string
+        order_type:
+          description: The type of order report.
+          example: sub_number_order
+          readOnly: true
+          type: string
+        status:
+          default: pending
+          description: Indicates the completion level of the sub number orders report.
+            The report must have a status of 'success' before it can be downloaded.
+          enum:
+          - pending
+          - success
+          - failed
+          - expired
+          example: pending
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2025-06-11T13:21:45.753260+00:00'
+          format: date-time
+          readOnly: true
+          type: string
+        user_id:
+          description: The ID of the user who created the report.
+          example: 0d7ef697-df19-413a-b724-56b0539f5397
+          format: uuid
+          readOnly: true
+          type: string
       type: object
     SummaryRequest:
       properties:
@@ -67039,6 +67171,83 @@ paths:
       tags:
       - Phone Number Orders
       x-latency-category: responsive
+  /sub_number_orders_report:
+    post:
+      description: Create a CSV report for sub number orders. The report will be generated
+        asynchronously and can be downloaded once complete.
+      operationId: CreateSubNumberOrdersReport
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubNumberOrdersReportRequest'
+        required: false
+      responses:
+        '202':
+          $ref: '#/components/responses/SubNumberOrdersReportResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Create a sub number orders report
+      tags:
+      - Phone Number Orders
+      x-endpoint-cost: medium
+      x-latency-category: background
+  /sub_number_orders_report/{report_id}:
+    get:
+      description: Get the status and details of a sub number orders report.
+      operationId: GetSubNumberOrdersReport
+      parameters:
+      - description: The unique identifier of the sub number orders report
+        example: 12ade33a-21c0-473b-b055-b3c836e1c293
+        in: path
+        name: report_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SubNumberOrdersReportResponse'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Retrieve a sub number orders report
+      tags:
+      - Phone Number Orders
+      x-endpoint-cost: light
+      x-latency-category: responsive
+  /sub_number_orders_report/{report_id}/download:
+    get:
+      description: Download the CSV file for a completed sub number orders report.
+        The report status must be 'success' before the file can be downloaded.
+      operationId: DownloadSubNumberOrdersReport
+      parameters:
+      - description: The unique identifier of the sub number orders report
+        example: 12ade33a-21c0-473b-b055-b3c836e1c293
+        in: path
+        name: report_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            text/csv:
+              example: 'id,order_request_id,is_block_sub_number_order,status,phone_number_type,requirements_met,phone_numbers_count,country_code,user_id,customer_reference,created_at,updated_at
+
+                1758d6ed-61a0-4d7a-bf57-b5dced413d33,f486fc2c-4fdf-4849-930d-b3045373e839,False,success,local,True,1,US,0d7ef697-df19-413a-b724-56b0539f5397,STRING,2025-05-23
+                14:33:12.376686,2025-05-23 14:33:15.624916'
+              schema:
+                format: binary
+                type: string
+          description: CSV file download
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+      summary: Download a sub number orders report
+      tags:
+      - Phone Number Orders
+      x-endpoint-cost: light
+      x-latency-category: background
   /telephony_credentials:
     get:
       description: List all On-demand Credentials.
