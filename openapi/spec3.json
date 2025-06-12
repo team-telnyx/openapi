@@ -46722,6 +46722,9 @@
               "$ref": "#/components/schemas/RetrievalTool"
             },
             {
+              "$ref": "#/components/schemas/HandoffTool"
+            },
+            {
               "$ref": "#/components/schemas/HangupTool"
             },
             {
@@ -46732,12 +46735,6 @@
             },
             {
               "$ref": "#/components/schemas/DTMFTool"
-            },
-            {
-              "$ref": "#/components/schemas/BookAppointmentTool"
-            },
-            {
-              "$ref": "#/components/schemas/CheckAvailabilityTool"
             }
           ]
         }
@@ -66861,6 +66858,58 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HandoffTool": {
+        "description": "The handoff tool allows the assistant to hand off control of the conversation to another AI assistant. By default, this will happen transparently to the end user.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "handoff"
+            ]
+          },
+          "handoff": {
+            "$ref": "#/components/schemas/HandoffToolParams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "handoff"
+        ],
+        "title": "HandoffTool"
+      },
+      "HandoffToolParams": {
+        "properties": {
+          "ai_assistants": {
+            "type": "array",
+            "description": "List of possible assistants that can receive a handoff.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Helpful name for giving context on when to handoff to the assistant.",
+                  "example": "Scheduling Specialist"
+                },
+                "id": {
+                  "type": "string",
+                  "description": "The ID of the assistant to hand off to.",
+                  "example": "assistant-1234567890abcdef"
+                }
+              },
+              "required": [
+                "name",
+                "id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "ai_assistants"
+        ],
+        "type": "object",
+        "title": "HandoffToolParams"
+      },
       "HangupRequest": {
         "type": "object",
         "title": "Hangup Request",
@@ -66959,7 +67008,8 @@
           "provider": {
             "type": "string",
             "enum": [
-              "elevenlabs"
+              "elevenlabs",
+              "vapi"
             ],
             "description": "The external provider to import assistants from."
           },
@@ -67006,7 +67056,8 @@
           "import_provider": {
             "type": "string",
             "enum": [
-              "elevenlabs"
+              "elevenlabs",
+              "vapi"
             ],
             "description": "Provider the assistant was imported from."
           },
@@ -84760,6 +84811,11 @@
             "type": "object",
             "title": "Arguments",
             "description": "Key-value arguments to use for the webhook test"
+          },
+          "dynamic_variables": {
+            "type": "object",
+            "title": "Dynamic Variables",
+            "description": "Key-value dynamic variables to use for the webhook test"
           }
         },
         "type": "object",
@@ -86026,6 +86082,10 @@
           "model": {
             "type": "string",
             "description": "The speech to text model to be used by the voice assistant.\n\n- `distil-whisper/distil-large-v2` is lower latency but English-only.\n- `openai/whisper-large-v3-turbo` is multi-lingual with automatic language detection but slightly higher latency."
+          },
+          "language": {
+            "type": "string",
+            "description": "The language of the audio to be transcribed. This is only applicable for `openai/whisper-large-v3-turbo` model. If not set, of if set to `auto`, the model will automatically detect the language. For the full list of supported languages, see the [whisper tokenizer](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py)."
           }
         },
         "type": "object"
@@ -91123,6 +91183,11 @@
           "voice": {
             "type": "string",
             "description": "The voice to be used by the voice assistant. Check the full list of [available voices](https://developers.telnyx.com/api/call-control/list-text-to-speech-voices) via our voices API.\nTo use ElevenLabs, you must reference your ElevenLabs API key as an integration secret under the `api_key_ref` field. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. For Telnyx voices, use `Telnyx.<model_id>.<voice_id>` (e.g. Telnyx.KokoroTTS.af_heart)"
+          },
+          "voice_speed": {
+            "type": "number",
+            "default": 1,
+            "description": "The speed of the voice in the range [0.25, 2.0]. 1.0 is deafult speed. Larger numbers make the voice faster, smaller numbers make it slower. This is only applicable for Telnyx Natural voices."
           },
           "api_key_ref": {
             "type": "string",

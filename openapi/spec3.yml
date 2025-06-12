@@ -7132,12 +7132,11 @@ components:
         oneOf:
         - $ref: '#/components/schemas/WebhookTool'
         - $ref: '#/components/schemas/RetrievalTool'
+        - $ref: '#/components/schemas/HandoffTool'
         - $ref: '#/components/schemas/HangupTool'
         - $ref: '#/components/schemas/TransferTool'
         - $ref: '#/components/schemas/SIPReferTool'
         - $ref: '#/components/schemas/DTMFTool'
-        - $ref: '#/components/schemas/BookAppointmentTool'
-        - $ref: '#/components/schemas/CheckAvailabilityTool'
       type: array
     AssistantsListData:
       properties:
@@ -23843,6 +23842,46 @@ components:
           type: array
       title: HTTPValidationError
       type: object
+    HandoffTool:
+      description: The handoff tool allows the assistant to hand off control of the
+        conversation to another AI assistant. By default, this will happen transparently
+        to the end user.
+      properties:
+        handoff:
+          $ref: '#/components/schemas/HandoffToolParams'
+        type:
+          enum:
+          - handoff
+          type: string
+      required:
+      - type
+      - handoff
+      title: HandoffTool
+      type: object
+    HandoffToolParams:
+      properties:
+        ai_assistants:
+          description: List of possible assistants that can receive a handoff.
+          items:
+            properties:
+              id:
+                description: The ID of the assistant to hand off to.
+                example: assistant-1234567890abcdef
+                type: string
+              name:
+                description: Helpful name for giving context on when to handoff to
+                  the assistant.
+                example: Scheduling Specialist
+                type: string
+            required:
+            - name
+            - id
+            type: object
+          type: array
+      required:
+      - ai_assistants
+      title: HandoffToolParams
+      type: object
     HangupRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -23925,6 +23964,7 @@ components:
           description: The external provider to import assistants from.
           enum:
           - elevenlabs
+          - vapi
           type: string
       required:
       - provider
@@ -23962,6 +24002,7 @@ components:
           description: Provider the assistant was imported from.
           enum:
           - elevenlabs
+          - vapi
           type: string
       type: object
     InboundFqdn:
@@ -38738,6 +38779,10 @@ components:
           description: Key-value arguments to use for the webhook test
           title: Arguments
           type: object
+        dynamic_variables:
+          description: Key-value dynamic variables to use for the webhook test
+          title: Dynamic Variables
+          type: object
       title: TestWebhookToolRequest
       type: object
     TestWebhookToolResponse:
@@ -39746,6 +39791,12 @@ components:
       type: object
     TranscriptionSettings:
       properties:
+        language:
+          description: The language of the audio to be transcribed. This is only applicable
+            for `openai/whisper-large-v3-turbo` model. If not set, of if set to `auto`,
+            the model will automatically detect the language. For the full list of
+            supported languages, see the [whisper tokenizer](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py).
+          type: string
         model:
           description: 'The speech to text model to be used by the voice assistant.
 
@@ -44032,6 +44083,12 @@ components:
             for details. For Telnyx voices, use `Telnyx.<model_id>.<voice_id>` (e.g.
             Telnyx.KokoroTTS.af_heart)'
           type: string
+        voice_speed:
+          default: 1
+          description: The speed of the voice in the range [0.25, 2.0]. 1.0 is deafult
+            speed. Larger numbers make the voice faster, smaller numbers make it slower.
+            This is only applicable for Telnyx Natural voices.
+          type: number
       required:
       - voice
       type: object
