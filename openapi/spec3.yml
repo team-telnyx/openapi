@@ -572,6 +572,7 @@ components:
       name: filter[connection_name][contains]
       schema:
         default: null
+        example: My Connection
         type: string
     FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -710,14 +711,6 @@ components:
         - operator_connect
         example: zoom
         type: string
-    FilterFqdn:
-      description: If present, connections with an `fqdn` that equals the given value
-        will be returned. Matching is case-sensitive, and the full string must match.
-      in: query
-      name: filter[fqdn]
-      schema:
-        default: null
-        type: string
     FilterFrom:
       description: Filter by From number.
       in: query
@@ -734,14 +727,6 @@ components:
       schema:
         default: null
         example: '1930241863466354012'
-        type: string
-    FilterInnerOutboundVoiceProfileId:
-      description: Identifies the associated outbound voice profile.
-      in: query
-      name: filter[outbound.outbound_voice_profile_id]
-      schema:
-        example: '1293384261075731499'
-        format: int64
         type: string
     FilterLocationId:
       description: The location ID to filter by
@@ -56007,10 +55992,8 @@ paths:
       description: Returns a list of your connections irrespective of type.
       operationId: ListConnections
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterConnectionName'
-      - $ref: '#/components/parameters/FilterOutboundVoiceProfileId'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/SortConnection'
       responses:
         '200':
@@ -56117,10 +56100,8 @@ paths:
       description: Returns a list of your credential connections.
       operationId: ListCredentialConnections
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterConnectionName'
-      - $ref: '#/components/parameters/FilterInnerOutboundVoiceProfileId'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/SortConnection'
       responses:
         '200':
@@ -58311,11 +58292,8 @@ paths:
       description: Returns a list of your FQDN connections.
       operationId: ListFqdnConnections
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterConnectionName'
-      - $ref: '#/components/parameters/FilterFqdn'
-      - $ref: '#/components/parameters/FilterOutboundVoiceProfileId'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/SortConnection'
       responses:
         '200':
@@ -58434,31 +58412,31 @@ paths:
       description: Get all FQDNs belonging to the user that match the given filters.
       operationId: ListFqdns
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: ID of the FQDN connection to which the FQDN belongs.
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[connection_id], filter[fqdn], filter[port], filter[dns_record_type]'
+        explode: true
         in: query
-        name: filter[connection_id]
+        name: filter
         schema:
-          type: string
-      - description: FQDN represented by the resource.
-        in: query
-        name: filter[fqdn]
-        schema:
-          example: example.com
-          type: string
-      - description: Port to use when connecting to the FQDN.
-        in: query
-        name: filter[port]
-        schema:
-          example: 5060
-          type: integer
-      - description: DNS record type used by the FQDN.
-        in: query
-        name: filter[dns_record_type]
-        schema:
-          example: a
-          type: string
+          properties:
+            connection_id:
+              description: ID of the FQDN connection to which the FQDN belongs.
+              type: string
+            dns_record_type:
+              description: DNS record type used by the FQDN.
+              example: a
+              type: string
+            fqdn:
+              description: FQDN represented by the resource.
+              example: example.com
+              type: string
+            port:
+              description: Port to use when connecting to the FQDN.
+              example: 5060
+              type: integer
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListFqdnsResponse'
@@ -59383,10 +59361,8 @@ paths:
       description: Returns a list of your IP connections.
       operationId: ListIpConnections
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterConnectionName'
-      - $ref: '#/components/parameters/FilterInnerOutboundVoiceProfileId'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/SortConnection'
       responses:
         '200':
@@ -59516,25 +59492,27 @@ paths:
       description: Get all IPs belonging to the user that match the given filters.
       operationId: ListIps
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: ID of the IP Connection to which this IP should be attached.
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[connection_id], filter[ip_address], filter[port]'
+        explode: true
         in: query
-        name: filter[connection_id]
+        name: filter
         schema:
-          type: string
-      - description: IP adddress represented by this resource.
-        in: query
-        name: filter[ip_address]
-        schema:
-          example: 192.168.0.0
-          type: string
-      - description: Port to use when connecting to this IP.
-        in: query
-        name: filter[port]
-        schema:
-          example: 5060
-          type: integer
+          properties:
+            connection_id:
+              description: ID of the IP Connection to which this IP should be attached.
+              type: string
+            ip_address:
+              description: IP adddress represented by this resource.
+              example: 192.168.0.0
+              type: string
+            port:
+              description: Port to use when connecting to this IP.
+              example: 5060
+              type: integer
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListIpsResponse'
