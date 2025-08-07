@@ -47582,41 +47582,115 @@ paths:
     get:
       operationId: ListAccessIpAddresses
       parameters:
-      - in: query
-        name: filter[ip_source]
-        required: false
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[ip_source], filter[ip_address], filter[created_at]. Supports complex
+          bracket operations for dynamic filtering.'
+        examples:
+          Complex filtering example:
+            summary: 'Combine multiple filters: cloudflare source IPs created within
+              2023'
+            value:
+              created_at:
+                gt: '2023-01-01T00:00:00Z'
+                lt: '2023-12-31T23:59:59Z'
+              ip_source: cloudflare
+          filter[created_at][gt]=2023-01-01T00:00:00Z:
+            summary: Filter IP addresses created after the specified date-time
+            value:
+              created_at:
+                gt: '2023-01-01T00:00:00Z'
+          filter[created_at][lt]=2023-12-31T23:59:59Z:
+            summary: Filter IP addresses created before the specified date-time
+            value:
+              created_at:
+                lt: '2023-12-31T23:59:59Z'
+          filter[ip_address]=192.168.1.1:
+            summary: Filter by specific IP address
+            value:
+              ip_address: 192.168.1.1
+          filter[ip_source]=cloudflare:
+            summary: Filter access IP addresses by source 'cloudflare'
+            value:
+              ip_source: cloudflare
+        explode: true
+        in: query
+        name: filter
         schema:
-          type: string
-      - in: query
-        name: filter[ip_address]
-        required: false
+          additionalProperties: true
+          properties:
+            created_at:
+              oneOf:
+              - description: Filter by exact creation date-time
+                format: date-time
+                type: string
+              - additionalProperties: false
+                description: Date range filtering operations
+                properties:
+                  gt:
+                    description: Filter for creation date-time greater than
+                    format: date-time
+                    type: string
+                  gte:
+                    description: Filter for creation date-time greater than or equal
+                      to
+                    format: date-time
+                    type: string
+                  lt:
+                    description: Filter for creation date-time less than
+                    format: date-time
+                    type: string
+                  lte:
+                    description: Filter for creation date-time less than or equal
+                      to
+                    format: date-time
+                    type: string
+                title: DateRangeFilter
+                type: object
+            ip_address:
+              description: Filter by IP address
+              type: string
+            ip_source:
+              description: Filter by IP source
+              type: string
+          type: object
+        style: deepObject
+      - description: 'Consolidated page parameter (deepObject style). Originally:
+          page[number], page[size]'
+        examples:
+          page[number]=1&page[size]=20:
+            summary: Default pagination with first page and 20 records per page
+            value:
+              number: 1
+              size: 20
+          page[number]=1&page[size]=50:
+            summary: First page with 50 records per page
+            value:
+              number: 1
+              size: 50
+          page[number]=2&page[size]=20:
+            summary: Second page with 20 records per page
+            value:
+              number: 2
+              size: 20
+          page[number]=5&page[size]=100:
+            summary: Fifth page with 100 records per page
+            value:
+              number: 5
+              size: 100
+        explode: true
+        in: query
+        name: page
         schema:
-          type: string
-      - in: query
-        name: filter[created_at][gt]
-        required: false
-        schema:
-          format: date-time
-          type: string
-      - in: query
-        name: filter[created_at][lt]
-        required: false
-        schema:
-          format: date-time
-          type: string
-      - in: query
-        name: page[number]
-        required: false
-        schema:
-          default: 1
-          type: integer
-      - in: query
-        name: page[size]
-        required: false
-        schema:
-          default: 20
-          maximum: 250
-          type: integer
+          properties:
+            number:
+              default: 1
+              type: integer
+            size:
+              default: 20
+              maximum: 250
+              type: integer
+          type: object
+        style: deepObject
       responses:
         '200':
           content:
@@ -47702,51 +47776,141 @@ paths:
     get:
       operationId: ListAccessIpRanges
       parameters:
-      - in: query
-        name: filter[cidr_block]
-        required: false
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[cidr_block], filter[cidr_block][startswith], filter[cidr_block][endswith],
+          filter[cidr_block][contains], filter[created_at]. Supports complex bracket
+          operations for dynamic filtering.'
+        examples:
+          Complex filtering example:
+            summary: 'Combine multiple filters: CIDR blocks starting with ''10.0''
+              and ending with ''/16'', created within 2023'
+            value:
+              cidr_block:
+                endswith: /16
+                startswith: '10.0'
+              created_at:
+                gt: '2023-01-01T00:00:00Z'
+                lt: '2023-12-31T23:59:59Z'
+          filter[cidr_block]=192.168.1.0/24:
+            summary: Filter by exact CIDR block match
+            value:
+              cidr_block: 192.168.1.0/24
+          filter[cidr_block][contains]=10.0:
+            summary: Filter CIDR blocks containing '10.0'
+            value:
+              cidr_block:
+                contains: '10.0'
+          filter[cidr_block][endswith]=/24:
+            summary: Filter CIDR blocks ending with '/24'
+            value:
+              cidr_block:
+                endswith: /24
+          filter[cidr_block][startswith]=192.168:
+            summary: Filter CIDR blocks starting with '192.168'
+            value:
+              cidr_block:
+                startswith: '192.168'
+          filter[created_at][gt]=2023-01-01T00:00:00Z:
+            summary: Filter IP ranges created after the specified date-time
+            value:
+              created_at:
+                gt: '2023-01-01T00:00:00Z'
+          filter[created_at][lt]=2023-12-31T23:59:59Z:
+            summary: Filter IP ranges created before the specified date-time
+            value:
+              created_at:
+                lt: '2023-12-31T23:59:59Z'
+        explode: true
+        in: query
+        name: filter
         schema:
-          type: string
-      - in: query
-        name: filter[cidr_block][startswith]
-        required: false
+          additionalProperties: true
+          properties:
+            cidr_block:
+              oneOf:
+              - description: Filter by exact CIDR block match
+                type: string
+              - additionalProperties: false
+                description: CIDR block pattern matching operations
+                properties:
+                  contains:
+                    description: Filter CIDR blocks containing the specified string
+                    type: string
+                  endswith:
+                    description: Filter CIDR blocks ending with the specified string
+                    type: string
+                  startswith:
+                    description: Filter CIDR blocks starting with the specified string
+                    type: string
+                title: CidrBlockPatternFilter
+                type: object
+            created_at:
+              oneOf:
+              - description: Filter by exact creation date-time
+                format: date-time
+                type: string
+              - additionalProperties: false
+                description: Date range filtering operations
+                properties:
+                  gt:
+                    description: Filter for creation date-time greater than
+                    format: date-time
+                    type: string
+                  gte:
+                    description: Filter for creation date-time greater than or equal
+                      to
+                    format: date-time
+                    type: string
+                  lt:
+                    description: Filter for creation date-time less than
+                    format: date-time
+                    type: string
+                  lte:
+                    description: Filter for creation date-time less than or equal
+                      to
+                    format: date-time
+                    type: string
+                title: DateRangeFilter
+                type: object
+          type: object
+        style: deepObject
+      - description: 'Consolidated page parameter (deepObject style). Originally:
+          page[number], page[size]'
+        examples:
+          page[number]=1&page[size]=20:
+            summary: Default pagination with first page and 20 records per page
+            value:
+              number: 1
+              size: 20
+          page[number]=1&page[size]=50:
+            summary: First page with 50 records per page
+            value:
+              number: 1
+              size: 50
+          page[number]=2&page[size]=20:
+            summary: Second page with 20 records per page
+            value:
+              number: 2
+              size: 20
+          page[number]=5&page[size]=100:
+            summary: Fifth page with 100 records per page
+            value:
+              number: 5
+              size: 100
+        explode: true
+        in: query
+        name: page
         schema:
-          type: string
-      - in: query
-        name: filter[cidr_block][endswith]
-        required: false
-        schema:
-          type: string
-      - in: query
-        name: filter[cidr_block][contains]
-        required: false
-        schema:
-          type: string
-      - in: query
-        name: filter[created_at][gt]
-        required: false
-        schema:
-          format: date-time
-          type: string
-      - in: query
-        name: filter[created_at][lt]
-        required: false
-        schema:
-          format: date-time
-          type: string
-      - in: query
-        name: page[number]
-        required: false
-        schema:
-          default: 1
-          type: integer
-      - in: query
-        name: page[size]
-        required: false
-        schema:
-          default: 20
-          maximum: 250
-          type: integer
+          properties:
+            number:
+              default: 1
+              type: integer
+            size:
+              default: 20
+              maximum: 250
+              type: integer
+          type: object
+        style: deepObject
       responses:
         '200':
           content:
