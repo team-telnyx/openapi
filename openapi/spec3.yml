@@ -285,15 +285,6 @@ components:
       schema:
         example: 600 Congress Avenue
         type: string
-    FilterApplicationName:
-      description: If present, applications with <code>application_name</code> containing
-        the given value will be returned. Matching is not case-sensitive. Requires
-        at least three characters.
-      in: query
-      name: filter[application_name][contains]
-      schema:
-        example: fax-app
-        type: string
     FilterBasicStatusLifecycle:
       description: Filter by a specific status of the resource's lifecycle.
       in: query
@@ -459,20 +450,26 @@ components:
         type: string
     FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
-        filter[name][contains]'
+        filter[application_name][contains], filter[outbound_voice_profile_id]'
       explode: true
       in: query
       name: filter
       schema:
         properties:
-          name:
-            description: Name filtering operations
+          application_name:
+            description: Application name filtering operations
             properties:
               contains:
-                description: Optional filter on outbound voice profile name.
-                example: office-profile
+                description: If present, applications with <code>application_name</code>
+                  containing the given value will be returned. Matching is not case-sensitive.
+                  Requires at least three characters.
+                example: fax-app
                 type: string
             type: object
+          outbound_voice_profile_id:
+            description: Identifies the associated outbound voice profile.
+            example: '1293384261075731499'
+            type: string
         type: object
       style: deepObject
     FilterCostByAmount:
@@ -564,13 +561,6 @@ components:
       in: query
       name: filter[name]
       schema:
-        type: string
-    FilterOutboundVoiceProfileId:
-      description: Identifies the associated outbound voice profile.
-      in: query
-      name: filter[outbound_voice_profile_id]
-      schema:
-        example: '1293384261075731499'
         type: string
     FilterPhoneNumber:
       description: If present, connections associated with the given phone_number
@@ -869,12 +859,12 @@ components:
         properties:
           number:
             default: 1
-            description: The page number to load.
+            description: The page number to load
             minimum: 1
             type: integer
           size:
             default: 20
-            description: The size of the page.
+            description: The size of the page
             maximum: 250
             minimum: 1
             type: integer
@@ -57639,10 +57629,8 @@ paths:
         receive faxes using the Programmable Fax API with Telnyx.
       operationId: ListFaxApplications
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterApplicationName'
-      - $ref: '#/components/parameters/FilterOutboundVoiceProfileId'
+      - $ref: '#/components/parameters/PageConsolidated'
+      - $ref: '#/components/parameters/FilterConsolidated'
       - $ref: '#/components/parameters/SortApplication'
       responses:
         '200':
@@ -57762,70 +57750,88 @@ paths:
       description: ''
       operationId: ListFaxes
       parameters:
-      - description: ISO 8601 date time for filtering faxes created after or on that
-          date
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[created_at][gte], filter[created_at][gt], filter[created_at][lte],
+          filter[created_at][lt], filter[direction][eq], filter[from][eq], filter[to][eq]'
+        explode: true
         in: query
-        name: filter[created_at][gte]
+        name: filter
         schema:
-          example: '2020-02-02T22:25:27.521992Z'
-          format: date-time
-          type: string
-      - description: ISO 8601 date time for filtering faxes created after that date
+          properties:
+            created_at:
+              description: Date range filtering operations for fax creation timestamp
+              properties:
+                gt:
+                  description: ISO 8601 date time for filtering faxes created after
+                    that date
+                  example: '2020-02-02T22:25:27.521992Z'
+                  format: date-time
+                  type: string
+                gte:
+                  description: ISO 8601 date time for filtering faxes created after
+                    or on that date
+                  example: '2020-02-02T22:25:27.521992Z'
+                  format: date-time
+                  type: string
+                lt:
+                  description: ISO 8601 formatted date time for filtering faxes created
+                    before that date
+                  example: '2020-02-02T22:25:27.521992Z'
+                  format: date-time
+                  type: string
+                lte:
+                  description: ISO 8601 formatted date time for filtering faxes created
+                    on or before that date
+                  example: '2020-02-02T22:25:27.521992Z'
+                  format: date-time
+                  type: string
+              type: object
+            direction:
+              description: Direction filtering operations
+              properties:
+                eq:
+                  description: The direction, inbound or outbound, for filtering faxes
+                    sent from this account
+                  example: inbound
+                  type: string
+              type: object
+            from:
+              description: From number filtering operations
+              properties:
+                eq:
+                  description: The phone number, in E.164 format for filtering faxes
+                    sent from this number
+                  example: '+13127367276'
+                  type: string
+              type: object
+            to:
+              description: To number filtering operations
+              properties:
+                eq:
+                  description: The phone number, in E.164 format for filtering faxes
+                    sent to this number
+                  example: '+13127367276'
+                  type: string
+              type: object
+          type: object
+        style: deepObject
+      - description: 'Consolidated pagination parameter (deepObject style). Originally:
+          page[size], page[number]'
+        explode: true
         in: query
-        name: filter[created_at][gt]
+        name: page
         schema:
-          example: '2020-02-02T22:25:27.521992Z'
-          format: date-time
-          type: string
-      - description: ISO 8601 formatted date time for filtering faxes created on or
-          before that date
-        in: query
-        name: filter[created_at][lte]
-        schema:
-          example: '2020-02-02T22:25:27.521992Z'
-          format: date-time
-          type: string
-      - description: ISO 8601 formatted date time for filtering faxes created before
-          that date
-        in: query
-        name: filter[created_at][lt]
-        schema:
-          example: '2020-02-02T22:25:27.521992Z'
-          format: date-time
-          type: string
-      - description: The direction, inbound or outbound, for filtering faxes sent
-          from this account
-        in: query
-        name: filter[direction][eq]
-        schema:
-          example: inbound
-          type: string
-      - description: The phone number, in E.164 format for filtering faxes sent from
-          this number
-        in: query
-        name: filter[from][eq]
-        schema:
-          example: '+13127367276'
-          type: string
-      - description: The phone number, in E.164 format for filtering faxes sent to
-          this number
-        in: query
-        name: filter[to][eq]
-        schema:
-          example: '+13127367276'
-          type: string
-      - description: Number of fax resourcxes for the single page returned
-        in: query
-        name: page[size]
-        schema:
-          example: 2
-          type: integer
-      - description: Number of the page to be retrieved
-        in: query
-        name: page[number]
-        schema:
-          example: 2
-          type: integer
+          properties:
+            number:
+              description: Number of the page to be retrieved
+              example: 2
+              type: integer
+            size:
+              description: Number of fax resources for the single page returned
+              example: 2
+              type: integer
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListFaxesResponse'
