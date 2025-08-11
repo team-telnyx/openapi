@@ -104,7 +104,7 @@ components:
       schema:
         description: Authenticates the request with your Telnyx API V2 KEY
         type: string
-    BillingBundleId:
+    BundleId:
       in: path
       name: bundle_id
       required: true
@@ -168,12 +168,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Telnyx connection id
+      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
+        or Sip connection resource.
       in: path
       name: connection_id
       required: true
       schema:
-        example: '1293384261075731461'
         type: string
     DateCreated:
       description: Filters conferences by the creation date. Expected format is YYYY-MM-DD.
@@ -381,63 +381,28 @@ components:
         type: object
       style: deepObject
     FilterConsolidated:
-      description: 'Consolidated filter parameter (deepObject style). Originally:
-        filter[phone_number][eq], filter[phone_number][in][], filter[status][eq],
-        filter[status][in][], filter[created_at][lt], filter[created_at][gt]'
+      description: 'Consolidated filter parameter (deepObject style). Supports filtering
+        by country_iso and resource. Examples: filter[country_iso]=US or filter[resource]=+15617819942'
       explode: true
       in: query
       name: filter
       schema:
         properties:
-          created_at:
-            properties:
-              gt:
-                description: Filters records to those created after a specific date.
-                example: '2020-01-01T00:00:00Z'
-                format: date-time
-                type: string
-              lt:
-                description: Filters records to those created before a specific date.
-                example: '2020-01-01T00:00:00Z'
-                format: date-time
-                type: string
-            type: object
-          phone_number:
-            properties:
-              eq:
-                description: Filters records to those with a specified number.
-                example: '+12441239999'
-                type: string
-              in:
-                description: Filters records to those with at least one number in
-                  the list.
-                items:
-                  example: '+12441239999'
-                  type: string
-                type: array
-            type: object
-          status:
-            properties:
-              eq:
-                description: Filters records to those with a specific status.
-                enum:
-                - pending
-                - completed
-                - failed
-                example: pending
-                type: string
-              in:
-                description: Filters records to those with a least one status in the
-                  list.
-                items:
-                  enum:
-                  - pending
-                  - completed
-                  - failed
-                  example: pending
-                  type: string
-                type: array
-            type: object
+          country_iso:
+            description: Filter by country code.
+            items:
+              example: US
+              type: string
+            title: Filter[Country Iso]
+            type: array
+          resource:
+            description: Filter by resource.
+            items:
+              description: Filter by resource.
+              example: '+15617819942'
+              type: string
+            title: Filter[Resource]
+            type: array
         type: object
       style: deepObject
     FilterCostByAmount:
@@ -454,17 +419,6 @@ components:
       schema:
         example: USD
         type: string
-    FilterCountryIso:
-      description: Filter by country code.
-      in: query
-      name: filter[country_iso]
-      required: false
-      schema:
-        items:
-          example: US
-          type: string
-        title: Filter[Country Iso]
-        type: array
     FilterCreatedAt:
       description: Filter by ISO 8601 formatted date-time string matching resource
         creation date-time.
@@ -871,12 +825,11 @@ components:
         example: '+15554441234'
         type: string
     Id:
-      description: Identifies the resource.
+      description: The id of the resource.
       in: path
       name: id
       required: true
       schema:
-        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
     IncludeCancelledAccounts:
@@ -987,19 +940,19 @@ components:
         properties:
           number:
             default: 1
-            description: The page number to load
+            description: The page number to load.
             minimum: 1
             type: integer
           size:
             default: 20
-            description: The size of the page
+            description: The size of the page.
             maximum: 250
             minimum: 1
             type: integer
         type: object
       style: deepObject
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -1007,13 +960,12 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The number of records to be displayed on a page
+      example: 10
       in: query
-      name: page[size]
+      name: PageSize
+      required: false
       schema:
-        default: 20
-        maximum: 250
-        minimum: 1
         type: integer
     PageSizeTexml:
       description: The number of records to be displayed on a page
@@ -1176,15 +1128,22 @@ components:
       schema:
         type: string
     Sort:
-      description: Set the order of the results by the creation date.
+      description: "Specifies the sort order for results. By default sorting direction\
+        \ is ascending. To have the results sorted in descending order add the <code>\
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
+        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
+        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
+        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
+        \ given, results are sorted by <code>created_at</code> in descending order."
       in: query
       name: sort
       required: false
       schema:
+        default: created_at
         enum:
-        - asc
-        - desc
-        example: desc
+        - created_at
+        - email
+        example: email
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1211,21 +1170,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
-        \ sorts the result by the\n    <code>application_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
-        \ result by the\n    <code>application_name</code> field in descending order.\n\
-        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
-        \ in descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
+        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
+        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
+        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
+        \ descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - application_name
+        - friendly_name
         - active
-        example: application_name
+        example: friendly_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1238,7 +1197,6 @@ components:
         \ in descending order."
       in: query
       name: sort
-      required: false
       schema:
         default: created_at
         enum:
@@ -1389,20 +1347,18 @@ components:
       schema:
         type: string
     Status:
-      description: The status of a notification setting
+      description: Filters calls by status.
+      example: no-answer
       in: query
-      name: filter[status][eq]
+      name: Status
+      required: false
       schema:
         enum:
-        - enabled
-        - enable-received
-        - enable-pending
-        - enable-submtited
-        - delete-received
-        - delete-pending
-        - delete-submitted
-        - deleted
-        example: enable-received
+        - canceled
+        - completed
+        - failed
+        - busy
+        - no-answer
         type: string
     StreamingSid:
       description: Uniquely identifies the streaming by id.
@@ -3016,14 +2972,8 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      content:
-        application/json:
-          examples:
-            Not authorized:
-              $ref: '#/components/examples/NotAuthorized'
-          schema:
-            $ref: '#/components/schemas/Errors'
-      description: Forbidden
+      description: Unauthorized response. Happens when the current user is not authorized
+        to access the endpoint.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -4945,7 +4895,11 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      description: Fax does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResourceNotFoundError'
+      description: Resource not found
     NotFoundResponseApp:
       content:
         application/json:
@@ -5903,7 +5857,8 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthorized
+      description: Unauthenticated response. Happens when the current user cannot
+        be authenticated.
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -19756,9 +19711,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was created.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was created.
+      example: '2020-02-02T22:25:27.521Z'
+      title: Created At
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -20231,15 +20186,12 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
-        total_items:
-          example: 50
-          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -22074,6 +22026,7 @@ components:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
+              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -24835,9 +24788,10 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the type of resource.
-      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+      description: Identifies the resource.
+      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
       format: uuid
+      readOnly: true
       type: string
     ImportAssistantsRequest:
       properties:
@@ -27946,26 +27900,27 @@ components:
     Metadata:
       properties:
         page_number:
-          example: 1
-          title: Page Number
-          type: integer
+          description: Current Page based on pagination settings (included when defaults
+            are used.)
+          example: 3
+          format: double
+          type: number
         page_size:
-          example: 25
-          title: Page Size
-          type: integer
+          description: Number of results to return per page based on pagination settings
+            (included when defaults are used.)
+          example: 1
+          format: double
+          type: number
         total_pages:
-          example: 10
-          title: Total Pages
-          type: integer
+          description: Total number of pages based on pagination settings
+          example: 13
+          format: double
+          type: number
         total_results:
-          example: 250
-          title: Total Items
-          type: integer
-      required:
-      - page_size
-      - page_number
-      - total_pages
-      - total_results
+          description: Total number of results
+          example: 13
+          format: double
+          type: number
       title: Metadata
       type: object
     MigrationParams:
@@ -35216,10 +35171,9 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies the type of the resource.
+      description: Identifies record type.
       enum:
-      - event
-      example: event
+      - custom_storage_credentials
       type: string
     RecordingCompleted:
       example:
@@ -36033,25 +35987,19 @@ components:
           type: string
       type: object
     ResourceNotFoundError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10005'
-            type: string
-          detail:
-            example: The requested resource or URL could not be found.
-            type: string
-          meta:
+      example:
+        errors:
+        - detail: Resource not found
+      properties:
+        errors:
+          items:
             properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10005
+              detail:
                 type: string
             type: object
-          title:
-            example: Resource not found
-            type: string
-        type: object
+          type: array
+      title: Resource not found
+      type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -43054,31 +43002,31 @@ components:
             type: string
         type: object
     UnprocessableEntityError:
-      allOf:
-      - $ref: '#/components/schemas/GenericError'
-      - properties:
-          code:
-            example: '10002'
-            type: string
-          detail:
-            example: The phone number is invalid.
-            type: string
-          meta:
-            properties:
-              url:
-                example: https://developers.telnyx.com/docs/overview/errors/10002
-                type: string
-            type: object
-          source:
-            properties:
-              pointer:
-                example: /phone_numbers
-                type: string
-            type: object
-          title:
-            example: Invalid phone number
-            type: string
-        type: object
+      properties:
+        code:
+          format: int64
+          type: string
+        detail:
+          type: string
+        meta:
+          additionalProperties: true
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
+      type: object
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -43731,50 +43679,27 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
-        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
-        supervisor_role: whisper
-        whisper_call_control_ids:
-        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+        Status: completed
       properties:
-        call_control_id:
-          description: Unique identifier and token for controlling the call
-          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
-          type: string
-        command_id:
-          description: Use this field to avoid execution of duplicate commands. Telnyx
-            will ignore subsequent commands with the same `command_id` as one that
-            has already been executed.
-          example: 891510ac-f3e4-11e8-af5b-de00688a4901
-          type: string
-        supervisor_role:
-          description: Sets the participant as a supervisor for the conference. A
-            conference can have multiple supervisors. "barge" means the supervisor
-            enters the conference as a normal participant. This is the same as "none".
-            "monitor" means the supervisor is muted but can hear all participants.
-            "whisper" means that only the specified "whisper_call_control_ids" can
-            hear the supervisor. Defaults to "none".
+        AnnounceMethod:
+          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
+            `POST`.
           enum:
-          - barge
-          - monitor
-          - none
-          - whisper
-          example: whisper
+          - GET
+          - POST
+          example: GET
           type: string
-        whisper_call_control_ids:
-          description: Array of unique call_control_ids the supervisor can whisper
-            to. If none provided, the supervisor will join the conference as a monitoring
-            participant only.
-          example:
-          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
-          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
-          items:
-            type: string
-          type: array
-      required:
-      - call_control_id
-      - supervisor_role
+        AnnounceUrl:
+          description: The URL we should call to announce something into the conference.
+            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
+            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
+          example: https://www.example.com/announce.xml
+          type: string
+        Status:
+          description: The new status of the resource. Specifying `completed` will
+            end the conference and hang up all participants.
+          example: completed
+          type: string
       title: Update Conference Request
       type: object
     UpdateConversationRequest:
@@ -45221,9 +45146,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date-time indicating when the resource was updated.
-      example: '2018-02-02T22:25:27.521Z'
-      readOnly: true
+      description: ISO 8601 formatted date indicating when the resource was updated.
+      example: '2020-02-03T22:25:27.521Z'
+      title: Updated At
       type: string
     UplinkData:
       properties:
@@ -53077,9 +53002,8 @@ paths:
       description: Get all allowed bundles.
       operationId: GetUserBillingBundles
       parameters:
-      - $ref: '#/components/parameters/FilterCountryIso'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/AuthorizationBearer'
       responses:
         '200':
@@ -53099,7 +53023,7 @@ paths:
       description: Get a single bundle by ID.
       operationId: GetBillingBundleById
       parameters:
-      - $ref: '#/components/parameters/BillingBundleId'
+      - $ref: '#/components/parameters/BundleId'
       - $ref: '#/components/parameters/AuthorizationBearer'
       responses:
         '200':
@@ -53121,20 +53045,8 @@ paths:
       description: Get a paginated list of user bundles.
       operationId: GetUserBundles
       parameters:
-      - $ref: '#/components/parameters/FilterCountryIso'
-      - description: Filter by resource.
-        in: query
-        name: filter[resource]
-        required: false
-        schema:
-          items:
-            description: Filter by resource.
-            example: '+15617819942'
-            type: string
-          title: Filter[Resource]
-          type: array
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/AuthorizationBearer'
       responses:
         '200':
@@ -53183,7 +53095,7 @@ paths:
       description: Returns all user bundles that aren't in use.
       operationId: GetUnusedUserBundles
       parameters:
-      - $ref: '#/components/parameters/FilterCountryIso'
+      - $ref: '#/components/parameters/FilterConsolidated'
       - $ref: '#/components/parameters/AuthorizationBearer'
       responses:
         '200':
