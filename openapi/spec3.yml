@@ -168,12 +168,12 @@ components:
         - completed
         type: string
     ConnectionId:
-      description: Uniquely identifies a Telnyx application (Call Control, TeXML)
-        or Sip connection resource.
+      description: Telnyx connection id
       in: path
       name: connection_id
       required: true
       schema:
+        example: '1293384261075731461'
         type: string
     DateCreated:
       description: Filters conferences by the creation date. Expected format is YYYY-MM-DD.
@@ -382,45 +382,61 @@ components:
       style: deepObject
     FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
-        filter[email][contains], filter[email][eq], filter[organization_name][contains],
-        filter[organization_name][eq]'
+        filter[phone_number][eq], filter[phone_number][in][], filter[status][eq],
+        filter[status][in][], filter[created_at][lt], filter[created_at][gt]'
       explode: true
       in: query
       name: filter
-      required: false
       schema:
-        additionalProperties: false
-        example:
-          email:
-            contains: john
-          organization_name:
-            eq: Example Company LLC
         properties:
-          email:
-            additionalProperties: false
+          created_at:
             properties:
-              contains:
-                description: If present, email containing the given value will be
-                  returned. Matching is not case-sensitive. Requires at least three
-                  characters.
+              gt:
+                description: Filters records to those created after a specific date.
+                example: '2020-01-01T00:00:00Z'
+                format: date-time
                 type: string
-              eq:
-                description: If present, only returns results with the <code>email</code>
-                  matching exactly the value given.
+              lt:
+                description: Filters records to those created before a specific date.
+                example: '2020-01-01T00:00:00Z'
+                format: date-time
                 type: string
             type: object
-          organization_name:
-            additionalProperties: false
+          phone_number:
             properties:
-              contains:
-                description: If present, only returns results with the <code>organization_name</code>
-                  containing the given value. Matching is not case-sensitive. Requires
-                  at least three characters.
-                type: string
               eq:
-                description: If present, only returns results with the <code>organization_name</code>
-                  matching exactly the value given.
+                description: Filters records to those with a specified number.
+                example: '+12441239999'
                 type: string
+              in:
+                description: Filters records to those with at least one number in
+                  the list.
+                items:
+                  example: '+12441239999'
+                  type: string
+                type: array
+            type: object
+          status:
+            properties:
+              eq:
+                description: Filters records to those with a specific status.
+                enum:
+                - pending
+                - completed
+                - failed
+                example: pending
+                type: string
+              in:
+                description: Filters records to those with a least one status in the
+                  list.
+                items:
+                  enum:
+                  - pending
+                  - completed
+                  - failed
+                  example: pending
+                  type: string
+                type: array
             type: object
         type: object
       style: deepObject
@@ -879,11 +895,12 @@ components:
         example: '+15554441234'
         type: string
     Id:
-      description: The id of the resource.
+      description: Identifies the resource.
       in: path
       name: id
       required: true
       schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
     IncludeCancelledAccounts:
@@ -991,8 +1008,8 @@ components:
       schema:
         type: integer
     PageConsolidated:
-      description: 'Consolidated page parameter (deepObject style). Originally: page[number],
-        page[size]'
+      description: 'Consolidated page parameter (deepObject style). Originally: page[size],
+        page[number]'
       explode: true
       in: query
       name: page
@@ -1012,7 +1029,7 @@ components:
         type: object
       style: deepObject
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -1020,7 +1037,7 @@ components:
         minimum: 1
         type: integer
     PageSize:
-      description: The size of the page.
+      description: The size of the page
       in: query
       name: page[size]
       schema:
@@ -1189,22 +1206,15 @@ components:
       schema:
         type: string
     Sort:
-      description: "Specifies the sort order for results. By default sorting direction\
-        \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>email</code>:\
-        \ sorts the result by the\n    <code>email</code> field in ascending order.\n\
-        \  </li>\n\n  <li>\n    <code>-email</code>: sorts the result by the\n   \
-        \ <code>email</code> field in descending order.\n  </li>\n</ul> <br/> If not\
-        \ given, results are sorted by <code>created_at</code> in descending order."
+      description: Set the order of the results by the creation date.
       in: query
       name: sort
       required: false
       schema:
-        default: created_at
         enum:
-        - created_at
-        - email
-        example: email
+        - asc
+        - desc
+        example: desc
         type: string
     SortAddress:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1231,21 +1241,21 @@ components:
     SortApplication:
       description: "Specifies the sort order for results. By default sorting direction\
         \ is ascending. To have the results sorted in descending order add the <code>\
-        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>friendly_name</code>:\
-        \ sorts the result by the\n    <code>friendly_name</code> field in ascending\
-        \ order.\n  </li>\n\n  <li>\n    <code>-friendly_name</code>: sorts the result\
-        \ by the\n    <code>friendly_name</code> field in descending order.\n  </li>\n\
-        </ul> <br/> If not given, results are sorted by <code>created_at</code> in\
-        \ descending order."
+        \ -</code> prefix.<br/><br/>\nThat is: <ul>\n  <li>\n    <code>application_name</code>:\
+        \ sorts the result by the\n    <code>application_name</code> field in ascending\
+        \ order.\n  </li>\n\n  <li>\n    <code>-application_name</code>: sorts the\
+        \ result by the\n    <code>application_name</code> field in descending order.\n\
+        \  </li>\n</ul> <br/> If not given, results are sorted by <code>created_at</code>\
+        \ in descending order."
       in: query
       name: sort
       schema:
         default: created_at
         enum:
         - created_at
-        - friendly_name
+        - application_name
         - active
-        example: friendly_name
+        example: application_name
         type: string
     SortConnection:
       description: "Specifies the sort order for results. By default sorting direction\
@@ -1258,6 +1268,7 @@ components:
         \ in descending order."
       in: query
       name: sort
+      required: false
       schema:
         default: created_at
         enum:
@@ -1408,18 +1419,20 @@ components:
       schema:
         type: string
     Status:
-      description: Filters calls by status.
-      example: no-answer
+      description: The status of a notification setting
       in: query
-      name: Status
-      required: false
+      name: filter[status][eq]
       schema:
         enum:
-        - canceled
-        - completed
-        - failed
-        - busy
-        - no-answer
+        - enabled
+        - enable-received
+        - enable-pending
+        - enable-submtited
+        - delete-received
+        - delete-pending
+        - delete-submitted
+        - deleted
+        example: enable-received
         type: string
     StreamingSid:
       description: Uniquely identifies the streaming by id.
@@ -3033,8 +3046,14 @@ components:
       description: You do not have permission to perform the requested action on the
         specified resource or resources.
     ForbiddenResponse:
-      description: Unauthorized response. Happens when the current user is not authorized
-        to access the endpoint.
+      content:
+        application/json:
+          examples:
+            Not authorized:
+              $ref: '#/components/examples/NotAuthorized'
+          schema:
+            $ref: '#/components/schemas/Errors'
+      description: Forbidden
     FqdnConnectionResponse:
       content:
         application/json:
@@ -4956,11 +4975,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Resource Not Found
     NotFoundResponse:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ResourceNotFoundError'
-      description: Resource not found
+      description: Fax does not exist
     NotFoundResponseApp:
       content:
         application/json:
@@ -5918,8 +5933,7 @@ components:
             $ref: '#/components/schemas/Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthenticated response. Happens when the current user cannot
-        be authenticated.
+      description: Unauthorized
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -14299,6 +14313,91 @@ components:
           type: string
       title: OTAUpdate
       type: object
+    CompositionCompleted:
+      example:
+        event_type: video.room.composition.completed
+        id: d51754fc-6888-4b0e-8f29-fc3ae41250cd
+        occurred_at: '2022-03-02 04:47:29.980874Z'
+        payload:
+          composition_id: 5970ce77-4aeb-4e18-ac8c-3effca0c145a
+          download_url: https://www.example.com
+          duration_secs: 53
+          format: mp4
+          resolution: 1280x720
+          room_id: 2fbf2c0d-b6aa-463f-aeed-83ce298be978
+          session_id: 7c4da191-2600-4df6-a35e-0ecae6caa5d3
+          size_mb: 2.6
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.composition.completed
+          example: video.room.composition.completed
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            composition_id:
+              description: Composition ID that identifies the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            download_url:
+              description: Url to download the room composition.
+              example: https://www.example.com
+              type: string
+            duration_secs:
+              description: Room composition duration in seconds.
+              example: 67
+              type: integer
+            format:
+              description: Format of the room composition.
+              example: mp4
+              type: string
+            resolution:
+              description: Format of the room composition.
+              example: 1280x720
+              type: string
+            room_id:
+              description: Room ID associated with the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID associated with the room composition.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            size_mb:
+              description: Room composition size in MB.
+              example: 10.5
+              format: float
+              type: number
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Composition Completed
+      type: object
+    CompositionCompletedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CompositionCompleted'
+      title: Composition Completed Event
+      type: object
     Conference:
       example:
         connection_id: 3fa85f64-9191-4567-b3fc-2c963f66afa6
@@ -19687,9 +19786,9 @@ components:
       title: CreateVerifyProfileSMSRequest
       type: object
     CreatedAt:
-      description: ISO 8601 formatted date indicating when the resource was created.
-      example: '2020-02-02T22:25:27.521Z'
-      title: Created At
+      description: ISO 8601 formatted date-time indicating when the resource was created.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     CreatedUserBundlesResponse:
       properties:
@@ -20162,12 +20261,15 @@ components:
           $ref: '#/components/schemas/Cursor'
         next:
           description: Path to next page.
-          example: /v2/recording_transcriptions?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[after]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
         previous:
           description: Path to previous page.
-          example: /v2/recording_transcriptions?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
+          example: /v2/connections/1234567890/active_calls?page[before]=v1:g3QAAAADZAAKdGVsbnl4X2lkc2wAAAABbQAAACRlYmRiYzdkNi1kZWRmLTExZWQtYTM3MS0wMjQyMGFlZjAwYjRqZAAJdGltZXN0YW1wbggA8Le4pGhpVxdkAAR0eXBlZAAFYWZ0ZXI=
           type: string
+        total_items:
+          example: 50
+          type: integer
       title: Cursor Pagination Meta
       type: object
     CustomSipHeader:
@@ -22002,7 +22104,6 @@ components:
           properties:
             parameter:
               description: Indicates which query parameter caused the error.
-              example: '+15617819942'
               type: string
             pointer:
               description: JSON pointer (RFC6901) to the offending entity.
@@ -24764,10 +24865,9 @@ components:
           type: string
       type: object
     Id:
-      description: Identifies the resource.
-      example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+      description: Identifies the type of resource.
+      example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
-      readOnly: true
       type: string
     ImportAssistantsRequest:
       properties:
@@ -27876,27 +27976,26 @@ components:
     Metadata:
       properties:
         page_number:
-          description: Current Page based on pagination settings (included when defaults
-            are used.)
-          example: 3
-          format: double
-          type: number
-        page_size:
-          description: Number of results to return per page based on pagination settings
-            (included when defaults are used.)
           example: 1
-          format: double
-          type: number
+          title: Page Number
+          type: integer
+        page_size:
+          example: 25
+          title: Page Size
+          type: integer
         total_pages:
-          description: Total number of pages based on pagination settings
-          example: 13
-          format: double
-          type: number
+          example: 10
+          title: Total Pages
+          type: integer
         total_results:
-          description: Total number of results
-          example: 13
-          format: double
-          type: number
+          example: 250
+          title: Total Items
+          type: integer
+      required:
+      - page_size
+      - page_number
+      - total_pages
+      - total_results
       title: Metadata
       type: object
     MigrationParams:
@@ -30696,6 +30795,150 @@ components:
       - muted
       - on_hold
       title: Participant
+      type: object
+    ParticipantJoined:
+      example:
+        event_type: video.room.session.started
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          context: Alice
+          participant_id: 5ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.participant.joined
+          example: video.room.participant.joined
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            context:
+              description: Context provided to the given participant through the client
+                SDK
+              example: Alice
+              type: string
+            participant_id:
+              description: Participant ID that identifies the participant that joined.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: Room ID that identifies the room where the participant
+                joined.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID that identifies the session where the participant
+                joined.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Participant Joined
+      type: object
+    ParticipantJoinedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/ParticipantJoined'
+      title: Participant Joined Event
+      type: object
+    ParticipantLeft:
+      example:
+        event_type: video.room.session.started
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          context: Alice
+          duration_secs: 34
+          left_reason: kick
+          participant_id: 5ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.participant.left
+          example: video.room.participant.left
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            context:
+              description: Context provided to the given participant through the client
+                SDK
+              example: Alice
+              type: string
+            duration_secs:
+              description: The duration in seconds of the participant in the session
+              example: 245
+              type: integer
+            left_reason:
+              description: The reason why the participant left
+              example: kicked
+              type: string
+            participant_id:
+              description: Participant ID that identifies the participant that left.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: Room ID that identifies the room where the participant
+                left.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID that identifies the session where the participant
+                left.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Participant Left
+      type: object
+    ParticipantLeftEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/ParticipantLeft'
+      title: Participant Left Event
       type: object
     ParticipantResource:
       example:
@@ -35003,10 +35246,105 @@ components:
           type: string
       type: object
     RecordType:
-      description: Identifies record type.
+      description: Identifies the type of the resource.
       enum:
-      - custom_storage_credentials
+      - event
+      example: event
       type: string
+    RecordingCompleted:
+      example:
+        event_type: video.room.recording.started
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          codec: opus
+          download_url: https://www.example.com
+          duration_secs: 3660
+          participant_id: 5ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          recording_id: 1ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+          size_mb: 5.6
+          type: audio
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.recording.completed
+          example: video.room.recording.completed
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            codec:
+              description: Codec used for the recording.
+              example: opus
+              type: string
+            download_url:
+              description: Url to download the recording.
+              example: https://www.example.com
+              type: string
+            duration_secs:
+              description: Recording duration in seconds.
+              example: 67
+              type: integer
+            participant_id:
+              description: Participant ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            recording_id:
+              description: Recording ID that identifies the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: Room ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            size_mb:
+              description: Recording size in MB.
+              example: 10.5
+              format: float
+              type: number
+            type:
+              description: Type of the recording.
+              enum:
+              - audio
+              - video
+              example: audio
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Recording Completed
+      type: object
+    RecordingCompletedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/RecordingCompleted'
+      title: Recording Completed Event
+      type: object
     RecordingResponse:
       properties:
         data:
@@ -35109,6 +35447,79 @@ components:
       - RecordVerb
       - Trunking
       type: string
+    RecordingStarted:
+      example:
+        event_type: video.room.recording.started
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          participant_id: 5ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          recording_id: 1ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+          type: audio
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.recording.started
+          example: video.room.recording.started
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            participant_id:
+              description: Participant ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            recording_id:
+              description: Recording ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: Room ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID associated with the recording.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            type:
+              description: Type of the recording.
+              enum:
+              - audio
+              - video
+              example: audio
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Recording Started
+      type: object
+    RecordingStartedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/RecordingStarted'
+      title: Recording Started Event
+      type: object
     RecordingStatusCallbackEvent:
       description: 'The changes to the recording''s state that should generate a call
         to `RecoridngStatusCallback`. Can be: `in-progress`, `completed` and `absent`.
@@ -35652,19 +36063,25 @@ components:
           type: string
       type: object
     ResourceNotFoundError:
-      example:
-        errors:
-        - detail: Resource not found
-      properties:
-        errors:
-          items:
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10005'
+            type: string
+          detail:
+            example: The requested resource or URL could not be found.
+            type: string
+          meta:
             properties:
-              detail:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10005
                 type: string
             type: object
-          type: array
-      title: Resource not found
-      type: object
+          title:
+            example: Resource not found
+            type: string
+        type: object
     ResumeConferenceRecordingRequest:
       properties:
         command_id:
@@ -37495,6 +37912,122 @@ components:
       - global
       example: global
       type: string
+    SessionEnded:
+      example:
+        event_type: video.room.session.ended
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          duration_secs: 235
+          ended_reason: stale
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.session.ended
+          example: video.room.session.ended
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            duration_secs:
+              description: The duration in seconds of the session
+              example: 245
+              type: integer
+            ended_reason:
+              description: The reason why the session ended
+              example: stale
+              type: string
+            room_id:
+              description: Room ID that identifies the room where the session ended.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID that identifies the session that ended.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Session Ended
+      type: object
+    SessionEndedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/SessionEnded'
+      title: Session Ended Event
+      type: object
+    SessionStarted:
+      example:
+        event_type: video.room.session.started
+        id: 6b61621f-62e0-4aad-ab11-9fd19e272e73
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          room_id: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+          session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e73
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - video.room.session.started
+          example: video.room.session.started
+          type: string
+        id:
+          description: Uniquely identify the event.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            room_id:
+              description: Room ID that identifies the room where the session started.
+              example: 0ccc7b54-4df3-4bca-a65a-35a1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: Session ID that identifies the session that started.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+          type: object
+        record_type:
+          description: An identifier for the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Session Started
+      type: object
+    SessionStartedEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/SessionStarted'
+      title: Session Started Event
+      type: object
     SettingsDataErrorMessage:
       properties:
         message:
@@ -42551,31 +43084,31 @@ components:
             type: string
         type: object
     UnprocessableEntityError:
-      properties:
-        code:
-          format: int64
-          type: string
-        detail:
-          type: string
-        meta:
-          additionalProperties: true
-          type: object
-        source:
-          properties:
-            parameter:
-              description: Indicates which query parameter caused the error.
-              type: string
-            pointer:
-              description: JSON pointer (RFC6901) to the offending entity.
-              format: json-pointer
-              type: string
-          type: object
-        title:
-          type: string
-      required:
-      - code
-      - title
-      type: object
+      allOf:
+      - $ref: '#/components/schemas/GenericError'
+      - properties:
+          code:
+            example: '10002'
+            type: string
+          detail:
+            example: The phone number is invalid.
+            type: string
+          meta:
+            properties:
+              url:
+                example: https://developers.telnyx.com/docs/overview/errors/10002
+                type: string
+            type: object
+          source:
+            properties:
+              pointer:
+                example: /phone_numbers
+                type: string
+            type: object
+          title:
+            example: Invalid phone number
+            type: string
+        type: object
     UnusedUserBundlesResponse:
       properties:
         data:
@@ -43228,27 +43761,50 @@ components:
       type: object
     UpdateConferenceRequest:
       example:
-        Status: completed
+        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+        command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        supervisor_role: whisper
+        whisper_call_control_ids:
+        - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+        - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
       properties:
-        AnnounceMethod:
-          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
-            `POST`.
+        call_control_id:
+          description: Unique identifier and token for controlling the call
+          example: v2:T02llQxIyaRkhfRKxgAP8nY511EhFLizdvdUKJiSw8d6A9BborherQczRrZvZakpWxBlpw48KyZQ==
+          type: string
+        command_id:
+          description: Use this field to avoid execution of duplicate commands. Telnyx
+            will ignore subsequent commands with the same `command_id` as one that
+            has already been executed.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        supervisor_role:
+          description: Sets the participant as a supervisor for the conference. A
+            conference can have multiple supervisors. "barge" means the supervisor
+            enters the conference as a normal participant. This is the same as "none".
+            "monitor" means the supervisor is muted but can hear all participants.
+            "whisper" means that only the specified "whisper_call_control_ids" can
+            hear the supervisor. Defaults to "none".
           enum:
-          - GET
-          - POST
-          example: GET
+          - barge
+          - monitor
+          - none
+          - whisper
+          example: whisper
           type: string
-        AnnounceUrl:
-          description: The URL we should call to announce something into the conference.
-            The URL may return an MP3 file, a WAV file, or a TwiML document that contains
-            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
-          example: https://www.example.com/announce.xml
-          type: string
-        Status:
-          description: The new status of the resource. Specifying `completed` will
-            end the conference and hang up all participants.
-          example: completed
-          type: string
+        whisper_call_control_ids:
+          description: Array of unique call_control_ids the supervisor can whisper
+            to. If none provided, the supervisor will join the conference as a monitoring
+            participant only.
+          example:
+          - v2:Sg1xxxQ_U3ixxxyXT_VDNI3xxxazZdg6Vxxxs4-GNYxxxVaJPOhFMRQ
+          - v2:qqpb0mmvd-ovhhBr0BUQQn0fld5jIboaaX3-De0DkqXHzbf8d75xkw
+          items:
+            type: string
+          type: array
+      required:
+      - call_control_id
+      - supervisor_role
       title: Update Conference Request
       type: object
     UpdateConversationRequest:
@@ -44695,9 +45251,9 @@ components:
       title: UpdateVerifyProfileSMSRequest
       type: object
     UpdatedAt:
-      description: ISO 8601 formatted date indicating when the resource was updated.
-      example: '2020-02-03T22:25:27.521Z'
-      title: Updated At
+      description: ISO 8601 formatted date-time indicating when the resource was updated.
+      example: '2018-02-02T22:25:27.521Z'
+      readOnly: true
       type: string
     UplinkData:
       properties:
@@ -68659,49 +69215,52 @@ paths:
       description: ''
       operationId: ListRoomCompositions
       parameters:
-      - description: ISO 8601 date for filtering room compositions created on that
-          date.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_created_at][eq], filter[date_created_at][gte], filter[date_created_at][lte],
+          filter[session_id], filter[status]'
+        explode: true
         in: query
-        name: filter[date_created_at][eq]
+        name: filter
+        required: false
         schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room compositions created after that
-          date.
-        in: query
-        name: filter[date_created_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room compositions created before
-          that date.
-        in: query
-        name: filter[date_created_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: The session_id for filtering room compositions.
-        in: query
-        name: filter[session_id]
-        schema:
-          example: 92e7d459-bcc5-4386-9f5f-6dd14a82588d
-          format: uuid
-          type: string
-      - description: The status for filtering room compositions.
-        in: query
-        name: filter[status]
-        schema:
-          enum:
-          - completed
-          - processing
-          - enqueued
-          example: completed
-          type: string
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+          properties:
+            date_created_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room compositions created
+                    on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room compositions created
+                    on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room compositions created
+                    on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            session_id:
+              description: The session_id for filtering room compositions.
+              example: 92e7d459-bcc5-4386-9f5f-6dd14a82588d
+              format: uuid
+              type: string
+            status:
+              description: The status for filtering room compositions.
+              enum:
+              - completed
+              - processing
+              - enqueued
+              example: completed
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomCompositionsResponse'
@@ -68779,92 +69338,91 @@ paths:
       description: ''
       operationId: ListRoomParticipants
       parameters:
-      - description: ISO 8601 date for filtering room participants that joined on
-          that date.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_joined_at][eq], filter[date_joined_at][gte], filter[date_joined_at][lte],
+          filter[date_updated_at][eq], filter[date_updated_at][gte], filter[date_updated_at][lte],
+          filter[date_left_at][eq], filter[date_left_at][gte], filter[date_left_at][lte],
+          filter[context], filter[session_id]'
+        explode: true
         in: query
-        name: filter[date_joined_at][eq]
+        name: filter
+        required: false
         schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that joined after
-          that date.
-        in: query
-        name: filter[date_joined_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that joined before
-          that date.
-        in: query
-        name: filter[date_joined_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated on that
-          date.
-        in: query
-        name: filter[date_updated_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated after that
-          date.
-        in: query
-        name: filter[date_updated_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated before
-          that date.
-        in: query
-        name: filter[date_updated_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left on that
-          date.
-        in: query
-        name: filter[date_left_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left after
-          that date.
-        in: query
-        name: filter[date_left_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left before
-          that date.
-        in: query
-        name: filter[date_left_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: Filter room participants based on the context.
-        in: query
-        name: filter[context]
-        schema:
-          example: Alice
-          type: string
-      - description: Session_id for filtering room participants.
-        in: query
-        name: filter[session_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          type: string
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+          properties:
+            context:
+              description: Filter room participants based on the context.
+              example: Alice
+              type: string
+            date_joined_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_left_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants that
+                    left on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants that
+                    left on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants that
+                    left on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_updated_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants updated
+                    on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants updated
+                    on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants updated
+                    on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            session_id:
+              description: Session_id for filtering room participants.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomParticipantsResponse'
@@ -68900,105 +69458,89 @@ paths:
       description: ''
       operationId: DeleteRoomRecordings
       parameters:
-      - description: ISO 8601 date for filtering room recordings ended on that date.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_ended_at][eq], filter[date_ended_at][gte], filter[date_ended_at][lte],
+          filter[date_started_at][eq], filter[date_started_at][gte], filter[date_started_at][lte],
+          filter[room_id], filter[participant_id], filter[session_id], filter[status],
+          filter[type], filter[duration_secs]'
+        explode: true
         in: query
-        name: filter[date_ended_at][eq]
+        name: filter
+        required: false
         schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings ended after that
-          date.
-        in: query
-        name: filter[date_ended_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings ended before that
-          date.
-        in: query
-        name: filter[date_ended_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started on that date.
-        in: query
-        name: filter[date_started_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started after that
-          date.
-        in: query
-        name: filter[date_started_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started before that
-          date.
-        in: query
-        name: filter[date_started_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: room_id for filtering room recordings.
-        in: query
-        name: filter[room_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: participant_id for filtering room recordings.
-        in: query
-        name: filter[participant_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: session_id for filtering room recordings.
-        in: query
-        name: filter[session_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: status for filtering room recordings.
-        in: query
-        name: filter[status]
-        schema:
-          example: completed
-          type: string
-      - description: type for filtering room recordings.
-        in: query
-        name: filter[type]
-        schema:
-          example: audio
-          type: string
-      - description: duration_secs equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][eq]
-        schema:
-          example: 20
-          type: integer
-      - description: duration_secs less or equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][lte]
-        schema:
-          example: 20
-          type: integer
-      - description: duration_secs greater or equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][gte]
-        schema:
-          example: 20
-          type: integer
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+          properties:
+            date_ended_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_started_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room recordings started
+                    on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room recordings started
+                    on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room recordings started
+                    on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            duration_secs:
+              description: duration_secs greater or equal for filtering room recordings.
+              example: 20
+              type: integer
+            participant_id:
+              description: participant_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: room_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: session_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            status:
+              description: status for filtering room recordings.
+              example: completed
+              type: string
+            type:
+              description: type for filtering room recordings.
+              example: audio
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '201':
           $ref: '#/components/responses/BulkDeleteRoomRecordingsResponse'
@@ -69013,105 +69555,89 @@ paths:
       description: ''
       operationId: ListRoomRecordings
       parameters:
-      - description: ISO 8601 date for filtering room recordings ended on that date.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_ended_at][eq], filter[date_ended_at][gte], filter[date_ended_at][lte],
+          filter[date_started_at][eq], filter[date_started_at][gte], filter[date_started_at][lte],
+          filter[room_id], filter[participant_id], filter[session_id], filter[status],
+          filter[type], filter[duration_secs]'
+        explode: true
         in: query
-        name: filter[date_ended_at][eq]
+        name: filter
+        required: false
         schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings ended after that
-          date.
-        in: query
-        name: filter[date_ended_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings ended before that
-          date.
-        in: query
-        name: filter[date_ended_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started on that date.
-        in: query
-        name: filter[date_started_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started after that
-          date.
-        in: query
-        name: filter[date_started_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room recordings started before that
-          date.
-        in: query
-        name: filter[date_started_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: room_id for filtering room recordings.
-        in: query
-        name: filter[room_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: participant_id for filtering room recordings.
-        in: query
-        name: filter[participant_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: session_id for filtering room recordings.
-        in: query
-        name: filter[session_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-      - description: status for filtering room recordings.
-        in: query
-        name: filter[status]
-        schema:
-          example: completed
-          type: string
-      - description: type for filtering room recordings.
-        in: query
-        name: filter[type]
-        schema:
-          example: audio
-          type: string
-      - description: duration_secs equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][eq]
-        schema:
-          example: 20
-          type: integer
-      - description: duration_secs less or equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][lte]
-        schema:
-          example: 20
-          type: integer
-      - description: duration_secs greater or equal for filtering room recordings.
-        in: query
-        name: filter[duration_secs][gte]
-        schema:
-          example: 20
-          type: integer
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+          properties:
+            date_ended_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room recordings ended on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_started_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room recordings started
+                    on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room recordings started
+                    on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room recordings started
+                    on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            duration_secs:
+              description: duration_secs greater or equal for filtering room recordings.
+              example: 20
+              type: integer
+            participant_id:
+              description: participant_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            room_id:
+              description: room_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            session_id:
+              description: session_id for filtering room recordings.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              format: uuid
+              type: string
+            status:
+              description: status for filtering room recordings.
+              example: completed
+              type: string
+            type:
+              description: type for filtering room recordings.
+              example: audio
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomRecordingsResponse'
@@ -69169,93 +69695,97 @@ paths:
       description: ''
       operationId: ListRoomSessions
       parameters:
-      - description: ISO 8601 date for filtering room sessions created on that date.
-        in: query
-        name: filter[date_created_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions created after that
-          date.
-        in: query
-        name: filter[date_created_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions created before that
-          date.
-        in: query
-        name: filter[date_created_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated on that date.
-        in: query
-        name: filter[date_updated_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated after that
-          date.
-        in: query
-        name: filter[date_updated_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated before that
-          date.
-        in: query
-        name: filter[date_updated_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended on that date.
-        in: query
-        name: filter[date_ended_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended after that date.
-        in: query
-        name: filter[date_ended_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended before that date.
-        in: query
-        name: filter[date_ended_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: Room_id for filtering room sessions.
-        in: query
-        name: filter[room_id]
-        schema:
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          type: string
-      - description: Filter active or inactive room sessions.
-        in: query
-        name: filter[active]
-        schema:
-          example: true
-          type: boolean
       - description: To decide if room participants should be included in the response.
         in: query
         name: include_participants
         schema:
           example: true
           type: boolean
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_created_at][eq], filter[date_created_at][gte], filter[date_created_at][lte],
+          filter[date_updated_at][eq], filter[date_updated_at][gte], filter[date_updated_at][lte],
+          filter[date_ended_at][eq], filter[date_ended_at][gte], filter[date_ended_at][lte],
+          filter[room_id], filter[active]'
+        explode: true
+        in: query
+        name: filter
+        required: false
+        schema:
+          properties:
+            active:
+              description: Filter active or inactive room sessions.
+              example: true
+              type: boolean
+            date_created_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions created on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions created on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions created on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_ended_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_updated_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            room_id:
+              description: Room_id for filtering room sessions.
+              example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomSessionsResponse'
@@ -69415,86 +69945,87 @@ paths:
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
-      - description: ISO 8601 date for filtering room participants that joined on
-          that date.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_joined_at][eq], filter[date_joined_at][gte], filter[date_joined_at][lte],
+          filter[date_updated_at][eq], filter[date_updated_at][gte], filter[date_updated_at][lte],
+          filter[date_left_at][eq], filter[date_left_at][gte], filter[date_left_at][lte],
+          filter[context]'
+        explode: true
         in: query
-        name: filter[date_joined_at][eq]
+        name: filter
+        required: false
         schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that joined after
-          that date.
-        in: query
-        name: filter[date_joined_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that joined before
-          that date.
-        in: query
-        name: filter[date_joined_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated on that
-          date.
-        in: query
-        name: filter[date_updated_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated after that
-          date.
-        in: query
-        name: filter[date_updated_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants updated before
-          that date.
-        in: query
-        name: filter[date_updated_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left on that
-          date.
-        in: query
-        name: filter[date_left_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left after
-          that date.
-        in: query
-        name: filter[date_left_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room participants that left before
-          that date.
-        in: query
-        name: filter[date_left_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: Filter room participants based on the context.
-        in: query
-        name: filter[context]
-        schema:
-          example: Alice
-          type: string
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+          properties:
+            context:
+              description: Filter room participants based on the context.
+              example: Alice
+              type: string
+            date_joined_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants that
+                    joined on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_left_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants that
+                    left on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants that
+                    left on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants that
+                    left on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_updated_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room participants updated
+                    on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room participants updated
+                    on or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room participants updated
+                    on or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomParticipantsResponse'
@@ -69508,62 +70039,69 @@ paths:
       description: ''
       operationId: ListRooms
       parameters:
-      - description: ISO 8601 date for filtering rooms created on that date.
-        in: query
-        name: filter[date_created_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering rooms created after that date.
-        in: query
-        name: filter[date_created_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering rooms created before that date.
-        in: query
-        name: filter[date_created_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering rooms updated on that date.
-        in: query
-        name: filter[date_updated_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering rooms updated after that date.
-        in: query
-        name: filter[date_updated_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering rooms updated before that date.
-        in: query
-        name: filter[date_updated_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: Unique_name for filtering rooms.
-        in: query
-        name: filter[unique_name]
-        schema:
-          example: my_video_room
-          type: string
       - description: To decide if room sessions should be included in the response.
         in: query
         name: include_sessions
         schema:
           example: true
           type: boolean
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_created_at][eq], filter[date_created_at][gte], filter[date_created_at][lte],
+          filter[date_updated_at][eq], filter[date_updated_at][gte], filter[date_updated_at][lte],
+          filter[unique_name]'
+        explode: true
+        in: query
+        name: filter
+        required: false
+        schema:
+          properties:
+            date_created_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering rooms created on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering rooms created on or after
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering rooms created on or before
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_updated_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering rooms updated on that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering rooms updated on or after
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering rooms updated on or before
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            unique_name:
+              description: Unique_name for filtering rooms.
+              example: my_video_room
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomsResponse'
@@ -69755,87 +70293,93 @@ paths:
           example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
           format: uuid
           type: string
-      - description: ISO 8601 date for filtering room sessions created on that date.
-        in: query
-        name: filter[date_created_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions created after that
-          date.
-        in: query
-        name: filter[date_created_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions created before that
-          date.
-        in: query
-        name: filter[date_created_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated on that date.
-        in: query
-        name: filter[date_updated_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated after that
-          date.
-        in: query
-        name: filter[date_updated_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions updated before that
-          date.
-        in: query
-        name: filter[date_updated_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended on that date.
-        in: query
-        name: filter[date_ended_at][eq]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended after that date.
-        in: query
-        name: filter[date_ended_at][gte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: ISO 8601 date for filtering room sessions ended before that date.
-        in: query
-        name: filter[date_ended_at][lte]
-        schema:
-          example: '2021-04-25'
-          format: date
-          type: string
-      - description: Filter active or inactive room sessions.
-        in: query
-        name: filter[active]
-        schema:
-          example: true
-          type: boolean
       - description: To decide if room participants should be included in the response.
         in: query
         name: include_participants
         schema:
           example: true
           type: boolean
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/PageNumber'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[date_created_at][eq], filter[date_created_at][gte], filter[date_created_at][lte],
+          filter[date_updated_at][eq], filter[date_updated_at][gte], filter[date_updated_at][lte],
+          filter[date_ended_at][eq], filter[date_ended_at][gte], filter[date_ended_at][lte],
+          filter[active]'
+        explode: true
+        in: query
+        name: filter
+        required: false
+        schema:
+          properties:
+            active:
+              description: Filter active or inactive room sessions.
+              example: true
+              type: boolean
+            date_created_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions created on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions created on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions created on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_ended_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions ended on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+            date_updated_at:
+              properties:
+                eq:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                gte:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    or after that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+                lte:
+                  description: ISO 8601 date for filtering room sessions updated on
+                    or before that date.
+                  example: '2021-04-25'
+                  format: date
+                  type: string
+              type: object
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListRoomSessionsResponse'
