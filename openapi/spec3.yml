@@ -19436,6 +19436,7 @@ components:
               - phone_number
               - verification_code_id
               - type
+              title: VerificationCodeSuccess
               type: object
             - description: Failed verification code creation response
               properties:
@@ -19451,6 +19452,7 @@ components:
               required:
               - phone_number
               - error
+              title: VerificationCodeError
               type: object
           type: array
       required:
@@ -60642,8 +60644,7 @@ paths:
     get:
       operationId: ListMessagingHostedNumberOrders
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingHostedNumberOrdersResponse'
@@ -60893,33 +60894,6 @@ paths:
       description: Retrieve a list of opt-out blocks.
       operationId: ListOptOuts
       parameters:
-      - description: The ID of the messaging profile to retrieve opt-outs for
-        in: query
-        name: filter[messaging_profile_id]
-        required: false
-        schema:
-          type: string
-      - description: Filter opt-outs created after this date (ISO-8601 format)
-        in: query
-        name: created_at[gte]
-        required: false
-        schema:
-          format: date-time
-          type: string
-      - description: The sending address (+E.164 formatted phone number, alphanumeric
-          sender ID, or short code) to retrieve opt-outs for
-        in: query
-        name: filter[from]
-        required: false
-        schema:
-          type: string
-      - description: Filter opt-outs created before this date (ISO-8601 format)
-        in: query
-        name: created_at[lte]
-        required: false
-        schema:
-          format: date-time
-          type: string
       - description: If receiving address (+E.164 formatted phone number) should be
           redacted
         example: +447766****
@@ -60929,8 +60903,40 @@ paths:
         schema:
           format: boolean
           type: string
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[messaging_profile_id], filter[from]'
+        explode: true
+        in: query
+        name: filter
+        schema:
+          properties:
+            from:
+              description: The sending address (+E.164 formatted phone number, alphanumeric
+                sender ID, or short code) to retrieve opt-outs for
+              type: string
+            messaging_profile_id:
+              description: The ID of the messaging profile to retrieve opt-outs for
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated created_at parameter (deepObject style). Originally:
+          created_at[gte], created_at[lte]'
+        explode: true
+        in: query
+        name: created_at
+        schema:
+          properties:
+            gte:
+              description: Filter opt-outs created after this date (ISO-8601 format)
+              format: date-time
+              type: string
+            lte:
+              description: Filter opt-outs created before this date (ISO-8601 format)
+              format: date-time
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           content:
@@ -60958,14 +60964,19 @@ paths:
     get:
       operationId: ListMessagingProfiles
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: Filter by name
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[name]'
+        explode: true
         in: query
-        name: filter[name]
-        required: false
+        name: filter
         schema:
-          type: string
+          properties:
+            name:
+              description: Filter by name
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfilesResponse'
@@ -61090,9 +61101,8 @@ paths:
     get:
       operationId: ListProfilePhoneNumbers
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
       - $ref: '#/components/parameters/MessagingProfileId'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfilePhoneNumbersResponse'
@@ -61107,9 +61117,8 @@ paths:
     get:
       operationId: ListProfileShortCodes
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
       - $ref: '#/components/parameters/MessagingProfileId'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfileShortCodesResponse'
@@ -61137,30 +61146,36 @@ paths:
         schema:
           title: Country Code
           type: string
-      - in: query
-        name: created_at[gte]
-        required: false
+      - description: 'Consolidated created_at parameter (deepObject style). Originally:
+          created_at[gte], created_at[lte]'
+        explode: true
+        in: query
+        name: created_at
         schema:
-          title: Created At[Gte]
-          type: string
-      - in: query
-        name: created_at[lte]
-        required: false
+          properties:
+            gte:
+              title: Created At[Gte]
+              type: string
+            lte:
+              title: Created At[Lte]
+              type: string
+          type: object
+        style: deepObject
+      - description: 'Consolidated updated_at parameter (deepObject style). Originally:
+          updated_at[gte], updated_at[lte]'
+        explode: true
+        in: query
+        name: updated_at
         schema:
-          title: Created At[Lte]
-          type: string
-      - in: query
-        name: updated_at[gte]
-        required: false
-        schema:
-          title: Updated At[Gte]
-          type: string
-      - in: query
-        name: updated_at[lte]
-        required: false
-        schema:
-          title: Updated At[Lte]
-          type: string
+          properties:
+            gte:
+              title: Updated At[Gte]
+              type: string
+            lte:
+              title: Updated At[Lte]
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           content:
@@ -61541,8 +61556,7 @@ paths:
     get:
       operationId: ListMessagingUrlDomains
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingUrlDomains'
@@ -64538,8 +64552,7 @@ paths:
     get:
       operationId: ListPhoneNumbersWithMessagingSettings
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListPhoneNumbersWithMessagingSettingsResponse'
@@ -67224,8 +67237,7 @@ paths:
   /rcs_agents:
     get:
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           content:
@@ -69579,15 +69591,21 @@ paths:
     get:
       operationId: ListShortCodes
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: Filter by Messaging Profile ID. Use the string `null` for phone
-          numbers without assigned profiles. A synonym for the `/messaging_profiles/{id}/short_codes`
-          endpoint when querying about an extant profile.
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[messaging_profile_id]'
+        explode: true
         in: query
-        name: filter[messaging_profile_id]
+        name: filter
         schema:
-          type: string
+          properties:
+            messaging_profile_id:
+              description: Filter by Messaging Profile ID. Use the string `null` for
+                phone numbers without assigned profiles. A synonym for the `/messaging_profiles/{id}/short_codes`
+                endpoint when querying about an extant profile.
+              type: string
+          type: object
+        style: deepObject
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListShortCodesResponse'
