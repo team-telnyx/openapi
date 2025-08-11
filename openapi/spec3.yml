@@ -324,100 +324,6 @@ components:
         example: 47a1c2b0-cc7b-4ab1-bb98-b33fb0fc61b9
         format: uuid
         type: string
-    FilterByPhoneNumber:
-      description: Filter results by phone number
-      in: query
-      name: filter[phone_number]
-      schema:
-        example: '+12003151212'
-        type: string
-    FilterByPhoneNumberIn:
-      description: Filter results by a list of phone numbers
-      in: query
-      name: filter[phone_number][in][]
-      schema:
-        items:
-          example: '+12003151212'
-          type: string
-        type: array
-    FilterByPortabilityStatus:
-      description: Filter results by portability status
-      in: query
-      name: filter[portability_status]
-      schema:
-        $ref: '#/components/schemas/PortabilityStatus'
-    FilterByPortingOrderActivationStatus:
-      description: Filter results by activation status
-      in: query
-      name: filter[activation_status]
-      schema:
-        $ref: '#/components/schemas/PortingOrderActivationStatus'
-    FilterByPortingOrderID:
-      description: Filter results by porting order id
-      in: query
-      name: filter[porting_order_id]
-      schema:
-        example: f3575e15-32ce-400e-a4c0-dd78800c20b0
-        format: uuid
-        type: string
-    FilterByPortingOrderIdIn:
-      description: Filter results by a list of porting order ids
-      in: query
-      name: filter[porting_order_id][in][]
-      schema:
-        items:
-          example: f3575e15-32ce-400e-a4c0-dd78800c20b0
-          format: uuid
-          type: string
-        type: array
-    FilterByPortingOrderStatus:
-      description: Filter results by status
-      in: query
-      name: filter[status]
-      schema:
-        enum:
-        - draft
-        - in-process
-        - submitted
-        - exception
-        - foc-date-confirmed
-        - cancel-pending
-        - ported
-        - cancelled
-        example: in-process
-        type: string
-    FilterByPortingOrderStatusIn:
-      description: Filter porting orders by multiple statuses
-      in: query
-      name: filter[status][in][]
-      schema:
-        enum:
-        - draft
-        - in-process
-        - submitted
-        - exception
-        - foc-date-confirmed
-        - cancel-pending
-        - ported
-        - cancelled
-        example: in-process
-        type: string
-    FilterBySupportKeyEq:
-      description: Filter results by support key
-      in: query
-      name: filter[support_key][eq]
-      schema:
-        example: sr_a12345
-        type: string
-    FilterBySupportKeyIn:
-      description: Filter results by a list of support keys
-      in: query
-      name: filter[support_key][in][]
-      schema:
-        items:
-          example: sr_a12345
-          type: string
-        type: array
     FilterCivicAddressesConsolidated:
       description: Filter parameter for civic addresses (deepObject style). Supports
         filtering by country.
@@ -492,26 +398,76 @@ components:
       style: deepObject
     FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
-        filter[application_name][contains], filter[outbound_voice_profile_id]'
+        filter[porting_order_id], filter[support_key], filter[status], filter[phone_number],
+        filter[activation_status], filter[portability_status]'
       explode: true
       in: query
       name: filter
       schema:
         properties:
-          application_name:
-            description: Application name filtering operations
-            properties:
-              contains:
-                description: If present, applications with <code>application_name</code>
-                  containing the given value will be returned. Matching is not case-sensitive.
-                  Requires at least three characters.
-                example: fax-app
+          activation_status:
+            $ref: '#/components/schemas/PortingOrderActivationStatus'
+            description: Filter results by activation status
+          phone_number:
+            description: Filter results by a list of phone numbers
+            items:
+              example: '+12003151212'
+              type: string
+            type: array
+          portability_status:
+            $ref: '#/components/schemas/PortabilityStatus'
+            description: Filter results by portability status
+          porting_order_id:
+            description: Filter results by a list of porting order ids
+            items:
+              example: f3575e15-32ce-400e-a4c0-dd78800c20b0
+              format: uuid
+              type: string
+            type: array
+          status:
+            description: 'Filter porting orders by status(es). Originally: filter[status],
+              filter[status][in][]'
+            oneOf:
+            - description: Filter by single status
+              enum:
+              - draft
+              - in-process
+              - submitted
+              - exception
+              - foc-date-confirmed
+              - cancel-pending
+              - ported
+              - cancelled
+              example: in-process
+              type: string
+            - description: Filter by multiple statuses (in operation)
+              example:
+              - in-process
+              - submitted
+              items:
+                enum:
+                - draft
+                - in-process
+                - submitted
+                - exception
+                - foc-date-confirmed
+                - cancel-pending
+                - ported
+                - cancelled
                 type: string
-            type: object
-          outbound_voice_profile_id:
-            description: Identifies the associated outbound voice profile.
-            example: '1293384261075731499'
-            type: string
+              type: array
+          support_key:
+            description: 'Filter results by support key(s). Originally: filter[support_key][eq],
+              filter[support_key][in][]'
+            oneOf:
+            - description: Filter by exact support key match (eq operation)
+              example: sr_a12345
+              type: string
+            - description: Filter by multiple support keys (in operation)
+              items:
+                example: sr_a12345
+                type: string
+              type: array
         type: object
       style: deepObject
     FilterCostByAmount:
@@ -1697,6 +1653,39 @@ components:
             type: object
       description: A list of additional document parameters
       required: true
+    CreatePortingAssociatedPhoneNumber:
+      content:
+        application/json:
+          schema:
+            properties:
+              action:
+                description: Specifies the action to take with this phone number during
+                  partial porting.
+                enum:
+                - keep
+                - disconnect
+                example: keep
+                type: string
+              phone_number_range:
+                properties:
+                  end_at:
+                    description: Specifies the end of the phone number range for this
+                      associated phone number.
+                    example: '+441234567899'
+                    pattern: ^\+\d{7,15}$
+                    type: string
+                  start_at:
+                    description: Specifies the start of the phone number range for
+                      this associated phone number.
+                    example: '+441234567890'
+                    pattern: ^\+\d{7,15}$
+                    type: string
+                type: object
+            required:
+            - phone_number_range
+            - action
+            type: object
+      required: true
     CreatePortingLOAConfiguration:
       content:
         application/json:
@@ -1972,6 +1961,19 @@ components:
             $ref: '#/components/schemas/DialogflowConnection'
       description: The params expected to create/update a Dialogflow Connection for
         given connection_id.
+      required: true
+    InitiatePortingActionRequirement:
+      content:
+        application/json:
+          schema:
+            properties:
+              params:
+                oneOf:
+                - $ref: '#/components/schemas/AUIdVerificationParams'
+            required:
+            - params
+            type: object
+      description: Parameters for initiating the action requirement
       required: true
     SendPortingVerificationCodes:
       content:
@@ -4416,6 +4418,19 @@ components:
             title: List Phone Numbers With Voice Settings Response
             type: object
       description: Successful response with a list of phone numbers with voice settings.
+    ListPortingActionRequirements:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingActionRequirement'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
     ListPortingAdditionalDocuments:
       content:
         application/json:
@@ -4438,6 +4453,19 @@ components:
               data:
                 items:
                   $ref: '#/components/schemas/PortingAdditionalDocument'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    ListPortingAssociatedPhoneNumbers:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingAssociatedPhoneNumber'
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
@@ -4601,6 +4629,17 @@ components:
                 type: array
               meta:
                 $ref: '#/components/schemas/PaginationMeta'
+            type: object
+      description: Successful response
+    ListPortingUKCarriersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/PortingUKCarrier'
+                type: array
             type: object
       description: Successful response
     ListPortingVerificationCodes:
@@ -5581,6 +5620,24 @@ components:
                 $ref: '#/components/schemas/CustomerServiceRecord'
             type: object
       description: Successful Response
+    ShowPortingActionRequirement:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingActionRequirement'
+            type: object
+      description: Successful response
+    ShowPortingAssociatedPhoneNumber:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/PortingAssociatedPhoneNumber'
+            type: object
+      description: Successful response
     ShowPortingEventResponse:
       content:
         application/json:
@@ -6418,6 +6475,24 @@ components:
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
       title: AI Assistant Stop Request
+      type: object
+    AUIdVerificationParams:
+      description: Required information for initiating the action requirement for
+        AU ID verification.
+      properties:
+        first_name:
+          description: The first name of the person that will perform the verification
+            flow.
+          example: John
+          type: string
+        last_name:
+          description: The last name of the person that will perform the verification
+            flow.
+          example: Doe
+          type: string
+      required:
+      - first_name
+      - last_name
       type: object
     AWSVoiceSettings:
       properties: {}
@@ -32341,6 +32416,64 @@ components:
       - provisional
       example: confirmed
       type: string
+    PortingActionRequirement:
+      properties:
+        action_type:
+          description: The type of action required
+          example: document_upload
+          type: string
+        action_url:
+          description: Optional URL for the action
+          example: https://example.com/action
+          nullable: true
+          type: string
+        cancel_reason:
+          description: Reason for cancellation if status is 'cancelled'
+          example: null
+          nullable: true
+          type: string
+        created_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            created
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+        id:
+          description: Identifies the action requirement
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          type: string
+        porting_order_id:
+          description: The ID of the porting order this action requirement belongs
+            to
+          example: 12ade33a-21c0-473b-b055-b3c836e1c292
+          type: string
+        record_type:
+          description: Identifies the type of the resource
+          enum:
+          - porting_action_requirement
+          example: porting_action_requirement
+          type: string
+        requirement_type_id:
+          description: The ID of the requirement type
+          example: 53970723-fbff-4f46-a975-f62be6c1a585
+          type: string
+        status:
+          description: Current status of the action requirement
+          enum:
+          - created
+          - pending
+          - completed
+          - cancelled
+          - failed
+          example: created
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date-time indicating when the resource was
+            updated
+          example: '2018-02-02T22:25:27.521Z'
+          format: date-time
+          type: string
+      type: object
     PortingAdditionalDocument:
       properties:
         content_type:
@@ -32389,6 +32522,79 @@ components:
           description: ISO 8601 formatted date indicating when the resource was updated.
           example: '2021-03-19T10:07:15.527000Z'
           format: date-time
+          type: string
+      type: object
+    PortingAssociatedPhoneNumber:
+      properties:
+        action:
+          description: Specifies the action to take with this phone number during
+            partial porting.
+          enum:
+          - keep
+          - disconnect
+          example: keep
+          type: string
+        country_code:
+          description: Specifies the country code for this associated phone number.
+            It is a two-letter ISO 3166-1 alpha-2 country code.
+          example: GB
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          description: Uniquely identifies this associated phone number.
+          example: f24151b6-3389-41d3-8747-7dd8c681e5e2
+          format: uuid
+          readOnly: true
+          type: string
+        phone_number_range:
+          description: Specifies the phone number range for this associated phone
+            number.
+          properties:
+            end_at:
+              description: Specifies the end of the phone number range for this associated
+                phone number.
+              example: '+441234567899'
+              pattern: ^\+\d{7,15}$
+              type: string
+            start_at:
+              description: Specifies the start of the phone number range for this
+                associated phone number.
+              example: '+441234567890'
+              pattern: ^\+\d{7,15}$
+              type: string
+          type: object
+        phone_number_type:
+          description: Specifies the phone number type for this associated phone number.
+          enum:
+          - landline
+          - local
+          - mobile
+          - national
+          - shared_cost
+          - toll_free
+          example: local
+          type: string
+        porting_order_id:
+          description: Identifies the porting order associated with this phone number.
+          example: a24151b6-3389-41d3-8747-7dd8c681e5e2
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_associated_phone_number
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was last
+            updated.
+          example: '2021-03-19T10:07:15.527Z'
+          format: date-time
+          readOnly: true
           type: string
       type: object
     PortingEvent:
@@ -32552,6 +32758,15 @@ components:
       properties:
         activation_settings:
           $ref: '#/components/schemas/PortingOrderActivationSettings'
+        additional_steps:
+          description: For specific porting orders, we may require additional steps
+            to be taken before submitting the porting order.
+          items:
+            enum:
+            - associated_phone_numbers
+            - phone_number_verification_codes
+            type: string
+          type: array
         created_at:
           description: ISO 8601 formatted date indicating when the resource was created.
           example: '2021-03-19T10:07:15.527Z'
@@ -33128,15 +33343,6 @@ components:
           description: Identifies the type of the resource.
           example: porting_comment
           type: string
-        user_email:
-          description: The email address of the user who created this comment
-          example: user@example.com
-          type: string
-        user_id:
-          description: The ID of the user who created this comment
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
-          format: uuid
-          type: string
         user_type:
           description: Indicates whether this comment was created by a Telnyx Admin,
             user, or system
@@ -33457,6 +33663,44 @@ components:
           - pending
           - completed
           example: completed
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+      type: object
+    PortingUKCarrier:
+      properties:
+        alternative_cupids:
+          description: Alternative CUPIDs of the carrier.
+          items:
+            description: An alternative CUPID of the carrier.
+            example: '895'
+            type: string
+          type: array
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+        cupid:
+          description: The CUPID of the carrier. This is a 3 digit number code that
+            identifies the carrier in the UK.
+          example: '895'
+          type: string
+        id:
+          description: Identifies the UK carrier.
+          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+          format: uuid
+          type: string
+        name:
+          description: The name of the carrier.
+          example: Telnyx UK Limited
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: porting_uk_carrier
           type: string
         updated_at:
           description: ISO 8601 formatted date indicating when the resource was updated.
@@ -65174,43 +65418,47 @@ paths:
       description: Returns a list of all porting events.
       operationId: listPortingEvents
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: Filter by event type.
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[type], filter[porting_order_id], filter[created_at][gte], filter[created_at][lte]'
+        explode: true
         in: query
-        name: filter[type]
+        name: filter
         schema:
-          enum:
-          - porting_order.deleted
-          - porting_order.loa_updated
-          - porting_order.messaging_changed
-          - porting_order.status_changed
-          - porting_order.sharing_token_expired
-          - porting_order.new_comment
-          - porting_order.split
-          example: porting_order.deleted
-          type: string
-      - description: Filter by porting order ID.
-        in: query
-        name: filter[porting_order_id]
-        schema:
-          example: 34dc46a9-53ed-4e01-9454-26227ea13326
-          format: uuid
-          type: string
-      - description: Filter by created at greater than or equal to.
-        in: query
-        name: filter[created_at][gte]
-        schema:
-          example: '2021-01-01T00:00:00Z'
-          format: date-time
-          type: string
-      - description: Filter by created at less than or equal to.
-        in: query
-        name: filter[created_at][lte]
-        schema:
-          example: '2021-01-01T00:00:00Z'
-          format: date-time
-          type: string
+          properties:
+            created_at:
+              description: Created at date range filtering operations
+              properties:
+                gte:
+                  description: Filter by created at greater than or equal to.
+                  example: '2021-01-01T00:00:00Z'
+                  format: date-time
+                  type: string
+                lte:
+                  description: Filter by created at less than or equal to.
+                  example: '2021-01-01T00:00:00Z'
+                  format: date-time
+                  type: string
+              type: object
+            porting_order_id:
+              description: Filter by porting order ID.
+              example: 34dc46a9-53ed-4e01-9454-26227ea13326
+              format: uuid
+              type: string
+            type:
+              description: Filter by event type.
+              enum:
+              - porting_order.deleted
+              - porting_order.loa_updated
+              - porting_order.messaging_changed
+              - porting_order.status_changed
+              - porting_order.sharing_token_expired
+              - porting_order.new_comment
+              - porting_order.split
+              example: porting_order.deleted
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingEventsResponse'
@@ -65289,8 +65537,7 @@ paths:
       description: List the LOA configurations.
       operationId: ListLoaConfigurations
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListPortingLOAConfigurations'
@@ -65417,25 +65664,29 @@ paths:
       description: List the reports generated about porting operations.
       operationId: ListPortingReports
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: Filter reports of a specific type
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[report_type], filter[status]'
+        explode: true
         in: query
-        name: filter[report_type]
+        name: filter
         schema:
-          enum:
-          - export_porting_orders_csv
-          example: export_porting_orders_csv
-          type: string
-      - description: Filter reports of a specific status
-        in: query
-        name: filter[status]
-        schema:
-          enum:
-          - pending
-          - completed
-          example: completed
-          type: string
+          properties:
+            report_type:
+              description: Filter reports of a specific type
+              enum:
+              - export_porting_orders_csv
+              example: export_porting_orders_csv
+              type: string
+            status:
+              description: Filter reports of a specific status
+              enum:
+              - pending
+              - completed
+              example: completed
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingReports'
@@ -65486,94 +65737,104 @@ paths:
       tags:
       - Porting Orders
       x-latency-category: responsive
+  /porting/uk_carriers:
+    get:
+      description: List available carriers in the UK.
+      operationId: listPortingUKCarriers
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingUKCarriersResponse'
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+        '500':
+          description: Internal server error
+      summary: List available carriers in the UK
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
   /porting_orders:
     get:
       description: Returns a list of your porting order.
       operationId: ListPortingOrders
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       - $ref: '#/components/parameters/QueryIncludePhoneNumbers'
-      - $ref: '#/components/parameters/FilterByPortingOrderStatus'
-      - $ref: '#/components/parameters/FilterByPortingOrderStatusIn'
-      - description: Filter results by customer_reference
-        example: 123abc
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[customer_reference], filter[parent_support_key], filter[phone_numbers.country_code],
+          filter[phone_numbers.carrier_name], filter[misc.type], filter[end_user.admin.entity_name],
+          filter[end_user.admin.auth_person_name], filter[activation_settings.fast_port_eligible],
+          filter[activation_settings.foc_datetime_requested][gt], filter[activation_settings.foc_datetime_requested][lt],
+          filter[phone_numbers.phone_number][contains]'
+        explode: true
         in: query
-        name: filter[customer_reference]
+        name: filter
         schema:
-          type: string
-      - description: Filter results by parent_support_key
-        example: 123abc
+          properties:
+            activation_settings.fast_port_eligible:
+              description: Filter results by fast port eligible
+              type: boolean
+            activation_settings.foc_datetime_requested:
+              description: FOC datetime range filtering operations
+              properties:
+                gt:
+                  description: Filter results by foc date later than this value
+                  example: '2021-03-25T10:00:00.000Z'
+                  type: string
+                lt:
+                  description: Filter results by foc date earlier than this value
+                  example: '2021-03-25T10:00:00.000Z'
+                  type: string
+              type: object
+            customer_reference:
+              description: Filter results by customer_reference
+              type: string
+            end_user.admin.auth_person_name:
+              description: Filter results by authorized person
+              type: string
+            end_user.admin.entity_name:
+              description: Filter results by person or company name
+              type: string
+            misc.type:
+              $ref: '#/components/schemas/PortingOrderType'
+              description: Filter results by porting order type
+            parent_support_key:
+              description: Filter results by parent_support_key
+              type: string
+            phone_numbers.carrier_name:
+              description: Filter results by old service provider
+              type: string
+            phone_numbers.country_code:
+              description: Filter results by country ISO 3166-1 alpha-2 code
+              type: string
+            phone_numbers.phone_number:
+              description: Phone number filtering operations
+              properties:
+                contains:
+                  description: Filter results by full or partial phone_number
+                  type: string
+              type: object
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: filter[parent_support_key]
+        name: sort
         schema:
-          type: string
-      - description: Filter results by country ISO 3166-1 alpha-2 code
-        example: US
-        in: query
-        name: filter[phone_numbers.country_code]
-        schema:
-          type: string
-      - description: Filter results by old service provider
-        example: Telnyx
-        in: query
-        name: filter[phone_numbers.carrier_name]
-        schema:
-          type: string
-      - description: Filter results by porting order type
-        example: full
-        in: query
-        name: filter[misc.type]
-        schema:
-          $ref: '#/components/schemas/PortingOrderType'
-      - description: Filter results by person or company name
-        example: Porter McPortersen
-        in: query
-        name: filter[end_user.admin.entity_name]
-        schema:
-          type: string
-      - description: Filter results by authorized person
-        example: Admin McPortersen
-        in: query
-        name: filter[end_user.admin.auth_person_name]
-        schema:
-          type: string
-      - description: Filter results by fast port eligible
-        example: false
-        in: query
-        name: filter[activation_settings.fast_port_eligible]
-        schema:
-          type: boolean
-      - description: Filter results by foc date later than this value
-        example: '2021-03-25T10:00:00.000Z'
-        in: query
-        name: filter[activation_settings.foc_datetime_requested][gt]
-        schema:
-          type: string
-      - description: Filter results by foc date earlier than this value
-        example: '2021-03-25T10:00:00.000Z'
-        in: query
-        name: filter[activation_settings.foc_datetime_requested][lt]
-        schema:
-          type: string
-      - description: Filter results by full or partial phone_number
-        example: '+13038675309'
-        in: query
-        name: filter[phone_numbers.phone_number][contains]
-        schema:
-          type: string
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order.
-        in: query
-        name: sort[]
-        schema:
-          enum:
-          - created_at
-          - -created_at
-          - activation_settings.foc_datetime_requested
-          - -activation_settings.foc_datetime_requested
-          example: created_at
-          type: string
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order.
+              enum:
+              - created_at
+              - -created_at
+              - activation_settings.foc_datetime_requested
+              - -activation_settings.foc_datetime_requested
+              example: created_at
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingOrder'
@@ -65626,88 +65887,67 @@ paths:
       description: Returns a list of phone number configurations paginated.
       operationId: ListPhoneNumberConfigurations
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterByPortingOrderID'
-      - $ref: '#/components/parameters/FilterByPortingOrderIdIn'
-      - description: Filter results by a specific porting order status
+      - $ref: '#/components/parameters/PageConsolidated'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[porting_order.status][in][], filter[porting_phone_number][in][],
+          filter[user_bundle_id][in][]'
+        explode: true
         in: query
-        name: filter[porting_order.status]
+        name: filter
         schema:
-          enum:
-          - activation-in-progress
-          - cancel-pending
-          - cancelled
-          - draft
-          - exception
-          - foc-date-confirmed
-          - in-process
-          - ported
-          - submitted
-          example: foc-date-confirmed
-          type: string
-      - description: Filter results by specific porting order statuses
+          properties:
+            porting_order.status:
+              description: Filter results by specific porting order statuses
+              items:
+                enum:
+                - activation-in-progress
+                - cancel-pending
+                - cancelled
+                - draft
+                - exception
+                - foc-date-confirmed
+                - in-process
+                - ported
+                - submitted
+                example:
+                - in-process
+                - submitted
+                type: string
+              type: array
+            porting_phone_number:
+              description: Filter results by a list of porting phone number IDs
+              items:
+                example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
+                format: uuid
+                type: string
+              type: array
+            user_bundle_id:
+              description: Filter results by a list of user bundle IDs
+              items:
+                example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
+                format: uuid
+                type: string
+              type: array
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: filter[porting_order.status][in][]
+        name: sort
         schema:
-          items:
-            enum:
-            - activation-in-progress
-            - cancel-pending
-            - cancelled
-            - draft
-            - exception
-            - foc-date-confirmed
-            - in-process
-            - ported
-            - submitted
-            example:
-            - in-process
-            - submitted
-            type: string
-          type: array
-      - description: Filter results by a specific porting phone number ID
-        in: query
-        name: filter[porting_phone_number]
-        schema:
-          example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
-          format: uuid
-          type: string
-      - description: Filter results by a list of porting phone number IDs
-        in: query
-        name: filter[porting_phone_number][in][]
-        schema:
-          items:
-            example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
-            format: uuid
-            type: string
-          type: array
-      - description: Filter results by a specific user bundle ID
-        in: query
-        name: filter[user_bundle_id]
-        schema:
-          example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
-          format: uuid
-          type: string
-      - description: Filter results by a list of user bundle IDs
-        in: query
-        name: filter[user_bundle_id][in][]
-        schema:
-          items:
-            example: 5d6f7ede-1961-4717-bfb5-db392c5efc2d
-            format: uuid
-            type: string
-          type: array
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order.
-        in: query
-        name: sort[]
-        schema:
-          enum:
-          - created_at
-          - -created_at
-          example: created_at
-          type: string
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order.
+              enum:
+              - created_at
+              - -created_at
+              example: created_at
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingPhoneNumberConfigurations'
@@ -65878,8 +66118,7 @@ paths:
       operationId: ListPortingOrderActivationJobs
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListPortingOrdersActivationJobs'
@@ -65934,42 +66173,44 @@ paths:
       operationId: ListAdditionalDocuments
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - description: Filter additional documents of a specific document type
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[document_type]'
+        explode: true
         in: query
-        name: filter[document_type]
+        name: filter
         schema:
-          enum:
-          - loa
-          - invoice
-          - csr
-          - other
-          example: loa
-          type: string
-      - description: Filter additional documents by a list of document types
+          properties:
+            document_type:
+              description: Filter additional documents by a list of document types
+              items:
+                enum:
+                - loa
+                - invoice
+                - csr
+                - other
+                example: loa
+                type: string
+              type: array
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: filter[document_type][in][]
+        name: sort
         schema:
-          items:
-            enum:
-            - loa
-            - invoice
-            - csr
-            - other
-            example: loa
-            type: string
-          type: array
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order.
-        in: query
-        name: sort[]
-        schema:
-          enum:
-          - created_at
-          - -created_at
-          example: created_at
-          type: string
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order.
+              enum:
+              - created_at
+              - -created_at
+              example: created_at
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingAdditionalDocuments'
@@ -66046,8 +66287,7 @@ paths:
       operationId: ListPortingOrderComments
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListPortingOrdersComments'
@@ -66112,8 +66352,7 @@ paths:
       operationId: ListPortingOrderRequirements
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+      - $ref: '#/components/parameters/PageConsolidated'
       responses:
         '200':
           $ref: '#/components/responses/ListPortingOrderRequirements'
@@ -66148,26 +66387,38 @@ paths:
       operationId: ListVerificationCodes
       parameters:
       - $ref: '#/components/parameters/PathPortingOrderID'
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterByPhoneNumber'
-      - $ref: '#/components/parameters/FilterByPhoneNumberIn'
-      - description: Filter verification codes that have been verified or not
+      - $ref: '#/components/parameters/PageConsolidated'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[verified]'
+        explode: true
         in: query
-        name: filter[verified]
+        name: filter
         schema:
-          example: true
-          type: boolean
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order.
+          properties:
+            verified:
+              description: Filter verification codes that have been verified or not
+              example: true
+              type: boolean
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: sort[]
+        name: sort
         schema:
-          enum:
-          - created_at
-          - -created_at
-          example: created_at
-          type: string
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order.
+              enum:
+              - created_at
+              - -created_at
+              example: created_at
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingVerificationCodes'
@@ -66221,6 +66472,242 @@ paths:
       tags:
       - Porting Orders
       x-latency-category: responsive
+  /porting_orders/{porting_order_id}/action_requirements:
+    get:
+      description: Returns a list of action requirements for a specific porting order.
+      operationId: listPortingActionRequirements
+      parameters:
+      - description: The ID of the porting order
+        in: path
+        name: porting_order_id
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[id][in][], filter[requirement_type_id], filter[action_type], filter[status]'
+        explode: true
+        in: query
+        name: filter
+        schema:
+          properties:
+            action_type:
+              description: Filter action requirements by action type
+              enum:
+              - au_id_verification
+              type: string
+            id:
+              description: Filter action requirements by a list of IDs
+              items:
+                format: uuid
+                type: string
+              type: array
+            requirement_type_id:
+              description: Filter action requirements by requirement type ID
+              format: uuid
+              type: string
+            status:
+              description: Filter action requirements by status
+              enum:
+              - created
+              - pending
+              - completed
+              - cancelled
+              - failed
+              type: string
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
+        in: query
+        name: sort
+        schema:
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order.
+              enum:
+              - created_at
+              - -created_at
+              - updated_at
+              - -updated_at
+              example: created_at
+              type: string
+          type: object
+        style: deepObject
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingActionRequirements'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Porting order not found
+        '500':
+          description: Internal server error
+      summary: List action requirements for a porting order
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
+  /porting_orders/{porting_order_id}/action_requirements/{id}/initiate:
+    post:
+      description: Initiates a specific action requirement for a porting order.
+      operationId: initiatePortingActionRequirement
+      parameters:
+      - description: The ID of the porting order
+        in: path
+        name: porting_order_id
+        required: true
+        schema:
+          type: string
+      - description: The ID of the action requirement
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        $ref: '#/components/requestBodies/InitiatePortingActionRequirement'
+      responses:
+        '200':
+          $ref: '#/components/responses/ShowPortingActionRequirement'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Porting order or action requirement not found
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+        '500':
+          description: Internal server error
+      summary: Initiate an action requirement
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
+  /porting_orders/{porting_order_id}/associated_phone_numbers:
+    get:
+      description: Returns a list of all associated phone numbers for a porting order.
+        Associated phone numbers are used for partial porting in GB to specify which
+        phone numbers should be kept or disconnected.
+      operationId: listPortingAssociatedPhoneNumbers
+      parameters:
+      - description: Identifies the Porting Order associated with the phone numbers
+        in: path
+        name: porting_order_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[phone_number], filter[action]'
+        explode: true
+        in: query
+        name: filter
+        schema:
+          properties:
+            action:
+              description: Filter results by action type
+              enum:
+              - keep
+              - disconnect
+              example: keep
+              type: string
+            phone_number:
+              description: Filter results by a phone number. It should be in E.164
+                format.
+              example: '+441234567890'
+              type: string
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
+        in: query
+        name: sort
+        schema:
+          properties:
+            value:
+              default: -created_at
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order
+              enum:
+              - -created_at
+              - created_at
+              example: -created_at
+              type: string
+          type: object
+        style: deepObject
+      responses:
+        '200':
+          $ref: '#/components/responses/ListPortingAssociatedPhoneNumbers'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: List all associated phone numbers
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
+    post:
+      description: Creates a new associated phone number for a porting order. This
+        is used for partial porting in GB to specify which phone numbers should be
+        kept or disconnected.
+      operationId: createPortingAssociatedPhoneNumber
+      parameters:
+      - description: Identifies the Porting Order associated with the phone number
+        in: path
+        name: porting_order_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        $ref: '#/components/requestBodies/CreatePortingAssociatedPhoneNumber'
+      responses:
+        '201':
+          $ref: '#/components/responses/ShowPortingAssociatedPhoneNumber'
+        '404':
+          description: Not found
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Create an associated phone number
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
+  /porting_orders/{porting_order_id}/associated_phone_numbers/{id}:
+    delete:
+      description: Deletes an associated phone number from a porting order.
+      operationId: deletePortingAssociatedPhoneNumber
+      parameters:
+      - description: Identifies the Porting Order associated with the phone number
+        in: path
+        name: porting_order_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Identifies the associated phone number to be deleted
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ShowPortingAssociatedPhoneNumber'
+        '404':
+          description: Not found
+        '422':
+          description: Unprocessable entity. Check message field in response for details.
+      summary: Delete an associated phone number
+      tags:
+      - Porting Orders
+      x-latency-category: responsive
   /porting_orders/{porting_order_id}/phone_number_blocks:
     get:
       description: Returns a list of all phone number blocks of a porting order.
@@ -66234,20 +66721,25 @@ paths:
         schema:
           format: uuid
           type: string
-      - $ref: '#/components/parameters/FilterByPhoneNumber'
-      - $ref: '#/components/parameters/FilterByPhoneNumberIn'
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: sort[]
+        name: sort
         schema:
-          enum:
-          - -created_at
-          - created_at
-          example: false
-          type: string
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order
+              enum:
+              - -created_at
+              - created_at
+              example: false
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingPhoneNumberBlocks'
@@ -66330,34 +66822,39 @@ paths:
         schema:
           format: uuid
           type: string
-      - $ref: '#/components/parameters/FilterByPhoneNumber'
-      - $ref: '#/components/parameters/FilterByPhoneNumberIn'
-      - description: Filter results by porting phone number id
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - $ref: '#/components/parameters/PageConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[porting_phone_number_id]'
+        explode: true
         in: query
-        name: filter[porting_phone_number_id]
+        name: filter
         schema:
-          example: 04f8f1b9-310c-4a3c-963e-7dfc54765140
-          format: uuid
-          type: string
-      - description: Filter results by a list of porting phone number ids
+          properties:
+            porting_phone_number_id:
+              description: Filter results by porting phone number id
+              example: 04f8f1b9-310c-4a3c-963e-7dfc54765140
+              format: uuid
+              type: string
+          type: object
+        style: deepObject
+      - description: 'Consolidated sort parameter (deepObject style). Originally:
+          sort[value]'
+        explode: true
         in: query
-        name: filter[porting_phone_number_id][in][]
+        name: sort
         schema:
-          example: 04f8f1b9-310c-4a3c-963e-7dfc54765140
-          format: uuid
-          type: string
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by created_at in descending order
-        in: query
-        name: sort[]
-        schema:
-          enum:
-          - -created_at
-          - created_at
-          example: false
-          type: string
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
+          properties:
+            value:
+              description: Specifies the sort order for results. If not given, results
+                are sorted by created_at in descending order
+              enum:
+              - -created_at
+              - created_at
+              example: false
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingPhoneNumberExtensions'
@@ -66432,31 +66929,30 @@ paths:
       description: Returns a list of your porting phone numbers.
       operationId: ListPortingPhoneNumbers
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
-      - $ref: '#/components/parameters/PageSize'
-      - $ref: '#/components/parameters/FilterByPortingOrderID'
-      - $ref: '#/components/parameters/FilterByPortingOrderIdIn'
-      - $ref: '#/components/parameters/FilterBySupportKeyEq'
-      - $ref: '#/components/parameters/FilterBySupportKeyIn'
-      - $ref: '#/components/parameters/FilterByPhoneNumber'
-      - $ref: '#/components/parameters/FilterByPhoneNumberIn'
-      - description: Filter results by porting order status
+      - $ref: '#/components/parameters/PageConsolidated'
+      - $ref: '#/components/parameters/FilterConsolidated'
+      - description: 'Consolidated filter parameter (deepObject style). Originally:
+          filter[porting_order_status]'
+        explode: true
         in: query
-        name: filter[porting_order_status]
+        name: filter
         schema:
-          enum:
-          - draft
-          - in-process
-          - submitted
-          - exception
-          - foc-date-confirmed
-          - cancel-pending
-          - ported
-          - cancelled
-          example: in-process
-          type: string
-      - $ref: '#/components/parameters/FilterByPortingOrderActivationStatus'
-      - $ref: '#/components/parameters/FilterByPortabilityStatus'
+          properties:
+            porting_order_status:
+              description: Filter results by porting order status
+              enum:
+              - draft
+              - in-process
+              - submitted
+              - exception
+              - foc-date-confirmed
+              - cancel-pending
+              - ported
+              - cancelled
+              example: in-process
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListPortingPhoneNumbers'

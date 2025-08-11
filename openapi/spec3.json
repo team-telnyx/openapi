@@ -25357,57 +25357,56 @@
         "operationId": "listPortingEvents",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "filter[type]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter by event type.",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[type], filter[porting_order_id], filter[created_at][gte], filter[created_at][lte]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "porting_order.deleted",
-                "porting_order.loa_updated",
-                "porting_order.messaging_changed",
-                "porting_order.status_changed",
-                "porting_order.sharing_token_expired",
-                "porting_order.new_comment",
-                "porting_order.split"
-              ],
-              "example": "porting_order.deleted"
-            }
-          },
-          {
-            "name": "filter[porting_order_id]",
-            "in": "query",
-            "description": "Filter by porting order ID.",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "34dc46a9-53ed-4e01-9454-26227ea13326"
-            }
-          },
-          {
-            "name": "filter[created_at][gte]",
-            "in": "query",
-            "description": "Filter by created at greater than or equal to.",
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "example": "2021-01-01T00:00:00Z"
-            }
-          },
-          {
-            "name": "filter[created_at][lte]",
-            "in": "query",
-            "description": "Filter by created at less than or equal to.",
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "example": "2021-01-01T00:00:00Z"
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "porting_order.deleted",
+                    "porting_order.loa_updated",
+                    "porting_order.messaging_changed",
+                    "porting_order.status_changed",
+                    "porting_order.sharing_token_expired",
+                    "porting_order.new_comment",
+                    "porting_order.split"
+                  ],
+                  "example": "porting_order.deleted",
+                  "description": "Filter by event type."
+                },
+                "porting_order_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "34dc46a9-53ed-4e01-9454-26227ea13326",
+                  "description": "Filter by porting order ID."
+                },
+                "created_at": {
+                  "type": "object",
+                  "properties": {
+                    "gte": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Filter by created at greater than or equal to.",
+                      "example": "2021-01-01T00:00:00Z"
+                    },
+                    "lte": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Filter by created at less than or equal to.",
+                      "example": "2021-01-01T00:00:00Z"
+                    }
+                  },
+                  "description": "Created at date range filtering operations"
+                }
+              }
             }
           }
         ],
@@ -25525,10 +25524,7 @@
         "operationId": "ListLoaConfigurations",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/PageConsolidated"
           }
         ],
         "responses": {
@@ -25716,34 +25712,35 @@
         "operationId": "ListPortingReports",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "filter[report_type]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter reports of a specific type",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[report_type], filter[status]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "export_porting_orders_csv"
-              ],
-              "example": "export_porting_orders_csv"
-            }
-          },
-          {
-            "name": "filter[status]",
-            "in": "query",
-            "description": "Filter reports of a specific status",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "completed"
-              ],
-              "example": "completed"
+              "type": "object",
+              "properties": {
+                "report_type": {
+                  "type": "string",
+                  "enum": [
+                    "export_porting_orders_csv"
+                  ],
+                  "example": "export_porting_orders_csv",
+                  "description": "Filter reports of a specific type"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "completed"
+                  ],
+                  "example": "completed",
+                  "description": "Filter reports of a specific status"
+                }
+              }
             }
           }
         ],
@@ -25818,6 +25815,28 @@
         "x-latency-category": "responsive"
       }
     },
+    "/porting/uk_carriers": {
+      "get": {
+        "summary": "List available carriers in the UK",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "List available carriers in the UK.",
+        "operationId": "listPortingUKCarriers",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListPortingUKCarriersResponse"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/porting_orders": {
       "get": {
         "summary": "List all porting orders",
@@ -25828,132 +25847,105 @@
         "operationId": "ListPortingOrders",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
             "$ref": "#/components/parameters/QueryIncludePhoneNumbers"
           },
           {
-            "$ref": "#/components/parameters/FilterByPortingOrderStatus"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPortingOrderStatusIn"
-          },
-          {
-            "name": "filter[customer_reference]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter results by customer_reference",
-            "example": "123abc",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[customer_reference], filter[parent_support_key], filter[phone_numbers.country_code], filter[phone_numbers.carrier_name], filter[misc.type], filter[end_user.admin.entity_name], filter[end_user.admin.auth_person_name], filter[activation_settings.fast_port_eligible], filter[activation_settings.foc_datetime_requested][gt], filter[activation_settings.foc_datetime_requested][lt], filter[phone_numbers.phone_number][contains]",
             "schema": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "customer_reference": {
+                  "type": "string",
+                  "description": "Filter results by customer_reference"
+                },
+                "parent_support_key": {
+                  "type": "string",
+                  "description": "Filter results by parent_support_key"
+                },
+                "phone_numbers.country_code": {
+                  "type": "string",
+                  "description": "Filter results by country ISO 3166-1 alpha-2 code"
+                },
+                "phone_numbers.carrier_name": {
+                  "type": "string",
+                  "description": "Filter results by old service provider"
+                },
+                "misc.type": {
+                  "$ref": "#/components/schemas/PortingOrderType",
+                  "description": "Filter results by porting order type"
+                },
+                "end_user.admin.entity_name": {
+                  "type": "string",
+                  "description": "Filter results by person or company name"
+                },
+                "end_user.admin.auth_person_name": {
+                  "type": "string",
+                  "description": "Filter results by authorized person"
+                },
+                "activation_settings.fast_port_eligible": {
+                  "type": "boolean",
+                  "description": "Filter results by fast port eligible"
+                },
+                "activation_settings.foc_datetime_requested": {
+                  "type": "object",
+                  "properties": {
+                    "gt": {
+                      "type": "string",
+                      "description": "Filter results by foc date later than this value",
+                      "example": "2021-03-25T10:00:00.000Z"
+                    },
+                    "lt": {
+                      "type": "string",
+                      "description": "Filter results by foc date earlier than this value",
+                      "example": "2021-03-25T10:00:00.000Z"
+                    }
+                  },
+                  "description": "FOC datetime range filtering operations"
+                },
+                "phone_numbers.phone_number": {
+                  "type": "object",
+                  "properties": {
+                    "contains": {
+                      "type": "string",
+                      "description": "Filter results by full or partial phone_number"
+                    }
+                  },
+                  "description": "Phone number filtering operations"
+                }
+              }
             }
           },
           {
-            "name": "filter[parent_support_key]",
+            "name": "sort",
             "in": "query",
-            "description": "Filter results by parent_support_key",
-            "example": "123abc",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[phone_numbers.country_code]",
-            "in": "query",
-            "description": "Filter results by country ISO 3166-1 alpha-2 code",
-            "example": "US",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[phone_numbers.carrier_name]",
-            "in": "query",
-            "description": "Filter results by old service provider",
-            "example": "Telnyx",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[misc.type]",
-            "in": "query",
-            "example": "full",
-            "description": "Filter results by porting order type",
-            "schema": {
-              "$ref": "#/components/schemas/PortingOrderType"
-            }
-          },
-          {
-            "name": "filter[end_user.admin.entity_name]",
-            "in": "query",
-            "description": "Filter results by person or company name",
-            "example": "Porter McPortersen",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[end_user.admin.auth_person_name]",
-            "in": "query",
-            "example": "Admin McPortersen",
-            "description": "Filter results by authorized person",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[activation_settings.fast_port_eligible]",
-            "in": "query",
-            "description": "Filter results by fast port eligible",
-            "example": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "filter[activation_settings.foc_datetime_requested][gt]",
-            "in": "query",
-            "description": "Filter results by foc date later than this value",
-            "example": "2021-03-25T10:00:00.000Z",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[activation_settings.foc_datetime_requested][lt]",
-            "in": "query",
-            "description": "Filter results by foc date earlier than this value",
-            "example": "2021-03-25T10:00:00.000Z",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter[phone_numbers.phone_number][contains]",
-            "in": "query",
-            "description": "Filter results by full or partial phone_number",
-            "example": "+13038675309",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort[]",
-            "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "created_at",
-                "-created_at",
-                "activation_settings.foc_datetime_requested",
-                "-activation_settings.foc_datetime_requested"
-              ],
-              "example": "created_at"
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "-created_at",
+                    "activation_settings.foc_datetime_requested",
+                    "-activation_settings.foc_datetime_requested"
+                  ],
+                  "example": "created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order."
+                }
+              }
             }
           }
         ],
@@ -26034,120 +26026,82 @@
         "operationId": "ListPhoneNumberConfigurations",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPortingOrderID"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPortingOrderIdIn"
-          },
-          {
-            "name": "filter[porting_order.status]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter results by a specific porting order status",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[porting_order.status][in][], filter[porting_phone_number][in][], filter[user_bundle_id][in][]",
             "schema": {
-              "type": "string",
-              "example": "foc-date-confirmed",
-              "enum": [
-                "activation-in-progress",
-                "cancel-pending",
-                "cancelled",
-                "draft",
-                "exception",
-                "foc-date-confirmed",
-                "in-process",
-                "ported",
-                "submitted"
-              ]
-            }
-          },
-          {
-            "name": "filter[porting_order.status][in][]",
-            "in": "query",
-            "description": "Filter results by specific porting order statuses",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "example": [
-                  "in-process",
-                  "submitted"
-                ],
-                "enum": [
-                  "activation-in-progress",
-                  "cancel-pending",
-                  "cancelled",
-                  "draft",
-                  "exception",
-                  "foc-date-confirmed",
-                  "in-process",
-                  "ported",
-                  "submitted"
-                ]
+              "type": "object",
+              "properties": {
+                "porting_order.status": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": [
+                      "in-process",
+                      "submitted"
+                    ],
+                    "enum": [
+                      "activation-in-progress",
+                      "cancel-pending",
+                      "cancelled",
+                      "draft",
+                      "exception",
+                      "foc-date-confirmed",
+                      "in-process",
+                      "ported",
+                      "submitted"
+                    ]
+                  },
+                  "description": "Filter results by specific porting order statuses"
+                },
+                "porting_phone_number": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
+                  },
+                  "description": "Filter results by a list of porting phone number IDs"
+                },
+                "user_bundle_id": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
+                  },
+                  "description": "Filter results by a list of user bundle IDs"
+                }
               }
             }
           },
           {
-            "name": "filter[porting_phone_number]",
+            "name": "sort",
             "in": "query",
-            "description": "Filter results by a specific porting phone number ID",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
-            }
-          },
-          {
-            "name": "filter[porting_phone_number][in][]",
-            "in": "query",
-            "description": "Filter results by a list of porting phone number IDs",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid",
-                "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "-created_at"
+                  ],
+                  "example": "created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order."
+                }
               }
-            }
-          },
-          {
-            "name": "filter[user_bundle_id]",
-            "in": "query",
-            "description": "Filter results by a specific user bundle ID",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
-            }
-          },
-          {
-            "name": "filter[user_bundle_id][in][]",
-            "in": "query",
-            "description": "Filter results by a list of user bundle IDs",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "format": "uuid",
-                "example": "5d6f7ede-1961-4717-bfb5-db392c5efc2d"
-              }
-            }
-          },
-          {
-            "name": "sort[]",
-            "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "created_at",
-                "-created_at"
-              ],
-              "example": "created_at"
             }
           }
         ],
@@ -26399,10 +26353,7 @@
             "$ref": "#/components/parameters/PathPortingOrderID"
           },
           {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/PageConsolidated"
           }
         ],
         "responses": {
@@ -26493,55 +26444,53 @@
             "$ref": "#/components/parameters/PathPortingOrderID"
           },
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
-          },
-          {
-            "name": "filter[document_type]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter additional documents of a specific document type",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[document_type]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "loa",
-                "invoice",
-                "csr",
-                "other"
-              ],
-              "example": "loa"
-            }
-          },
-          {
-            "name": "filter[document_type][in][]",
-            "in": "query",
-            "description": "Filter additional documents by a list of document types",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "enum": [
-                  "loa",
-                  "invoice",
-                  "csr",
-                  "other"
-                ],
-                "example": "loa"
+              "type": "object",
+              "properties": {
+                "document_type": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "loa",
+                      "invoice",
+                      "csr",
+                      "other"
+                    ],
+                    "example": "loa"
+                  },
+                  "description": "Filter additional documents by a list of document types"
+                }
               }
             }
           },
           {
-            "name": "sort[]",
+            "name": "sort",
             "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "created_at",
-                "-created_at"
-              ],
-              "example": "created_at"
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "-created_at"
+                  ],
+                  "example": "created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order."
+                }
+              }
             }
           }
         ],
@@ -26664,10 +26613,7 @@
             "$ref": "#/components/parameters/PathPortingOrderID"
           },
           {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/PageConsolidated"
           }
         ],
         "responses": {
@@ -26767,10 +26713,7 @@
             "$ref": "#/components/parameters/PathPortingOrderID"
           },
           {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/PageConsolidated"
           }
         ],
         "responses": {
@@ -26827,37 +26770,47 @@
             "$ref": "#/components/parameters/PathPortingOrderID"
           },
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPhoneNumber"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPhoneNumberIn"
-          },
-          {
-            "name": "filter[verified]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter verification codes that have been verified or not",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[verified]",
             "schema": {
-              "type": "boolean",
-              "example": true
+              "type": "object",
+              "properties": {
+                "verified": {
+                  "type": "boolean",
+                  "example": true,
+                  "description": "Filter verification codes that have been verified or not"
+                }
+              }
             }
           },
           {
-            "name": "sort[]",
+            "name": "sort",
             "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order.",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "created_at",
-                "-created_at"
-              ],
-              "example": "created_at"
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "-created_at"
+                  ],
+                  "example": "created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order."
+                }
+              }
             }
           }
         ],
@@ -26941,6 +26894,332 @@
         "x-latency-category": "responsive"
       }
     },
+    "/porting_orders/{porting_order_id}/action_requirements": {
+      "get": {
+        "summary": "List action requirements for a porting order",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "Returns a list of action requirements for a specific porting order.",
+        "operationId": "listPortingActionRequirements",
+        "parameters": [
+          {
+            "name": "porting_order_id",
+            "in": "path",
+            "description": "The ID of the porting order",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageConsolidated"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[id][in][], filter[requirement_type_id], filter[action_type], filter[status]",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "description": "Filter action requirements by a list of IDs"
+                },
+                "requirement_type_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "Filter action requirements by requirement type ID"
+                },
+                "action_type": {
+                  "type": "string",
+                  "enum": [
+                    "au_id_verification"
+                  ],
+                  "description": "Filter action requirements by action type"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "created",
+                    "pending",
+                    "completed",
+                    "cancelled",
+                    "failed"
+                  ],
+                  "description": "Filter action requirements by status"
+                }
+              }
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "created_at",
+                    "-created_at",
+                    "updated_at",
+                    "-updated_at"
+                  ],
+                  "example": "created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListPortingActionRequirements"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Porting order not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/porting_orders/{porting_order_id}/action_requirements/{id}/initiate": {
+      "post": {
+        "summary": "Initiate an action requirement",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "Initiates a specific action requirement for a porting order.",
+        "operationId": "initiatePortingActionRequirement",
+        "parameters": [
+          {
+            "name": "porting_order_id",
+            "in": "path",
+            "description": "The ID of the porting order",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the action requirement",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/InitiatePortingActionRequirement"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ShowPortingActionRequirement"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Porting order or action requirement not found"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/porting_orders/{porting_order_id}/associated_phone_numbers": {
+      "get": {
+        "summary": "List all associated phone numbers",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "Returns a list of all associated phone numbers for a porting order. Associated phone numbers are used for partial porting in GB to specify which phone numbers should be kept or disconnected.",
+        "operationId": "listPortingAssociatedPhoneNumbers",
+        "parameters": [
+          {
+            "name": "porting_order_id",
+            "in": "path",
+            "description": "Identifies the Porting Order associated with the phone numbers",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/PageConsolidated"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[phone_number], filter[action]",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "phone_number": {
+                  "type": "string",
+                  "example": "+441234567890",
+                  "description": "Filter results by a phone number. It should be in E.164 format."
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "keep",
+                    "disconnect"
+                  ],
+                  "example": "keep",
+                  "description": "Filter results by action type"
+                }
+              }
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "-created_at",
+                    "created_at"
+                  ],
+                  "example": "-created_at",
+                  "default": "-created_at",
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListPortingAssociatedPhoneNumbers"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create an associated phone number",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "Creates a new associated phone number for a porting order. This is used for partial porting in GB to specify which phone numbers should be kept or disconnected.",
+        "operationId": "createPortingAssociatedPhoneNumber",
+        "parameters": [
+          {
+            "name": "porting_order_id",
+            "in": "path",
+            "description": "Identifies the Porting Order associated with the phone number",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreatePortingAssociatedPhoneNumber"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ShowPortingAssociatedPhoneNumber"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/porting_orders/{porting_order_id}/associated_phone_numbers/{id}": {
+      "delete": {
+        "summary": "Delete an associated phone number",
+        "tags": [
+          "Porting Orders"
+        ],
+        "description": "Deletes an associated phone number from a porting order.",
+        "operationId": "deletePortingAssociatedPhoneNumber",
+        "parameters": [
+          {
+            "name": "porting_order_id",
+            "in": "path",
+            "description": "Identifies the Porting Order associated with the phone number",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifies the associated phone number to be deleted",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ShowPortingAssociatedPhoneNumber"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "422": {
+            "description": "Unprocessable entity. Check message field in response for details."
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/porting_orders/{porting_order_id}/phone_number_blocks": {
       "get": {
         "summary": "List all phone number blocks",
@@ -26961,29 +27240,31 @@
             }
           },
           {
-            "$ref": "#/components/parameters/FilterByPhoneNumber"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPhoneNumberIn"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "name": "sort[]",
+            "name": "sort",
             "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "-created_at",
-                "created_at"
-              ],
-              "example": false
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "-created_at",
+                    "created_at"
+                  ],
+                  "example": false,
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order"
+                }
+              }
             }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
           }
         ],
         "responses": {
@@ -27102,49 +27383,49 @@
             }
           },
           {
-            "$ref": "#/components/parameters/FilterByPhoneNumber"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPhoneNumberIn"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "name": "filter[porting_phone_number_id]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter results by porting phone number id",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[porting_phone_number_id]",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "04f8f1b9-310c-4a3c-963e-7dfc54765140"
+              "type": "object",
+              "properties": {
+                "porting_phone_number_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "04f8f1b9-310c-4a3c-963e-7dfc54765140",
+                  "description": "Filter results by porting phone number id"
+                }
+              }
             }
           },
           {
-            "name": "filter[porting_phone_number_id][in][]",
+            "name": "sort",
             "in": "query",
-            "description": "Filter results by a list of porting phone number ids",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated sort parameter (deepObject style). Originally: sort[value]",
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "04f8f1b9-310c-4a3c-963e-7dfc54765140"
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "enum": [
+                    "-created_at",
+                    "created_at"
+                  ],
+                  "example": false,
+                  "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order"
+                }
+              }
             }
-          },
-          {
-            "name": "sort[]",
-            "in": "query",
-            "description": "Specifies the sort order for results. If not given, results are sorted by created_at in descending order",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "-created_at",
-                "created_at"
-              ],
-              "example": false
-            }
-          },
-          {
-            "$ref": "#/components/parameters/PageNumber"
-          },
-          {
-            "$ref": "#/components/parameters/PageSize"
           }
         ],
         "responses": {
@@ -27253,53 +27534,37 @@
         "operationId": "ListPortingPhoneNumbers",
         "parameters": [
           {
-            "$ref": "#/components/parameters/PageNumber"
+            "$ref": "#/components/parameters/PageConsolidated"
           },
           {
-            "$ref": "#/components/parameters/PageSize"
+            "$ref": "#/components/parameters/FilterConsolidated"
           },
           {
-            "$ref": "#/components/parameters/FilterByPortingOrderID"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPortingOrderIdIn"
-          },
-          {
-            "$ref": "#/components/parameters/FilterBySupportKeyEq"
-          },
-          {
-            "$ref": "#/components/parameters/FilterBySupportKeyIn"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPhoneNumber"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPhoneNumberIn"
-          },
-          {
-            "name": "filter[porting_order_status]",
+            "name": "filter",
             "in": "query",
-            "description": "Filter results by porting order status",
+            "style": "deepObject",
+            "explode": true,
+            "description": "Consolidated filter parameter (deepObject style). Originally: filter[porting_order_status]",
             "schema": {
-              "type": "string",
-              "enum": [
-                "draft",
-                "in-process",
-                "submitted",
-                "exception",
-                "foc-date-confirmed",
-                "cancel-pending",
-                "ported",
-                "cancelled"
-              ],
-              "example": "in-process"
+              "type": "object",
+              "properties": {
+                "porting_order_status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "in-process",
+                    "submitted",
+                    "exception",
+                    "foc-date-confirmed",
+                    "cancel-pending",
+                    "ported",
+                    "cancelled"
+                  ],
+                  "example": "in-process",
+                  "description": "Filter results by porting order status"
+                }
+              }
             }
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPortingOrderActivationStatus"
-          },
-          {
-            "$ref": "#/components/parameters/FilterByPortabilityStatus"
           }
         ],
         "responses": {
@@ -38890,125 +39155,6 @@
           "example": "47a1c2b0-cc7b-4ab1-bb98-b33fb0fc61b9"
         }
       },
-      "FilterByPhoneNumber": {
-        "name": "filter[phone_number]",
-        "in": "query",
-        "description": "Filter results by phone number",
-        "schema": {
-          "type": "string",
-          "example": "+12003151212"
-        }
-      },
-      "FilterByPhoneNumberIn": {
-        "name": "filter[phone_number][in][]",
-        "in": "query",
-        "description": "Filter results by a list of phone numbers",
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "example": "+12003151212"
-          }
-        }
-      },
-      "FilterByPortabilityStatus": {
-        "name": "filter[portability_status]",
-        "in": "query",
-        "description": "Filter results by portability status",
-        "schema": {
-          "$ref": "#/components/schemas/PortabilityStatus"
-        }
-      },
-      "FilterByPortingOrderActivationStatus": {
-        "name": "filter[activation_status]",
-        "in": "query",
-        "description": "Filter results by activation status",
-        "schema": {
-          "$ref": "#/components/schemas/PortingOrderActivationStatus"
-        }
-      },
-      "FilterByPortingOrderID": {
-        "name": "filter[porting_order_id]",
-        "in": "query",
-        "description": "Filter results by porting order id",
-        "schema": {
-          "type": "string",
-          "format": "uuid",
-          "example": "f3575e15-32ce-400e-a4c0-dd78800c20b0"
-        }
-      },
-      "FilterByPortingOrderIdIn": {
-        "name": "filter[porting_order_id][in][]",
-        "in": "query",
-        "description": "Filter results by a list of porting order ids",
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uuid",
-            "example": "f3575e15-32ce-400e-a4c0-dd78800c20b0"
-          }
-        }
-      },
-      "FilterByPortingOrderStatus": {
-        "name": "filter[status]",
-        "in": "query",
-        "description": "Filter results by status",
-        "schema": {
-          "type": "string",
-          "enum": [
-            "draft",
-            "in-process",
-            "submitted",
-            "exception",
-            "foc-date-confirmed",
-            "cancel-pending",
-            "ported",
-            "cancelled"
-          ],
-          "example": "in-process"
-        }
-      },
-      "FilterByPortingOrderStatusIn": {
-        "name": "filter[status][in][]",
-        "in": "query",
-        "description": "Filter porting orders by multiple statuses",
-        "schema": {
-          "type": "string",
-          "enum": [
-            "draft",
-            "in-process",
-            "submitted",
-            "exception",
-            "foc-date-confirmed",
-            "cancel-pending",
-            "ported",
-            "cancelled"
-          ],
-          "example": "in-process"
-        }
-      },
-      "FilterBySupportKeyEq": {
-        "name": "filter[support_key][eq]",
-        "in": "query",
-        "description": "Filter results by support key",
-        "schema": {
-          "type": "string",
-          "example": "sr_a12345"
-        }
-      },
-      "FilterBySupportKeyIn": {
-        "name": "filter[support_key][in][]",
-        "in": "query",
-        "description": "Filter results by a list of support keys",
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "example": "sr_a12345"
-          }
-        }
-      },
       "FilterCivicAddressesConsolidated": {
         "name": "filter",
         "in": "query",
@@ -39095,25 +39241,93 @@
         "in": "query",
         "style": "deepObject",
         "explode": true,
-        "description": "Consolidated filter parameter (deepObject style). Originally: filter[application_name][contains], filter[outbound_voice_profile_id]",
+        "description": "Consolidated filter parameter (deepObject style). Originally: filter[porting_order_id], filter[support_key], filter[status], filter[phone_number], filter[activation_status], filter[portability_status]",
         "schema": {
           "type": "object",
           "properties": {
-            "application_name": {
-              "type": "object",
-              "properties": {
-                "contains": {
-                  "type": "string",
-                  "example": "fax-app",
-                  "description": "If present, applications with <code>application_name</code> containing the given value will be returned. Matching is not case-sensitive. Requires at least three characters."
-                }
+            "porting_order_id": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "example": "f3575e15-32ce-400e-a4c0-dd78800c20b0"
               },
-              "description": "Application name filtering operations"
+              "description": "Filter results by a list of porting order ids"
             },
-            "outbound_voice_profile_id": {
-              "type": "string",
-              "example": "1293384261075731499",
-              "description": "Identifies the associated outbound voice profile."
+            "support_key": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "example": "sr_a12345",
+                  "description": "Filter by exact support key match (eq operation)"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "example": "sr_a12345"
+                  },
+                  "description": "Filter by multiple support keys (in operation)"
+                }
+              ],
+              "description": "Filter results by support key(s). Originally: filter[support_key][eq], filter[support_key][in][]"
+            },
+            "status": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "in-process",
+                    "submitted",
+                    "exception",
+                    "foc-date-confirmed",
+                    "cancel-pending",
+                    "ported",
+                    "cancelled"
+                  ],
+                  "example": "in-process",
+                  "description": "Filter by single status"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "in-process",
+                      "submitted",
+                      "exception",
+                      "foc-date-confirmed",
+                      "cancel-pending",
+                      "ported",
+                      "cancelled"
+                    ]
+                  },
+                  "example": [
+                    "in-process",
+                    "submitted"
+                  ],
+                  "description": "Filter by multiple statuses (in operation)"
+                }
+              ],
+              "description": "Filter porting orders by status(es). Originally: filter[status], filter[status][in][]"
+            },
+            "phone_number": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "example": "+12003151212"
+              },
+              "description": "Filter results by a list of phone numbers"
+            },
+            "activation_status": {
+              "$ref": "#/components/schemas/PortingOrderActivationStatus",
+              "description": "Filter results by activation status"
+            },
+            "portability_status": {
+              "$ref": "#/components/schemas/PortabilityStatus",
+              "description": "Filter results by portability status"
             }
           }
         }
@@ -40548,6 +40762,48 @@
           }
         }
       },
+      "CreatePortingAssociatedPhoneNumber": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "phone_number_range",
+                "action"
+              ],
+              "properties": {
+                "phone_number_range": {
+                  "type": "object",
+                  "properties": {
+                    "start_at": {
+                      "type": "string",
+                      "description": "Specifies the start of the phone number range for this associated phone number.",
+                      "pattern": "^\\+\\d{7,15}$",
+                      "example": "+441234567890"
+                    },
+                    "end_at": {
+                      "type": "string",
+                      "description": "Specifies the end of the phone number range for this associated phone number.",
+                      "pattern": "^\\+\\d{7,15}$",
+                      "example": "+441234567899"
+                    }
+                  }
+                },
+                "action": {
+                  "type": "string",
+                  "description": "Specifies the action to take with this phone number during partial porting.",
+                  "enum": [
+                    "keep",
+                    "disconnect"
+                  ],
+                  "example": "keep"
+                }
+              }
+            }
+          }
+        }
+      },
       "CreatePortingLOAConfiguration": {
         "required": true,
         "content": {
@@ -40910,6 +41166,29 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/DialogflowConnection"
+            }
+          }
+        }
+      },
+      "InitiatePortingActionRequirement": {
+        "description": "Parameters for initiating the action requirement",
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "params"
+              ],
+              "properties": {
+                "params": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AUIdVerificationParams"
+                    }
+                  ]
+                }
+              }
             }
           }
         }
@@ -44676,6 +44955,27 @@
           }
         }
       },
+      "ListPortingActionRequirements": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortingActionRequirement"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "ListPortingAdditionalDocuments": {
         "description": "Successful response",
         "content": {
@@ -44710,6 +45010,27 @@
                   "total_results": 1,
                   "page_number": 1,
                   "page_size": 25
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListPortingAssociatedPhoneNumbers": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortingAssociatedPhoneNumber"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
                 }
               }
             }
@@ -44965,6 +45286,24 @@
                 },
                 "meta": {
                   "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListPortingUKCarriersResponse": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PortingUKCarrier"
+                  }
                 }
               }
             }
@@ -46518,6 +46857,36 @@
           }
         }
       },
+      "ShowPortingActionRequirement": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/PortingActionRequirement"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ShowPortingAssociatedPhoneNumber": {
+        "description": "Successful response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/PortingAssociatedPhoneNumber"
+                }
+              }
+            }
+          }
+        }
+      },
       "ShowPortingEventResponse": {
         "description": "Successful response",
         "content": {
@@ -47807,6 +48176,26 @@
         "example": {
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
           "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
+      "AUIdVerificationParams": {
+        "type": "object",
+        "description": "Required information for initiating the action requirement for AU ID verification.",
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "description": "The first name of the person that will perform the verification flow.",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "The last name of the person that will perform the verification flow.",
+            "example": "Doe"
+          }
         }
       },
       "AWSVoiceSettings": {
@@ -79112,6 +79501,75 @@
         ],
         "example": "confirmed"
       },
+      "PortingActionRequirement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identifies the action requirement",
+            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource",
+            "example": "porting_action_requirement",
+            "enum": [
+              "porting_action_requirement"
+            ]
+          },
+          "porting_order_id": {
+            "type": "string",
+            "description": "The ID of the porting order this action requirement belongs to",
+            "example": "12ade33a-21c0-473b-b055-b3c836e1c292"
+          },
+          "requirement_type_id": {
+            "type": "string",
+            "description": "The ID of the requirement type",
+            "example": "53970723-fbff-4f46-a975-f62be6c1a585"
+          },
+          "action_type": {
+            "type": "string",
+            "description": "The type of action required",
+            "example": "document_upload"
+          },
+          "action_url": {
+            "type": "string",
+            "description": "Optional URL for the action",
+            "example": "https://example.com/action",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the action requirement",
+            "example": "created",
+            "enum": [
+              "created",
+              "pending",
+              "completed",
+              "cancelled",
+              "failed"
+            ]
+          },
+          "cancel_reason": {
+            "type": "string",
+            "description": "Reason for cancellation if status is 'cancelled'",
+            "example": null,
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date-time indicating when the resource was created",
+            "example": "2018-02-02T22:25:27.521Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date-time indicating when the resource was updated",
+            "example": "2018-02-02T22:25:27.521Z"
+          }
+        }
+      },
       "PortingAdditionalDocument": {
         "type": "object",
         "properties": {
@@ -79171,6 +79629,89 @@
             "format": "date-time",
             "description": "ISO 8601 formatted date indicating when the resource was updated.",
             "example": "2021-03-19T10:07:15.527000Z"
+          }
+        }
+      },
+      "PortingAssociatedPhoneNumber": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Uniquely identifies this associated phone number.",
+            "type": "string",
+            "format": "uuid",
+            "example": "f24151b6-3389-41d3-8747-7dd8c681e5e2",
+            "readOnly": true
+          },
+          "porting_order_id": {
+            "description": "Identifies the porting order associated with this phone number.",
+            "type": "string",
+            "format": "uuid",
+            "example": "a24151b6-3389-41d3-8747-7dd8c681e5e2"
+          },
+          "country_code": {
+            "description": "Specifies the country code for this associated phone number. It is a two-letter ISO 3166-1 alpha-2 country code.",
+            "type": "string",
+            "example": "GB"
+          },
+          "phone_number_type": {
+            "description": "Specifies the phone number type for this associated phone number.",
+            "type": "string",
+            "example": "local",
+            "enum": [
+              "landline",
+              "local",
+              "mobile",
+              "national",
+              "shared_cost",
+              "toll_free"
+            ]
+          },
+          "phone_number_range": {
+            "description": "Specifies the phone number range for this associated phone number.",
+            "type": "object",
+            "properties": {
+              "start_at": {
+                "description": "Specifies the start of the phone number range for this associated phone number.",
+                "type": "string",
+                "pattern": "^\\+\\d{7,15}$",
+                "example": "+441234567890"
+              },
+              "end_at": {
+                "description": "Specifies the end of the phone number range for this associated phone number.",
+                "type": "string",
+                "pattern": "^\\+\\d{7,15}$",
+                "example": "+441234567899"
+              }
+            }
+          },
+          "action": {
+            "description": "Specifies the action to take with this phone number during partial porting.",
+            "type": "string",
+            "enum": [
+              "keep",
+              "disconnect"
+            ],
+            "example": "keep"
+          },
+          "record_type": {
+            "type": "string",
+            "example": "porting_associated_phone_number",
+            "description": "Identifies the type of the resource.",
+            "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was last updated.",
+            "example": "2021-03-19T10:07:15.527Z",
+            "readOnly": true
           }
         }
       },
@@ -79507,6 +80048,17 @@
           },
           "messaging": {
             "$ref": "#/components/schemas/PortingOrderMessaging"
+          },
+          "additional_steps": {
+            "type": "array",
+            "description": "For specific porting orders, we may require additional steps to be taken before submitting the porting order.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "associated_phone_numbers",
+                "phone_number_verification_codes"
+              ]
+            }
           }
         }
       },
@@ -80092,17 +80644,6 @@
             ],
             "example": "user"
           },
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The ID of the user who created this comment",
-            "example": "6a09cdc3-8948-47f0-aa62-74ac943d6c58"
-          },
-          "user_email": {
-            "type": "string",
-            "description": "The email address of the user who created this comment",
-            "example": "user@example.com"
-          },
           "record_type": {
             "type": "string",
             "description": "Identifies the type of the resource.",
@@ -80473,6 +81014,53 @@
             "example": "porting_report",
             "description": "Identifies the type of the resource.",
             "readOnly": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was created.",
+            "example": "2021-03-19T10:07:15.527000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was updated.",
+            "example": "2021-03-19T10:07:15.527000Z"
+          }
+        }
+      },
+      "PortingUKCarrier": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "96dfa9e4-c753-4fd3-97cd-42d66f26cf0c",
+            "description": "Identifies the UK carrier."
+          },
+          "cupid": {
+            "type": "string",
+            "description": "The CUPID of the carrier. This is a 3 digit number code that identifies the carrier in the UK.",
+            "example": "895"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the carrier.",
+            "example": "Telnyx UK Limited"
+          },
+          "alternative_cupids": {
+            "type": "array",
+            "description": "Alternative CUPIDs of the carrier.",
+            "items": {
+              "type": "string",
+              "description": "An alternative CUPID of the carrier.",
+              "example": "895"
+            }
+          },
+          "record_type": {
+            "type": "string",
+            "example": "porting_uk_carrier",
+            "description": "Identifies the type of the resource."
           },
           "created_at": {
             "type": "string",
