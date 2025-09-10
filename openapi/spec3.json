@@ -532,6 +532,62 @@
         "x-latency-category": "responsive"
       }
     },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": [
+          "OAuth Discovery"
+        ],
+        "summary": "Authorization server metadata",
+        "description": "OAuth 2.0 Authorization Server Metadata (RFC 8414)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Authorization server metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationServerMetadata"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "servers": [
+        {
+          "url": "https://api.telnyx.com"
+        }
+      ]
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": [
+          "OAuth Discovery"
+        ],
+        "summary": "Protected resource metadata",
+        "description": "OAuth 2.0 Protected Resource Metadata for resource discovery",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Protected resource metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceMetadata"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "servers": [
+        {
+          "url": "https://api.telnyx.com"
+        }
+      ]
+    },
     "/access_ip_address": {
       "get": {
         "summary": "List all Access IP Addresses",
@@ -20079,6 +20135,989 @@
             "bearerAuth": []
           }
         ],
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "OAuth authorization endpoint",
+        "description": "OAuth 2.0 authorization endpoint for the authorization code flow",
+        "security": [],
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "code"
+              ]
+            },
+            "description": "OAuth response type"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "OAuth client identifier"
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Redirect URI"
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Space-separated list of requested scopes",
+            "example": "admin"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "State parameter for CSRF protection"
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "PKCE code challenge"
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "plain",
+                "S256"
+              ]
+            },
+            "description": "PKCE code challenge method"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to consent page or client with authorization code/error"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Client not found",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid redirect URI",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/consent/{consent_token}": {
+      "get": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "Get OAuth consent token",
+        "description": "Retrieve details about an OAuth consent token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "consent_token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "OAuth consent token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consent token details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentTokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid consent token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/grants": {
+      "post": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "Create OAuth grant",
+        "description": "Create an OAuth authorization grant",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOAuthGrantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grant created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateGrantResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid consent token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/introspect": {
+      "post": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "Token introspection",
+        "description": "Introspect an OAuth access token to check its validity and metadata",
+        "security": [
+          {
+            "oauthClientAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/IntrospectRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntrospectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Introspection response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntrospectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                },
+                "example": {
+                  "error": "invalid_request"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid client credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                },
+                "example": {
+                  "error": "invalid_client"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/jwks": {
+      "get": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "JSON Web Key Set",
+        "description": "Retrieve the JSON Web Key Set for token verification",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JSON Web Key Set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JWKSet"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "Dynamic client registration",
+        "description": "Register a new OAuth client dynamically (RFC 7591)",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthDynamicRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthDynamicRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid client metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "invalid_client_metadata"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "example": "The client metadata was invalid"
+                    },
+                    "invalid_fields": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "tags": [
+          "OAuth Protocol"
+        ],
+        "summary": "OAuth token endpoint",
+        "description": "Exchange authorization code, client credentials, or refresh token for access token",
+        "security": [
+          {
+            "oauthClientAuth": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                },
+                "examples": {
+                  "invalid_request": {
+                    "value": {
+                      "error": "invalid_request"
+                    }
+                  },
+                  "invalid_grant": {
+                    "value": {
+                      "error": "invalid_grant"
+                    }
+                  },
+                  "unsupported_grant_type": {
+                    "value": {
+                      "error": "unsupported_grant_type"
+                    }
+                  },
+                  "invalid_scope": {
+                    "value": {
+                      "error": "invalid_scope"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid client credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                },
+                "example": {
+                  "error": "invalid_client"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth_clients": {
+      "get": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "summary": "List OAuth clients",
+        "description": "Retrieve a paginated list of OAuth clients for the authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page[size]",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "name": "page[number]",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "filter[client_type]",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "confidential",
+                "public"
+              ]
+            },
+            "description": "Filter by client type"
+          },
+          {
+            "name": "filter[verified]",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by verification status"
+          },
+          {
+            "name": "filter[allowed_grant_types][contains]",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client_credentials",
+                "authorization_code",
+                "refresh_token"
+              ]
+            },
+            "description": "Filter by allowed grant type"
+          },
+          {
+            "name": "filter[name]",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by exact client name"
+          },
+          {
+            "name": "filter[name][contains]",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by client name containing text"
+          },
+          {
+            "name": "filter[client_id]",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by client ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of OAuth clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OAuthClient"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/oauth_PaginationMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "summary": "Create OAuth client",
+        "description": "Create a new OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthClientCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OAuth client created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OAuthClient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth_clients/{id}": {
+      "delete": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "summary": "Delete OAuth client",
+        "description": "Delete an OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "OAuth client ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "OAuth client deleted successfully"
+          },
+          "404": {
+            "description": "OAuth client not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "get": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "summary": "Get OAuth client",
+        "description": "Retrieve a single OAuth client by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "OAuth client ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth client details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OAuthClient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "OAuth client not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "put": {
+        "tags": [
+          "OAuth Clients"
+        ],
+        "summary": "Update OAuth client",
+        "description": "Update an existing OAuth client",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "OAuth client ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthClientUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth client updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OAuthClient"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "OAuth client not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth_grants": {
+      "get": {
+        "tags": [
+          "OAuth Grants"
+        ],
+        "summary": "List OAuth grants",
+        "description": "Retrieve a paginated list of OAuth grants for the authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page[size]",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of results per page"
+          },
+          {
+            "name": "page[number]",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "Page number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of OAuth grants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OAuthGrant"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/oauth_PaginationMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/oauth_grants/{id}": {
+      "delete": {
+        "tags": [
+          "OAuth Grants"
+        ],
+        "summary": "Revoke OAuth grant",
+        "description": "Revoke an OAuth grant",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "OAuth grant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth grant revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OAuthGrant"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "OAuth grant not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "get": {
+        "tags": [
+          "OAuth Grants"
+        ],
+        "summary": "Get OAuth grant",
+        "description": "Retrieve a single OAuth grant by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "OAuth grant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth grant details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OAuthGrant"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "OAuth grant not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/oauth_Error"
+                }
+              }
+            }
+          }
+        },
         "x-latency-category": "responsive"
       }
     },
@@ -49591,6 +50630,79 @@
           }
         }
       },
+      "AuthorizationServerMetadata": {
+        "type": "object",
+        "properties": {
+          "issuer": {
+            "type": "string",
+            "format": "uri",
+            "description": "Authorization server issuer URL"
+          },
+          "token_endpoint": {
+            "type": "string",
+            "format": "uri",
+            "description": "Token endpoint URL"
+          },
+          "introspection_endpoint": {
+            "type": "string",
+            "format": "uri",
+            "description": "Token introspection endpoint URL"
+          },
+          "jwks_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "JWK Set endpoint URL"
+          },
+          "registration_endpoint": {
+            "type": "string",
+            "format": "uri",
+            "description": "Dynamic client registration endpoint URL"
+          },
+          "authorization_endpoint": {
+            "type": "string",
+            "format": "uri",
+            "description": "Authorization endpoint URL"
+          },
+          "grant_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported grant types"
+          },
+          "code_challenge_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported PKCE code challenge methods"
+          },
+          "response_types_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported response types"
+          },
+          "token_endpoint_auth_methods_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported token endpoint authentication methods"
+          },
+          "scopes_supported": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported OAuth scopes",
+            "example": [
+              "admin"
+            ]
+          }
+        }
+      },
       "AutoRechargePref": {
         "type": "object",
         "properties": {
@@ -60120,6 +61232,71 @@
           "report_frequency_secs": 10
         }
       },
+      "ConsentTokenResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "client_id": {
+                "type": "string",
+                "description": "Client ID"
+              },
+              "name": {
+                "type": "string",
+                "description": "Client name"
+              },
+              "requested_scopes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Scope ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Scope name"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Scope description"
+                    }
+                  }
+                }
+              },
+              "logo_uri": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "URL of the client logo"
+              },
+              "tos_uri": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "URL of the client's terms of service"
+              },
+              "policy_uri": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true,
+                "description": "URL of the client's privacy policy"
+              },
+              "redirect_uri": {
+                "type": "string",
+                "format": "uri",
+                "description": "The redirect URI for this authorization"
+              },
+              "verified": {
+                "type": "boolean",
+                "description": "Whether the client is verified"
+              }
+            }
+          }
+        }
+      },
       "ConsumedData": {
         "type": "object",
         "title": "ConsumedData",
@@ -61849,6 +63026,19 @@
           "dns_record_type": "a"
         }
       },
+      "CreateGrantResponse": {
+        "type": "object",
+        "properties": {
+          "redirect_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Redirect URI with authorization code or error"
+          }
+        },
+        "required": [
+          "redirect_uri"
+        ]
+      },
       "CreateGroupMMSMessageRequest": {
         "type": "object",
         "required": [
@@ -63110,6 +64300,24 @@
           "updated_at": "2018-01-01T00:00:00.000000Z"
         },
         "type": "object"
+      },
+      "CreateOAuthGrantRequest": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "Whether the grant is allowed"
+          },
+          "consent_token": {
+            "type": "string",
+            "description": "Consent token"
+          }
+        },
+        "required": [
+          "allowed",
+          "consent_token"
+        ],
+        "additionalProperties": false
       },
       "CreateOutboundVoiceProfileRequest": {
         "type": "object",
@@ -71795,6 +73003,54 @@
           }
         }
       },
+      "IntrospectRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token to introspect"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "IntrospectResponse": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean",
+            "description": "Whether the token is active"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated list of scopes"
+          },
+          "client_id": {
+            "type": "string",
+            "description": "Client identifier"
+          },
+          "exp": {
+            "type": "integer",
+            "description": "Expiration timestamp"
+          },
+          "iat": {
+            "type": "integer",
+            "description": "Issued at timestamp"
+          },
+          "iss": {
+            "type": "string",
+            "description": "Issuer"
+          },
+          "aud": {
+            "type": "string",
+            "description": "Audience"
+          }
+        },
+        "required": [
+          "active"
+        ]
+      },
       "InventoryCoverage": {
         "type": "object",
         "properties": {
@@ -72196,6 +73452,35 @@
             "ip_authentication_method": "token",
             "ip_authentication_token": "string",
             "outbound_voice_profile_id": "1293384261075731499"
+          }
+        }
+      },
+      "JWKSet": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kty": {
+                  "type": "string",
+                  "description": "Key type"
+                },
+                "use": {
+                  "type": "string",
+                  "description": "Key use"
+                },
+                "alg": {
+                  "type": "string",
+                  "description": "Algorithm"
+                },
+                "kid": {
+                  "type": "string",
+                  "description": "Key ID"
+                }
+              }
+            }
           }
         }
       },
@@ -76071,6 +77356,446 @@
           "updated_at": "2018-01-01T00:00:00.000000Z"
         },
         "type": "object"
+      },
+      "OAuthClient": {
+        "type": "object",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "oauth_client"
+            ],
+            "description": "Record type identifier"
+          },
+          "client_id": {
+            "type": "string",
+            "description": "OAuth client identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the OAuth client"
+          },
+          "org_id": {
+            "type": "string",
+            "description": "Organization ID that owns this OAuth client"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "User ID that created this OAuth client"
+          },
+          "allowed_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of allowed OAuth scopes"
+          },
+          "client_type": {
+            "type": "string",
+            "enum": [
+              "public",
+              "confidential"
+            ],
+            "description": "OAuth client type"
+          },
+          "require_pkce": {
+            "type": "boolean",
+            "description": "Whether PKCE (Proof Key for Code Exchange) is required for this client"
+          },
+          "allowed_grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "client_credentials",
+                "authorization_code",
+                "refresh_token"
+              ]
+            },
+            "description": "List of allowed OAuth grant types"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "List of allowed redirect URIs"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL of the client logo"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL of the client's terms of service"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "URL of the client's privacy policy"
+          },
+          "client_secret": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client secret (only included when available, for confidential clients)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the client was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the client was last updated"
+          }
+        },
+        "required": [
+          "record_type",
+          "client_id",
+          "name",
+          "org_id",
+          "user_id",
+          "client_type",
+          "require_pkce",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "OAuthClientCreateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the OAuth client",
+            "example": "My OAuth client"
+          },
+          "allowed_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of allowed OAuth scopes",
+            "example": [
+              "admin"
+            ]
+          },
+          "client_type": {
+            "type": "string",
+            "enum": [
+              "public",
+              "confidential"
+            ],
+            "description": "OAuth client type"
+          },
+          "require_pkce": {
+            "type": "boolean",
+            "description": "Whether PKCE (Proof Key for Code Exchange) is required for this client",
+            "default": false
+          },
+          "allowed_grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "client_credentials",
+                "authorization_code",
+                "refresh_token"
+              ]
+            },
+            "description": "List of allowed OAuth grant types"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "List of redirect URIs (required for authorization_code flow)",
+            "default": []
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client logo"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's privacy policy"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's terms of service"
+          }
+        },
+        "required": [
+          "name",
+          "allowed_scopes",
+          "client_type",
+          "allowed_grant_types"
+        ],
+        "additionalProperties": false
+      },
+      "OAuthClientUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the OAuth client"
+          },
+          "allowed_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of allowed OAuth scopes",
+            "example": [
+              "admin"
+            ]
+          },
+          "require_pkce": {
+            "type": "boolean",
+            "description": "Whether PKCE (Proof Key for Code Exchange) is required for this client"
+          },
+          "allowed_grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "client_credentials",
+                "authorization_code",
+                "refresh_token"
+              ]
+            },
+            "description": "List of allowed OAuth grant types"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "List of redirect URIs"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client logo"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's privacy policy"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's terms of service"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthDynamicRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Array of redirection URI strings for use in redirect-based flows",
+            "example": [
+              "https://example.com/callback"
+            ]
+          },
+          "client_name": {
+            "type": "string",
+            "description": "Human-readable string name of the client to be presented to the end-user",
+            "example": "My OAuth Application"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "authorization_code",
+                "client_credentials",
+                "refresh_token"
+              ]
+            },
+            "description": "Array of OAuth 2.0 grant type strings that the client may use",
+            "default": [
+              "authorization_code"
+            ]
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of the OAuth 2.0 response type strings that the client may use",
+            "default": [
+              "code"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated string of scope values that the client may use",
+            "example": "admin"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string",
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ],
+            "description": "Authentication method for the token endpoint",
+            "default": "client_secret_basic"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client logo"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's terms of service"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's privacy policy"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OAuthDynamicRegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "Unique client identifier",
+            "example": "abc123def456"
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "Client secret (only for confidential clients)"
+          },
+          "redirect_uris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Array of redirection URIs"
+          },
+          "client_name": {
+            "type": "string",
+            "description": "Human-readable client name"
+          },
+          "grant_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of allowed grant types"
+          },
+          "response_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of allowed response types"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated scope values"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string",
+            "description": "Token endpoint authentication method"
+          },
+          "client_id_issued_at": {
+            "type": "integer",
+            "description": "Unix timestamp of when the client ID was issued"
+          },
+          "logo_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client logo"
+          },
+          "tos_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's terms of service"
+          },
+          "policy_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the client's privacy policy"
+          }
+        },
+        "required": [
+          "client_id",
+          "client_id_issued_at"
+        ]
+      },
+      "OAuthGrant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the OAuth grant"
+          },
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "oauth_grant"
+            ],
+            "description": "Record type identifier"
+          },
+          "client_id": {
+            "type": "string",
+            "description": "OAuth client identifier"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of granted OAuth scopes"
+          },
+          "last_used_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when the grant was last used"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the grant was created"
+          }
+        },
+        "required": [
+          "id",
+          "record_type",
+          "client_id",
+          "scopes",
+          "created_at"
+        ]
       },
       "OptOutItem": {
         "type": "object",
@@ -84237,6 +85962,24 @@
         },
         "type": "object"
       },
+      "ResourceMetadata": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "format": "uri",
+            "description": "Protected resource URL"
+          },
+          "authorization_servers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "List of authorization server URLs"
+          }
+        }
+      },
       "ResourceNotFoundError": {
         "type": "object",
         "properties": {
@@ -91712,6 +93455,86 @@
         "format": "address",
         "description": "Receiving address (+E.164 formatted phone number or short code).",
         "example": "+E.164"
+      },
+      "TokenRequest": {
+        "type": "object",
+        "properties": {
+          "grant_type": {
+            "type": "string",
+            "enum": [
+              "client_credentials",
+              "authorization_code",
+              "refresh_token"
+            ],
+            "description": "OAuth 2.0 grant type"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated list of requested scopes (for client_credentials)",
+            "example": "admin"
+          },
+          "code": {
+            "type": "string",
+            "description": "Authorization code (for authorization_code flow)"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Redirect URI (for authorization_code flow)"
+          },
+          "code_verifier": {
+            "type": "string",
+            "description": "PKCE code verifier (for authorization_code flow)"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token (for refresh_token flow)"
+          },
+          "client_id": {
+            "type": "string",
+            "description": "OAuth client ID (if not using HTTP Basic auth)"
+          },
+          "client_secret": {
+            "type": "string",
+            "description": "OAuth client secret (if not using HTTP Basic auth)"
+          }
+        },
+        "required": [
+          "grant_type"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "The access token"
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ],
+            "description": "Token type"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "Token lifetime in seconds"
+          },
+          "scope": {
+            "type": "string",
+            "description": "Space-separated list of granted scopes"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token (if applicable)"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in"
+        ]
       },
       "TotalSummary": {
         "type": "object",
@@ -100814,6 +102637,43 @@
           }
         }
       },
+      "oauth_Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error code"
+          },
+          "error_description": {
+            "type": "string",
+            "description": "Human-readable error description"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "oauth_PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "description": "Current page number"
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Number of items per page"
+          },
+          "total_results": {
+            "type": "integer",
+            "description": "Total number of results"
+          },
+          "total_pages": {
+            "type": "integer",
+            "description": "Total number of pages"
+          }
+        }
+      },
       "organization_id": {
         "type": "string",
         "format": "uuid",
@@ -101948,6 +103808,11 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "oauthClientAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "OAuth client credentials (client_id:client_secret) via HTTP Basic Auth, or client credentials in request body for public clients"
       }
     }
   },
