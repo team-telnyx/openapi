@@ -22777,6 +22777,101 @@ components:
       example: Fri, 11 Aug 2023 19:12:11 +0000
       format: date-time
       type: string
+    DeepgramNova2TranscriptionLanguage:
+      default: en
+      description: Language to use for speech recognition with nova-2 model
+      enum:
+      - bg
+      - ca
+      - zh
+      - zh-CN
+      - zh-Hans
+      - zh-TW
+      - zh-Hant
+      - zh-HK
+      - cs
+      - da
+      - da-DK
+      - nl
+      - en
+      - en-US
+      - en-AU
+      - en-GB
+      - en-NZ
+      - en-IN
+      - et
+      - fi
+      - nl-BE
+      - fr
+      - fr-CA
+      - de
+      - de-CH
+      - el
+      - hi
+      - hu
+      - id
+      - it
+      - ja
+      - ko
+      - ko-KR
+      - lv
+      - lt
+      - ms
+      - 'no'
+      - pl
+      - pt
+      - pt-BR
+      - pt-PT
+      - ro
+      - ru
+      - sk
+      - es
+      - es-419
+      - sv
+      - sv-SE
+      - th
+      - th-TH
+      - tr
+      - uk
+      - vi
+      - auto_detect
+      example: en
+      title: Deepgram nova-2 transcription engine list of languages
+      type: string
+    DeepgramNova3TranscriptionLanguage:
+      default: en
+      description: Language to use for speech recognition with nova-3 model
+      enum:
+      - en
+      - en-US
+      - en-AU
+      - en-GB
+      - en-IN
+      - en-NZ
+      - de
+      - nl
+      - sv
+      - sv-SE
+      - da
+      - da-DK
+      - es
+      - es-419
+      - fr
+      - fr-CA
+      - pt
+      - pt-BR
+      - pt-PT
+      - auto_detect
+      example: en
+      title: Deepgram nova-3 transcription engine list of languages
+      type: string
+    DeepgramTranscriptionLanguage:
+      default: en
+      description: Language to use for speech recognition. Available languages depend
+        on the selected model.
+      example: en
+      title: Deepgram transcription language
+      type: string
     DefaultGateway:
       allOf:
       - $ref: '#/components/schemas/Record'
@@ -45955,6 +46050,138 @@ components:
           type: string
       title: Transcription engine B config
       type: object
+    TranscriptionEngineDeepgramConfig:
+      allOf:
+      - else:
+          properties:
+            language:
+              $ref: '#/components/schemas/DeepgramNova2TranscriptionLanguage'
+        if:
+          properties:
+            transcription_model:
+              const: deepgram/nova-3
+        then:
+          properties:
+            language:
+              $ref: '#/components/schemas/DeepgramNova3TranscriptionLanguage'
+      properties:
+        language:
+          $ref: '#/components/schemas/DeepgramTranscriptionLanguage'
+        transcription_engine:
+          description: Engine identifier for Deepgram transcription service
+          enum:
+          - Deepgram
+          type: string
+        transcription_model:
+          default: deepgram/nova-2
+          description: The model to use for transcription.
+          enum:
+          - deepgram/nova-2
+          - deepgram/nova-3
+          type: string
+      title: Transcription engine Deepgram config
+      type: object
+    TranscriptionEngineGoogleConfig:
+      properties:
+        enable_speaker_diarization:
+          default: false
+          description: Enables speaker diarization.
+          example: true
+          type: boolean
+        hints:
+          default: []
+          description: Hints to improve transcription accuracy.
+          example: []
+          items:
+            type: string
+          type: array
+        interim_results:
+          default: false
+          description: Whether to send also interim results. If set to false, only
+            final results will be sent.
+          example: true
+          type: boolean
+        language:
+          $ref: '#/components/schemas/GoogleTranscriptionLanguage'
+        max_speaker_count:
+          default: 6
+          description: Defines maximum number of speakers in the conversation.
+          example: 4
+          format: int32
+          type: integer
+        min_speaker_count:
+          default: 2
+          description: Defines minimum number of speakers in the conversation.
+          example: 4
+          format: int32
+          type: integer
+        model:
+          description: The model to use for transcription.
+          enum:
+          - latest_long
+          - latest_short
+          - command_and_search
+          - phone_call
+          - video
+          - default
+          - medical_conversation
+          - medical_dictation
+          type: string
+        profanity_filter:
+          default: false
+          description: Enables profanity_filter.
+          example: true
+          type: boolean
+        speech_context:
+          description: Speech context to improve transcription accuracy.
+          items:
+            properties:
+              boost:
+                default: 1.0
+                description: Boost factor for the speech context.
+                example: 1.0
+                maximum: 20.0
+                minimum: 0.0
+                type: number
+              phrases:
+                default: []
+                example: []
+                items:
+                  type: string
+                type: array
+            type: object
+          type: array
+        transcription_engine:
+          description: Engine identifier for Google transcription service
+          enum:
+          - Google
+          type: string
+        use_enhanced:
+          default: false
+          description: Enables enhanced transcription, this works for models `phone_call`
+            and `video`.
+          example: true
+          type: boolean
+      title: Transcription engine Google config
+      type: object
+    TranscriptionEngineTelnyxConfig:
+      properties:
+        language:
+          $ref: '#/components/schemas/TelnyxTranscriptionLanguage'
+        transcription_engine:
+          description: Engine identifier for Telnyx transcription service
+          enum:
+          - Telnyx
+          type: string
+        transcription_model:
+          default: openai/whisper-tiny
+          description: The model to use for transcription.
+          enum:
+          - openai/whisper-tiny
+          - openai/whisper-large-v3-turbo
+          type: string
+      title: Transcription engine Telnyx config
+      type: object
     TranscriptionEvent:
       properties:
         data:
@@ -45996,21 +46223,30 @@ components:
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
         transcription_engine:
-          default: A
-          description: Engine to use for speech recognition. `A` - `Google`, `B` -
-            `Telnyx`.
+          default: Google
+          description: Engine to use for speech recognition. Legacy values `A` - `Google`,
+            `B` - `Telnyx` are supported for backward compatibility.
           enum:
+          - Google
+          - Telnyx
+          - Deepgram
           - A
           - B
-          example: A
+          example: Google
           type: string
         transcription_engine_config:
           discriminator:
             mapping:
               A: '#/components/schemas/TranscriptionEngineAConfig'
               B: '#/components/schemas/TranscriptionEngineBConfig'
+              Deepgram: '#/components/schemas/TranscriptionEngineDeepgramConfig'
+              Google: '#/components/schemas/TranscriptionEngineGoogleConfig'
+              Telnyx: '#/components/schemas/TranscriptionEngineTelnyxConfig'
             propertyName: transcription_engine
           oneOf:
+          - $ref: '#/components/schemas/TranscriptionEngineGoogleConfig'
+          - $ref: '#/components/schemas/TranscriptionEngineTelnyxConfig'
+          - $ref: '#/components/schemas/TranscriptionEngineDeepgramConfig'
           - $ref: '#/components/schemas/TranscriptionEngineAConfig'
           - $ref: '#/components/schemas/TranscriptionEngineBConfig'
         transcription_tracks:
