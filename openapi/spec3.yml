@@ -2410,8 +2410,8 @@ components:
         type: object
       style: deepObject
     outbound-voice-profiles_PageConsolidated:
-      description: 'Consolidated page parameter (deepObject style). Originally: page[number],
-        page[size]'
+      description: 'Consolidated page parameter (deepObject style). Originally: page[size],
+        page[number]'
       explode: true
       in: query
       name: page
@@ -21117,6 +21117,10 @@ components:
     CreateOutboundVoiceProfileRequest:
       example:
         billing_group_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        calling_window:
+          calls_per_cld: 5
+          end_time: '20:00'
+          start_time: 08:00
         concurrent_call_limit: 10
         daily_spend_limit: '100.00'
         daily_spend_limit_enabled: true
@@ -21143,6 +21147,35 @@ components:
           type: string
         call_recording:
           $ref: '#/components/schemas/OutboundCallRecording'
+        calling_window:
+          description: (BETA) Specifies the time window and call limits for calls
+            made using this outbound voice profile. Note that all times are UTC in
+            24-hour clock time.
+          example:
+            calls_per_cld: 5
+            end_time: '20:00'
+            start_time: 08:00
+          properties:
+            calls_per_cld:
+              description: (BETA) The maximum number of calls that can be initiated
+                to a single called party (CLD) within the calling window. A null value
+                means no limit.
+              example: 5
+              minimum: 0
+              type: integer
+            end_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are no longer allowed to start.
+              example: '20:00'
+              format: time
+              type: string
+            start_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are allowed to start.
+              example: 08:00
+              format: time
+              type: string
+          type: object
         concurrent_call_limit:
           description: Must be no more than your global concurrent call limit. Null
             means no limit.
@@ -33587,6 +33620,10 @@ components:
           call_recording_channels: dual
           call_recording_format: mp3
           call_recording_type: by_caller_phone_number
+        calling_window:
+          calls_per_cld: 5
+          end_time: '20:00'
+          start_time: 08:00
         concurrent_call_limit: 10
         connections_count: 12
         created_at: '2018-02-02T22:25:27.521Z'
@@ -33618,6 +33655,32 @@ components:
           type: string
         call_recording:
           $ref: '#/components/schemas/OutboundCallRecording'
+        calling_window:
+          description: (BETA) Specifies the time window and call limits for calls
+            made using this outbound voice profile. Note that all times are UTC in
+            24-hour clock time.
+          example:
+            calls_per_cld: 5
+            end_time: '20:00'
+            start_time: 08:00
+          properties:
+            calls_per_cld:
+              description: (BETA) The maximum number of calls that can be initiated
+                to a single called party (CLD) within the calling window. A null value
+                means no limit.
+              example: 5
+              type: integer
+            end_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are no longer allowed to start.
+              example: '20:00'
+              type: string
+            start_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are allowed to start.
+              example: 08:00
+              type: string
+          type: object
         concurrent_call_limit:
           description: Must be no more than your global concurrent call limit. Null
             means no limit.
@@ -43406,6 +43469,12 @@ components:
           maxLength: 500
           title: Additionalinformation
           type: string
+        ageGatedContent:
+          default: false
+          description: Indicates if messaging content requires age gating (e.g., 18+).
+            Defaults to false if not provided.
+          title: Agegatedcontent
+          type: boolean
         businessAddr1:
           description: Line 1 of the business address
           example: 600 Congress Avenue
@@ -43457,6 +43526,32 @@ components:
           maxLength: 500
           title: Businessname
           type: string
+        businessRegistrationCountry:
+          description: ISO 3166-1 alpha-2 country code of the issuing business authority.
+            Must be exactly 2 letters. Automatically converted to uppercase. Required
+            from January 2026.
+          example: US
+          maxLength: 2
+          nullable: true
+          pattern: ^[A-Z]{2}$
+          title: Businessregistrationcountry
+          type: string
+        businessRegistrationNumber:
+          description: Official business registration number (e.g., Employer Identification
+            Number (EIN) in the U.S.). Required from January 2026.
+          example: 12-3456789
+          maxLength: 500
+          nullable: true
+          title: Businessregistrationnumber
+          type: string
+        businessRegistrationType:
+          description: Type of business registration being provided. Required from
+            January 2026.
+          example: EIN
+          maxLength: 500
+          nullable: true
+          title: Businessregistrationtype
+          type: string
         businessState:
           description: The full name of the state (not the 2 letter code) of the business
             address; the first letter should be capitalized
@@ -43476,6 +43571,26 @@ components:
           maxLength: 500
           title: Corporatewebsite
           type: string
+        doingBusinessAs:
+          description: Doing Business As (DBA) name if different from legal name
+          example: Acme Services
+          maxLength: 500
+          nullable: true
+          title: Doingbusinessas
+          type: string
+        entityType:
+          allOf:
+          - $ref: '#/components/schemas/toll-free-verification_EntityType'
+          description: Business entity classification. Must be one of the 5 valid
+            enum values.
+          nullable: true
+        helpMessageResponse:
+          description: The message returned when users text 'HELP'
+          example: 'Reply HELP for assistance or STOP to unsubscribe. Contact: support@example.com'
+          maxLength: 500
+          nullable: true
+          title: Helpmessageresponse
+          type: string
         isvReseller:
           description: ISV name
           maxLength: 500
@@ -43486,6 +43601,20 @@ components:
           - $ref: '#/components/schemas/Volume'
           description: Estimated monthly volume of messages from the given phone numbers
           example: 100,000
+        optInConfirmationResponse:
+          description: Message sent to users confirming their opt-in to receive messages
+          example: You have successfully opted in to receive messages from Acme Corp
+          maxLength: 500
+          nullable: true
+          title: Optinconfirmationresponse
+          type: string
+        optInKeywords:
+          description: Keywords used to collect and process consumer opt-ins
+          example: START, YES, SUBSCRIBE
+          maxLength: 500
+          nullable: true
+          title: Optinkeywords
+          type: string
         optInWorkflow:
           description: Human-readable description of how end users will opt into receiving
             messages from the given phone numbers
@@ -43515,12 +43644,28 @@ components:
           minItems: 1
           title: Phonenumbers
           type: array
+        privacyPolicyURL:
+          description: URL pointing to the business's privacy policy. Plain string,
+            no URL format validation.
+          example: https://example.com/privacy
+          maxLength: 500
+          nullable: true
+          title: Privacypolicyurl
+          type: string
         productionMessageContent:
           description: An example of a message that will be sent from the given phone
             numbers
           example: Your Telnyx OTP is XXXX
           maxLength: 1000
           title: Productionmessagecontent
+          type: string
+        termsAndConditionURL:
+          description: URL pointing to the business's terms and conditions. Plain
+            string, no URL format validation.
+          example: https://example.com/terms
+          maxLength: 500
+          nullable: true
+          title: Termsandconditionurl
           type: string
         useCase:
           allOf:
@@ -48396,6 +48541,10 @@ components:
     UpdateOutboundVoiceProfileRequest:
       example:
         billing_group_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        calling_window:
+          calls_per_cld: 5
+          end_time: '20:00'
+          start_time: 08:00
         concurrent_call_limit: 10
         daily_spend_limit: '100.00'
         daily_spend_limit_enabled: true
@@ -48422,6 +48571,34 @@ components:
           type: string
         call_recording:
           $ref: '#/components/schemas/OutboundCallRecording'
+        calling_window:
+          description: (BETA) Specifies the time window and call limits for calls
+            made using this outbound voice profile.
+          example:
+            calls_per_cld: 5
+            end_time: '20:00'
+            start_time: 08:00
+          properties:
+            calls_per_cld:
+              description: (BETA) The maximum number of calls that can be initiated
+                to a single called party (CLD) within the calling window. A null value
+                means no limit.
+              example: 5
+              minimum: 0
+              type: integer
+            end_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are no longer allowed to start.
+              example: '20:00'
+              format: time
+              type: string
+            start_time:
+              description: (BETA) The UTC time of day (in HH:MM format, 24-hour clock)
+                when calls are allowed to start.
+              example: 08:00
+              format: time
+              type: string
+          type: object
         concurrent_call_limit:
           description: Must be no more than your global concurrent call limit. Null
             means no limit.
@@ -49917,6 +50094,10 @@ components:
           example: This is for security purposes, blah blah blah
           title: Additionalinformation
           type: string
+        ageGatedContent:
+          example: false
+          title: Agegatedcontent
+          type: boolean
         businessAddr1:
           example: 600 Congress Avenue
           title: Businessaddr1
@@ -49949,6 +50130,18 @@ components:
           example: Telnyx LLC
           title: Businessname
           type: string
+        businessRegistrationCountry:
+          example: US
+          title: Businessregistrationcountry
+          type: string
+        businessRegistrationNumber:
+          example: 12-3456789
+          title: Businessregistrationnumber
+          type: string
+        businessRegistrationType:
+          example: EIN
+          title: Businessregistrationtype
+          type: string
         businessState:
           example: Texas
           title: Businessstate
@@ -49960,6 +50153,18 @@ components:
         corporateWebsite:
           example: http://example.com
           title: Corporatewebsite
+          type: string
+        doingBusinessAs:
+          example: Acme Services
+          title: Doingbusinessas
+          type: string
+        entityType:
+          allOf:
+          - $ref: '#/components/schemas/toll-free-verification_EntityType'
+          example: PRIVATE_PROFIT
+        helpMessageResponse:
+          example: 'Reply HELP for assistance or STOP to unsubscribe. Contact: support@example.com'
+          title: Helpmessageresponse
           type: string
         id:
           format: uuid
@@ -49975,6 +50180,14 @@ components:
           description: 'One of the following exact values: 10; 100; 1,000; 10,000;
             100,000; 250,000; 500,000; 750,000; 1,000,000; 5,000,000; 10,000,000+'
           example: 100,000
+        optInConfirmationResponse:
+          example: You have successfully opted in to receive messages from Acme Corp
+          title: Optinconfirmationresponse
+          type: string
+        optInKeywords:
+          example: START, YES, SUBSCRIBE
+          title: Optinkeywords
+          type: string
         optInWorkflow:
           example: User signs into the Telnyx portal, enters number and is prompted
             to select whether they want to use 2FA verification for security purposes.
@@ -49997,9 +50210,17 @@ components:
             $ref: '#/components/schemas/TFPhoneNumber'
           title: Phonenumbers
           type: array
+        privacyPolicyURL:
+          example: https://example.com/privacy
+          title: Privacypolicyurl
+          type: string
         productionMessageContent:
           example: Your Telnyx OTP is XXXX
           title: Productionmessagecontent
+          type: string
+        termsAndConditionURL:
+          example: https://example.com/terms
+          title: Termsandconditionurl
           type: string
         useCase:
           allOf:
@@ -50053,6 +50274,10 @@ components:
           example: This is for security purposes, blah blah blah
           title: Additionalinformation
           type: string
+        ageGatedContent:
+          example: false
+          title: Agegatedcontent
+          type: boolean
         businessAddr1:
           example: 600 Congress Avenue
           title: Businessaddr1
@@ -50085,6 +50310,18 @@ components:
           example: Telnyx LLC
           title: Businessname
           type: string
+        businessRegistrationCountry:
+          example: US
+          title: Businessregistrationcountry
+          type: string
+        businessRegistrationNumber:
+          example: 12-3456789
+          title: Businessregistrationnumber
+          type: string
+        businessRegistrationType:
+          example: EIN
+          title: Businessregistrationtype
+          type: string
         businessState:
           example: Texas
           title: Businessstate
@@ -50102,6 +50339,18 @@ components:
           format: date-time
           title: Createdat
           type: string
+        doingBusinessAs:
+          example: Acme Services
+          title: Doingbusinessas
+          type: string
+        entityType:
+          allOf:
+          - $ref: '#/components/schemas/toll-free-verification_EntityType'
+          example: PRIVATE_PROFIT
+        helpMessageResponse:
+          example: 'Reply HELP for assistance or STOP to unsubscribe. Contact: support@example.com'
+          title: Helpmessageresponse
+          type: string
         id:
           example: eaba9f52-164e-58e0-b002-4f668e18b7ed
           format: uuid
@@ -50117,6 +50366,14 @@ components:
           description: 'One of the following exact values: 10; 100; 1,000; 10,000;
             100,000; 250,000; 500,000; 750,000; 1,000,000; 5,000,000; 10,000,000+'
           example: 100,000
+        optInConfirmationResponse:
+          example: You have successfully opted in to receive messages from Acme Corp
+          title: Optinconfirmationresponse
+          type: string
+        optInKeywords:
+          example: START, YES, SUBSCRIBE
+          title: Optinkeywords
+          type: string
         optInWorkflow:
           example: User signs into the Telnyx portal, enters number and is prompted
             to select whether they want to use 2FA verification for security purposes.
@@ -50139,6 +50396,10 @@ components:
             $ref: '#/components/schemas/TFPhoneNumber'
           title: Phonenumbers
           type: array
+        privacyPolicyURL:
+          example: https://example.com/privacy
+          title: Privacypolicyurl
+          type: string
         productionMessageContent:
           example: Your Telnyx OTP is XXXX
           title: Productionmessagecontent
@@ -50147,6 +50408,10 @@ components:
           example: Unfortunately, we have to cancel this request as we do not support
             non tollfree US numbers.
           title: Reason
+          type: string
+        termsAndConditionURL:
+          example: https://example.com/terms
+          title: Termsandconditionurl
           type: string
         updatedAt:
           example: '2024-01-23T18:10:02.574Z'
@@ -53927,6 +54192,16 @@ components:
     street_address:
       description: The primary street address information about the address.
       example: 600 Congress Avenue
+      type: string
+    toll-free-verification_EntityType:
+      description: Business entity classification
+      enum:
+      - SOLE_PROPRIETOR
+      - PRIVATE_PROFIT
+      - PUBLIC_PROFIT
+      - NON_PROFIT
+      - GOVERNMENT
+      title: EntityType
       type: string
     toll-free-verification_Error:
       properties:
