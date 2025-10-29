@@ -20539,6 +20539,33 @@ components:
       - from
       - to
       type: object
+    CreateMCPServerRequest:
+      properties:
+        allowed_tools:
+          items:
+            type: string
+          nullable: true
+          title: Allowed Tools
+          type: array
+        api_key_ref:
+          nullable: true
+          title: Api Key Ref
+          type: string
+        name:
+          title: Name
+          type: string
+        type:
+          title: Type
+          type: string
+        url:
+          title: Url
+          type: string
+      required:
+      - name
+      - type
+      - url
+      title: CreateMCPServerRequest
+      type: object
     CreateManagedAccountRequest:
       example:
         business_name: Larry's Cat Food Inc
@@ -28498,6 +28525,86 @@ components:
       example: '1293384261075731499'
       title: Int ID
       type: string
+    Integration:
+      properties:
+        available_tools:
+          items:
+            type: string
+          title: Available Tools
+          type: array
+        description:
+          title: Description
+          type: string
+        display_name:
+          title: Display Name
+          type: string
+        id:
+          title: Id
+          type: string
+        logo_url:
+          title: Logo Url
+          type: string
+        name:
+          title: Name
+          type: string
+        status:
+          enum:
+          - disconnected
+          - connected
+          title: Status
+          type: string
+      required:
+      - id
+      - name
+      - display_name
+      - description
+      - logo_url
+      - status
+      - available_tools
+      title: Integration
+      type: object
+    IntegrationConnection:
+      properties:
+        allowed_tools:
+          items:
+            type: string
+          title: Allowed Tools
+          type: array
+        id:
+          title: Id
+          type: string
+        integration_id:
+          title: Integration Id
+          type: string
+      required:
+      - id
+      - integration_id
+      - allowed_tools
+      title: IntegrationConnection
+      type: object
+    IntegrationConnectionDeletedResponse:
+      description: Integration connection deletion response (204 No Content on success)
+      title: IntegrationConnectionDeletedResponse
+      type: object
+    IntegrationConnectionResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/IntegrationConnection'
+      required:
+      - data
+      title: IntegrationConnectionResponse
+      type: object
+    IntegrationConnectionsListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/IntegrationConnection'
+          title: Data
+          type: array
+      required:
+      - data
+      title: IntegrationConnectionsListResponse
+      type: object
     IntegrationSecret:
       properties:
         created_at:
@@ -28547,6 +28654,17 @@ components:
       - data
       - meta
       title: SecretsListData
+      type: object
+    IntegrationsListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Integration'
+          title: Data
+          type: array
+      required:
+      - data
+      title: IntegrationsListResponse
       type: object
     Interface:
       properties:
@@ -29336,6 +29454,51 @@ components:
       - name
       title: Mobile Country Code
       type: object
+    MCPServer:
+      properties:
+        allowed_tools:
+          items:
+            type: string
+          nullable: true
+          title: Allowed Tools
+          type: array
+        api_key_ref:
+          nullable: true
+          title: Api Key Ref
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+        type:
+          title: Type
+          type: string
+        url:
+          title: Url
+          type: string
+      required:
+      - id
+      - name
+      - type
+      - url
+      - created_at
+      title: MCPServer
+      type: object
+    MCPServerDeletedResponse:
+      description: MCP server deletion response (empty based on actual API)
+      title: MCPServerDeletedResponse
+      type: object
+    MCPServersListResponse:
+      items:
+        $ref: '#/components/schemas/MCPServer'
+      title: MCPServersListResponse
+      type: array
     MMSFallback:
       properties:
         from:
@@ -48400,6 +48563,36 @@ components:
       - ip_address
       title: Update Ip Request
       type: object
+    UpdateMCPServerRequest:
+      properties:
+        allowed_tools:
+          items:
+            type: string
+          nullable: true
+          title: Allowed Tools
+          type: array
+        api_key_ref:
+          nullable: true
+          title: Api Key Ref
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+        type:
+          title: Type
+          type: string
+        url:
+          title: Url
+          type: string
+      title: UpdateMCPServerRequest
+      type: object
     UpdateManagedAccountGlobalChannelLimitRequest:
       example:
         channel_limit: 30
@@ -58201,6 +58394,291 @@ paths:
       summary: Cancel a fine tuning job
       tags:
       - Fine Tuning
+      x-latency-category: responsive
+  /ai/integrations:
+    get:
+      description: List all available integrations.
+      operationId: list_integrations_public_integrations_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Integrations
+      tags:
+      - Integrations
+      x-latency-category: responsive
+  /ai/integrations/connections:
+    get:
+      description: List user setup integrations
+      operationId: list_user_integrations_public_integrations_connections_get
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationConnectionsListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List User Integrations
+      tags:
+      - Integrations
+      x-latency-category: responsive
+  /ai/integrations/connections/{user_connection_id}:
+    delete:
+      description: Delete a specific integration connection.
+      operationId: delete_integration_connection
+      parameters:
+      - description: The user integration connection identifier
+        in: path
+        name: user_connection_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content - Integration connection deleted successfully
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Integration Connection
+      tags:
+      - Integrations
+      x-latency-category: responsive
+    get:
+      description: Get user setup integrations
+      operationId: get_user_integration_by_id_public_integrations_connections__user_connection_id__get
+      parameters:
+      - description: The connection id
+        in: path
+        name: user_connection_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationConnectionResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get User Integration connection By Id
+      tags:
+      - Integrations
+      x-latency-category: responsive
+  /ai/integrations/{integration_id}:
+    get:
+      description: Retrieve integration details
+      operationId: list_integration_by_id_public_integrations__integration_id__get
+      parameters:
+      - description: The integration id
+        in: path
+        name: integration_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Integration By Id
+      tags:
+      - Integrations
+      x-latency-category: responsive
+  /ai/mcp_servers:
+    get:
+      description: Retrieve a list of MCP servers.
+      operationId: list_mcp_servers
+      parameters:
+      - in: query
+        name: type
+        required: false
+        schema:
+          title: Type
+          type: string
+      - in: query
+        name: url
+        required: false
+        schema:
+          title: Url
+          type: string
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          title: Page[Size]
+          type: integer
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          title: Page[Number]
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServersListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List MCP Servers
+      tags:
+      - MCP Servers
+      x-latency-category: responsive
+    post:
+      description: Create a new MCP server.
+      operationId: create_mcp_server
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMCPServerRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create MCP Server
+      tags:
+      - MCP Servers
+      x-latency-category: responsive
+  /ai/mcp_servers/{mcp_server_id}:
+    delete:
+      description: Delete a specific MCP server.
+      operationId: delete_mcp_server
+      parameters:
+      - in: path
+        name: mcp_server_id
+        required: true
+        schema:
+          title: Mcp Server Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete MCP Server
+      tags:
+      - MCP Servers
+      x-latency-category: responsive
+    get:
+      description: Retrieve details for a specific MCP server.
+      operationId: get_mcp_server
+      parameters:
+      - in: path
+        name: mcp_server_id
+        required: true
+        schema:
+          title: Mcp Server Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get MCP Server
+      tags:
+      - MCP Servers
+      x-latency-category: responsive
+    put:
+      description: Update an existing MCP server.
+      operationId: update_mcp_server
+      parameters:
+      - in: path
+        name: mcp_server_id
+        required: true
+        schema:
+          title: Mcp Server Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMCPServerRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Update MCP Server
+      tags:
+      - MCP Servers
       x-latency-category: responsive
   /ai/models:
     get:
