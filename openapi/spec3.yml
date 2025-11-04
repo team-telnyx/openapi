@@ -8991,6 +8991,41 @@ components:
       - deleted
       title: AssistantDeletedResponse
       type: object
+    AssistantSmsChatReq:
+      properties:
+        conversation_metadata:
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          title: Conversation Metadata
+          type: object
+        from:
+          title: From
+          type: string
+        should_create_conversation:
+          title: Should Create Conversation
+          type: boolean
+        text:
+          title: Text
+          type: string
+        to:
+          title: To
+          type: string
+      required:
+      - from
+      - to
+      - text
+      title: AssistantSmsChatReq
+      type: object
+    AssistantSmsChatResponse:
+      properties:
+        conversation_id:
+          title: Conversation Id
+          type: string
+      title: AssistantSmsChatResponse
+      type: object
     AssistantTestResponse:
       description: 'Response model containing complete assistant test information.
 
@@ -46654,6 +46689,11 @@ components:
       type: object
     TranscriptionSettings:
       properties:
+        api_key_ref:
+          description: Referece to api key in Telnyx Portal -> Account -> Account
+            Settings -> Integration Secrets
+          title: Api Key Ref
+          type: string
         language:
           description: The language of the audio to be transcribed. This is only applicable
             for `openai/whisper-large-v3-turbo` model. If not set, of if set to `auto`,
@@ -46669,6 +46709,31 @@ components:
             - `openai/whisper-large-v3-turbo` is multi-lingual with automatic language
             detection but slightly higher latency.'
           type: string
+        region:
+          description: Region on third party cloud providers( currently Azure) if
+            using one of their models
+          title: Region
+          type: string
+        settings:
+          $ref: '#/components/schemas/TranscriptionSettingsConfig'
+      type: object
+    TranscriptionSettingsConfig:
+      properties:
+        eot_threshold:
+          description: Available only for deepgram/flux
+          title: Eot Threshold
+          type: number
+        eot_timeout_ms:
+          description: Available only for deepgram/flux
+          title: Eot Timeout Ms
+          type: integer
+        numerals:
+          title: Numerals
+          type: boolean
+        smart_format:
+          title: Smart Format
+          type: boolean
+      title: TranscriptionSettingsConfig
       type: object
     TranscriptionStartRequest:
       example:
@@ -56649,6 +56714,44 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Assistant Chat (BETA)
+      tags:
+      - Assistants
+      x-latency-category: responsive
+  /ai/assistants/{assistant_id}/chat/sms:
+    post:
+      description: 'Send an SMS message for an assistant. This endpoint: 1. Validates
+        the assistant exists and has messaging profile configured 2. If should_create_conversation
+        is true, creates a new conversation with metadata 3. Sends the SMS message
+        4. Updates conversation metadata if provided 5.. Returns the conversation
+        ID'
+      operationId: assistant_sms_chat_assistants__assistant_id__chat_sms_post
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantSmsChatReq'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantSmsChatResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Assistant Sms Chat
       tags:
       - Assistants
       x-latency-category: responsive
