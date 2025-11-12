@@ -222,6 +222,10 @@
       "description": "IP operations"
     },
     {
+      "name": "Inexplicit Number Orders",
+      "description": "Inexplicit number orders for bulk purchasing without specifying exact numbers"
+    },
+    {
       "name": "Integration Secrets",
       "description": "Store and retrieve integration secrets"
     },
@@ -15239,6 +15243,106 @@
           }
         },
         "x-latency-category": "interactive"
+      }
+    },
+    "/inexplicit_number_orders": {
+      "get": {
+        "summary": "List inexplicit number orders",
+        "description": "Get a paginated list of inexplicit number orders.",
+        "operationId": "ListInexplicitNumberOrders",
+        "tags": [
+          "Inexplicit Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "page_number",
+            "in": "query",
+            "description": "The page number to load",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "The size of the page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 250,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InexplicitNumberOrdersResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/numbers_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "post": {
+        "summary": "Create an inexplicit number order",
+        "description": "Create an inexplicit number order to programmatically purchase phone numbers without specifying exact numbers.",
+        "operationId": "CreateInexplicitNumberOrder",
+        "tags": [
+          "Inexplicit Number Orders"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InexplicitNumberOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InexplicitNumberOrderResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/numbers_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/inexplicit_number_orders/{id}": {
+      "get": {
+        "summary": "Retrieve an inexplicit number order",
+        "description": "Get an existing inexplicit number order by ID.",
+        "operationId": "RetrieveInexplicitNumberOrder",
+        "tags": [
+          "Inexplicit Number Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identifies the inexplicit number order",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/InexplicitNumberOrderResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/numbers_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
       }
     },
     "/integration_secrets": {
@@ -45691,6 +45795,44 @@
           }
         }
       },
+      "InexplicitNumberOrderResponse": {
+        "description": "Successful response with details about an inexplicit number order.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "Inexplicit Number Order Response",
+              "properties": {
+                "data": {
+                  "$ref": "#/components/schemas/InexplicitNumberOrderResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InexplicitNumberOrdersResponse": {
+        "description": "Successful response with a list of inexplicit number orders.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Inexplicit Number Orders Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InexplicitNumberOrderResponse"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
       "InitiateCallResponse": {
         "description": "Successful response upon initiating a TeXML call.",
         "content": {
@@ -74763,6 +74905,258 @@
           "completed_at": null,
           "valid_until": null,
           "errors": []
+        }
+      },
+      "InexplicitNumberOrderRequest": {
+        "type": "object",
+        "properties": {
+          "ordering_groups": {
+            "type": "array",
+            "description": "Group(s) of numbers to order. You can have multiple ordering_groups objects added to a single request.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "country_iso": {
+                  "type": "string",
+                  "description": "Country where you would like to purchase phone numbers. Allowable values: US, CA",
+                  "enum": [
+                    "US",
+                    "CA"
+                  ]
+                },
+                "count_requested": {
+                  "type": "string",
+                  "description": "Quantity of phone numbers to order"
+                },
+                "phone_number_type": {
+                  "type": "string",
+                  "description": "Number type (local, toll-free, etc.)"
+                },
+                "national_destination_code": {
+                  "type": "string",
+                  "description": "Filter by area code"
+                },
+                "phone_number": {
+                  "type": "object",
+                  "description": "Phone number search criteria",
+                  "properties": {
+                    "starts_with": {
+                      "type": "string",
+                      "description": "Filter by the starting digits of the phone number"
+                    },
+                    "ends_with": {
+                      "type": "string",
+                      "description": "Filter by the ending digits of the phone number"
+                    },
+                    "contains": {
+                      "type": "string",
+                      "description": "Filter for phone numbers that contain the digits specified"
+                    }
+                  }
+                },
+                "administrative_area": {
+                  "type": "string",
+                  "description": "Filter for phone numbers in a given state / province"
+                },
+                "locality": {
+                  "type": "string",
+                  "description": "Filter for phone numbers in a given city / region / rate center"
+                },
+                "features": {
+                  "type": "array",
+                  "description": "Filter for phone numbers that have the features to satisfy your use case (e.g., [\"voice\"])",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "strategy": {
+                  "type": "string",
+                  "description": "Ordering strategy. Define what action should be taken if we don't have enough phone numbers to fulfill your request. Allowable values are: always = proceed with ordering phone numbers, regardless of current inventory levels; never = do not place any orders unless there are enough phone numbers to satisfy the request. If not specified, the always strategy will be enforced.",
+                  "enum": [
+                    "always",
+                    "never"
+                  ],
+                  "default": "always"
+                }
+              },
+              "required": [
+                "country_iso",
+                "count_requested",
+                "phone_number_type"
+              ]
+            }
+          },
+          "connection_id": {
+            "type": "string",
+            "description": "Connection id to apply to phone numbers that are purchased"
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "description": "Messaging profile id to apply to phone numbers that are purchased"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Reference label for the customer"
+          },
+          "billing_group_id": {
+            "type": "string",
+            "description": "Billing group id to apply to phone numbers that are purchased"
+          }
+        },
+        "required": [
+          "ordering_groups"
+        ]
+      },
+      "InexplicitNumberOrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the inexplicit number order"
+          },
+          "connection_id": {
+            "type": "string",
+            "description": "Connection id to apply to phone numbers that are purchased"
+          },
+          "messaging_profile_id": {
+            "type": "string",
+            "description": "Messaging profile id to apply to phone numbers that are purchased"
+          },
+          "customer_reference": {
+            "type": "string",
+            "description": "Reference label for the customer"
+          },
+          "billing_group_id": {
+            "type": "string",
+            "description": "Billing group id to apply to phone numbers that are purchased"
+          },
+          "ordering_groups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "country_iso": {
+                  "type": "string",
+                  "description": "Country where you would like to purchase phone numbers"
+                },
+                "phone_number_type": {
+                  "type": "string",
+                  "description": "Number type"
+                },
+                "count_requested": {
+                  "type": "integer",
+                  "description": "Quantity of phone numbers requested"
+                },
+                "count_allocated": {
+                  "type": "integer",
+                  "description": "Quantity of phone numbers allocated"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Status of the ordering group",
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "failed",
+                    "success",
+                    "partial_success"
+                  ]
+                },
+                "national_destination_code": {
+                  "type": "string",
+                  "description": "Filter by area code"
+                },
+                "phone_number[starts_with]": {
+                  "type": "string",
+                  "description": "Filter by the starting digits of the phone number"
+                },
+                "phone_number[ends_with]": {
+                  "type": "string",
+                  "description": "Filter by the ending digits of the phone number"
+                },
+                "phone_number[contains]": {
+                  "type": "string",
+                  "description": "Filter for phone numbers that contain the digits specified"
+                },
+                "administrative_area": {
+                  "type": "string",
+                  "description": "Filter for phone numbers in a given state / province"
+                },
+                "strategy": {
+                  "type": "string",
+                  "description": "Ordering strategy used",
+                  "enum": [
+                    "always",
+                    "never"
+                  ]
+                },
+                "error_reason": {
+                  "type": "string",
+                  "description": "Error reason if applicable"
+                },
+                "orders": {
+                  "type": "array",
+                  "description": "Array of orders created to fulfill the inexplicit order",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "number_order_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID of the main number order"
+                      },
+                      "sub_number_order_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "description": "Array of sub number order IDs"
+                      }
+                    },
+                    "required": [
+                      "number_order_id",
+                      "sub_number_order_ids"
+                    ]
+                  }
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "ISO 8601 formatted date indicating when the ordering group was created"
+                },
+                "updated_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "ISO 8601 formatted date indicating when the ordering group was updated"
+                }
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was created"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 formatted date indicating when the resource was updated"
+          }
+        }
+      },
+      "InexplicitNumberOrdersResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InexplicitNumberOrderResponse"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
         }
       },
       "InitiateCallRequest": {

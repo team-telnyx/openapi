@@ -5037,6 +5037,30 @@ components:
                 type: array
             type: object
       description: Successful response
+    InexplicitNumberOrderResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/InexplicitNumberOrderResponse'
+            title: Inexplicit Number Order Response
+            type: object
+      description: Successful response with details about an inexplicit number order.
+    InexplicitNumberOrdersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/InexplicitNumberOrderResponse'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            title: List Inexplicit Number Orders Response
+            type: object
+      description: Successful response with a list of inexplicit number orders.
     InitiateCallResponse:
       content:
         application/json:
@@ -28172,6 +28196,203 @@ components:
           format: url
           nullable: true
           type: string
+    InexplicitNumberOrderRequest:
+      properties:
+        billing_group_id:
+          description: Billing group id to apply to phone numbers that are purchased
+          type: string
+        connection_id:
+          description: Connection id to apply to phone numbers that are purchased
+          type: string
+        customer_reference:
+          description: Reference label for the customer
+          type: string
+        messaging_profile_id:
+          description: Messaging profile id to apply to phone numbers that are purchased
+          type: string
+        ordering_groups:
+          description: Group(s) of numbers to order. You can have multiple ordering_groups
+            objects added to a single request.
+          items:
+            properties:
+              administrative_area:
+                description: Filter for phone numbers in a given state / province
+                type: string
+              count_requested:
+                description: Quantity of phone numbers to order
+                type: string
+              country_iso:
+                description: 'Country where you would like to purchase phone numbers.
+                  Allowable values: US, CA'
+                enum:
+                - US
+                - CA
+                type: string
+              features:
+                description: Filter for phone numbers that have the features to satisfy
+                  your use case (e.g., ["voice"])
+                items:
+                  type: string
+                type: array
+              locality:
+                description: Filter for phone numbers in a given city / region / rate
+                  center
+                type: string
+              national_destination_code:
+                description: Filter by area code
+                type: string
+              phone_number:
+                description: Phone number search criteria
+                properties:
+                  contains:
+                    description: Filter for phone numbers that contain the digits
+                      specified
+                    type: string
+                  ends_with:
+                    description: Filter by the ending digits of the phone number
+                    type: string
+                  starts_with:
+                    description: Filter by the starting digits of the phone number
+                    type: string
+                type: object
+              phone_number_type:
+                description: Number type (local, toll-free, etc.)
+                type: string
+              strategy:
+                default: always
+                description: 'Ordering strategy. Define what action should be taken
+                  if we don''t have enough phone numbers to fulfill your request.
+                  Allowable values are: always = proceed with ordering phone numbers,
+                  regardless of current inventory levels; never = do not place any
+                  orders unless there are enough phone numbers to satisfy the request.
+                  If not specified, the always strategy will be enforced.'
+                enum:
+                - always
+                - never
+                type: string
+            required:
+            - country_iso
+            - count_requested
+            - phone_number_type
+            type: object
+          type: array
+      required:
+      - ordering_groups
+      type: object
+    InexplicitNumberOrderResponse:
+      properties:
+        billing_group_id:
+          description: Billing group id to apply to phone numbers that are purchased
+          type: string
+        connection_id:
+          description: Connection id to apply to phone numbers that are purchased
+          type: string
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created
+          format: date-time
+          type: string
+        customer_reference:
+          description: Reference label for the customer
+          type: string
+        id:
+          description: Unique identifier for the inexplicit number order
+          type: string
+        messaging_profile_id:
+          description: Messaging profile id to apply to phone numbers that are purchased
+          type: string
+        ordering_groups:
+          items:
+            properties:
+              administrative_area:
+                description: Filter for phone numbers in a given state / province
+                type: string
+              count_allocated:
+                description: Quantity of phone numbers allocated
+                type: integer
+              count_requested:
+                description: Quantity of phone numbers requested
+                type: integer
+              country_iso:
+                description: Country where you would like to purchase phone numbers
+                type: string
+              created_at:
+                description: ISO 8601 formatted date indicating when the ordering
+                  group was created
+                format: date-time
+                type: string
+              error_reason:
+                description: Error reason if applicable
+                type: string
+              national_destination_code:
+                description: Filter by area code
+                type: string
+              orders:
+                description: Array of orders created to fulfill the inexplicit order
+                items:
+                  properties:
+                    number_order_id:
+                      description: ID of the main number order
+                      format: uuid
+                      type: string
+                    sub_number_order_ids:
+                      description: Array of sub number order IDs
+                      items:
+                        format: uuid
+                        type: string
+                      type: array
+                  required:
+                  - number_order_id
+                  - sub_number_order_ids
+                  type: object
+                type: array
+              phone_number[contains]:
+                description: Filter for phone numbers that contain the digits specified
+                type: string
+              phone_number[ends_with]:
+                description: Filter by the ending digits of the phone number
+                type: string
+              phone_number[starts_with]:
+                description: Filter by the starting digits of the phone number
+                type: string
+              phone_number_type:
+                description: Number type
+                type: string
+              status:
+                description: Status of the ordering group
+                enum:
+                - pending
+                - processing
+                - failed
+                - success
+                - partial_success
+                type: string
+              strategy:
+                description: Ordering strategy used
+                enum:
+                - always
+                - never
+                type: string
+              updated_at:
+                description: ISO 8601 formatted date indicating when the ordering
+                  group was updated
+                format: date-time
+                type: string
+            type: object
+          type: array
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated
+          format: date-time
+          type: string
+      type: object
+    InexplicitNumberOrdersResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/InexplicitNumberOrderResponse'
+          type: array
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+      type: object
     InitiateCallRequest:
       example:
         From: '+13120001234'
@@ -65582,6 +65803,75 @@ paths:
       - Voice Channels
       x-endpoint-cost: medium
       x-latency-category: interactive
+  /inexplicit_number_orders:
+    get:
+      description: Get a paginated list of inexplicit number orders.
+      operationId: ListInexplicitNumberOrders
+      parameters:
+      - description: The page number to load
+        in: query
+        name: page_number
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page
+        in: query
+        name: page_size
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/InexplicitNumberOrdersResponse'
+        default:
+          $ref: '#/components/responses/numbers_GenericErrorResponse'
+      summary: List inexplicit number orders
+      tags:
+      - Inexplicit Number Orders
+      x-latency-category: responsive
+    post:
+      description: Create an inexplicit number order to programmatically purchase
+        phone numbers without specifying exact numbers.
+      operationId: CreateInexplicitNumberOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InexplicitNumberOrderRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InexplicitNumberOrderResponse'
+        default:
+          $ref: '#/components/responses/numbers_GenericErrorResponse'
+      summary: Create an inexplicit number order
+      tags:
+      - Inexplicit Number Orders
+      x-latency-category: responsive
+  /inexplicit_number_orders/{id}:
+    get:
+      description: Get an existing inexplicit number order by ID.
+      operationId: RetrieveInexplicitNumberOrder
+      parameters:
+      - description: Identifies the inexplicit number order
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/InexplicitNumberOrderResponse'
+        default:
+          $ref: '#/components/responses/numbers_GenericErrorResponse'
+      summary: Retrieve an inexplicit number order
+      tags:
+      - Inexplicit Number Orders
+      x-latency-category: responsive
   /integration_secrets:
     get:
       description: Retrieve a list of all integration secrets configured by the user.
@@ -82025,6 +82315,9 @@ tags:
   name: IP Ranges
 - description: IP operations
   name: IPs
+- description: Inexplicit number orders for bulk purchasing without specifying exact
+    numbers
+  name: Inexplicit Number Orders
 - description: Store and retrieve integration secrets
   name: Integration Secrets
 - description: Inventory Level
