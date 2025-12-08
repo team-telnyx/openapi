@@ -15669,38 +15669,40 @@ components:
           description: Alphanumeric identifier of the CSP associated with this campaign.
           title: Cspid
           type: string
-        isTMobileRegistered:
-          description: Indicates whether the campaign is registered with T-Mobile.
-          title: IsTMobileRegistered
-          type: boolean
-      title: Campaign Status Update Event
-      type: object
-    CampaignSuspendedEvent:
-      properties:
-        campaignId:
-          description: The ID of the campaign.
-          example: 4b30019a-9dca-a78d-1124-b080d7dedecc
-          title: Campaignid
-          type: string
         description:
           description: Description of the event.
           example: Campaign has been marked as dormant
           title: Description
           type: string
+        isTMobileRegistered:
+          description: Indicates whether the campaign is registered with T-Mobile.
+          title: IsTMobileRegistered
+          type: boolean
         status:
           description: The status of the campaign.
           enum:
+          - ACCEPTED
+          - REJECTED
           - DORMANT
+          - success
+          - failed
           example: DORMANT
           title: Status
           type: string
         type:
           enum:
           - TELNYX_EVENT
+          - REGISTRATION
+          - MNO_REVIEW
+          - TELNYX_REVIEW
+          - NUMBER_POOL_PROVISIONED
+          - NUMBER_POOL_DEPROVISIONED
+          - TCR_EVENT
+          - VERIFIED
           example: TELNYX_EVENT
           title: Type
           type: string
-      title: Campaign Suspended Event
+      title: Campaign Status Update Event
       type: object
     CanaryDeployRequest:
       description: Request model for creating or updating canary deploys.
@@ -22473,46 +22475,31 @@ components:
       properties:
         data:
           items:
-            oneOf:
-            - description: Successful verification code creation response
-              properties:
-                phone_number:
-                  description: Phone number for which the verification code was created
-                  format: +E.164
-                  type: string
-                type:
-                  description: Type of verification method used
-                  enum:
-                  - sms
-                  - call
-                  - flashcall
-                  type: string
-                verification_code_id:
-                  description: Unique identifier for the verification code
-                  format: uuid
-                  type: string
-              required:
-              - phone_number
-              - verification_code_id
-              - type
-              title: VerificationCodeSuccess
-              type: object
-            - description: Failed verification code creation response
-              properties:
-                error:
-                  description: Error message describing why the verification code
-                    creation failed
-                  type: string
-                phone_number:
-                  description: Phone number for which the verification code creation
-                    failed
-                  format: +E.164
-                  type: string
-              required:
-              - phone_number
-              - error
-              title: VerificationCodeError
-              type: object
+            description: Verification code result response
+            properties:
+              error:
+                description: Error message describing why the verification code creation
+                  failed
+                type: string
+              phone_number:
+                description: Phone number for which the verification code was created
+                format: +E.164
+                type: string
+              type:
+                description: Type of verification method used
+                enum:
+                - sms
+                - call
+                - flashcall
+                type: string
+              verification_code_id:
+                description: Unique identifier for the verification code
+                format: uuid
+                type: string
+            required:
+            - phone_number
+            title: VerificationCodeResult
+            type: object
           type: array
       required:
       - data
@@ -60723,7 +60710,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BrandRecordSetCSP'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: List Brands
       tags:
@@ -60755,7 +60742,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Create Brand
       tags:
@@ -60792,7 +60779,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Brand Feedback By Id
       tags:
@@ -60832,7 +60819,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Delete Brand
       tags:
@@ -60861,7 +60848,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Brand
       tags:
@@ -60896,7 +60883,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Update Brand
       tags:
@@ -60915,7 +60902,7 @@ paths:
       responses:
         '200':
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Resend brand 2FA email
       tags:
@@ -60945,7 +60932,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: List External Vettings
       tags:
@@ -60980,7 +60967,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Order Brand External Vetting
       tags:
@@ -61021,7 +61008,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Import External Vetting Record
       tags:
@@ -61053,7 +61040,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Revet Brand
       tags:
@@ -62688,7 +62675,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: List Campaigns
       tags:
@@ -62723,7 +62710,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Accept Shared Campaign
       tags:
@@ -62752,7 +62739,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Campaign Cost
       tags:
@@ -62783,7 +62770,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Deactivate My Campaign
       tags:
@@ -62812,7 +62799,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get My Campaign
       tags:
@@ -62848,7 +62835,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Update My Campaign
       tags:
@@ -62920,7 +62907,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Submit campaign appeal for manual review
       tags:
@@ -62949,9 +62936,9 @@ paths:
             for each MNO. The key is the network ID of the MNO (e.g. 10017), the value
             is the mno metadata for the usecase. The metadata may also include some
             MNO specific fields.
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
-        5xx:
+        5XX:
           content:
             application/json:
               schema:
@@ -62989,7 +62976,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get My Campaign Operation Status
       tags:
@@ -63023,7 +63010,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get My Osr Campaign Attributes
       tags:
@@ -63054,7 +63041,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Sharing Status
       tags:
@@ -63101,7 +63088,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Submit Campaign
       tags:
@@ -63138,7 +63125,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Qualify By Usecase
       tags:
@@ -65202,7 +65189,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/10dlc_Errors'
           description: Resource not found
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Enum
       tags:
@@ -68912,7 +68899,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send a message
       tags:
@@ -68930,7 +68917,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send a group MMS message
       tags:
@@ -68948,7 +68935,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send a long code message
       tags:
@@ -68966,7 +68953,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send a message using number pool
       tags:
@@ -69005,7 +68992,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSDeeplinkResponse'
           description: Successful response with deeplink URL
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Generate RCS deeplink
       tags:
@@ -69034,7 +69021,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Schedule a message
       tags:
@@ -69052,7 +69039,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessageResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send a short code message
       tags:
@@ -69090,7 +69077,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/messaging_Error'
           description: Not found.
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Cancel a scheduled message
       tags:
@@ -69121,7 +69108,7 @@ paths:
                     - $ref: '#/components/schemas/InboundMessagePayload'
                 type: object
           description: Successful response with details of a message.
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a message
       tags:
@@ -69139,7 +69126,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSAgentsResponse'
           description: Successful reponse with the list of RCS agents
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List all RCS agents
       tags:
@@ -69162,7 +69149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSAgentResponse'
           description: Successful response with the RCS agent
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve an RCS agent
       tags:
@@ -69189,7 +69176,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSAgentResponse'
           description: Successful response with the updated RCS agent
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Modify an RCS agent
       tags:
@@ -69210,7 +69197,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSCapabilitiesBulk'
           description: Successful response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List RCS capabilities of a given batch of phone numbers
       tags:
@@ -69239,7 +69226,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSCapabilitiesSingle'
           description: Successful response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List RCS capabilities of a phone number
       tags:
@@ -69269,7 +69256,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSTestNumberInviteResponse'
           description: Test number successfully invited to RCS agent
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Invite a test number to an RCS agent
       tags:
@@ -69283,7 +69270,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingHostedNumberOrdersResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List messaging hosted number orders
       tags:
@@ -69301,7 +69288,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingHostedNumberOrderResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Create a messaging hosted number order
       tags:
@@ -69355,7 +69342,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingHostedNumberOrderResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Delete a messaging hosted number order
       tags:
@@ -69373,7 +69360,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingHostedNumberOrderResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a messaging hosted number order
       tags:
@@ -69403,7 +69390,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingHostedNumberOrderResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Upload file required for a messaging hosted number order
       tags:
@@ -69430,7 +69417,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ValidationCodesResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Validate the verification codes for the hosted numbers order
       tags:
@@ -69462,7 +69449,7 @@ paths:
                 $ref: '#/components/schemas/CreatedVerificationCodesResponse'
           description: Verification codes created and sent to the phone numbers of
             the hosted order.
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Create verification codes for the hosted numbers order
       tags:
@@ -69481,7 +69468,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingHostedNumberOrderResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Delete a messaging hosted number
       tags:
@@ -69499,7 +69486,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/BulkMessagingSettingsUpdatePhoneNumbersResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Update the messaging profile of multiple phone numbers
       tags:
@@ -69518,7 +69505,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/BulkMessagingSettingsUpdatePhoneNumbersResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve bulk update status
       tags:
@@ -69615,7 +69602,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfilesResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List messaging profiles
       tags:
@@ -69635,7 +69622,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingProfileResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Create a messaging profile
       tags:
@@ -69650,7 +69637,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingProfileResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Delete a messaging profile
       tags:
@@ -69663,7 +69650,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingProfileResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a messaging profile
       tags:
@@ -69683,7 +69670,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MessagingProfileResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Update a messaging profile
       tags:
@@ -69698,7 +69685,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfilePhoneNumbersResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List phone numbers associated with a messaging profile
       tags:
@@ -69714,7 +69701,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfileShortCodesResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List short codes associated with a messaging profile
       tags:
@@ -69808,7 +69795,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AutorespConfigsResponseSchema'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List Auto-Response Settings
       tags:
@@ -69846,7 +69833,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AutorespConfigResponseSchema'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Create Auto-Reponse Setting
       tags:
@@ -69878,7 +69865,7 @@ paths:
                 example: OK
                 type: string
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Delete Auto-Response Setting
       tags:
@@ -69918,7 +69905,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AutorespConfigResponseSchema'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Get Auto-Response Setting
       tags:
@@ -69965,7 +69952,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AutorespConfigResponseSchema'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Update Auto-Response Setting
       tags:
@@ -70028,7 +70015,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Paginated_VerificationRequestStatus_'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
       summary: List Verification Requests
       tags:
@@ -70051,7 +70038,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerificationRequestEgress'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
       summary: Submit Verification Request
       tags:
@@ -70085,7 +70072,7 @@ paths:
         '404':
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
           description: Not Found
-        4xx:
+        4XX:
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
       summary: Delete Verification Request
       tags:
@@ -70109,7 +70096,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerificationRequestStatus'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
       summary: Get Verification Request
       tags:
@@ -70140,7 +70127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerificationRequestEgress'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/toll-free-verification_GenericErrorResponse'
       summary: Update Verification Request
       tags:
@@ -70154,7 +70141,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingUrlDomains'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List messaging URL domains
       tags:
@@ -70178,7 +70165,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RCSResponse'
           description: Successful operation
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Send an RCS message
       tags:
@@ -70214,7 +70201,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MobileListPhoneNumbersWithMessagingSettingsResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List mobile phone numbers with messaging settings
       tags:
@@ -70234,7 +70221,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MobilePhoneNumberWithMessagingSettingsResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a mobile phone number with messaging settings
       tags:
@@ -72636,7 +72623,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Partner Campaigns Shared By User
       tags:
@@ -72671,7 +72658,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Sharing Status
       tags:
@@ -72746,7 +72733,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: List Shared Campaigns
       tags:
@@ -72776,7 +72763,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Single Shared Campaign
       tags:
@@ -72812,7 +72799,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Update Single Shared Campaign
       tags:
@@ -72882,14 +72869,16 @@ paths:
           content:
             application/json:
               schema:
-                anyOf:
-                - $ref: '#/components/schemas/AssignProfileToCampaignResponse'
-                - $ref: '#/components/schemas/SettingsDataErrorMessage'
-                title: Response Assign Messaging Profile To Campaign Public Phonenumberassignmentbyprofile
-                  Post
+                $ref: '#/components/schemas/AssignProfileToCampaignResponse'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsDataErrorMessage'
+          description: Error searching for phone numbers
       summary: Assign Messaging Profile To Campaign
       tags:
       - Bulk Phone Number Campaigns
@@ -72913,7 +72902,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssignmentTaskStatusResponse'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Assignment Task Status
       tags:
@@ -72954,7 +72943,7 @@ paths:
           description: Successful Response
         '422':
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Phone Number Status
       tags:
@@ -73138,7 +73127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhoneNumberCampaignPaginated'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Retrieve All Phone Number Campaigns
       tags:
@@ -73160,7 +73149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhoneNumberCampaign'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Create New Phone Number Campaign
       tags:
@@ -73181,7 +73170,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SinglePhoneNumberCampaign'
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Delete Phone Number Campaign
       tags:
@@ -73204,7 +73193,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhoneNumberCampaign'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Get Single Phone Number Campaign
       tags:
@@ -73232,7 +73221,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhoneNumberCampaign'
           description: Successful Response
-        4xx:
+        4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Create New Phone Number Campaign
       tags:
@@ -74047,7 +74036,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListPhoneNumbersWithMessagingSettingsResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List phone numbers with messaging settings
       tags:
@@ -74471,7 +74460,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/PhoneNumberWithMessagingSettingsResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a phone number with messaging settings
       tags:
@@ -74499,7 +74488,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/PhoneNumberWithMessagingSettingsResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Update the messaging profile and/or messaging product of a phone number
       tags:
@@ -79451,7 +79440,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListShortCodesResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: List short codes
       tags:
@@ -79466,7 +79455,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ShortCodeResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Retrieve a short code
       tags:
@@ -79491,7 +79480,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ShortCodeResponse'
-        4xx:
+        4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Update short code
       tags:
@@ -83395,7 +83384,9 @@ paths:
                 $ref: '#/components/schemas/ListVerifyProfileMessageTemplateResponse'
           description: Expected Verify profile message template response to a valid
             request.
-        4xx:
+        '400':
+          $ref: '#/components/responses/verify_GenericErrorResponse'
+        '500':
           $ref: '#/components/responses/verify_GenericErrorResponse'
       summary: Retrieve Verify profile message templates
       tags:
@@ -86335,9 +86326,7 @@ webhooks:
         content:
           application/json:
             schema:
-              oneOf:
-              - $ref: '#/components/schemas/CampaignStatusUpdateEvent'
-              - $ref: '#/components/schemas/CampaignSuspendedEvent'
+              $ref: '#/components/schemas/CampaignStatusUpdateEvent'
         required: true
       responses:
         '200':
