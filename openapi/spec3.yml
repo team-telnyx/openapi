@@ -24873,25 +24873,36 @@ components:
       example: PRIVATE_PROFIT
       title: EntityType
       type: string
-    EnumListResponse:
+    EnumObjecToObjecttResponse:
+      additionalProperties: true
       example:
-      - BASIC_ACCOUNT
-      - SMALL_ACCOUNT
-      - MEDIUM_ACCOUNT
-      - LARGE_ACCOUNT
-      - KEY_ACCOUNT
+        PROFESSIONAL:
+          description: Professional services.
+          displayName: Professional Services
+          industryId: professional-services
+        REAL_ESTATE:
+          description: Buying and Selling of residential and commercial properties.
+          displayName: Real Estate
+          industryId: real-estate
+      title: EnumObjecToObjecttResponse
+      type: object
+    EnumObjectListResponse:
+      example:
+      - displayName: string
+        networkId: 10000
+        osrBitmaskIndex: 32
       items:
-        anyOf:
-        - type: string
-        - type: object
-      title: EnumListResponse
+        additionalProperties: true
+        type: object
+      title: EnumObjectListResponse
       type: array
-    EnumObjectResponse:
+    EnumObjectToStringResponse:
+      additionalProperties: true
       example:
         AREIS: AREIS
         BANDW: Bandwidth
         SINCH: Sinch
-      title: EnumObjectResponse
+      title: EnumObjectToStringResponse
       type: object
     EnumPaginatedResponse:
       example:
@@ -24908,8 +24919,33 @@ components:
           iso2: US
           symbol: TXG
         totalRecords: 2
+      properties:
+        page:
+          type: integer
+        records:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        totalRecords:
+          type: integer
+      required:
+      - page
+      - totalRecords
+      - records
       title: EnumPaginatedResponse
       type: object
+    EnumStringListResponse:
+      example:
+      - BASIC_ACCOUNT
+      - SMALL_ACCOUNT
+      - MEDIUM_ACCOUNT
+      - LARGE_ACCOUNT
+      - KEY_ACCOUNT
+      items:
+        type: string
+      title: EnumStringListResponse
+      type: array
     Error:
       example:
         code: '20207'
@@ -31614,6 +31650,7 @@ components:
       - bucket_name
       type: object
     MnoMetadata:
+      additionalProperties: true
       properties:
         '10999':
           $ref: '#/components/schemas/MnoMetadataItem'
@@ -56355,6 +56392,1488 @@ paths:
       x-latency-category: responsive
     servers:
     - url: https://api.telnyx.com
+  /10dlc/brand:
+    get:
+      description: This endpoint is used to list all brands associated with your organization.
+      operationId: GetBrands
+      parameters:
+      - in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          title: Page
+          type: integer
+      - description: number of records per page. maximum of 500
+        in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 10
+          description: number of records per page. maximum of 500
+          title: Recordsperpage
+          type: integer
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by createdAt in descending order.
+        example: -identityStatus
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -createdAt
+          description: Specifies the sort order for results. If not given, results
+            are sorted by created_at in descending order.
+          enum:
+          - assignedCampaignsCount
+          - -assignedCampaignsCount
+          - brandId
+          - -brandId
+          - createdAt
+          - -createdAt
+          - displayName
+          - -displayName
+          - identityStatus
+          - -identityStatus
+          - status
+          - -status
+          - tcrBrandId
+          - -tcrBrandId
+          title: Sort
+          type: string
+      - in: query
+        name: displayName
+        required: false
+        schema:
+          title: Displayname
+          type: string
+      - in: query
+        name: entityType
+        required: false
+        schema:
+          title: Entitytype
+          type: string
+      - in: query
+        name: state
+        required: false
+        schema:
+          title: State
+          type: string
+      - in: query
+        name: country
+        required: false
+        schema:
+          title: Country
+          type: string
+      - description: Filter results by the Telnyx Brand id
+        in: query
+        name: brandId
+        required: false
+        schema:
+          example: 826ef77a-348c-445b-81a5-a9b13c68fbfe
+          title: BrandId
+          type: string
+      - description: Filter results by the TCR Brand id
+        in: query
+        name: tcrBrandId
+        required: false
+        schema:
+          example: BBAND1
+          title: TCRBrandId
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandRecordSetCSP'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: List Brands
+      tags:
+      - Brands
+      x-latency-category: responsive
+    post:
+      description: This endpoint is used to create a new brand. A brand is an entity
+        created by The Campaign Registry (TCR) that represents an organization or
+        a company. It is this entity that TCR created campaigns will be associated
+        with. Each brand creation will entail an upfront, non-refundable $4 expense.
+      operationId: CreateBrandPost
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBrand'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxBrand'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Create Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/feedback/{brandId}:
+    get:
+      description: "Get feedback about a brand by ID. This endpoint can be used after\
+        \ creating or revetting\na brand.\n\nPossible values for `.category[].id`:\n\
+        \n* `TAX_ID` - Data mismatch related to tax id and its associated properties.\n\
+        * `STOCK_SYMBOL` - Non public entity registered as a public for profit entity\
+        \ or\n  the stock information mismatch.\n* `GOVERNMENT_ENTITY` - Non government\
+        \ entity registered as a government entity.\n  Must be a U.S. government entity.\n\
+        * `NONPROFIT` - Not a recognized non-profit entity. No IRS tax-exempt status\n\
+        \  found.\n* `OTHERS` - Details of the data misrepresentation if any."
+      operationId: GetBrandFeedbackById
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandFeedback'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Brand Feedback By Id
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/{brandId}:
+    delete:
+      description: Delete Brand. This endpoint is used to delete a brand. Note the
+        brand cannot be deleted if it contains one or more active campaigns, the campaigns
+        need to be inactive and at least 3 months old due to billing purposes.
+      operationId: DeleteBrand
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '204':
+          description: Brand removed successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Brand cannot be deleted
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Brand not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Delete Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+    get:
+      description: Retrieve a brand by `brandId`.
+      operationId: GetBrand
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxBrandWithCampaignsCount'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+    put:
+      description: Update a brand's attributes by `brandId`.
+      operationId: UpdateBrand
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBrand'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxBrand'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Update Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/{brandId}/2faEmail:
+    post:
+      operationId: ResendBrand2faEmail
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Resend brand 2FA email
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/{brandId}/externalVetting:
+    get:
+      description: Get list of valid external vetting record for a given brand
+      operationId: ListExternalVettings
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalVettingList'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: List External Vettings
+      tags:
+      - Brands
+      x-latency-category: responsive
+    post:
+      description: Order new external vetting for a brand
+      operationId: PostOrderExternalVetting
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderExternalVetting'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalVetting'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Order Brand External Vetting
+      tags:
+      - Brands
+      x-latency-category: responsive
+    put:
+      description: 'This operation can be used to import an external vetting record
+        from a TCR-approved
+
+        vetting provider. If the vetting provider confirms validity of the record,
+        it will be
+
+        saved with the brand and will be considered for future campaign qualification.'
+      operationId: PutExternalVettingRecord
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportExternalVetting'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalVetting'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Import External Vetting Record
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/{brandId}/revet:
+    put:
+      description: This operation allows you to revet the brand. However, revetting
+        is allowed once after the successful brand registration and thereafter limited
+        to once every 3 months.
+      operationId: RevetBrand
+      parameters:
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxBrand'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Revet Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/campaign:
+    get:
+      description: Retrieve a list of campaigns associated with a supplied `brandId`.
+      operationId: GetCampaigns
+      parameters:
+      - in: query
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      - description: The 1-indexed page number to get. The default value is `1`.
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          description: The 1-indexed page number to get. The default value is `1`.
+          title: Page
+          type: integer
+      - description: The amount of records per page, limited to between 1 and 500
+          inclusive. The default value is `10`.
+        in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 10
+          description: The amount of records per page, limited to between 1 and 500
+            inclusive. The default value is `10`.
+          title: Recordsperpage
+          type: integer
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by createdAt in descending order.
+        example: -assignedPhoneNumbersCount
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -createdAt
+          description: Specifies the sort order for results. If not given, results
+            are sorted by created_at in descending order.
+          enum:
+          - assignedPhoneNumbersCount
+          - -assignedPhoneNumbersCount
+          - campaignId
+          - -campaignId
+          - createdAt
+          - -createdAt
+          - status
+          - -status
+          - tcrCampaignId
+          - -tcrCampaignId
+          title: Sort
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignRecordSet_CSP'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: List Campaigns
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/acceptSharing/{campaignId}:
+    post:
+      description: Manually accept a campaign shared with Telnyx
+      operationId: AcceptCampaign
+      parameters:
+      - description: TCR's ID for the campaign to import
+        in: path
+        name: campaignId
+        required: true
+        schema:
+          description: TCR's ID for the campaign to import
+          pattern: ^C[A-Z0-9]{5,8}$
+          title: Campaignid
+          type: string
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                example: {}
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Accept Shared Campaign
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/usecase/cost:
+    get:
+      operationId: GetCampaignCost
+      parameters:
+      - in: query
+        name: usecase
+        required: true
+        schema:
+          title: Usecase
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignCost'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Campaign Cost
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}:
+    delete:
+      description: Terminate a campaign. Note that once deactivated, a campaign cannot
+        be restored.
+      operationId: DeactivateCampaign
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDeletionResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Deactivate My Campaign
+      tags:
+      - Campaign
+      x-latency-category: responsive
+    get:
+      description: Retrieve campaign details by `campaignId`.
+      operationId: GetCampaign
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxCampaign_CSP'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get My Campaign
+      tags:
+      - Campaign
+      x-latency-category: responsive
+    put:
+      description: Update a campaign's properties by `campaignId`. **Please note:**
+        only sample messages are editable.
+      operationId: UpdateCampaign
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCampaignRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxCampaign_CSP'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Update My Campaign
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}/appeal:
+    post:
+      description: 'Submits an appeal for rejected native campaigns in TELNYX_FAILED
+        or MNO_REJECTED status. The appeal is recorded for manual compliance team
+        review and the campaign status is reset to TCR_ACCEPTED. Note: Appeal forwarding
+        is handled manually to allow proper review before incurring upstream charges.'
+      operationId: AppealCampaign
+      parameters:
+      - description: The Telnyx campaign identifier
+        in: path
+        name: campaignId
+        required: true
+        schema:
+          example: 5eb13888-32b7-4cab-95e6-d834dde21d64
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                appeal_reason:
+                  description: Detailed explanation of why the campaign should be
+                    reconsidered and what changes have been made to address the rejection
+                    reason.
+                  example: The website has been updated to include the required privacy
+                    policy and terms of service.
+                  type: string
+              required:
+              - appeal_reason
+              type: object
+        description: Appeal request payload
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                appealed_at: '2025-08-06T15:30:45.123456+00:00'
+              schema:
+                properties:
+                  appealed_at:
+                    description: Timestamp when the appeal was submitted
+                    format: date-time
+                    type: string
+                type: object
+          description: Appeal recorded successfully. Campaign status updated to TCR_ACCEPTED
+            for manual compliance review.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Campaign not in appealable status or invalid request
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Campaign not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Submit campaign appeal for manual review
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}/mnoMetadata:
+    get:
+      description: Get the campaign metadata for each MNO it was submitted to.
+      operationId: GetCampaignMnoMetadata
+      parameters:
+      - description: ID of the campaign in question
+        in: path
+        name: campaignId
+        required: true
+        schema:
+          description: ID of the campaign in question
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MnoMetadata'
+          description: Successful Response. It constains a map of usecase metadata
+            for each MNO. The key is the network ID of the MNO (e.g. 10017), the value
+            is the mno metadata for the usecase. The metadata may also include some
+            MNO specific fields.
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+        5XX:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Errors'
+          description: Unexpected Error
+      summary: Get Campaign Mno Metadata
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}/operationStatus:
+    get:
+      description: Retrieve campaign's operation status at MNO level.
+      operationId: GetCampaignOperationStatus
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                example:
+                  '10017': APPROVED
+                  '10035': REVIEW
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get My Campaign Operation Status
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}/osr/attributes:
+    get:
+      operationId: GetCampaignOsrAttributes
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                example:
+                  brandId: 00000000-0000-0000-0000-000000000000
+                  msg_class: E
+                  status: '7'
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get My Osr Campaign Attributes
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaign/{campaignId}/sharing:
+    get:
+      operationId: GetCampaignSharingStatus
+      parameters:
+      - description: ID of the campaign in question
+        in: path
+        name: campaignId
+        required: true
+        schema:
+          description: ID of the campaign in question
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignSharingChain'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Sharing Status
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaignBuilder:
+    post:
+      description: Before creating a campaign, use the [Qualify By Usecase endpoint](https://developers.telnyx.com/api/messaging/10dlc/get-usecase-qualification)
+        to ensure that the brand you want to assign a new campaign to is qualified
+        for the desired use case of that campaign. **Please note:** After campaign
+        creation, you'll only be able to edit the campaign's sample messages. Creating
+        a campaign will entail an upfront, non-refundable three month's cost that
+        will depend on the campaign's use case ([see 10DLC Costs section for details](https://developers.telnyx.com/docs/messaging/10dlc/concepts#10dlc-costs)).
+      operationId: PostCampaign
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxCampaign_CSP'
+          description: Successful Response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Bad Request
+        '402':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Error'
+          description: Insufficient Funds
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Submit Campaign
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/campaignBuilder/brand/{brandId}/usecase/{usecase}:
+    get:
+      description: This endpoint allows you to see whether or not the supplied brand
+        is suitable for your desired campaign use case.
+      operationId: GetUsecaseQualification
+      parameters:
+      - in: path
+        name: usecase
+        required: true
+        schema:
+          title: Usecase
+          type: string
+      - in: path
+        name: brandId
+        required: true
+        schema:
+          title: Brandid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsecaseMetadata'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Qualify By Usecase
+      tags:
+      - Campaign
+      x-latency-category: responsive
+  /10dlc/enum/{endpoint}:
+    get:
+      operationId: GetEnumEndpoint
+      parameters:
+      - in: path
+        name: endpoint
+        required: true
+        schema:
+          enum:
+          - mno
+          - optionalAttributes
+          - usecase
+          - vertical
+          - altBusinessIdType
+          - brandIdentityStatus
+          - brandRelationship
+          - campaignStatus
+          - entityType
+          - extVettingProvider
+          - vettingStatus
+          - brandStatus
+          - operationStatus
+          - approvedPublicCompany
+          - stockExchange
+          - vettingClass
+          title: Endpoint
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - $ref: '#/components/schemas/EnumStringListResponse'
+                - $ref: '#/components/schemas/EnumObjectListResponse'
+                - $ref: '#/components/schemas/EnumObjectToStringResponse'
+                - $ref: '#/components/schemas/EnumObjecToObjecttResponse'
+                - $ref: '#/components/schemas/EnumPaginatedResponse'
+          description: Successful Response
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/10dlc_Errors'
+          description: Resource not found
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Enum
+      tags:
+      - Enum
+      x-latency-category: responsive
+  /10dlc/partnerCampaign/sharedByMe:
+    get:
+      description: 'Get all partner campaigns you have shared to Telnyx in a paginated
+        fashion
+
+
+        This endpoint is currently limited to only returning shared campaigns that
+        Telnyx
+
+        has accepted. In other words, shared but pending campaigns are currently omitted
+
+        from the response from this endpoint.'
+      operationId: GetPartnerCampaignsSharedByUser
+      parameters:
+      - description: The 1-indexed page number to get. The default value is `1`.
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          description: The 1-indexed page number to get. The default value is `1`.
+          title: Page
+          type: integer
+      - description: The amount of records per page, limited to between 1 and 500
+          inclusive. The default value is `10`.
+        in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 10
+          description: The amount of records per page, limited to between 1 and 500
+            inclusive. The default value is `10`.
+          title: Recordsperpage
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedCampaignRecordSet'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Partner Campaigns Shared By User
+      tags:
+      - Shared Campaigns
+      x-latency-category: responsive
+  /10dlc/partnerCampaign/{campaignId}/sharing:
+    get:
+      operationId: GetPartnerCampaignSharingStatus
+      parameters:
+      - description: ID of the campaign in question
+        in: path
+        name: campaignId
+        required: true
+        schema:
+          description: ID of the campaign in question
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  $ref: '#/components/schemas/CampaignSharingStatus'
+                title: Response Get Sharing Status Public Partnercampaign  Campaignid  Sharing
+                  Get
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Sharing Status
+      tags:
+      - Shared Campaigns
+      x-latency-category: responsive
+  /10dlc/partner_campaigns:
+    get:
+      description: 'Retrieve all partner campaigns you have shared to Telnyx in a
+        paginated fashion.
+
+
+        This endpoint is currently limited to only returning shared campaigns that
+        Telnyx has accepted. In other words, shared but pending campaigns are currently
+        omitted from the response from this endpoint.'
+      operationId: GetSharedCampaigns
+      parameters:
+      - description: The 1-indexed page number to get. The default value is `1`.
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          description: The 1-indexed page number to get. The default value is `1`.
+          title: Page
+          type: integer
+      - description: The amount of records per page, limited to between 1 and 500
+          inclusive. The default value is `10`.
+        in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 10
+          description: The amount of records per page, limited to between 1 and 500
+            inclusive. The default value is `10`.
+          title: Recordsperpage
+          type: integer
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by createdAt in descending order.
+        example: -assignedPhoneNumbersCount
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -createdAt
+          description: Specifies the sort order for results. If not given, results
+            are sorted by created_at in descending order.
+          enum:
+          - assignedPhoneNumbersCount
+          - -assignedPhoneNumbersCount
+          - brandDisplayName
+          - -brandDisplayName
+          - tcrBrandId
+          - -tcrBranId
+          - tcrCampaignId
+          - -tcrCampaignId
+          - createdAt
+          - -createdAt
+          - campaignStatus
+          - -campaignStatus
+          title: Sort
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxDownstreamCampaignRecordSet'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: List Shared Campaigns
+      tags:
+      - Shared Campaigns
+      x-latency-category: responsive
+  /10dlc/partner_campaigns/{campaignId}:
+    get:
+      description: Retrieve campaign details by `campaignId`.
+      operationId: GetSharedCampaign
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxDownstreamCampaign'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Single Shared Campaign
+      tags:
+      - Shared Campaigns
+      x-latency-category: responsive
+    patch:
+      description: Update campaign details by `campaignId`. **Please note:** Only
+        webhook urls are editable.
+      operationId: UpdateSharedCampaign
+      parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema:
+          title: Campaignid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePartnerCampaignRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelnyxDownstreamCampaign'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Update Single Shared Campaign
+      tags:
+      - Shared Campaigns
+      x-latency-category: responsive
+  /10dlc/phoneNumberAssignmentByProfile:
+    post:
+      description: This endpoint allows you to link all phone numbers associated with
+        a Messaging Profile to a campaign. **Please note:** if you want to assign
+        phone numbers to a campaign that you did not create with Telnyx 10DLC services,
+        this endpoint allows that provided that you've shared the campaign with Telnyx.
+        In this case, only provide the parameter, `tcrCampaignId`, and not `campaignId`.
+        In all other cases (where the campaign you're assigning was created with Telnyx
+        10DLC services), only provide `campaignId`, not `tcrCampaignId`.
+      operationId: PostAssignMessagingProfileToCampaign
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignProfileToCampaignRequest'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignProfileToCampaignResponse'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsDataErrorMessage'
+          description: Error searching for phone numbers
+      summary: Assign Messaging Profile To Campaign
+      tags:
+      - Bulk Phone Number Campaigns
+      x-latency-category: responsive
+  /10dlc/phoneNumberAssignmentByProfile/{taskId}:
+    get:
+      description: Check the status of the task associated with assigning all phone
+        numbers on a messaging profile to a campaign by `taskId`.
+      operationId: GetAssignmentTaskStatus
+      parameters:
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          title: Taskid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentTaskStatusResponse'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Assignment Task Status
+      tags:
+      - Bulk Phone Number Campaigns
+      x-latency-category: responsive
+  /10dlc/phoneNumberAssignmentByProfile/{taskId}/phoneNumbers:
+    get:
+      description: Check the status of the individual phone number/campaign assignments
+        associated with the supplied `taskId`.
+      operationId: GetPhoneNumberStatus
+      parameters:
+      - in: path
+        name: taskId
+        required: true
+        schema:
+          title: Taskid
+          type: string
+      - in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 20
+          title: Recordsperpage
+          type: integer
+      - in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          title: Page
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberStatusResponsePaginated'
+          description: Successful Response
+        '422':
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Phone Number Status
+      tags:
+      - Bulk Phone Number Campaigns
+      x-latency-category: responsive
+  /10dlc/phone_number_campaigns:
+    get:
+      operationId: GetAllPhoneNumberCampaigns
+      parameters:
+      - in: query
+        name: recordsPerPage
+        required: false
+        schema:
+          default: 20
+          title: Recordsperpage
+          type: integer
+      - in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          title: Page
+          type: integer
+      - $ref: '#/components/parameters/10dlc_FilterConsolidated'
+      - description: Specifies the sort order for results. If not given, results are
+          sorted by createdAt in descending order.
+        example: -phoneNumber
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -createdAt
+          description: Specifies the sort order for results. If not given, results
+            are sorted by created_at in descending order.
+          enum:
+          - assignmentStatus
+          - -assignmentStatus
+          - createdAt
+          - -createdAt
+          - phoneNumber
+          - -phoneNumber
+          title: Sort
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberCampaignPaginated'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Retrieve All Phone Number Campaigns
+      tags:
+      - Phone Number Campaigns
+      x-latency-category: responsive
+    post:
+      operationId: CreatePhoneNumberCampaign
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberCampaignCreate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberCampaign'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Create New Phone Number Campaign
+      tags:
+      - Phone Number Campaigns
+      x-latency-category: responsive
+  /10dlc/phone_number_campaigns/{phoneNumber}:
+    delete:
+      description: This endpoint allows you to remove a campaign assignment from the
+        supplied `phoneNumber`.
+      operationId: DeletePhoneNumberCampaign
+      parameters:
+      - in: path
+        name: phoneNumber
+        required: true
+        schema:
+          title: Phonenumber
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/SinglePhoneNumberCampaign'
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Delete Phone Number Campaign
+      tags:
+      - Phone Number Campaigns
+      x-latency-category: responsive
+    get:
+      description: Retrieve an individual phone number/campaign assignment by `phoneNumber`.
+      operationId: GetSinglePhoneNumberCampaign
+      parameters:
+      - in: path
+        name: phoneNumber
+        required: true
+        schema:
+          title: Phonenumber
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberCampaign'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Get Single Phone Number Campaign
+      tags:
+      - Phone Number Campaigns
+      x-latency-category: responsive
+    put:
+      operationId: PutPhoneNumberCampaign
+      parameters:
+      - in: path
+        name: phoneNumber
+        required: true
+        schema:
+          title: Phonenumber
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneNumberCampaignCreate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberCampaign'
+          description: Successful Response
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Create New Phone Number Campaign
+      tags:
+      - Phone Number Campaigns
+      x-latency-category: responsive
   /access_ip_address:
     get:
       operationId: ListAccessIpAddresses
@@ -60662,438 +62181,6 @@ paths:
       tags:
       - Billing Groups
       x-latency-category: responsive
-  /brand:
-    get:
-      description: This endpoint is used to list all brands associated with your organization.
-      operationId: GetBrands
-      parameters:
-      - in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          minimum: 1
-          title: Page
-          type: integer
-      - description: number of records per page. maximum of 500
-        in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 10
-          description: number of records per page. maximum of 500
-          title: Recordsperpage
-          type: integer
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by createdAt in descending order.
-        example: -identityStatus
-        in: query
-        name: sort
-        required: false
-        schema:
-          default: -createdAt
-          description: Specifies the sort order for results. If not given, results
-            are sorted by created_at in descending order.
-          enum:
-          - assignedCampaignsCount
-          - -assignedCampaignsCount
-          - brandId
-          - -brandId
-          - createdAt
-          - -createdAt
-          - displayName
-          - -displayName
-          - identityStatus
-          - -identityStatus
-          - status
-          - -status
-          - tcrBrandId
-          - -tcrBrandId
-          title: Sort
-          type: string
-      - in: query
-        name: displayName
-        required: false
-        schema:
-          title: Displayname
-          type: string
-      - in: query
-        name: entityType
-        required: false
-        schema:
-          title: Entitytype
-          type: string
-      - in: query
-        name: state
-        required: false
-        schema:
-          title: State
-          type: string
-      - in: query
-        name: country
-        required: false
-        schema:
-          title: Country
-          type: string
-      - description: Filter results by the Telnyx Brand id
-        in: query
-        name: brandId
-        required: false
-        schema:
-          example: 826ef77a-348c-445b-81a5-a9b13c68fbfe
-          title: BrandId
-          type: string
-      - description: Filter results by the TCR Brand id
-        in: query
-        name: tcrBrandId
-        required: false
-        schema:
-          example: BBAND1
-          title: TCRBrandId
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BrandRecordSetCSP'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: List Brands
-      tags:
-      - Brands
-      x-latency-category: responsive
-    post:
-      description: This endpoint is used to create a new brand. A brand is an entity
-        created by The Campaign Registry (TCR) that represents an organization or
-        a company. It is this entity that TCR created campaigns will be associated
-        with. Each brand creation will entail an upfront, non-refundable $4 expense.
-      operationId: CreateBrandPost
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBrand'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxBrand'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Create Brand
-      tags:
-      - Brands
-      x-latency-category: responsive
-  /brand/feedback/{brandId}:
-    get:
-      description: "Get feedback about a brand by ID. This endpoint can be used after\
-        \ creating or revetting\na brand.\n\nPossible values for `.category[].id`:\n\
-        \n* `TAX_ID` - Data mismatch related to tax id and its associated properties.\n\
-        * `STOCK_SYMBOL` - Non public entity registered as a public for profit entity\
-        \ or\n  the stock information mismatch.\n* `GOVERNMENT_ENTITY` - Non government\
-        \ entity registered as a government entity.\n  Must be a U.S. government entity.\n\
-        * `NONPROFIT` - Not a recognized non-profit entity. No IRS tax-exempt status\n\
-        \  found.\n* `OTHERS` - Details of the data misrepresentation if any."
-      operationId: GetBrandFeedbackById
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BrandFeedback'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Brand Feedback By Id
-      tags:
-      - Brands
-      x-latency-category: responsive
-  /brand/{brandId}:
-    delete:
-      description: Delete Brand. This endpoint is used to delete a brand. Note the
-        brand cannot be deleted if it contains one or more active campaigns, the campaigns
-        need to be inactive and at least 3 months old due to billing purposes.
-      operationId: DeleteBrand
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '204':
-          description: Brand removed successfully
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Brand cannot be deleted
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Brand not found
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Delete Brand
-      tags:
-      - Brands
-      x-latency-category: responsive
-    get:
-      description: Retrieve a brand by `brandId`.
-      operationId: GetBrand
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxBrandWithCampaignsCount'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Brand
-      tags:
-      - Brands
-      x-latency-category: responsive
-    put:
-      description: Update a brand's attributes by `brandId`.
-      operationId: UpdateBrand
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateBrand'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxBrand'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Update Brand
-      tags:
-      - Brands
-      x-latency-category: responsive
-  /brand/{brandId}/2faEmail:
-    post:
-      operationId: ResendBrand2faEmail
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Resend brand 2FA email
-      tags:
-      - Brands
-      x-latency-category: responsive
-  /brand/{brandId}/externalVetting:
-    get:
-      description: Get list of valid external vetting record for a given brand
-      operationId: ListExternalVettings
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExternalVettingList'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: List External Vettings
-      tags:
-      - Brands
-      x-latency-category: responsive
-    post:
-      description: Order new external vetting for a brand
-      operationId: PostOrderExternalVetting
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrderExternalVetting'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExternalVetting'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Order Brand External Vetting
-      tags:
-      - Brands
-      x-latency-category: responsive
-    put:
-      description: 'This operation can be used to import an external vetting record
-        from a TCR-approved
-
-        vetting provider. If the vetting provider confirms validity of the record,
-        it will be
-
-        saved with the brand and will be considered for future campaign qualification.'
-      operationId: PutExternalVettingRecord
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ImportExternalVetting'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExternalVetting'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Import External Vetting Record
-      tags:
-      - Brands
-      x-latency-category: responsive
-  /brand/{brandId}/revet:
-    put:
-      description: This operation allows you to revet the brand. However, revetting
-        is allowed once after the successful brand registration and thereafter limited
-        to once every 3 months.
-      operationId: RevetBrand
-      parameters:
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxBrand'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Revet Brand
-      tags:
-      - Brands
-      x-latency-category: responsive
   /bulk_sim_card_actions:
     get:
       description: This API lists a paginated collection of bulk SIM card actions.
@@ -62656,529 +63743,6 @@ paths:
       tags:
       - Call Commands
       x-latency-category: interactive
-  /campaign:
-    get:
-      description: Retrieve a list of campaigns associated with a supplied `brandId`.
-      operationId: GetCampaigns
-      parameters:
-      - in: query
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      - description: The 1-indexed page number to get. The default value is `1`.
-        in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          description: The 1-indexed page number to get. The default value is `1`.
-          title: Page
-          type: integer
-      - description: The amount of records per page, limited to between 1 and 500
-          inclusive. The default value is `10`.
-        in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 10
-          description: The amount of records per page, limited to between 1 and 500
-            inclusive. The default value is `10`.
-          title: Recordsperpage
-          type: integer
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by createdAt in descending order.
-        example: -assignedPhoneNumbersCount
-        in: query
-        name: sort
-        required: false
-        schema:
-          default: -createdAt
-          description: Specifies the sort order for results. If not given, results
-            are sorted by created_at in descending order.
-          enum:
-          - assignedPhoneNumbersCount
-          - -assignedPhoneNumbersCount
-          - campaignId
-          - -campaignId
-          - createdAt
-          - -createdAt
-          - status
-          - -status
-          - tcrCampaignId
-          - -tcrCampaignId
-          title: Sort
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CampaignRecordSet_CSP'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: List Campaigns
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/acceptSharing/{campaignId}:
-    post:
-      description: Manually accept a campaign shared with Telnyx
-      operationId: AcceptCampaign
-      parameters:
-      - description: TCR's ID for the campaign to import
-        in: path
-        name: campaignId
-        required: true
-        schema:
-          description: TCR's ID for the campaign to import
-          pattern: ^C[A-Z0-9]{5,8}$
-          title: Campaignid
-          type: string
-      responses:
-        '202':
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                example: {}
-                type: object
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Accept Shared Campaign
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/usecase/cost:
-    get:
-      operationId: GetCampaignCost
-      parameters:
-      - in: query
-        name: usecase
-        required: true
-        schema:
-          title: Usecase
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CampaignCost'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Campaign Cost
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}:
-    delete:
-      description: Terminate a campaign. Note that once deactivated, a campaign cannot
-        be restored.
-      operationId: DeactivateCampaign
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CampaignDeletionResponse'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Deactivate My Campaign
-      tags:
-      - Campaign
-      x-latency-category: responsive
-    get:
-      description: Retrieve campaign details by `campaignId`.
-      operationId: GetCampaign
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxCampaign_CSP'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get My Campaign
-      tags:
-      - Campaign
-      x-latency-category: responsive
-    put:
-      description: Update a campaign's properties by `campaignId`. **Please note:**
-        only sample messages are editable.
-      operationId: UpdateCampaign
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCampaignRequest'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxCampaign_CSP'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Update My Campaign
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}/appeal:
-    post:
-      description: 'Submits an appeal for rejected native campaigns in TELNYX_FAILED
-        or MNO_REJECTED status. The appeal is recorded for manual compliance team
-        review and the campaign status is reset to TCR_ACCEPTED. Note: Appeal forwarding
-        is handled manually to allow proper review before incurring upstream charges.'
-      operationId: AppealCampaign
-      parameters:
-      - description: The Telnyx campaign identifier
-        in: path
-        name: campaignId
-        required: true
-        schema:
-          example: 5eb13888-32b7-4cab-95e6-d834dde21d64
-          format: uuid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                appeal_reason:
-                  description: Detailed explanation of why the campaign should be
-                    reconsidered and what changes have been made to address the rejection
-                    reason.
-                  example: The website has been updated to include the required privacy
-                    policy and terms of service.
-                  type: string
-              required:
-              - appeal_reason
-              type: object
-        description: Appeal request payload
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              example:
-                appealed_at: '2025-08-06T15:30:45.123456+00:00'
-              schema:
-                properties:
-                  appealed_at:
-                    description: Timestamp when the appeal was submitted
-                    format: date-time
-                    type: string
-                type: object
-          description: Appeal recorded successfully. Campaign status updated to TCR_ACCEPTED
-            for manual compliance review.
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Campaign not in appealable status or invalid request
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Campaign not found
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Submit campaign appeal for manual review
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}/mnoMetadata:
-    get:
-      description: Get the campaign metadata for each MNO it was submitted to.
-      operationId: GetCampaignMnoMetadata
-      parameters:
-      - description: ID of the campaign in question
-        in: path
-        name: campaignId
-        required: true
-        schema:
-          description: ID of the campaign in question
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MnoMetadata'
-          description: Successful Response. It constains a map of usecase metadata
-            for each MNO. The key is the network ID of the MNO (e.g. 10017), the value
-            is the mno metadata for the usecase. The metadata may also include some
-            MNO specific fields.
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-        5XX:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Errors'
-          description: Unexpected Error
-      summary: Get Campaign Mno Metadata
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}/operationStatus:
-    get:
-      description: Retrieve campaign's operation status at MNO level.
-      operationId: GetCampaignOperationStatus
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                example:
-                  '10017': APPROVED
-                  '10035': REVIEW
-                type: object
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get My Campaign Operation Status
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}/osr/attributes:
-    get:
-      operationId: GetCampaignOsrAttributes
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                additionalProperties: true
-                example:
-                  brandId: 00000000-0000-0000-0000-000000000000
-                  msg_class: E
-                  status: '7'
-                type: object
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get My Osr Campaign Attributes
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaign/{campaignId}/sharing:
-    get:
-      operationId: GetCampaignSharingStatus
-      parameters:
-      - description: ID of the campaign in question
-        in: path
-        name: campaignId
-        required: true
-        schema:
-          description: ID of the campaign in question
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CampaignSharingChain'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Sharing Status
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaignBuilder:
-    post:
-      description: Before creating a campaign, use the [Qualify By Usecase endpoint](https://developers.telnyx.com/api/messaging/10dlc/get-usecase-qualification)
-        to ensure that the brand you want to assign a new campaign to is qualified
-        for the desired use case of that campaign. **Please note:** After campaign
-        creation, you'll only be able to edit the campaign's sample messages. Creating
-        a campaign will entail an upfront, non-refundable three month's cost that
-        will depend on the campaign's use case ([see 10DLC Costs section for details](https://developers.telnyx.com/docs/messaging/10dlc/concepts#10dlc-costs)).
-      operationId: PostCampaign
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CampaignRequest'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxCampaign_CSP'
-          description: Successful Response
-        '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Bad Request
-        '402':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Error'
-          description: Insufficient Funds
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Submit Campaign
-      tags:
-      - Campaign
-      x-latency-category: responsive
-  /campaignBuilder/brand/{brandId}/usecase/{usecase}:
-    get:
-      description: This endpoint allows you to see whether or not the supplied brand
-        is suitable for your desired campaign use case.
-      operationId: GetUsecaseQualification
-      parameters:
-      - in: path
-        name: usecase
-        required: true
-        schema:
-          title: Usecase
-          type: string
-      - in: path
-        name: brandId
-        required: true
-        schema:
-          title: Brandid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsecaseMetadata'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Qualify By Usecase
-      tags:
-      - Campaign
-      x-latency-category: responsive
   /channel_zones:
     get:
       description: Returns the non-US voice channels for your account. voice channels
@@ -65193,55 +65757,6 @@ paths:
       summary: Get a dynamic emergency endpoint
       tags:
       - Dynamic Emergency Endpoints
-      x-latency-category: responsive
-  /enum/{endpoint}:
-    get:
-      operationId: GetEnumEndpoint
-      parameters:
-      - in: path
-        name: endpoint
-        required: true
-        schema:
-          enum:
-          - mno
-          - optionalAttributes
-          - usecase
-          - vertical
-          - altBusinessIdType
-          - brandIdentityStatus
-          - brandRelationship
-          - campaignStatus
-          - entityType
-          - extVettingProvider
-          - vettingStatus
-          - brandStatus
-          - operationStatus
-          - approvedPublicCompany
-          - stockExchange
-          - vettingClass
-          title: Endpoint
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                oneOf:
-                - $ref: '#/components/schemas/EnumListResponse'
-                - $ref: '#/components/schemas/EnumObjectResponse'
-                - $ref: '#/components/schemas/EnumPaginatedResponse'
-          description: Successful Response
-        '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/10dlc_Errors'
-          description: Resource not found
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Enum
-      tags:
-      - Enum
       x-latency-category: responsive
   /external_connections:
     get:
@@ -72624,235 +73139,6 @@ paths:
       tags:
       - Outbound Voice Profiles
       x-latency-category: responsive
-  /partnerCampaign/sharedByMe:
-    get:
-      description: 'Get all partner campaigns you have shared to Telnyx in a paginated
-        fashion
-
-
-        This endpoint is currently limited to only returning shared campaigns that
-        Telnyx
-
-        has accepted. In other words, shared but pending campaigns are currently omitted
-
-        from the response from this endpoint.'
-      operationId: GetPartnerCampaignsSharedByUser
-      parameters:
-      - description: The 1-indexed page number to get. The default value is `1`.
-        in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          description: The 1-indexed page number to get. The default value is `1`.
-          title: Page
-          type: integer
-      - description: The amount of records per page, limited to between 1 and 500
-          inclusive. The default value is `10`.
-        in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 10
-          description: The amount of records per page, limited to between 1 and 500
-            inclusive. The default value is `10`.
-          title: Recordsperpage
-          type: integer
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SharedCampaignRecordSet'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Partner Campaigns Shared By User
-      tags:
-      - Shared Campaigns
-      x-latency-category: responsive
-  /partnerCampaign/{campaignId}/sharing:
-    get:
-      operationId: GetPartnerCampaignSharingStatus
-      parameters:
-      - description: ID of the campaign in question
-        in: path
-        name: campaignId
-        required: true
-        schema:
-          description: ID of the campaign in question
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  $ref: '#/components/schemas/CampaignSharingStatus'
-                title: Response Get Sharing Status Public Partnercampaign  Campaignid  Sharing
-                  Get
-                type: object
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Sharing Status
-      tags:
-      - Shared Campaigns
-      x-latency-category: responsive
-  /partner_campaigns:
-    get:
-      description: 'Retrieve all partner campaigns you have shared to Telnyx in a
-        paginated fashion.
-
-
-        This endpoint is currently limited to only returning shared campaigns that
-        Telnyx has accepted. In other words, shared but pending campaigns are currently
-        omitted from the response from this endpoint.'
-      operationId: GetSharedCampaigns
-      parameters:
-      - description: The 1-indexed page number to get. The default value is `1`.
-        in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          description: The 1-indexed page number to get. The default value is `1`.
-          title: Page
-          type: integer
-      - description: The amount of records per page, limited to between 1 and 500
-          inclusive. The default value is `10`.
-        in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 10
-          description: The amount of records per page, limited to between 1 and 500
-            inclusive. The default value is `10`.
-          title: Recordsperpage
-          type: integer
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by createdAt in descending order.
-        example: -assignedPhoneNumbersCount
-        in: query
-        name: sort
-        required: false
-        schema:
-          default: -createdAt
-          description: Specifies the sort order for results. If not given, results
-            are sorted by created_at in descending order.
-          enum:
-          - assignedPhoneNumbersCount
-          - -assignedPhoneNumbersCount
-          - brandDisplayName
-          - -brandDisplayName
-          - tcrBrandId
-          - -tcrBranId
-          - tcrCampaignId
-          - -tcrCampaignId
-          - createdAt
-          - -createdAt
-          - campaignStatus
-          - -campaignStatus
-          title: Sort
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxDownstreamCampaignRecordSet'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: List Shared Campaigns
-      tags:
-      - Shared Campaigns
-      x-latency-category: responsive
-  /partner_campaigns/{campaignId}:
-    get:
-      description: Retrieve campaign details by `campaignId`.
-      operationId: GetSharedCampaign
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxDownstreamCampaign'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Single Shared Campaign
-      tags:
-      - Shared Campaigns
-      x-latency-category: responsive
-    patch:
-      description: Update campaign details by `campaignId`. **Please note:** Only
-        webhook urls are editable.
-      operationId: UpdateSharedCampaign
-      parameters:
-      - in: path
-        name: campaignId
-        required: true
-        schema:
-          title: Campaignid
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePartnerCampaignRequest'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TelnyxDownstreamCampaign'
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Update Single Shared Campaign
-      tags:
-      - Shared Campaigns
-      x-latency-category: responsive
   /payment/auto_recharge_prefs:
     get:
       description: Returns the payment auto recharge preferences.
@@ -72894,108 +73180,6 @@ paths:
       tags:
       - AutoRechargePreferences
       x-endpoint-cost: medium
-      x-latency-category: responsive
-  /phoneNumberAssignmentByProfile:
-    post:
-      description: This endpoint allows you to link all phone numbers associated with
-        a Messaging Profile to a campaign. **Please note:** if you want to assign
-        phone numbers to a campaign that you did not create with Telnyx 10DLC services,
-        this endpoint allows that provided that you've shared the campaign with Telnyx.
-        In this case, only provide the parameter, `tcrCampaignId`, and not `campaignId`.
-        In all other cases (where the campaign you're assigning was created with Telnyx
-        10DLC services), only provide `campaignId`, not `tcrCampaignId`.
-      operationId: PostAssignMessagingProfileToCampaign
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AssignProfileToCampaignRequest'
-        required: true
-      responses:
-        '202':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssignProfileToCampaignResponse'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-        '500':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SettingsDataErrorMessage'
-          description: Error searching for phone numbers
-      summary: Assign Messaging Profile To Campaign
-      tags:
-      - Bulk Phone Number Campaigns
-      x-latency-category: responsive
-  /phoneNumberAssignmentByProfile/{taskId}:
-    get:
-      description: Check the status of the task associated with assigning all phone
-        numbers on a messaging profile to a campaign by `taskId`.
-      operationId: GetAssignmentTaskStatus
-      parameters:
-      - in: path
-        name: taskId
-        required: true
-        schema:
-          title: Taskid
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssignmentTaskStatusResponse'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Assignment Task Status
-      tags:
-      - Bulk Phone Number Campaigns
-      x-latency-category: responsive
-  /phoneNumberAssignmentByProfile/{taskId}/phoneNumbers:
-    get:
-      description: Check the status of the individual phone number/campaign assignments
-        associated with the supplied `taskId`.
-      operationId: GetPhoneNumberStatus
-      parameters:
-      - in: path
-        name: taskId
-        required: true
-        schema:
-          title: Taskid
-          type: string
-      - in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 20
-          title: Recordsperpage
-          type: integer
-      - in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          title: Page
-          type: integer
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumberStatusResponsePaginated'
-          description: Successful Response
-        '422':
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Phone Number Status
-      tags:
-      - Bulk Phone Number Campaigns
       x-latency-category: responsive
   /phone_number_blocks/jobs:
     get:
@@ -73129,151 +73313,6 @@ paths:
       tags:
       - Phone Number Blocks Background Jobs
       x-group-parameters: 'true'
-      x-latency-category: responsive
-  /phone_number_campaigns:
-    get:
-      operationId: GetAllPhoneNumberCampaigns
-      parameters:
-      - in: query
-        name: recordsPerPage
-        required: false
-        schema:
-          default: 20
-          title: Recordsperpage
-          type: integer
-      - in: query
-        name: page
-        required: false
-        schema:
-          default: 1
-          title: Page
-          type: integer
-      - $ref: '#/components/parameters/10dlc_FilterConsolidated'
-      - description: Specifies the sort order for results. If not given, results are
-          sorted by createdAt in descending order.
-        example: -phoneNumber
-        in: query
-        name: sort
-        required: false
-        schema:
-          default: -createdAt
-          description: Specifies the sort order for results. If not given, results
-            are sorted by created_at in descending order.
-          enum:
-          - assignmentStatus
-          - -assignmentStatus
-          - createdAt
-          - -createdAt
-          - phoneNumber
-          - -phoneNumber
-          title: Sort
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumberCampaignPaginated'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Retrieve All Phone Number Campaigns
-      tags:
-      - Phone Number Campaigns
-      x-latency-category: responsive
-    post:
-      operationId: CreatePhoneNumberCampaign
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PhoneNumberCampaignCreate'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumberCampaign'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Create New Phone Number Campaign
-      tags:
-      - Phone Number Campaigns
-      x-latency-category: responsive
-  /phone_number_campaigns/{phoneNumber}:
-    delete:
-      description: This endpoint allows you to remove a campaign assignment from the
-        supplied `phoneNumber`.
-      operationId: DeletePhoneNumberCampaign
-      parameters:
-      - in: path
-        name: phoneNumber
-        required: true
-        schema:
-          title: Phonenumber
-          type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/SinglePhoneNumberCampaign'
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Delete Phone Number Campaign
-      tags:
-      - Phone Number Campaigns
-      x-latency-category: responsive
-    get:
-      description: Retrieve an individual phone number/campaign assignment by `phoneNumber`.
-      operationId: GetSinglePhoneNumberCampaign
-      parameters:
-      - in: path
-        name: phoneNumber
-        required: true
-        schema:
-          title: Phonenumber
-          type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumberCampaign'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Get Single Phone Number Campaign
-      tags:
-      - Phone Number Campaigns
-      x-latency-category: responsive
-    put:
-      operationId: PutPhoneNumberCampaign
-      parameters:
-      - in: path
-        name: phoneNumber
-        required: true
-        schema:
-          title: Phonenumber
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PhoneNumberCampaignCreate'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumberCampaign'
-          description: Successful Response
-        4XX:
-          $ref: '#/components/responses/10dlc_GenericErrorResponse'
-      summary: Create New Phone Number Campaign
-      tags:
-      - Phone Number Campaigns
       x-latency-category: responsive
   /phone_numbers:
     get:
