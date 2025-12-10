@@ -1338,6 +1338,135 @@
         "x-latency-category": "responsive"
       }
     },
+    "/10dlc/brand/{brandId}/smsOtp": {
+      "post": {
+        "tags": [
+          "Brands"
+        ],
+        "summary": "Trigger Brand SMS OTP",
+        "description": "Trigger or re-trigger an SMS OTP (One-Time Password) for Sole Proprietor brand verification.\n\n**Important Notes:**\n\n* Only allowed for Sole Proprietor (`SOLE_PROPRIETOR`) brands\n* Triggers generation of a one-time password sent to the `mobilePhone` number in the brand's profile\n* Campaigns cannot be created until OTP verification is complete\n* US/CA numbers only for real OTPs; mock brands can use non-US/CA numbers for testing\n* Returns a `referenceId` that can be used to check OTP status via the GET `/10dlc/brand/smsOtp/{referenceId}` endpoint\n\n**Use Cases:**\n\n* Initial OTP trigger after Sole Proprietor brand creation\n* Re-triggering OTP if the user didn't receive or needs a new code",
+        "operationId": "TriggerBrandSmsOtp",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Brandid",
+              "type": "string",
+              "example": "4b20019b-043a-78f8-0657-b3be3f4b4002"
+            },
+            "name": "brandId",
+            "in": "path",
+            "description": "The Brand ID for which to trigger the OTP"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerBrandSmsOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TriggerBrandSmsOtpResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Brand is not a Sole Proprietor or invalid mobile phone number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/10dlc_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      },
+      "put": {
+        "tags": [
+          "Brands"
+        ],
+        "summary": "Verify Brand SMS OTP",
+        "description": "Verify the SMS OTP (One-Time Password) for Sole Proprietor brand verification.\n\n**Verification Flow:**\n\n1. User receives OTP via SMS after triggering\n2. User submits the OTP pin through this endpoint\n3. Upon successful verification:\n   - A `BRAND_OTP_VERIFIED` webhook event is sent to the CSP\n   - The brand's `identityStatus` changes to `VERIFIED`\n   - Campaigns can now be created for this brand\n\n**Error Handling:**\n\nProvides proper error responses for:\n* Invalid OTP pins\n* Expired OTPs\n* OTP verification failures",
+        "operationId": "VerifyBrandSmsOtp",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Brandid",
+              "type": "string",
+              "example": "4b20019b-043a-78f8-0657-b3be3f4b4002"
+            },
+            "name": "brandId",
+            "in": "path",
+            "description": "The Brand ID for which to verify the OTP"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyBrandSmsOtpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "OTP verified successfully - No content returned"
+          },
+          "400": {
+            "description": "Bad Request - Invalid or expired OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/10dlc_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
     "/10dlc/campaign": {
       "get": {
         "tags": [
@@ -73118,7 +73247,8 @@
           "PRIVATE_PROFIT",
           "PUBLIC_PROFIT",
           "NON_PROFIT",
-          "GOVERNMENT"
+          "GOVERNMENT",
+          "SOLE_PROPRIETOR"
         ],
         "description": "Entity type behind the brand. This is the form of business establishment.",
         "example": "PRIVATE_PROFIT",
@@ -101960,6 +102090,52 @@
         ],
         "title": "TransferToolParams"
       },
+      "TriggerBrandSmsOtpRequest": {
+        "title": "TriggerBrandSmsOtpRequest",
+        "required": [
+          "pinSms",
+          "successSms"
+        ],
+        "type": "object",
+        "properties": {
+          "pinSms": {
+            "title": "Pinsms",
+            "type": "string",
+            "description": "SMS message template to send the OTP. Must include `@OTP_PIN@` placeholder which will be replaced with the actual PIN",
+            "example": "Your PIN is @OTP_PIN@"
+          },
+          "successSms": {
+            "title": "Successsms",
+            "type": "string",
+            "description": "SMS message to send upon successful OTP verification",
+            "example": "Verification successful!"
+          }
+        },
+        "description": "Request body for triggering a Brand SMS OTP"
+      },
+      "TriggerBrandSmsOtpResponse": {
+        "title": "TriggerBrandSmsOtpResponse",
+        "required": [
+          "brandId",
+          "referenceId"
+        ],
+        "type": "object",
+        "properties": {
+          "brandId": {
+            "title": "Brandid",
+            "type": "string",
+            "description": "The Brand ID for which the OTP was triggered",
+            "example": "4b20019b-043a-78f8-0657-b3be3f4b4002"
+          },
+          "referenceId": {
+            "title": "Referenceid",
+            "type": "string",
+            "description": "The reference ID that can be used to check OTP status",
+            "example": "OTP4B2001"
+          }
+        },
+        "description": "Response after successfully triggering a Brand SMS OTP"
+      },
       "TriggerTestRunRequest": {
         "properties": {
           "destination_version_id": {
@@ -106430,6 +106606,24 @@
             "additionalProperties": true
           }
         }
+      },
+      "VerifyBrandSmsOtpRequest": {
+        "title": "VerifyBrandSmsOtpRequest",
+        "required": [
+          "otpPin"
+        ],
+        "type": "object",
+        "properties": {
+          "otpPin": {
+            "title": "Otppin",
+            "type": "string",
+            "description": "The OTP PIN received via SMS",
+            "example": "123456",
+            "minLength": 4,
+            "maxLength": 10
+          }
+        },
+        "description": "Request body for verifying a Brand SMS OTP"
       },
       "VerifyDetailRecord": {
         "type": "object",

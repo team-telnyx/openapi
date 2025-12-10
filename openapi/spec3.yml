@@ -24814,6 +24814,7 @@ components:
       - PUBLIC_PROFIT
       - NON_PROFIT
       - GOVERNMENT
+      - SOLE_PROPRIETOR
       example: PRIVATE_PROFIT
       title: EntityType
       type: string
@@ -48367,6 +48368,43 @@ components:
       - from
       title: TransferToolParams
       type: object
+    TriggerBrandSmsOtpRequest:
+      description: Request body for triggering a Brand SMS OTP
+      properties:
+        pinSms:
+          description: SMS message template to send the OTP. Must include `@OTP_PIN@`
+            placeholder which will be replaced with the actual PIN
+          example: Your PIN is @OTP_PIN@
+          title: Pinsms
+          type: string
+        successSms:
+          description: SMS message to send upon successful OTP verification
+          example: Verification successful!
+          title: Successsms
+          type: string
+      required:
+      - pinSms
+      - successSms
+      title: TriggerBrandSmsOtpRequest
+      type: object
+    TriggerBrandSmsOtpResponse:
+      description: Response after successfully triggering a Brand SMS OTP
+      properties:
+        brandId:
+          description: The Brand ID for which the OTP was triggered
+          example: 4b20019b-043a-78f8-0657-b3be3f4b4002
+          title: Brandid
+          type: string
+        referenceId:
+          description: The reference ID that can be used to check OTP status
+          example: OTP4B2001
+          title: Referenceid
+          type: string
+      required:
+      - brandId
+      - referenceId
+      title: TriggerBrandSmsOtpResponse
+      type: object
     TriggerTestRunRequest:
       description: 'Request model for triggering a single test run.
 
@@ -52037,6 +52075,20 @@ components:
           additionalProperties: true
           type: object
       title: VerifiedNumberResponseDataWrapper
+      type: object
+    VerifyBrandSmsOtpRequest:
+      description: Request body for verifying a Brand SMS OTP
+      properties:
+        otpPin:
+          description: The OTP PIN received via SMS
+          example: '123456'
+          maxLength: 10
+          minLength: 4
+          title: Otppin
+          type: string
+      required:
+      - otpPin
+      title: VerifyBrandSmsOtpRequest
       type: object
     VerifyDetailRecord:
       properties:
@@ -56842,6 +56894,123 @@ paths:
         4XX:
           $ref: '#/components/responses/10dlc_GenericErrorResponse'
       summary: Revet Brand
+      tags:
+      - Brands
+      x-latency-category: responsive
+  /10dlc/brand/{brandId}/smsOtp:
+    post:
+      description: 'Trigger or re-trigger an SMS OTP (One-Time Password) for Sole
+        Proprietor brand verification.
+
+
+        **Important Notes:**
+
+
+        * Only allowed for Sole Proprietor (`SOLE_PROPRIETOR`) brands
+
+        * Triggers generation of a one-time password sent to the `mobilePhone` number
+        in the brand''s profile
+
+        * Campaigns cannot be created until OTP verification is complete
+
+        * US/CA numbers only for real OTPs; mock brands can use non-US/CA numbers
+        for testing
+
+        * Returns a `referenceId` that can be used to check OTP status via the GET
+        `/10dlc/brand/smsOtp/{referenceId}` endpoint
+
+
+        **Use Cases:**
+
+
+        * Initial OTP trigger after Sole Proprietor brand creation
+
+        * Re-triggering OTP if the user didn''t receive or needs a new code'
+      operationId: TriggerBrandSmsOtp
+      parameters:
+      - description: The Brand ID for which to trigger the OTP
+        in: path
+        name: brandId
+        required: true
+        schema:
+          example: 4b20019b-043a-78f8-0657-b3be3f4b4002
+          title: Brandid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerBrandSmsOtpRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriggerBrandSmsOtpResponse'
+          description: Successful Response
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Bad Request - Brand is not a Sole Proprietor or invalid mobile
+            phone number
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Trigger Brand SMS OTP
+      tags:
+      - Brands
+      x-latency-category: responsive
+    put:
+      description: "Verify the SMS OTP (One-Time Password) for Sole Proprietor brand\
+        \ verification.\n\n**Verification Flow:**\n\n1. User receives OTP via SMS\
+        \ after triggering\n2. User submits the OTP pin through this endpoint\n3.\
+        \ Upon successful verification:\n   - A `BRAND_OTP_VERIFIED` webhook event\
+        \ is sent to the CSP\n   - The brand's `identityStatus` changes to `VERIFIED`\n\
+        \   - Campaigns can now be created for this brand\n\n**Error Handling:**\n\
+        \nProvides proper error responses for:\n* Invalid OTP pins\n* Expired OTPs\n\
+        * OTP verification failures"
+      operationId: VerifyBrandSmsOtp
+      parameters:
+      - description: The Brand ID for which to verify the OTP
+        in: path
+        name: brandId
+        required: true
+        schema:
+          example: 4b20019b-043a-78f8-0657-b3be3f4b4002
+          title: Brandid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyBrandSmsOtpRequest'
+        required: true
+      responses:
+        '204':
+          description: OTP verified successfully - No content returned
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Bad Request - Invalid or expired OTP
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        4XX:
+          $ref: '#/components/responses/10dlc_GenericErrorResponse'
+      summary: Verify Brand SMS OTP
       tags:
       - Brands
       x-latency-category: responsive
