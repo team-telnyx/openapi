@@ -1494,7 +1494,7 @@ components:
       name: DateCreated
       required: false
       schema:
-        example: '2023-05-22'
+        example: '2023-05-22T00:00:00Z'
         format: date-time
         type: string
     To:
@@ -3270,20 +3270,41 @@ components:
       content:
         application/json:
           examples:
-            missingParameter:
+            audio_file_download_failed:
+              summary: Audio file download failed
+              value:
+                errors:
+                - code: '90040'
+                  detail: Provided audio file couldn't be downloaded.
+                  title: Downloading audio file failed
+            character_encoding_error:
+              summary: Character encoding error
+              value:
+                errors:
+                - code: '10028'
+                  detail: Error decoding request body at position 42
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10028
+                  title: Character encoding error
+            invalid_characters:
+              summary: Invalid characters
               value:
                 errors:
                 - code: '10015'
-                  detail: The request failed because it was not well-formed.
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10015
-                  source:
-                    pointer: /
+                  detail: Invalid characters in the request.
                   title: Bad Request
+            queue_not_empty:
+              summary: Queue not empty
+              value:
+                errors:
+                - code: '90050'
+                  detail: Only empty queues can be deleted.
+                  title: Unable to delete queue
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
-      description: Bad request, the request was unacceptable, often due to missing
-        a required parameter.
+            $ref: '#/components/schemas/call-control_Errors'
+      description: 'Bad request. The request was invalid or cannot be served. Common
+        causes include: audio file download failures, attempting to delete non-empty
+        queues, invalid characters in the request, or character encoding errors.'
     BlackBoxTestResultsResponse:
       content:
         application/json:
@@ -4168,8 +4189,16 @@ components:
             $ref: '#/components/schemas/billing-group_Errors'
       description: Insufficient permissions to access billing group
     ForbiddenResponse:
-      description: Unauthorized response. Happens when the current user is not authorized
-        to access the endpoint.
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '403'
+              detail: Forbidden
+              title: Forbidden
+          schema:
+            $ref: '#/components/schemas/call-recordings_Errors'
+      description: Forbidden. The request is understood but has been refused.
     FqdnConnectionResponse:
       content:
         application/json:
@@ -4806,6 +4835,18 @@ components:
           schema:
             $ref: '#/components/schemas/InitiateCallResult'
       description: Successful response upon initiating a TeXML call.
+    InternalServerErrorResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10007'
+              detail: Internal server error
+              title: Internal server error
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+      description: Internal server error. An unexpected error occurred on the server.
+        This is typically returned for unhandled exceptions or system failures.
     InventoryCoverageResponse:
       content:
         application/json:
@@ -6132,7 +6173,45 @@ components:
             $ref: '#/components/schemas/billing-group_Errors'
       description: Billing group not found
     NotFoundResponse:
-      description: Conference does not exist
+      content:
+        application/json:
+          examples:
+            audio_file_not_found:
+              summary: Audio file not found
+              value:
+                errors:
+                - code: '10005'
+                  detail: Provided audio file URL couldn't be found.
+                  title: Audio file not found
+            conference_not_found:
+              summary: Conference not found
+              value:
+                errors:
+                - code: '90058'
+                  detail: The conference does not exist.
+                  title: Invalid conference_id
+            recording_not_found:
+              summary: Recording not found
+              value:
+                errors:
+                - code: '10005'
+                  detail: The recording could not be found. Please check the recording_id
+                    and try again.
+                  source:
+                    pointer: /recording_id
+                  title: Recording not found
+            resource_not_found:
+              summary: Generic resource not found
+              value:
+                errors:
+                - code: '10007'
+                  detail: Resource not found
+                  title: Resource not found
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+      description: 'Resource not found. The requested resource does not exist. Common
+        causes include: invalid call_control_id, conference not found, audio file
+        not found, or recording not found.'
     NotFoundResponseApp:
       content:
         application/json:
@@ -6658,6 +6737,18 @@ components:
           schema:
             $ref: '#/components/schemas/billing_Errors'
       description: Service temporarily unavailable
+    ServiceUnavailableResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10007'
+              detail: Service unavailable
+              title: Service unavailable
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+      description: Service unavailable. The service is temporarily unavailable. This
+        may occur during maintenance or when the service is overloaded.
     SharePortingOrder:
       content:
         application/json:
@@ -6983,7 +7074,6 @@ components:
                 type: integer
               first_page_uri:
                 description: Relative uri to the first page of the query results
-                example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Transcriptions.json?Page=0&PageSize=1
                 format: uri
                 type: string
               next_page_uri:
@@ -7000,7 +7090,6 @@ components:
                 type: integer
               previous_page_uri:
                 description: Relative uri to the previous page of the query results
-                example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Transcriptions.json?PageToken=MZQTDUHX&PageSize=1
                 format: uri
                 type: string
               start:
@@ -7070,7 +7159,20 @@ components:
             $ref: '#/components/schemas/verified-numbers_Errors'
       description: Unauthorized Request
     UnauthorizedResponse:
-      description: Unauthorized
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10009'
+              detail: The required authentication headers were either invalid or not
+                included in the request.
+              meta:
+                url: https://developers.telnyx.com/docs/overview/errors/10009
+              title: Authentication failed
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+      description: Unauthorized. Authentication failed - the required authentication
+        headers were either invalid or not included in the request.
     UnexpectedErrorResponse:
       content:
         application/json:
@@ -7095,7 +7197,167 @@ components:
             $ref: '#/components/schemas/billing-group_Errors'
       description: Invalid request data
     UnprocessableEntityResponse:
-      description: Unprocessable entity
+      content:
+        application/json:
+          examples:
+            ai_assistant_already_active:
+              summary: AI Assistant already active
+              value:
+                errors:
+                - code: '90061'
+                  detail: AI Assistant cannot be started more than once.
+                  title: AI Assistant is already in progress
+            call_already_ended:
+              summary: Call has already ended
+              value:
+                errors:
+                - code: '90018'
+                  detail: This call is no longer active and can't receive commands.
+                  title: Call has already ended
+            call_already_in_queue:
+              summary: Call already in queue
+              value:
+                errors:
+                - code: '90038'
+                  detail: Call can't be added to a queue it's already in.
+                  title: Call already in queue
+            call_not_answered:
+              summary: Call not answered yet
+              value:
+                errors:
+                - code: '90034'
+                  detail: This call can't receive this command because it has not
+                    been answered yet.
+                  title: Call not answered yet
+            cannot_record_before_audio_started:
+              summary: Cannot record before audio started
+              value:
+                errors:
+                - code: '90020'
+                  detail: Call recording cannot be started until audio has commenced
+                    on the call.
+                  title: Call recording triggered before audio started
+            conference_already_ended:
+              summary: Conference has already ended
+              value:
+                errors:
+                - code: '90019'
+                  detail: This conference is no longer active and can't receive commands.
+                  title: Conference has already ended
+            conference_name_conflict:
+              summary: Conference name conflict
+              value:
+                errors:
+                - code: '90033'
+                  detail: Conference with given name already exists and it's active.
+                  title: Unable to execute command
+            fork_not_found:
+              summary: Call is not forked
+              value:
+                errors:
+                - code: '90031'
+                  detail: Can't stop forking, because the call isn't currently forked.
+                  title: Call is not currently forked
+            invalid_call_control_id:
+              summary: Invalid call control ID
+              value:
+                errors:
+                - code: '90015'
+                  detail: The call_control_id provided was not valid.
+                  source:
+                    pointer: /call_control_id
+                  title: Invalid Call Control ID
+            invalid_connection_id:
+              summary: Invalid connection ID
+              value:
+                errors:
+                - code: '10015'
+                  detail: The requested connection_id (Call Control App ID) is either
+                    invalid or does not exist. Only Call Control Apps with valid webhook
+                    URL are accepted.
+                  source:
+                    pointer: /connection_id
+                  title: Invalid value for connection_id (Call Control App ID)
+            invalid_enumerated_value:
+              summary: Invalid enumerated value
+              value:
+                errors:
+                - code: '10032'
+                  detail: 'The value must be one of: dual, single.'
+                  source:
+                    pointer: /record_channels
+                  title: Invalid enumerated value
+            invalid_phone_number_format:
+              summary: Invalid phone number format
+              value:
+                errors:
+                - code: '10016'
+                  detail: The 'to' parameter must be in E164 format.
+                  source:
+                    pointer: /to
+                  title: Phone number must be in +E164 format
+            max_participants_reached:
+              summary: Maximum participants reached
+              value:
+                errors:
+                - code: '90032'
+                  detail: The maximum allowed value of `max_participants` has been
+                    reached at 100.
+                  title: Maximum number of participants reached
+            media_streaming_used:
+              summary: Media streaming in use
+              value:
+                errors:
+                - code: '90045'
+                  detail: This command can't be issued when media streaming is used.
+                  title: Media Streaming is used
+            missing_required_parameter:
+              summary: Missing required parameter
+              value:
+                errors:
+                - code: '10004'
+                  detail: The 'to' parameter is required and cannot be blank.
+                  source:
+                    pointer: /to
+                  title: Missing required parameter
+            queue_full:
+              summary: Queue is full
+              value:
+                errors:
+                - code: '90036'
+                  detail: The 'support' queue is full and can't accept more calls.
+                  title: Queue full
+            srtp_not_supported_for_pstn:
+              summary: SRTP not supported for PSTN calls
+              value:
+                errors:
+                - code: '10011'
+                  detail: SRTP media encryption is not supported for PSTN calls.
+                  source:
+                    pointer: /media_encryption
+                  title: Media encryption not supported for PSTN calls
+            transcription_already_active:
+              summary: Transcription already active
+              value:
+                errors:
+                - code: '90054'
+                  detail: Call transcription can not be started more than once.
+                  title: Call transcription is already in progress
+            value_outside_range:
+              summary: Value outside of range
+              value:
+                errors:
+                - code: '10033'
+                  detail: The value is outside of allowed range 1 to 5000
+                  source:
+                    pointer: /max_participants
+                  title: Value outside of range
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+      description: Unprocessable entity. The request was well-formed but could not
+        be processed due to semantic errors. This includes validation errors, invalid
+        parameter values, call state errors, conference errors, queue errors, recording/transcription
+        errors, and business logic violations.
     UnprocessableManagedAccountEntity:
       content:
         application/json:
@@ -7520,6 +7782,74 @@ components:
           schema:
             $ref: '#/components/schemas/call-control_Errors'
       description: Unexpected error
+    call-recordings_InternalServerErrorResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '500'
+              detail: Internal server error
+              title: Internal Server Error
+          schema:
+            $ref: '#/components/schemas/call-recordings_Errors'
+      description: Internal server error. An unexpected error occurred on the server.
+    call-recordings_NotFoundResponse:
+      content:
+        application/json:
+          examples:
+            connection_not_found:
+              summary: Connection not found
+              value:
+                errors:
+                - code: '10005'
+                  detail: The requested resource or URL could not be found.
+                  source:
+                    pointer: /connection_id
+                  title: Resource not found
+            not_found:
+              summary: Generic not found
+              value:
+                errors:
+                - code: '404'
+                  detail: Page not found
+                  title: Not Found
+          schema:
+            $ref: '#/components/schemas/call-recordings_Errors'
+      description: Resource not found. The requested resource or URL could not be
+        found.
+    call-recordings_UnauthorizedResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '401'
+              detail: Unauthorized
+              title: Unauthorized
+          schema:
+            $ref: '#/components/schemas/call-recordings_Errors'
+      description: Unauthorized. The request lacks valid authentication credentials.
+    call-scripting_BadRequestResponse:
+      content:
+        application/json:
+          examples:
+            conference_ended:
+              summary: Conference already ended
+              value:
+                errors:
+                - code: '90019'
+                  detail: This conference is no longer active and can't receive commands.
+                  title: Conference has already ended
+            participant_on_hold:
+              summary: Participant on hold
+              value:
+                errors:
+                - code: '90047'
+                  detail: This participant is on hold
+                  title: Participant on hold
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Bad request. The request could not be understood or was missing
+        required parameters.
     call-scripting_NotFoundResponse:
       content:
         application/json:
@@ -7544,6 +7874,52 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
       description: The user doesn't have the required permissions to perform the requested
         action.
+    call-scripting_UnprocessableEntityResponse:
+      content:
+        application/json:
+          examples:
+            invalid_enumerated_value:
+              summary: Invalid enumerated value
+              value:
+                errors:
+                - code: '10032'
+                  detail: Status must be one of completed
+                  source:
+                    pointer: /Status
+                  title: Invalid enumerated value
+            invalid_parameter_type:
+              summary: Invalid parameter type
+              value:
+                errors:
+                - code: '10026'
+                  detail: The 'To' parameter must be of type 'string'
+                  source:
+                    pointer: /To
+                  title: Invalid parameter type
+            invalid_send_digits:
+              summary: Invalid SendDigits format
+              value:
+                errors:
+                - code: '90014'
+                  detail: 'The ''SendDigits'' parameter must be a ''string'' made
+                    of a combination of either 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B,
+                    C, D, w, W, * or #'
+                  source:
+                    pointer: /SendDigits
+                  title: Invalid value for SendDigits
+            missing_required_parameter:
+              summary: Missing required parameter
+              value:
+                errors:
+                - code: '10004'
+                  detail: 'Can''t be blank: ApplicationId'
+                  source:
+                    pointer: /ApplicationId
+                  title: Missing required parameter
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Unprocessable entity. The request was well-formed but contains
+        semantic errors.
     charges_BadRequestErrorResponse:
       content:
         application/json:
@@ -7562,6 +7938,24 @@ components:
           schema:
             $ref: '#/components/schemas/charges_Errors'
       description: User account not found
+    connections_BadRequestResponse:
+      content:
+        application/json:
+          examples:
+            missingParameter:
+              value:
+                errors:
+                - code: '10015'
+                  detail: The request failed because it was not well-formed.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  source:
+                    pointer: /
+                  title: Bad Request
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Bad request, the request was unacceptable, often due to missing
+        a required parameter.
     connections_NotFoundResponse:
       content:
         application/json:
@@ -7774,6 +8168,9 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: An array of Regulatory Requirements Responses
+    managed-accounts_ForbiddenResponse:
+      description: Unauthorized response. Happens when the current user is not authorized
+        to access the endpoint.
     managed-accounts_UnauthorizedResponse:
       description: Unauthenticated response. Happens when the current user cannot
         be authenticated.
@@ -7789,6 +8186,45 @@ components:
           schema:
             $ref: '#/components/schemas/media-streaming_Errors'
       description: Unexpected error.
+    media-streaming_NotFoundResponse:
+      content:
+        application/json:
+          examples:
+            connection_not_found:
+              summary: Connection not found
+              value:
+                errors:
+                - code: '10005'
+                  detail: The Dialogflow connection for the specified connection_id
+                    could not be found.
+                  source:
+                    pointer: /connection_id
+                  title: Resource not found
+            not_found:
+              summary: Generic not found
+              value:
+                errors:
+                - code: '404'
+                  detail: Page not found
+                  title: Not Found
+          schema:
+            $ref: '#/components/schemas/media-streaming_Errors'
+      description: Resource not found. The requested resource or URL could not be
+        found.
+    media-streaming_UnprocessableEntityResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '422'
+              detail: The request parameters failed validation.
+              source:
+                pointer: /service_account
+              title: Unprocessable Entity
+          schema:
+            $ref: '#/components/schemas/media-streaming_Errors'
+      description: Unprocessable entity. The request was well-formed but contains
+        semantic errors.
     messaging_GenericErrorResponse:
       content:
         application/json:
@@ -7897,6 +8333,24 @@ components:
             $ref: '#/components/schemas/numbers_Errors'
       description: Unprocessable entity. Check the 'detail' field in response for
         details.
+    programmable-fax_BadRequestResponse:
+      content:
+        application/json:
+          examples:
+            missingParameter:
+              value:
+                errors:
+                - code: '10015'
+                  detail: The request failed because it was not well-formed.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  source:
+                    pointer: /
+                  title: Bad Request
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Bad request, the request was unacceptable, often due to missing
+        a required parameter.
     programmable-fax_GenericErrorResponse:
       content:
         application/json:
@@ -7904,13 +8358,59 @@ components:
             $ref: '#/components/schemas/programmable-fax_Errors'
       description: Unexpected error
     programmable-fax_NotFoundResponse:
-      description: Fax does not exist
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '404'
+              detail: The requested resource does not exist
+              title: Not Found
+          schema:
+            $ref: '#/components/schemas/programmable-fax_Errors'
+      description: The requested resource does not exist
+    programmable-fax_UnauthorizedResponse:
+      description: Unauthorized
+    programmable-fax_UnprocessableEntityResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '422'
+              detail: The request parameters failed validation
+              title: Unprocessable Entity
+          schema:
+            $ref: '#/components/schemas/programmable-fax_Errors'
+      description: Unprocessable entity. The request was well-formed but contains
+        semantic errors.
     siprec_GenericErrorResponse:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/siprec_Errors'
       description: Unexpected error.
+    siprec_NotFoundResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: 404
+              detail: The requested resource does not exist
+              title: Not Found
+          schema:
+            $ref: '#/components/schemas/siprec_Errors'
+      description: The requested resource does not exist
+    siprec_UnprocessableEntityResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: 422
+              detail: The request parameters failed validation
+              title: Unprocessable Entity
+          schema:
+            $ref: '#/components/schemas/siprec_Errors'
+      description: Unprocessable entity. The request was well-formed but contains
+        semantic errors.
     toll-free-verification_GenericErrorResponse:
       content:
         application/json:
@@ -7947,6 +8447,8 @@ components:
           schema:
             $ref: '#/components/schemas/video_Error'
       description: Resource not found
+    video_UnauthorizedResponse:
+      description: Unauthorized
     video_UnprocessableEntity:
       content:
         application/json:
@@ -11451,7 +11953,7 @@ components:
               example:
               - name: User-to-User
                 value: '1234'
-              - name: Diversion
+              - name: User-to-User
                 value: <sip:111@192.168.1.1>
               items:
                 $ref: '#/components/schemas/SipHeader'
@@ -11819,124 +12321,6 @@ components:
     CallControlId:
       example: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
       type: string
-    CallCost:
-      properties:
-        event_type:
-          description: The type of the event being delivered
-          enum:
-          - call.cost
-          example: call.cost
-          type: string
-        id:
-          description: Uniquely identifies a webhook
-          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
-          format: uuid
-          type: string
-        meta:
-          properties:
-            meta:
-              properties:
-                attempt:
-                  description: The number of attempts made to deliver the webhook
-                  example: 1
-                  minimum: 1
-                  type: integer
-                delivered_to:
-                  description: The URL where webhook was sent
-                  example: https://example.com
-                  type: string
-              type: object
-          type: object
-        occurred_at:
-          description: ISO 8601 datetime of when the event occurred.
-          example: '2018-02-02T22:25:27.521992Z'
-          format: date-time
-          type: string
-        payload:
-          properties:
-            billed_duration_secs:
-              description: The number of seconds for which this call will be billed
-              example: 0
-              minimum: 0
-              type: integer
-            call_control_id:
-              description: Call ID used to issue commands via Call Control API.
-              example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
-              type: string
-            call_leg_id:
-              description: ID that is unique to the call and can be used to correlate
-                webhook events.
-              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
-              type: string
-            call_session_id:
-              description: ID that is unique to the call session and can be used to
-                correlate webhook events. Call session is a group of related call
-                legs that logically belong to the same phone call, e.g. an inbound
-                and outbound leg of a transferred call.
-              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
-              type: string
-            client_state:
-              description: State received from a command.
-              example: aGF2ZSBhIG5pY2UgZGF5ID1d
-              type: string
-            connection_id:
-              description: Identifies the type of resource.
-              example: 7267xxxxxxxxxxxxxx
-              type: string
-            cost_parts:
-              items:
-                properties:
-                  billed_duration_secs:
-                    description: The number of seconds for which this item will be
-                      billed
-                    example: 0
-                    minimum: 0
-                    type: integer
-                  call_part:
-                    description: The service incurring a charge
-                    example: call-control
-                    type: string
-                  cost:
-                    description: The billed cost of the item, in currency shown in
-                      the `currency` field
-                    example: 0.0
-                    minimum: 0.0
-                    type: number
-                  currency:
-                    description: The currency in which `cost` is measured
-                    example: USD
-                    type: string
-                  rate:
-                    description: The cost per unit of the item incurring a charge
-                    example: 0.001
-                    minimum: 0.0
-                    type: number
-                type: object
-              type: array
-            status:
-              description: Reflects how command ended.
-              enum:
-              - valid
-              - invalid
-              - call_hangup
-              - cancelled
-              - cancelled_amd
-              example: valid
-              type: string
-            total_cost:
-              description: The billed cost of the call
-              example: 0.0
-              minimum: 0.0
-              type: number
-          type: object
-        record_type:
-          description: Identifies the type of resource.
-          enum:
-          - event
-          example: event
-          type: string
-      title: Call Cost Received Event
-      type: object
     CallDtmfReceived:
       example:
         event_type: call.dtmf.received
@@ -12586,8 +12970,8 @@ components:
               type: string
             hangup_cause:
               description: The reason the call was ended (`call_rejected`, `normal_clearing`,
-                `originator_cancel`, `timeout`, `time_limit`, `user_busy`, `not_found`
-                or `unspecified`).
+                `originator_cancel`, `timeout`, `time_limit`, `user_busy`, `not_found`,
+                `no_answer` or `unspecified`).
               enum:
               - call_rejected
               - normal_clearing
@@ -12596,6 +12980,7 @@ components:
               - time_limit
               - user_busy
               - not_found
+              - no_answer
               - unspecified
               example: call_rejected
               type: string
@@ -12618,7 +13003,7 @@ components:
               example:
               - name: User-to-User
                 value: '1234'
-              - name: Diversion
+              - name: User-to-User
                 value: <sip:111@192.168.1.1>
               items:
                 $ref: '#/components/schemas/SipHeader'
@@ -12771,7 +13156,7 @@ components:
               example:
               - name: User-to-User
                 value: '1234'
-              - name: Diversion
+              - name: User-to-User
                 value: <sip:111@192.168.1.1>
               items:
                 $ref: '#/components/schemas/SipHeader'
@@ -14418,7 +14803,9 @@ components:
           oneOf:
           - example: +18005550100 or sip:username@sip.telnyx.com
             type: string
-          - example: '["+18005550100", "sip:username@sip.telnyx.com"]'
+          - example:
+            - '+18005550100'
+            - sip:username@sip.telnyx.com
             items:
               type: string
             type: array
@@ -14452,7 +14839,7 @@ components:
     CallResource:
       example:
         account_sid: 61bf923e-5e4d-4595-a110-56190ea18a1b
-        answered_by: null
+        answered_by: human
         caller_name: '+13122010094'
         date_created: Thu, 15 Jun 2023 09:56:45 +0000
         date_updated: Thu, 15 Jun 2023 09:56:56 +0000
@@ -14461,8 +14848,6 @@ components:
         end_time: Thu, 15 Jun 2023 09:56:56 +0000
         from: '+13123456789'
         from_formatted: (312) 345-6789
-        price: null
-        price_unit: null
         sid: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
         start_time: Thu, 15 Jun 2023 09:56:45 +0000
         status: completed
@@ -14545,7 +14930,7 @@ components:
           - failed
           - busy
           - no-answer
-          example: completed'
+          example: completed
           type: string
         to:
           description: The phone number or SIP address that received this call.
@@ -17992,7 +18377,6 @@ components:
         date_created: Fri, 27 Oct 2023 07:41:58 +0000
         date_updated: Fri, 27 Oct 2023 07:41:58 +0000
         duration: 5
-        error_code: null
         media_url: https://www.example.com/download.mp3
         sid: 136285da-4b74-46f1-a016-fe2982fa77c3
         source: StartConferenceRecordingAPI
@@ -18032,7 +18416,6 @@ components:
           type: integer
         error_code:
           description: The recording error, if any.
-          example: null
           type: string
         media_url:
           description: The URL to use to download the recording.
@@ -18083,7 +18466,6 @@ components:
       example:
         end: 0
         first_page_uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Conferences/6dc6cc1a-1ba1-4351-86b8-4c22c95cd98f/Recordings.json?page=0&pagesize=20
-        next_page_uri: null
         page: 0
         page_size: 20
         participants: []
@@ -18284,11 +18666,9 @@ components:
       example:
         account_sid: 4e71926f-8f13-450e-b91c-23c2ef786aa6
         api_version: v2/texml
-        call_sid_ending_conference: null
         date_created: Fri, 27 Oct 2023 07:41:58 +0000
         date_updated: Fri, 27 Oct 2023 07:41:58 +0000
         friendly_name: weekly_review_call
-        reason_conference_ended: null
         region: dc2
         sid: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
         status: in-progress
@@ -20170,11 +20550,11 @@ components:
             type: string
           type: array
         webhook_event_failover_url:
-          $ref: '#/components/schemas/programmable-fax_WebhookEventFailoverUrl'
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
           $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          $ref: '#/components/schemas/programmable-fax_WebhookTimeoutSecs'
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       required:
       - application_name
       - webhook_event_url
@@ -22030,7 +22410,7 @@ components:
     CreateTeXMLSecretResult:
       example:
         name: My Secret Name
-        value: '*****'
+        value: REDACTED
       properties:
         name:
           example: My Secret Name
@@ -23210,7 +23590,7 @@ components:
       title: DTMFTool
       type: object
     DateTimeRFC2822:
-      example: Fri, 11 Aug 2023 19:12:11 +0000
+      example: '2023-08-11T19:12:11Z'
       format: date-time
       type: string
     DeepgramNova2TranscriptionLanguage:
@@ -23300,13 +23680,6 @@ components:
       - auto_detect
       example: en
       title: Deepgram nova-3 transcription engine list of languages
-      type: string
-    DeepgramTranscriptionLanguage:
-      default: en
-      description: Language to use for speech recognition. Available languages depend
-        on the selected model.
-      example: en
-      title: Deepgram transcription language
       type: string
     DefaultGateway:
       allOf:
@@ -23506,7 +23879,7 @@ components:
           - ringing
           - answered
           - completed
-          example: iniated ringing
+          example: initiated
           type: string
         StatusCallbackMethod:
           default: POST
@@ -23527,7 +23900,7 @@ components:
           enum:
           - trim-silence
           - do-not-trim
-          example: false
+          example: trim-silence
           type: string
         Url:
           description: The URL from which Telnyx will retrieve the TeXML call instructions.
@@ -23701,7 +24074,7 @@ components:
           enum:
           - trim-silence
           - do-not-trim
-          example: false
+          example: trim-silence
           type: string
         CustomHeaders:
           description: Custom HTTP headers to be sent with the call. Each header should
@@ -23876,7 +24249,7 @@ components:
           enum:
           - trim-silence
           - do-not-trim
-          example: false
+          example: trim-silence
           type: string
         WaitUrl:
           description: The URL to call for an audio file to play while the participant
@@ -23905,8 +24278,19 @@ components:
         dialogflow_api: cx
         environment: development
         location: global
-        service_Account: '{"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key","private_key":"-----BEGIN
-          PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"your-client-id","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}'
+        service_account:
+          auth_provider_x509_cert_url: https://www.googleapis.com/oauth2/v1/certs
+          auth_uri: https://accounts.google.com/o/oauth2/auth
+          client_email: example@example.com
+          client_id: your-client-id
+          client_x509_cert_url: https://www.googleapis.com/robot/v1/metadata/x509/example%40example.iam.gserviceaccount.com
+          private_key: '-----BEGIN PRIVATE KEY-----
+
+            -----END PRIVATE KEY-----'
+          private_key_id: your-private-key
+          project_id: your-project-id
+          token_uri: https://oauth2.googleapis.com/token
+          type: service_account
       properties:
         conversation_profile_id:
           description: The id of a configured conversation profile on your Dialogflow
@@ -23933,8 +24317,6 @@ components:
         service_account:
           additionalProperties: true
           description: The JSON map to connect your Dialoglow account.
-          example: '{"service_account":{"type":"service_account","project_id":"your-project-id","private_key_id":"your-private-key","private_key":"-----BEGIN
-            PRIVATE KEY-----n-----END PRIVATE","client_email":"example@example.com","client_id":"your-client-id","auth_uri":"http://example.com","token_uri":"http://example.com","auth_provider_x509_cert_url":"http://example.com","client_x509_cert_url":"http://example.com"}}'
           type: object
       required:
       - service_account
@@ -25322,7 +25704,7 @@ components:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         connection_id: c-1
-        created_at: '2020-05-05T09:59:12'
+        created_at: '2020-05-05T09:59:12Z'
         direction: outbound
         from: '+123'
         id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
@@ -25334,7 +25716,7 @@ components:
         store_media: true
         stored_media_url: https://s3.amazonaws.com/faxes-dev/user-1/cf4a6b52-bf8e-4945-9f49-611d0d2b083b.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=xxxxxxxxxx%2F20200505%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200505T095917Z&X-Amz-Expires=7200&X-Amz-SignedHeaders=host&X-Amz-Signature=fac2af40464fcc77673ad762db86e34f9c1b91a82699b5578c5327f53874df51
         to: '+456'
-        updated_at: '2020-05-05T09:59:12'
+        updated_at: '2020-05-05T09:59:12Z'
         webhook_failover_url: ''
         webhook_url: http://www.example.com/webhooks
       properties:
@@ -25502,11 +25884,11 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           type: string
         webhook_event_failover_url:
-          $ref: '#/components/schemas/programmable-fax_WebhookEventFailoverUrl'
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
           $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          $ref: '#/components/schemas/programmable-fax_WebhookTimeoutSecs'
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       title: Fax Application
       type: object
     FaxDelivered:
@@ -25582,9 +25964,10 @@ components:
       description: Specifies an email address where faxes sent to this application
         will be forwarded to (as pdf or tiff attachments)
       example: user@example.com
-      nullable: true
       title: Fax Email Recipient
-      type: string
+      type:
+      - string
+      - 'null'
     FaxFailed:
       example:
         data:
@@ -28681,6 +29064,7 @@ components:
       type: object
     InitiateCallRequest:
       example:
+        ApplicationSid: example-app-sid
         From: '+13120001234'
         StatusCallback: https://www.example.com/statuscallback-listener
         To: '+13121230000'
@@ -28888,7 +29272,7 @@ components:
           - ringing
           - answered
           - completed
-          example: iniated ringing
+          example: initiated
           type: string
         StatusCallbackMethod:
           default: POST
@@ -28909,7 +29293,7 @@ components:
           enum:
           - trim-silence
           - do-not-trim
-          example: false
+          example: trim-silence
           type: string
         Url:
           description: The URL from which Telnyx will retrieve the TeXML call instructions.
@@ -32348,7 +32732,6 @@ components:
         account_sid: 4e71926f-8f13-450e-b91c-23c2ef786aa6
         call_sid: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
         coaching: false
-        coaching_call_sid: null
         conference_sid: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
         end_conference_on_exit: false
         hold: false
@@ -32390,7 +32773,7 @@ components:
           - connecting
           - connected
           - completed
-          example: in-progress
+          example: connected
           type: string
         uri:
           description: The relative URI for this participant.
@@ -35397,8 +35780,6 @@ components:
         call_sid: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
         call_sid_legacy: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
         coaching: false
-        coaching_call_sid: null
-        coaching_call_sid_legacy: null
         conference_sid: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
         date_created: Fri, 27 Oct 2023 07:41:58 +0000
         date_updated: Fri, 27 Oct 2023 07:41:58 +0000
@@ -35462,7 +35843,7 @@ components:
           - connecting
           - connected
           - completed
-          example: in-progress
+          example: connected
           type: string
         uri:
           description: The relative URI for this participant.
@@ -35474,7 +35855,6 @@ components:
       example:
         end: 0
         first_page_uri: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Conferences/6dc6cc1a-1ba1-4351-86b8-4c22c95cd98f/Participants.json?page=0&pagesize=20
-        next_page_uri: null
         page: 0
         page_size: 20
         participants: []
@@ -39598,6 +39978,7 @@ components:
         connection_id: 7267xxxxxxxxxxxxxx
         enqueued_at: '2019-01-23T18:10:02.574Z'
         from: '+18005550101'
+        is_alive: true
         queue_id: ae1626cc-6f42-11ea-becd-02420a0f8b69
         queue_position: 3
         record_type: queue_call
@@ -39633,6 +40014,10 @@ components:
           description: Number or SIP URI placing the call.
           example: '+35319605860'
           type: string
+        is_alive:
+          description: Indicates whether the call is still active in the queue.
+          example: true
+          type: boolean
         queue_id:
           description: Unique identifier of the queue the call is in.
           example: ae1626cc-6f42-11ea-becd-02420a0f8b69
@@ -45653,7 +46038,7 @@ components:
     TelephonyCredential:
       example:
         created_at: '2020-06-18T21:32:38'
-        expired: 'false'
+        expired: false
         expires_at: '2042-06-18T21:32:38'
         id: c215ade3-0d39-418e-94be-c5f780760199
         name: '2020-06-18 21:32:38.917732Z'
@@ -47403,7 +47788,6 @@ components:
           type: string
         error_code:
           description: The error code of the siprec session.
-          example: null
           type: string
         sid:
           description: The SID of the siprec session.
@@ -47483,7 +47867,6 @@ components:
           type: integer
         first_page_uri:
           description: Relative uri to the first page of the query results
-          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1
           format: uri
           type: string
         next_page_uri:
@@ -47500,7 +47883,6 @@ components:
           type: integer
         previous_page_uri:
           description: Relative uri to the previous page of the query results
-          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings.json?Page=0&PageSize=1
           format: uri
           type: string
         recordings:
@@ -47561,7 +47943,6 @@ components:
       description: Subresources details for a recording if available.
       properties:
         transcriptions:
-          example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Recordings/b08f0fa1-a32c-4218-b3b5-9cf78941ccac/Transcriptions.json
           format: uri
           type:
           - string
@@ -47695,7 +48076,6 @@ components:
           type: string
         error_code:
           description: The error code of the siprec session.
-          example: null
           type: string
         sid:
           description: The SID of the siprec session.
@@ -49663,7 +50043,7 @@ components:
             plays when the participant is on hold. The URL may return an MP3 file,
             a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`,
             or `<Redirect>` verbs.
-          example: true
+          example: https://www.example.com/hold-music.xml
           type: string
         Muted:
           description: Whether the participant should be muted.
@@ -50046,11 +50426,11 @@ components:
             type: string
           type: array
         webhook_event_failover_url:
-          $ref: '#/components/schemas/programmable-fax_WebhookEventFailoverUrl'
+          $ref: '#/components/schemas/WebhookEventFailoverUrl'
         webhook_event_url:
           $ref: '#/components/schemas/WebhookEventUrl'
         webhook_timeout_secs:
-          $ref: '#/components/schemas/programmable-fax_WebhookTimeoutSecs'
+          $ref: '#/components/schemas/WebhookTimeoutSecs'
       required:
       - application_name
       - webhook_event_url
@@ -51916,7 +52296,7 @@ components:
       type: object
     UserId:
       description: Identifier of the user to whom the fax belongs
-      example: yfff7c54-4df3-4bca-a65a-3da1ecc777f0
+      example: a7f7c54a-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
       type: string
     UserRequirement:
@@ -53982,30 +54362,33 @@ components:
         http:
           request:
             headers:
-            - 'Accept: */*'
+            - - Accept
+              - '*/*'
             url: https://fallback.example.com/webhooks
           response:
             body: All good.
             headers:
-            - 'Content-Type: text/html'
+            - - Content-Type
+              - text/html
             status: 200
         started_at: '2020-08-10T14:00:05.364Z'
         status: delivered
       - errors:
-        - code: '75499'
-          detail: The server returned another HTTP 4XX error
-          title: Webhook host returned HTTP 4XX
+        - 75499
         finished_at: '2020-08-10T14:00:05.360Z'
         http:
           request:
             headers:
-            - 'Accept: */*'
+            - - Accept
+              - '*/*'
             url: https://typo.example.com/webhooks
           response:
             body: Oops. Not found.
             headers:
-            - 'Content-Type: text/html'
-            - 'Pragma: no-cache'
+            - - Content-Type
+              - text/html
+            - - Pragma
+              - no-cache
             status: 404
         started_at: '2020-08-10T14:00:05.004Z'
         status: failed
@@ -55819,29 +56202,10 @@ components:
       - event
       example: event
       type: string
-    programmable-fax_WebhookEventFailoverUrl:
-      default: ''
-      description: The failover URL where webhooks related to this connection will
-        be sent if sending to the primary URL fails. Must include a scheme, such as
-        'https'.
-      example: https://failover.example.com
-      format: uri
-      nullable: true
-      title: Webhook Event Failover URL
-      type: string
-    programmable-fax_WebhookTimeoutSecs:
-      default: null
-      description: Specifies how many seconds to wait before timing out a webhook.
-      example: 25
-      maximum: 30
-      minimum: 0
-      nullable: true
-      title: Webhook Timeout Secs
-      type: integer
     push-notifications_Error:
       properties:
         code:
-          example: 10015
+          example: '10015'
           type: string
         detail:
           example: has already been taken
@@ -56416,30 +56780,33 @@ components:
             http:
               request:
                 headers:
-                - 'Accept: */*'
+                - - Accept
+                  - '*/*'
                 url: https://fallback.example.com/webhooks
               response:
                 body: All good.
                 headers:
-                - 'Content-Type: text/html'
+                - - Content-Type
+                  - text/html
                 status: 200
             started_at: '2020-08-10T14:00:05.364Z'
             status: delivered
           - errors:
-            - code: '75499'
-              detail: The server returned another HTTP 4XX error
-              title: Webhook host returned HTTP 4XX
+            - 75499
             finished_at: '2020-08-10T14:00:05.360Z'
             http:
               request:
                 headers:
-                - 'Accept: */*'
+                - - Accept
+                  - '*/*'
                 url: https://typo.example.com/webhooks
               response:
                 body: Oops. Not found.
                 headers:
-                - 'Content-Type: text/html'
-                - 'Pragma: no-cache'
+                - - Content-Type
+                  - text/html
+                - - Pragma
+                  - no-cache
                 status: 404
             started_at: '2020-08-10T14:00:05.004Z'
             status: failed
@@ -63082,6 +63449,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListCallEventsResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: List call events
@@ -63133,6 +63502,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RetrieveCallStatusResponseWithRecordingId'
+        '400':
+          $ref: '#/components/responses/BadRequestResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailableResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Dial
@@ -63149,6 +63526,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RetrieveCallStatusResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Retrieve a call status
@@ -63181,6 +63560,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponseWithConversationId'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Start AI Assistant
@@ -63203,6 +63584,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Stop AI Assistant
@@ -63241,6 +63624,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponseWithRecordingId'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Answer call
@@ -63273,6 +63658,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Bridge calls
@@ -63295,6 +63682,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Update client state
@@ -63317,6 +63706,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Enqueue call
@@ -63344,6 +63735,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Forking start
@@ -63374,6 +63767,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Forking stop
@@ -63410,6 +63805,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Gather
@@ -63440,6 +63837,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Gather stop
@@ -63468,6 +63867,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponseWithConversationId'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Gather using AI
@@ -63511,6 +63912,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Gather using audio
@@ -63550,6 +63953,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Gather using speak
@@ -63582,6 +63987,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Hangup call
@@ -63605,6 +64012,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Remove call from a queue
@@ -63649,6 +64058,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Play audio URL
@@ -63679,6 +64090,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Stop audio playback
@@ -63710,6 +64123,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Record pause
@@ -63740,6 +64155,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Record resume
@@ -63775,6 +64192,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Recording start
@@ -63805,6 +64224,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Recording stop
@@ -63840,6 +64261,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: SIP Refer a call
@@ -63870,6 +64293,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Reject a call
@@ -63901,6 +64326,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Send DTMF
@@ -63931,6 +64358,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Send SIP info
@@ -63954,6 +64383,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: SIPREC start
@@ -63984,6 +64415,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: SIPREC stop
@@ -64018,6 +64451,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Speak text
@@ -64046,6 +64481,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Streaming start
@@ -64076,6 +64513,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Streaming stop
@@ -64097,6 +64536,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Noise Suppression Start (BETA)
@@ -64118,6 +64559,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Noise Suppression Stop (BETA)
@@ -64141,6 +64584,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Switch supervisor role
@@ -64172,6 +64617,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Transcription start
@@ -64194,6 +64641,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Transcription stop
@@ -64243,6 +64692,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Transfer call
@@ -65111,7 +65562,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListConnectionsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65136,6 +65587,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ActiveCallsResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: List all active calls for given connection
@@ -65160,7 +65613,7 @@ paths:
         '200':
           $ref: '#/components/responses/ConnectionResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65233,7 +65686,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListCredentialConnectionsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65284,7 +65737,7 @@ paths:
         '200':
           $ref: '#/components/responses/CredentialConnectionResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65309,7 +65762,7 @@ paths:
         '200':
           $ref: '#/components/responses/CredentialConnectionResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65368,7 +65821,7 @@ paths:
         '200':
           $ref: '#/components/responses/RegistrationStatusResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -65389,6 +65842,10 @@ paths:
         '204':
           description: The credentials configuration for connection_id was deleted
             successfully.
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a stored credential
@@ -65403,6 +65860,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CredentialsResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a stored credential
@@ -65419,6 +65880,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CredentialsResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Create a custom storage credential
@@ -65435,6 +65900,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CredentialsResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a stored credential
@@ -65750,6 +66219,8 @@ paths:
       responses:
         '204':
           description: The Dialogflow Connection for connection_id was deleted successfully.
+        '404':
+          $ref: '#/components/responses/media-streaming_NotFoundResponse'
         default:
           $ref: '#/components/responses/media-streaming_GenericErrorResponse'
       summary: Delete stored Dialogflow Connection
@@ -65765,6 +66236,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        '404':
+          $ref: '#/components/responses/media-streaming_NotFoundResponse'
         default:
           $ref: '#/components/responses/media-streaming_GenericErrorResponse'
       summary: Retrieve stored Dialogflow Connection
@@ -65782,6 +66255,8 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        '422':
+          $ref: '#/components/responses/media-streaming_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/media-streaming_GenericErrorResponse'
       summary: Create a Dialogflow Connection
@@ -65798,6 +66273,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DialogflowConnectionResponseBody'
+        '404':
+          $ref: '#/components/responses/media-streaming_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/media-streaming_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/media-streaming_GenericErrorResponse'
       summary: Update stored Dialogflow Connection
@@ -66832,11 +67311,11 @@ paths:
         '200':
           $ref: '#/components/responses/GetAllFaxApplicationsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/programmable-fax_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/programmable-fax_UnauthorizedResponse'
       summary: List all Fax Applications
       tags:
       - Programmable Fax Applications
@@ -66862,9 +67341,9 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/programmable-fax_UnauthorizedResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/programmable-fax_UnprocessableEntityResponse'
       summary: Creates a Fax Application
       tags:
       - Programmable Fax Applications
@@ -66881,11 +67360,11 @@ paths:
         '200':
           $ref: '#/components/responses/FaxApplicationResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/programmable-fax_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/programmable-fax_UnauthorizedResponse'
         '404':
           $ref: '#/components/responses/programmable-fax_NotFoundResponse'
       summary: Deletes a Fax Application
@@ -66902,11 +67381,11 @@ paths:
         '200':
           $ref: '#/components/responses/FaxApplicationResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/programmable-fax_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/programmable-fax_UnauthorizedResponse'
         '404':
           $ref: '#/components/responses/programmable-fax_NotFoundResponse'
       summary: Retrieve a Fax Application
@@ -66932,11 +67411,11 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/programmable-fax_UnauthorizedResponse'
         '404':
           $ref: '#/components/responses/programmable-fax_NotFoundResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/programmable-fax_UnprocessableEntityResponse'
       summary: Update a Fax Application
       tags:
       - Programmable Fax Applications
@@ -67031,6 +67510,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListFaxesResponse'
+        '404':
+          $ref: '#/components/responses/programmable-fax_NotFoundResponse'
         default:
           $ref: '#/components/responses/programmable-fax_GenericErrorResponse'
       summary: View a list of faxes
@@ -67057,6 +67538,8 @@ paths:
       responses:
         '202':
           $ref: '#/components/responses/SendFaxResponse'
+        '422':
+          $ref: '#/components/responses/programmable-fax_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/programmable-fax_GenericErrorResponse'
       summary: Send a fax
@@ -67077,6 +67560,8 @@ paths:
       responses:
         '204':
           description: The resource was deleted successfully.
+        '404':
+          $ref: '#/components/responses/programmable-fax_NotFoundResponse'
         default:
           $ref: '#/components/responses/programmable-fax_GenericErrorResponse'
       summary: Delete a fax
@@ -67096,6 +67581,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/GetFaxResponse'
+        '404':
+          $ref: '#/components/responses/programmable-fax_NotFoundResponse'
         default:
           $ref: '#/components/responses/programmable-fax_GenericErrorResponse'
       summary: View a fax
@@ -67121,7 +67608,7 @@ paths:
         '404':
           $ref: '#/components/responses/programmable-fax_NotFoundResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/programmable-fax_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/programmable-fax_GenericErrorResponse'
       summary: Cancel a fax
@@ -67163,7 +67650,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListFqdnConnectionsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -67305,7 +67792,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListFqdnsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
       summary: List FQDNs
@@ -67346,7 +67833,7 @@ paths:
         '200':
           $ref: '#/components/responses/FqdnResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -67366,7 +67853,7 @@ paths:
         '200':
           $ref: '#/components/responses/FqdnResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68441,7 +68928,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListIpConnectionsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68492,7 +68979,7 @@ paths:
         '200':
           $ref: '#/components/responses/IpConnectionResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68517,7 +69004,7 @@ paths:
         '200':
           $ref: '#/components/responses/IpConnectionResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68590,7 +69077,7 @@ paths:
         '200':
           $ref: '#/components/responses/ListIpsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68633,7 +69120,7 @@ paths:
         '200':
           $ref: '#/components/responses/IpResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -68653,7 +69140,7 @@ paths:
         '200':
           $ref: '#/components/responses/IpResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/connections_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -69667,7 +70154,7 @@ paths:
         '401':
           $ref: '#/components/responses/managed-accounts_UnauthorizedResponse'
         '403':
-          $ref: '#/components/responses/ForbiddenResponse'
+          $ref: '#/components/responses/managed-accounts_ForbiddenResponse'
       summary: Display information about allocatable global outbound channels for
         the current user.
       tags:
@@ -69850,6 +70337,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListMediaResponse'
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: List uploaded media
@@ -69873,6 +70362,10 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/MediaResponse'
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '422':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: Upload media
@@ -69888,6 +70381,10 @@ paths:
       responses:
         '204':
           description: The media was deleted successfully.
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: Deletes stored media
@@ -69902,6 +70399,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MediaResponse'
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: Retrieve stored media
@@ -69926,6 +70427,12 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MediaResponse'
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '422':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: Update stored media
@@ -69941,6 +70448,12 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/MediaDownloadResponse'
+        '401':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
+        '422':
+          $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
       summary: Download stored media
@@ -77744,6 +78257,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ListRecordingTranscriptionsResponse'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: List all recording transcriptions
@@ -77759,6 +78276,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RecordingTranscriptionResponse'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a recording transcription
@@ -77773,6 +78294,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RecordingTranscriptionResponse'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a recording transcription
@@ -77849,6 +78374,14 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RecordingsResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/call-recordings_InternalServerErrorResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: List all call recordings
@@ -77864,6 +78397,10 @@ paths:
       responses:
         '204':
           description: The recordings have been successfully deleted.
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a list of call recordings
@@ -77879,6 +78416,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RecordingResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a call recording
@@ -77893,6 +78434,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/RecordingResponseBody'
+        '401':
+          $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
       summary: Retrieve a call recording
@@ -79818,7 +80363,7 @@ paths:
         '200':
           $ref: '#/components/responses/PatchRoomResponse'
         '401':
-          $ref: '#/components/responses/UnauthorizedResponse'
+          $ref: '#/components/responses/video_UnauthorizedResponse'
         '404':
           $ref: '#/components/responses/video_ResourceNotFound'
         '422':
@@ -81015,6 +81560,8 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/SiprecConnectorResponseBody'
+        '422':
+          $ref: '#/components/responses/siprec_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/siprec_GenericErrorResponse'
       summary: Create a SIPREC connector
@@ -81030,6 +81577,8 @@ paths:
       responses:
         '204':
           description: The SIPREC connector was deleted successfully.
+        '404':
+          $ref: '#/components/responses/siprec_NotFoundResponse'
         default:
           $ref: '#/components/responses/siprec_GenericErrorResponse'
       summary: Delete a SIPREC connector
@@ -81044,6 +81593,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SiprecConnectorResponseBody'
+        '404':
+          $ref: '#/components/responses/siprec_NotFoundResponse'
         default:
           $ref: '#/components/responses/siprec_GenericErrorResponse'
       summary: Retrieve a SIPREC connector
@@ -81060,6 +81611,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SiprecConnectorResponseBody'
+        '404':
+          $ref: '#/components/responses/siprec_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/siprec_UnprocessableEntityResponse'
         default:
           $ref: '#/components/responses/siprec_GenericErrorResponse'
       summary: Update a SIPREC connector
@@ -82102,6 +82657,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/InitiateCallResponse'
+        '422':
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: Initiate an outbound call
       tags:
       - TeXML REST Commands
@@ -82141,6 +82698,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/GetCallResponse'
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: Update call
       tags:
       - TeXML REST Commands
@@ -82589,6 +83150,8 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/DeprecatedInitiateCallResponse'
+        '422':
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: (Deprecated) Initiate an outbound call
       tags:
       - TeXML REST Commands
@@ -82611,6 +83174,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/UpdateTeXMLCallResponse'
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: (Deprecated) Update call
       tags:
       - TeXML REST Commands
@@ -82635,7 +83202,7 @@ paths:
         '201':
           $ref: '#/components/responses/CreateTeXMLSecretResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: Create a TeXML secret
       tags:
       - TeXML REST Commands
@@ -82652,7 +83219,7 @@ paths:
         '200':
           $ref: '#/components/responses/GetAllTexmlApplicationsResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/call-scripting_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -82683,7 +83250,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-scripting_NotFoundResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: Creates a TeXML Application
       tags:
       - TeXML Applications
@@ -82699,7 +83266,7 @@ paths:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/call-scripting_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -82719,7 +83286,7 @@ paths:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/call-scripting_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -82746,7 +83313,7 @@ paths:
         '200':
           $ref: '#/components/responses/TexmlApplicationResponse'
         '400':
-          $ref: '#/components/responses/BadRequestResponse'
+          $ref: '#/components/responses/call-scripting_BadRequestResponse'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
         '403':
@@ -82754,7 +83321,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponseApp'
         '422':
-          $ref: '#/components/responses/UnprocessableEntityResponse'
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
       summary: Update a TeXML Application
       tags:
       - TeXML Applications
