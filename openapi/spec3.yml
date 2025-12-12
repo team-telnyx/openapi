@@ -39508,60 +39508,16 @@ components:
           type: string
       type: object
     PortoutEvent:
-      properties:
-        available_notification_methods:
-          description: Indicates the notification methods used.
-          items:
-            enum:
-            - email
-            - webhook
-            type: string
-          type: array
-        created_at:
-          description: ISO 8601 formatted date indicating when the resource was created.
-          example: '2021-03-19T10:07:15.527000Z'
-          format: date-time
-          type: string
-        event_type:
-          description: Identifies the event type
-          enum:
-          - portout.status_changed
-          - portout.foc_date_changed
-          - portout.new_comment
-          example: portout.status_changed
-          type: string
-        id:
-          description: Uniquely identifies the event.
-          example: eef3340b-8903-4466-b445-89b697315a3a
-          format: uuid
-          type: string
-        payload:
-          oneOf:
-          - $ref: '#/components/schemas/WebhookPortoutStatusChangedPayload'
-          - $ref: '#/components/schemas/WebhookPortoutNewCommentPayload'
-          - $ref: '#/components/schemas/WebhookPortoutFocDateChangedPayload'
-        payload_status:
-          description: The status of the payload generation.
-          enum:
-          - created
-          - completed
-          example: created
-          type: string
-        portout_id:
-          description: Identifies the port-out order associated with the event.
-          example: 9471c873-e3eb-4ca1-957d-f9a451334d52
-          format: uuid
-          type: string
-        record_type:
-          description: Identifies the type of the resource.
-          example: portout_event
-          readOnly: true
-          type: string
-        updated_at:
-          description: ISO 8601 formatted date indicating when the resource was updated.
-          example: '2021-03-19T10:07:15.527000Z'
-          format: date-time
-          type: string
+      discriminator:
+        mapping:
+          portout.foc_date_changed: '#/components/schemas/WebhookPortoutFocDateChanged'
+          portout.new_comment: '#/components/schemas/WebhookPortoutNewComment'
+          portout.status_changed: '#/components/schemas/WebhookPortoutStatusChanged'
+        propertyName: event_type
+      oneOf:
+      - $ref: '#/components/schemas/WebhookPortoutStatusChanged'
+      - $ref: '#/components/schemas/WebhookPortoutNewComment'
+      - $ref: '#/components/schemas/WebhookPortoutFocDateChanged'
       type: object
     PortoutRejection:
       properties:
@@ -53785,102 +53741,257 @@ components:
       format: uri
       title: Webhook Event URL
       type: string
-    WebhookPortoutFocDateChangedPayload:
-      description: The webhook payload for the portout.foc_date_changed event
+    WebhookPortoutFocDateChanged:
       properties:
-        foc_date:
-          description: ISO 8601 formatted date indicating the new FOC date.
-          example: '2021-03-19T10:07:15.527Z'
-          format: date-time
-          type: string
-        id:
-          description: Identifies the port-out order that have the FOC date changed.
-          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
-          format: uuid
-          type: string
-        user_id:
-          description: Identifies the organization that port-out order belongs to.
-          example: 0e19c89e-f0ce-458a-a36c-3c60bc2014b1
-          type: string
-      type: object
-    WebhookPortoutNewCommentPayload:
-      description: The webhook payload for the portout.new_comment event
-      properties:
-        comment:
-          description: The body of the comment.
-          example: This is a comment.
-          type: string
-        id:
-          description: Identifies the comment that was added to the port-out order.
-          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
-          format: uuid
-          type: string
-        portout_id:
-          description: Identifies the port-out order that the comment was added to.
-          example: d26109e5-0605-4671-a235-d3c649cc8406
-          format: uuid
-          type: string
-        user_id:
-          description: Identifies the user that added the comment.
-          example: 1c45c968-c2e0-4559-b1dd-db073962fc61
-          format: uuid
-          type: string
-      type: object
-    WebhookPortoutStatusChangedPayload:
-      description: The webhook payload for the portout.status_changed event
-      properties:
-        attempted_pin:
-          description: The PIN that was attempted to be used to authorize the port
-            out.
-          example: '1234'
-          type: string
-        carrier_name:
-          description: Carrier the number will be ported out to
-          example: Testing Carrier
-          type: string
-        id:
-          description: Identifies the port out that was moved.
-          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
-          format: uuid
-          type: string
-        phone_numbers:
-          description: Phone numbers associated with this port-out order
-          example:
-          - '+35312345678'
+        available_notification_methods:
+          description: Indicates the notification methods used.
           items:
-            description: E164 formatted phone number
+            enum:
+            - email
+            - webhook
             type: string
           type: array
-        rejection_reason:
-          description: The reason why the order is being rejected by the user. If
-            the order is authorized, this field can be left null
-          example: null
-          type:
-          - string
-          - 'null'
-        spid:
-          description: The new carrier SPID.
-          example: 987H
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
           type: string
-        status:
-          description: The new status of the port out.
+        event_type:
+          description: Identifies the event type
           enum:
-          - pending
-          - authorized
-          - ported
-          - rejected
-          - rejected-pending
-          - canceled
-          example: authorized
+          - portout.status_changed
+          - portout.foc_date_changed
+          - portout.new_comment
+          example: portout.status_changed
           type: string
-        subscriber_name:
-          description: The name of the port-out's end user.
-          example: John Doe
-          type: string
-        user_id:
-          description: Identifies the user that the port-out order belongs to.
-          example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+        id:
+          description: Uniquely identifies the event.
+          example: eef3340b-8903-4466-b445-89b697315a3a
           format: uuid
+          type: string
+        payload:
+          description: The webhook payload for the portout.foc_date_changed event
+          properties:
+            foc_date:
+              description: ISO 8601 formatted date indicating the new FOC date.
+              example: '2021-03-19T10:07:15.527Z'
+              format: date-time
+              type: string
+            id:
+              description: Identifies the port-out order that have the FOC date changed.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+            user_id:
+              description: Identifies the organization that port-out order belongs
+                to.
+              example: 0e19c89e-f0ce-458a-a36c-3c60bc2014b1
+              type: string
+          type: object
+        payload_status:
+          description: The status of the payload generation.
+          enum:
+          - created
+          - completed
+          example: created
+          type: string
+        portout_id:
+          description: Identifies the port-out order associated with the event.
+          example: 9471c873-e3eb-4ca1-957d-f9a451334d52
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: portout_event
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+      type: object
+    WebhookPortoutNewComment:
+      properties:
+        available_notification_methods:
+          description: Indicates the notification methods used.
+          items:
+            enum:
+            - email
+            - webhook
+            type: string
+          type: array
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+        event_type:
+          description: Identifies the event type
+          enum:
+          - portout.status_changed
+          - portout.foc_date_changed
+          - portout.new_comment
+          example: portout.status_changed
+          type: string
+        id:
+          description: Uniquely identifies the event.
+          example: eef3340b-8903-4466-b445-89b697315a3a
+          format: uuid
+          type: string
+        payload:
+          description: The webhook payload for the portout.new_comment event
+          properties:
+            comment:
+              description: The body of the comment.
+              example: This is a comment.
+              type: string
+            id:
+              description: Identifies the comment that was added to the port-out order.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+            portout_id:
+              description: Identifies the port-out order that the comment was added
+                to.
+              example: d26109e5-0605-4671-a235-d3c649cc8406
+              format: uuid
+              type: string
+            user_id:
+              description: Identifies the user that added the comment.
+              example: 1c45c968-c2e0-4559-b1dd-db073962fc61
+              format: uuid
+              type: string
+          type: object
+        payload_status:
+          description: The status of the payload generation.
+          enum:
+          - created
+          - completed
+          example: created
+          type: string
+        portout_id:
+          description: Identifies the port-out order associated with the event.
+          example: 9471c873-e3eb-4ca1-957d-f9a451334d52
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: portout_event
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+      type: object
+    WebhookPortoutStatusChanged:
+      properties:
+        available_notification_methods:
+          description: Indicates the notification methods used.
+          items:
+            enum:
+            - email
+            - webhook
+            type: string
+          type: array
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
+          type: string
+        event_type:
+          description: Identifies the event type
+          enum:
+          - portout.status_changed
+          - portout.foc_date_changed
+          - portout.new_comment
+          example: portout.status_changed
+          type: string
+        id:
+          description: Uniquely identifies the event.
+          example: eef3340b-8903-4466-b445-89b697315a3a
+          format: uuid
+          type: string
+        payload:
+          description: The webhook payload for the portout.status_changed event
+          properties:
+            attempted_pin:
+              description: The PIN that was attempted to be used to authorize the
+                port out.
+              example: '1234'
+              type: string
+            carrier_name:
+              description: Carrier the number will be ported out to
+              example: Testing Carrier
+              type: string
+            id:
+              description: Identifies the port out that was moved.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+            phone_numbers:
+              description: Phone numbers associated with this port-out order
+              example:
+              - '+35312345678'
+              items:
+                description: E164 formatted phone number
+                type: string
+              type: array
+            rejection_reason:
+              description: The reason why the order is being rejected by the user.
+                If the order is authorized, this field can be left null
+              example: null
+              type:
+              - string
+              - 'null'
+            spid:
+              description: The new carrier SPID.
+              example: 987H
+              type: string
+            status:
+              description: The new status of the port out.
+              enum:
+              - pending
+              - authorized
+              - ported
+              - rejected
+              - rejected-pending
+              - canceled
+              example: authorized
+              type: string
+            subscriber_name:
+              description: The name of the port-out's end user.
+              example: John Doe
+              type: string
+            user_id:
+              description: Identifies the user that the port-out order belongs to.
+              example: 96dfa9e4-c753-4fd3-97cd-42d66f26cf0c
+              format: uuid
+              type: string
+          type: object
+        payload_status:
+          description: The status of the payload generation.
+          enum:
+          - created
+          - completed
+          example: created
+          type: string
+        portout_id:
+          description: Identifies the port-out order associated with the event.
+          example: 9471c873-e3eb-4ca1-957d-f9a451334d52
+          format: uuid
+          type: string
+        record_type:
+          description: Identifies the type of the resource.
+          example: portout_event
+          readOnly: true
+          type: string
+        updated_at:
+          description: ISO 8601 formatted date indicating when the resource was updated.
+          example: '2021-03-19T10:07:15.527000Z'
+          format: date-time
           type: string
       type: object
     WebhookTimeoutSecs:
