@@ -466,6 +466,10 @@
       "description": "Short codes"
     },
     {
+      "name": "Speech To Text Commands",
+      "description": "Speech to text command operations"
+    },
+    {
       "name": "Speech to Text Batch Reports",
       "description": "Speech to text batch detail records"
     },
@@ -36020,6 +36024,42 @@
         "x-latency-category": "responsive"
       }
     },
+    "/speech-to-text/transcription": {
+      "get": {
+        "summary": "Transcribe speech to text",
+        "description": "Transcribe audio streams to text over WebSocket.",
+        "operationId": "TranscriptionOverWs",
+        "tags": [
+          "Speech To Text Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/transcription_engine"
+          },
+          {
+            "$ref": "#/components/parameters/input_format"
+          },
+          {
+            "$ref": "#/components/parameters/language"
+          },
+          {
+            "$ref": "#/components/parameters/interim_results"
+          },
+          {
+            "$ref": "#/components/parameters/model"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request processed successfully."
+          },
+          "422": {
+            "$ref": "#/components/responses/speech-to-text_UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/storage/buckets/{bucketName}/ssl_certificate": {
       "delete": {
         "summary": "Remove SSL Certificate",
@@ -44388,6 +44428,40 @@
           "example": "1293384261075731499"
         }
       },
+      "input_format": {
+        "name": "input_format",
+        "in": "query",
+        "required": true,
+        "description": "The format of input audio stream.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "mp3",
+            "wav"
+          ]
+        },
+        "example": "mp3"
+      },
+      "interim_results": {
+        "name": "interim_results",
+        "in": "query",
+        "required": false,
+        "description": "Whether to receive interim transcription results.",
+        "schema": {
+          "type": "boolean"
+        },
+        "example": true
+      },
+      "language": {
+        "name": "language",
+        "in": "query",
+        "required": false,
+        "description": "The language spoken in the audio stream.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "en-US"
+      },
       "managed-accounts_FilterConsolidated": {
         "name": "filter",
         "in": "query",
@@ -44460,6 +44534,36 @@
         "required": true,
         "schema": {
           "type": "string"
+        }
+      },
+      "model": {
+        "name": "model",
+        "in": "query",
+        "description": "The specific model to use within the selected transcription engine.",
+        "schema": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/azure_models"
+            },
+            {
+              "$ref": "#/components/schemas/deepgram_models"
+            },
+            {
+              "$ref": "#/components/schemas/google_models"
+            },
+            {
+              "$ref": "#/components/schemas/telnyx_models"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "transcription_engine",
+            "mapping": {
+              "Google": "#/components/schemas/google_models",
+              "Telnyx": "#/components/schemas/telnyx_models",
+              "Deepgram": "#/components/schemas/deepgram_models",
+              "Azure": "#/components/schemas/azure_models"
+            }
+          }
         }
       },
       "notifications_FilterConsolidated": {
@@ -44915,6 +45019,22 @@
           "type": "string",
           "example": "7b6a6449-b055-45a6-81f6-f6f0dffa4cc6"
         }
+      },
+      "transcription_engine": {
+        "name": "transcription_engine",
+        "in": "query",
+        "required": true,
+        "description": "The transcription engine to use for processing the audio stream.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Azure",
+            "Deepgram",
+            "Google",
+            "Telnyx"
+          ]
+        },
+        "example": "Telnyx"
       },
       "user-addresses_FilterConsolidated": {
         "name": "filter",
@@ -54033,6 +54153,33 @@
                   "detail": "The request parameters failed validation"
                 }
               ]
+            }
+          }
+        }
+      },
+      "speech-to-text_UnprocessableEntityResponse": {
+        "description": "Unprocessable entity. The request was well-formed but could not be processed due to semantic errors. This includes validation errors, invalid parameter values and business logic violations.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/speech-to-text_Errors"
+            },
+            "examples": {
+              "missing_required_parameter": {
+                "summary": "Missing required parameter",
+                "value": {
+                  "errors": [
+                    {
+                      "code": "10004",
+                      "title": "Missing required parameter",
+                      "detail": "The 'transcription_engine' parameter is required and cannot be blank.",
+                      "source": {
+                        "pointer": "/transcription_engine"
+                      }
+                    }
+                  ]
+                }
+              }
             }
           }
         }
@@ -110064,6 +110211,12 @@
           }
         }
       },
+      "azure_models": {
+        "type": "string",
+        "enum": [
+          "fast"
+        ]
+      },
       "batch-csv_PaginationMeta": {
         "type": "object",
         "properties": {
@@ -111124,6 +111277,13 @@
           }
         ]
       },
+      "deepgram_models": {
+        "type": "string",
+        "enum": [
+          "deepgram/nova-2",
+          "deepgram/nova-3"
+        ]
+      },
       "detail-records_Error": {
         "type": "object",
         "properties": {
@@ -111314,6 +111474,19 @@
         "type": "string",
         "description": "The first name associated with the address. An address must have either a first last name or a business name.",
         "example": "Alfred"
+      },
+      "google_models": {
+        "type": "string",
+        "enum": [
+          "latest_long",
+          "latest_short",
+          "command_and_search",
+          "phone_call",
+          "video",
+          "default",
+          "medical_conversation",
+          "medical_dictation"
+        ]
       },
       "http": {
         "description": "HTTP request and response information.",
@@ -112605,6 +112778,51 @@
         "description": "An optional boolean value specifying if verification of the address should be skipped or not. UserAddresses are generally used for shipping addresses, and failure to validate your shipping address will likely result in a failure to deliver SIM cards or other items ordered from Telnyx. Do not use this parameter unless you are sure that the address is correct even though it cannot be validated. If this is set to any value other than true, verification of the address will be attempted, and the user address will not be allowed if verification fails. If verification fails but suggested values are available that might make the address correct, they will be present in the response as well. If this value is set to true, then the verification will not be attempted. Defaults to false (verification will be performed).",
         "default": false
       },
+      "speech-to-text_Error": {
+        "required": [
+          "code",
+          "title"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "format": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "description": "JSON pointer (RFC6901) to the offending entity.",
+                "type": "string",
+                "format": "json-pointer"
+              },
+              "parameter": {
+                "description": "Indicates which query parameter caused the error.",
+                "type": "string"
+              }
+            }
+          },
+          "meta": {
+            "type": "object"
+          }
+        }
+      },
+      "speech-to-text_Errors": {
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/speech-to-text_Error"
+            }
+          }
+        }
+      },
       "standard_Error": {
         "type": "object",
         "properties": {
@@ -112682,6 +112900,13 @@
         "type": "string",
         "description": "The primary street address information about the address.",
         "example": "600 Congress Avenue"
+      },
+      "telnyx_models": {
+        "type": "string",
+        "enum": [
+          "openai/whisper-tiny",
+          "openai/whisper-large-v3-turbo"
+        ]
       },
       "toll-free-verification_EntityType": {
         "title": "EntityType",

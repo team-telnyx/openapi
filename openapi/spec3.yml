@@ -2069,6 +2069,33 @@ components:
       schema:
         example: '1293384261075731499'
         type: string
+    input_format:
+      description: The format of input audio stream.
+      example: mp3
+      in: query
+      name: input_format
+      required: true
+      schema:
+        enum:
+        - mp3
+        - wav
+        type: string
+    interim_results:
+      description: Whether to receive interim transcription results.
+      example: true
+      in: query
+      name: interim_results
+      required: false
+      schema:
+        type: boolean
+    language:
+      description: The language spoken in the audio stream.
+      example: en-US
+      in: query
+      name: language
+      required: false
+      schema:
+        type: string
     managed-accounts_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
         filter[email][contains], filter[email][eq], filter[organization_name][contains],
@@ -2138,6 +2165,23 @@ components:
       required: true
       schema:
         type: string
+    model:
+      description: The specific model to use within the selected transcription engine.
+      in: query
+      name: model
+      schema:
+        discriminator:
+          mapping:
+            Azure: '#/components/schemas/azure_models'
+            Deepgram: '#/components/schemas/deepgram_models'
+            Google: '#/components/schemas/google_models'
+            Telnyx: '#/components/schemas/telnyx_models'
+          propertyName: transcription_engine
+        oneOf:
+        - $ref: '#/components/schemas/azure_models'
+        - $ref: '#/components/schemas/deepgram_models'
+        - $ref: '#/components/schemas/google_models'
+        - $ref: '#/components/schemas/telnyx_models'
     notifications_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
         filter[associated_record_type][eq], filter[channel_type_id][eq], filter[notification_profile_id][eq],
@@ -2508,6 +2552,19 @@ components:
       schema:
         example: 7b6a6449-b055-45a6-81f6-f6f0dffa4cc6
         format: uuid
+        type: string
+    transcription_engine:
+      description: The transcription engine to use for processing the audio stream.
+      example: Telnyx
+      in: query
+      name: transcription_engine
+      required: true
+      schema:
+        enum:
+        - Azure
+        - Deepgram
+        - Google
+        - Telnyx
         type: string
     user-addresses_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -8411,6 +8468,25 @@ components:
             $ref: '#/components/schemas/siprec_Errors'
       description: Unprocessable entity. The request was well-formed but contains
         semantic errors.
+    speech-to-text_UnprocessableEntityResponse:
+      content:
+        application/json:
+          examples:
+            missing_required_parameter:
+              summary: Missing required parameter
+              value:
+                errors:
+                - code: '10004'
+                  detail: The 'transcription_engine' parameter is required and cannot
+                    be blank.
+                  source:
+                    pointer: /transcription_engine
+                  title: Missing required parameter
+          schema:
+            $ref: '#/components/schemas/speech-to-text_Errors'
+      description: Unprocessable entity. The request was well-formed but could not
+        be processed due to semantic errors. This includes validation errors, invalid
+        parameter values and business logic violations.
     toll-free-verification_GenericErrorResponse:
       content:
         application/json:
@@ -54392,6 +54468,10 @@ components:
           type: integer
       title: Pagination Meta
       type: object
+    azure_models:
+      enum:
+      - fast
+      type: string
     batch-csv_PaginationMeta:
       properties:
         page_number:
@@ -55197,6 +55277,11 @@ components:
             example: Invalid phone number
             type: string
         type: object
+    deepgram_models:
+      enum:
+      - deepgram/nova-2
+      - deepgram/nova-3
+      type: string
     detail-records_Error:
       properties:
         code:
@@ -55334,6 +55419,17 @@ components:
       description: The first name associated with the address. An address must have
         either a first last name or a business name.
       example: Alfred
+      type: string
+    google_models:
+      enum:
+      - latest_long
+      - latest_short
+      - command_and_search
+      - phone_call
+      - video
+      - default
+      - medical_conversation
+      - medical_dictation
       type: string
     http:
       description: HTTP request and response information.
@@ -56304,6 +56400,36 @@ components:
         is set to true, then the verification will not be attempted. Defaults to false
         (verification will be performed).
       type: boolean
+    speech-to-text_Error:
+      properties:
+        code:
+          format: integer
+          type: string
+        detail:
+          type: string
+        meta:
+          type: object
+        source:
+          properties:
+            parameter:
+              description: Indicates which query parameter caused the error.
+              type: string
+            pointer:
+              description: JSON pointer (RFC6901) to the offending entity.
+              format: json-pointer
+              type: string
+          type: object
+        title:
+          type: string
+      required:
+      - code
+      - title
+    speech-to-text_Errors:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/speech-to-text_Error'
+          type: array
     standard_Error:
       properties:
         code:
@@ -56359,6 +56485,11 @@ components:
     street_address:
       description: The primary street address information about the address.
       example: 600 Congress Avenue
+      type: string
+    telnyx_models:
+      enum:
+      - openai/whisper-tiny
+      - openai/whisper-large-v3-turbo
       type: string
     toll-free-verification_EntityType:
       description: Business entity classification
@@ -81583,6 +81714,25 @@ paths:
       tags:
       - SIPREC Connectors
       x-latency-category: responsive
+  /speech-to-text/transcription:
+    get:
+      description: Transcribe audio streams to text over WebSocket.
+      operationId: TranscriptionOverWs
+      parameters:
+      - $ref: '#/components/parameters/transcription_engine'
+      - $ref: '#/components/parameters/input_format'
+      - $ref: '#/components/parameters/language'
+      - $ref: '#/components/parameters/interim_results'
+      - $ref: '#/components/parameters/model'
+      responses:
+        '200':
+          description: The request processed successfully.
+        '422':
+          $ref: '#/components/responses/speech-to-text_UnprocessableEntityResponse'
+      summary: Transcribe speech to text
+      tags:
+      - Speech To Text Commands
+      x-latency-category: interactive
   /storage/buckets/{bucketName}/ssl_certificate:
     delete:
       deprecated: false
@@ -85799,6 +85949,8 @@ tags:
   name: SIPREC Connectors
 - description: Short codes
   name: Short Codes
+- description: Speech to text command operations
+  name: Speech To Text Commands
 - description: Speech to text batch detail records
   name: Speech to Text Batch Reports
 - description: Speech to text usage reports
