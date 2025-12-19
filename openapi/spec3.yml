@@ -1167,6 +1167,13 @@ components:
       schema:
         default: true
         type: boolean
+    QueueSid:
+      description: The QueueSid that identifies the call queue.
+      in: path
+      name: queue_sid
+      required: true
+      schema:
+        type: string
     RecordingId:
       description: Uniquely identifies the recording by id.
       in: path
@@ -4570,6 +4577,12 @@ components:
                 $ref: '#/components/schemas/PrivateWirelessGateway'
             type: object
       description: Successful Response
+    GetQueueResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueueResource'
+      description: Queue resource.
     GetReleaseResponse:
       content:
         application/json:
@@ -22029,6 +22042,21 @@ components:
         body:
           example: Please, let me know when the port completes
           type: string
+      type: object
+    CreateQueueRequest:
+      example:
+        FriendlyName: Support Queue
+        MaxSize: 10
+      properties:
+        FriendlyName:
+          description: A human readable name for the queue.
+          example: Support Queue
+          type: string
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Create Queue Request
       type: object
     CreateRoomClientTokenRequest:
       properties:
@@ -39827,6 +39855,59 @@ components:
       - queue_id
       title: QueueCall
       type: object
+    QueueResource:
+      example:
+        account_sid: 4e71926f-8f13-450e-b91c-23c2ef786aa6
+        average_wait_time: 30
+        current_size: 3
+        date_created: Fri, 27 Oct 2023 07:41:58 +0000
+        date_updated: Fri, 27 Oct 2023 07:41:58 +0000
+        max_size: 10
+        sid: my-queue
+        subresource_uris:
+          members: /Accounts/4e71926f-8f13-450e-b91c-23c2ef786aa6/Queues/my-queue/Members.json
+        uri: /Accounts/4e71926f-8f13-450e-b91c-23c2ef786aa6/Queues/my-queue.json
+      properties:
+        account_sid:
+          description: The id of the account the resource belongs to.
+          example: 4e71926f-8f13-450e-b91c-23c2ef786aa6
+          type: string
+        average_wait_time:
+          description: The average wait time in seconds for members in the queue.
+          example: 30
+          type: integer
+        current_size:
+          description: The current number of members in the queue.
+          example: 3
+          type: integer
+        date_created:
+          description: The timestamp of when the resource was created.
+          example: Fri, 27 Oct 2023 07:41:58 +0000
+          type: string
+        date_updated:
+          description: The timestamp of when the resource was last updated.
+          example: Fri, 27 Oct 2023 07:41:58 +0000
+          type: string
+        max_size:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+        sid:
+          description: The unique identifier of the queue.
+          example: my-queue
+          type: string
+        subresource_uris:
+          additionalProperties: true
+          description: A list of related resources identified by their relative URIs.
+          example:
+            members: /Accounts/4e71926f-8f13-450e-b91c-23c2ef786aa6/Queues/my-queue/Members.json
+          type: object
+        uri:
+          description: The relative URI for this queue.
+          example: /Accounts/4e71926f-8f13-450e-b91c-23c2ef786aa6/Queues/my-queue.json
+          type: string
+      title: Queue resource
+      type: object
     RCSAction:
       description: When tapped, initiates the corresponding native action on the device.
       properties:
@@ -50825,6 +50906,16 @@ components:
       required:
       - field_value
       - requirement_type_id
+      type: object
+    UpdateQueueRequest:
+      example:
+        MaxSize: 10
+      properties:
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Update Queue Request
       type: object
     UpdateQueuedCallRequest:
       example:
@@ -83140,6 +83231,81 @@ paths:
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Queues:
+    post:
+      description: Creates a new queue resource.
+      operationId: CreateTexmlQueue
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateQueueRequest'
+        description: Create Queue request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/GetQueueResponse'
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+      summary: Create a new queue
+      tags:
+      - TeXML REST Commands
+      x-latency-category: responsive
+  /texml/Accounts/{account_sid}/Queues/{queue_sid}:
+    delete:
+      description: Delete a queue resource.
+      operationId: DeleteTexmlQueue
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/QueueSid'
+      responses:
+        '204':
+          description: The resource was deleted successfully.
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+      summary: Delete a queue resource
+      tags:
+      - TeXML REST Commands
+      x-latency-category: responsive
+    get:
+      description: Returns a queue resource.
+      operationId: GetTexmlQueue
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/QueueSid'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetQueueResponse'
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+      summary: Fetch a queue resource
+      tags:
+      - TeXML REST Commands
+      x-latency-category: responsive
+    post:
+      description: Updates a queue resource.
+      operationId: UpdateTexmlQueue
+      parameters:
+      - $ref: '#/components/parameters/AccountSid'
+      - $ref: '#/components/parameters/QueueSid'
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UpdateQueueRequest'
+        description: Update Queue request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/GetQueueResponse'
+        '404':
+          $ref: '#/components/responses/call-scripting_NotFoundResponse'
+      summary: Update a queue resource
+      tags:
+      - TeXML REST Commands
       x-latency-category: responsive
   /texml/Accounts/{account_sid}/Recordings.json:
     get:
