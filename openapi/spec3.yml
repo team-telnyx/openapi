@@ -571,6 +571,22 @@ components:
             type: string
         type: object
       style: deepObject
+    FilterOrganizationUserEmail:
+      description: Filter by email address (partial match)
+      in: query
+      name: filter[email]
+      schema:
+        type: string
+    FilterOrganizationUserStatus:
+      description: Filter by user status
+      in: query
+      name: filter[user_status]
+      schema:
+        enum:
+        - enabled
+        - disabled
+        - blocked
+        type: string
     FilterPhoneNumbersConsolidated:
       description: Filter parameter for phone numbers (deepObject style). Supports
         filtering by phone_number, civic_address_id, and location_id with eq/contains
@@ -999,6 +1015,15 @@ components:
         default: false
         example: true
         type: boolean
+    IncludeGroups:
+      description: When set to true, includes the groups array for each user in the
+        response. The groups array contains objects with id and name for each group
+        the user belongs to.
+      in: query
+      name: include_groups
+      schema:
+        default: false
+        type: boolean
     IncludeICCIDs:
       description: It includes a list of associated ICCIDs.
       in: query
@@ -1089,7 +1114,7 @@ components:
         type: object
       style: deepObject
     PageNumber:
-      description: The page number to load.
+      description: The page number to load
       in: query
       name: page[number]
       schema:
@@ -2655,6 +2680,15 @@ components:
             type: integer
         type: object
       style: deepObject
+    users_PageSize:
+      description: The size of the page
+      in: query
+      name: page[size]
+      schema:
+        default: 250
+        maximum: 250
+        minimum: 1
+        type: integer
     video_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -2718,6 +2752,14 @@ components:
             type: integer
         type: object
       style: deepObject
+    wireless_PageNumber:
+      description: The page number to load.
+      in: query
+      name: page[number]
+      schema:
+        default: 1
+        minimum: 1
+        type: integer
     wireless_PageSize:
       description: The size of the page.
       in: query
@@ -5500,6 +5542,20 @@ components:
             title: List Number Reservations Response
             type: object
       description: Successful response with a list of number reservations.
+    ListOrganizationUsersResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/OrganizationUser'
+                type: array
+              meta:
+                $ref: '#/components/schemas/users_PaginationMeta'
+            title: List Organization Users Response
+            type: object
+      description: Successful response with a list of organization users.
     ListOutboundVoiceProfilesResponse:
       content:
         application/json:
@@ -6364,6 +6420,16 @@ components:
                 $ref: '#/components/schemas/CompleteOTAUpdate'
             type: object
       description: Successful response
+    OrganizationUserResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/OrganizationUser'
+            title: Organization User Response
+            type: object
+      description: Successful response with details about an Organization User.
     OutboundVoiceProfileResponse:
       content:
         application/json:
@@ -7609,6 +7675,51 @@ components:
                 $ref: '#/components/schemas/UserBalance'
             type: object
       description: Get user balance details
+    UsersGroupsReportResponse:
+      content:
+        application/json:
+          example:
+            data:
+            - created_at: '2018-02-02T22:25:27.521Z'
+              email: user@example.com
+              groups:
+              - id: 7b09cdc3-8948-47f0-aa62-74ac943d6c59
+                name: Engineering
+              - id: 8c09cdc3-8948-47f0-aa62-74ac943d6c60
+                name: Sales
+              id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+              last_sign_in_at: '2018-02-02T22:25:27.521Z'
+              organization_user_bypasses_sso: false
+              record_type: organization_sub_user
+              user_status: enabled
+            - created_at: '2018-01-01T00:00:00.000Z'
+              email: owner@example.com
+              groups: []
+              id: 9d09cdc3-8948-47f0-aa62-74ac943d6c61
+              last_sign_in_at: '2018-02-02T22:25:27.521Z'
+              organization_user_bypasses_sso: false
+              record_type: organization_owner
+              user_status: enabled
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/OrganizationUserWithGroups'
+                type: array
+            title: Users Groups Report Response
+            type: object
+        text/csv:
+          example: 'id,email,user_status,created_at,last_sign_in_at,groups
+
+            6a09cdc3-8948-47f0-aa62-74ac943d6c58,user@example.com,enabled,2018-02-02T22:25:27.521Z,2018-02-02T22:25:27.521Z,"Engineering,
+            Sales"'
+          schema:
+            description: 'CSV formatted report of users and their groups. Columns:
+              id, email, user_status, created_at, last_sign_in_at, groups (comma-separated
+              list of group names).'
+            type: string
+      description: Successful response with a list of organization users and their
+        group memberships.
     ValidateAddressResponse:
       content:
         application/json:
@@ -8512,6 +8623,59 @@ components:
           schema:
             $ref: '#/components/schemas/toll-free-verification_Errors'
       description: Generic error response
+    users_BadRequestResponse:
+      content:
+        application/json:
+          examples:
+            missingParameter:
+              value:
+                errors:
+                - code: '10015'
+                  detail: The request failed because it was not well-formed.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  source:
+                    pointer: /
+                  title: Bad Request
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: Bad request, the request was unacceptable, often due to missing
+        a required parameter.
+    users_NotFoundResponse:
+      content:
+        application/json:
+          examples:
+            notFound:
+              value:
+                errors:
+                - code: '10005'
+                  detail: The requested resource or URL could not be found.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+                  source:
+                    pointer: /
+                  title: Resource not found
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The requested resource doesn't exist.
+    users_UnauthorizedResponse:
+      content:
+        application/json:
+          examples:
+            notAuthorized:
+              value:
+                errors:
+                - code: '10010'
+                  detail: You are not authorized to access the requested resource.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10010
+                  source:
+                    pointer: /
+                  title: Not authorized
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+      description: The user doesn't have the required permissions to perform the requested
+        action.
     verified-numbers_GenericErrorResponse:
       content:
         application/json:
@@ -34296,6 +34460,130 @@ components:
       - vettingClass
       title: OrderExternalVetting
       type: object
+    OrganizationUser:
+      example:
+        created_at: '2018-02-02T22:25:27.521Z'
+        email: user@example.com
+        id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        last_sign_in_at: '2018-02-02T22:25:27.521Z'
+        organization_user_bypasses_sso: false
+        record_type: organization_sub_user
+        user_status: enabled
+      properties:
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        email:
+          description: The email address of the user.
+          example: user@example.com
+          format: email
+          type: string
+        groups:
+          description: The groups the user belongs to. Only included when include_groups
+            parameter is true.
+          items:
+            $ref: '#/components/schemas/UserGroupReference'
+          type: array
+        id:
+          description: Identifies the specific resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          type: string
+        last_sign_in_at:
+          description: ISO 8601 formatted date indicating when the resource last signed
+            into the portal. Null if the user has never signed in.
+          example: '2018-02-02T22:25:27.521Z'
+          type:
+          - string
+          - 'null'
+        organization_user_bypasses_sso:
+          description: Indicates whether this user is allowed to bypass SSO and use
+            password authentication.
+          example: false
+          type: boolean
+        record_type:
+          description: Identifies the type of the resource. Can be 'organization_owner'
+            or 'organization_sub_user'.
+          example: organization_sub_user
+          type: string
+        user_status:
+          default: enabled
+          description: The status of the account.
+          enum:
+          - enabled
+          - disabled
+          - blocked
+          example: enabled
+          type: string
+      title: OrganizationUser
+      type: object
+    OrganizationUserWithGroups:
+      description: An organization user with their group memberships always included.
+      example:
+        created_at: '2018-02-02T22:25:27.521Z'
+        email: user@example.com
+        groups:
+        - id: 7b09cdc3-8948-47f0-aa62-74ac943d6c59
+          name: Engineering
+        id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        last_sign_in_at: '2018-02-02T22:25:27.521Z'
+        organization_user_bypasses_sso: false
+        record_type: organization_sub_user
+        user_status: enabled
+      properties:
+        created_at:
+          description: ISO 8601 formatted date indicating when the resource was created.
+          example: '2018-02-02T22:25:27.521Z'
+          type: string
+        email:
+          description: The email address of the user.
+          example: user@example.com
+          format: email
+          type: string
+        groups:
+          description: The groups the user belongs to.
+          items:
+            $ref: '#/components/schemas/UserGroupReference'
+          type: array
+        id:
+          description: Identifies the specific resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          type: string
+        last_sign_in_at:
+          description: ISO 8601 formatted date indicating when the resource last signed
+            into the portal. Null if the user has never signed in.
+          example: '2018-02-02T22:25:27.521Z'
+          type:
+          - string
+          - 'null'
+        organization_user_bypasses_sso:
+          description: Indicates whether this user is allowed to bypass SSO and use
+            password authentication.
+          example: false
+          type: boolean
+        record_type:
+          description: Identifies the type of the resource. Can be 'organization_owner'
+            or 'organization_sub_user'.
+          example: organization_sub_user
+          type: string
+        user_status:
+          default: enabled
+          description: The status of the account.
+          enum:
+          - enabled
+          - disabled
+          - blocked
+          example: enabled
+          type: string
+      required:
+      - id
+      - record_type
+      - email
+      - user_status
+      - created_at
+      - groups
+      title: OrganizationUserWithGroups
+      type: object
     OriginalMediaUrl:
       description: The original URL to the PDF used for the fax's media. If media_name
         was supplied, this is omitted
@@ -52159,6 +52447,25 @@ components:
       - data
       title: UserEmbeddedBucketsData
       type: object
+    UserGroupReference:
+      description: A reference to a group that a user belongs to.
+      example:
+        id: 7b09cdc3-8948-47f0-aa62-74ac943d6c59
+        name: Engineering
+      properties:
+        id:
+          description: The unique identifier of the group.
+          example: 7b09cdc3-8948-47f0-aa62-74ac943d6c59
+          type: string
+        name:
+          description: The name of the group.
+          example: Engineering
+          type: string
+      required:
+      - id
+      - name
+      title: UserGroupReference
+      type: object
     UserId:
       description: Identifier of the user to whom the fax belongs
       example: a7f7c54a-4df3-4bca-a65a-3da1ecc777f0
@@ -57099,6 +57406,22 @@ components:
       description: The primary street address information about the user address.
       example: 600 Congress Avenue
       type: string
+    users_PaginationMeta:
+      properties:
+        page_number:
+          example: 2
+          type: integer
+        page_size:
+          example: 25
+          type: integer
+        total_pages:
+          example: 3
+          type: integer
+        total_results:
+          example: 55
+          type: integer
+      title: Pagination Meta
+      type: object
     validate_address:
       default: true
       description: Indicates whether or not the address should be validated for emergency
@@ -63641,7 +63964,7 @@ paths:
         card actions.
       operationId: ListBulkSimCardActions
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - description: Filter by action type.
         in: query
@@ -74621,6 +74944,122 @@ paths:
       tags:
       - External Connections
       x-latency-category: responsive
+  /organizations/users:
+    get:
+      description: Returns a list of the users in your organization.
+      operationId: ListOrganizationUsers
+      parameters:
+      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/users_PageSize'
+      - $ref: '#/components/parameters/FilterOrganizationUserStatus'
+      - $ref: '#/components/parameters/FilterOrganizationUserEmail'
+      - $ref: '#/components/parameters/IncludeGroups'
+      responses:
+        '200':
+          $ref: '#/components/responses/ListOrganizationUsersResponse'
+        '400':
+          $ref: '#/components/responses/users_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/users_UnauthorizedResponse'
+      summary: List organization users
+      tags:
+      - Organization Users
+      x-endpoint-cost: medium
+      x-group-parameters: 'true'
+      x-latency-category: interactive
+  /organizations/users/users_groups_report:
+    get:
+      description: Returns a report of all users in your organization with their group
+        memberships. This endpoint returns all users without pagination and always
+        includes group information. The report can be retrieved in JSON or CSV format
+        by sending specific content-type headers.
+      operationId: GetOrganizationUsersGroupsReport
+      parameters:
+      - description: Specify the response format. Use 'application/json' for JSON
+          format or 'text/csv' for CSV format.
+        in: header
+        name: Accept
+        required: false
+        schema:
+          default: application/json
+          enum:
+          - application/json
+          - text/csv
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/UsersGroupsReportResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/users_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/users_NotFoundResponse'
+      summary: Get organization users groups report
+      tags:
+      - Organization Users
+      x-endpoint-cost: medium
+      x-group-parameters: 'true'
+      x-latency-category: interactive
+  /organizations/users/{id}:
+    get:
+      description: Returns a user in your organization.
+      operationId: GetOrganizationUser
+      parameters:
+      - description: Organization User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/IncludeGroups'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationUserResponse'
+        '400':
+          $ref: '#/components/responses/users_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/users_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/users_NotFoundResponse'
+      summary: Get organization user
+      tags:
+      - Organization Users
+      x-endpoint-cost: medium
+      x-group-parameters: 'true'
+      x-latency-category: interactive
+  /organizations/users/{id}/actions/remove:
+    post:
+      description: Deletes a user in your organization.
+      operationId: DeleteOrganizationUser
+      parameters:
+      - description: Organization User ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationUserResponse'
+        '400':
+          $ref: '#/components/responses/users_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '403':
+          $ref: '#/components/responses/users_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/users_NotFoundResponse'
+      summary: Delete organization user
+      tags:
+      - Organization Users
+      x-endpoint-cost: medium
+      x-group-parameters: 'true'
+      x-latency-category: interactive
   /ota_updates:
     get:
       operationId: ListOtaUpdates
@@ -78536,7 +78975,7 @@ paths:
       description: Get all Private Wireless Gateways belonging to the user.
       operationId: GetPrivateWirelessGateways
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - description: The name of the Private Wireless Gateway.
         example: my private gateway
@@ -81310,7 +81749,7 @@ paths:
         It enables exploring the collection using specific filters.
       operationId: ListDataUsageNotifications
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - $ref: '#/components/parameters/FilterSIMCardId'
       responses:
@@ -81428,7 +81867,7 @@ paths:
         using specific filters.
       operationId: GetSimCardGroupActions
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - $ref: '#/components/parameters/FilterSIMCardGroupId'
       - $ref: '#/components/parameters/FilterBasicStatusLifecycle'
@@ -81479,7 +81918,7 @@ paths:
         filters.
       operationId: GetAllSimCardGroups
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - description: A valid SIM card group name.
         in: query
@@ -82162,7 +82601,7 @@ paths:
         Logs associated with a SIM Card, for troubleshooting purposes.
       operationId: GetWirelessConnectivityLogs
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - $ref: '#/components/parameters/SIMCardId'
       responses:
@@ -86017,7 +86456,7 @@ paths:
       description: Returns the WDR Reports that match the given parameters.
       operationId: GetWdrReports
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       responses:
         '200':
@@ -86172,7 +86611,7 @@ paths:
       description: Get all Wireless Blocklists belonging to the user.
       operationId: GetWirelessBlocklistsGateways
       parameters:
-      - $ref: '#/components/parameters/PageNumber'
+      - $ref: '#/components/parameters/wireless_PageNumber'
       - $ref: '#/components/parameters/wireless_PageSize'
       - description: The name of the Wireless Blocklist.
         example: my private gateway
@@ -86494,6 +86933,8 @@ tags:
   name: OTA updates
 - description: Opt-Out Management
   name: Opt-Out Management
+- description: Operations related to users in your organization
+  name: Organization Users
 - description: Outbound voice profiles operations
   name: Outbound Voice Profiles
 - description: Background jobs performed over a phone-numbers block's phone numbers
