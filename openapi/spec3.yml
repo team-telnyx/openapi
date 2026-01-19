@@ -19897,7 +19897,10 @@ components:
           type: array
         greeting:
           description: Text that the assistant will use to start the conversation.
-            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
+            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
+            Use an empty string to have the assistant wait for the user to speak first.
+            Use the special value `<assistant-speaks-first-with-model-generated-message>`
+            to have the assistant generate the greeting based on the system instructions.
           type: string
         insight_settings:
           $ref: '#/components/schemas/InsightSettings'
@@ -32069,6 +32072,13 @@ components:
       type: object
     MessagingSettings:
       properties:
+        conversation_inactivity_minutes:
+          description: If more than this many minutes have passed since the last message,
+            the assistant will start a new conversation instead of continuing the
+            existing one.
+          maximum: 10000000
+          minimum: 1
+          type: integer
         default_messaging_profile_id:
           description: Default Messaging Profile used for messaging exchanges with
             your assistant. This will be created automatically on assistant creation.
@@ -46217,6 +46227,7 @@ components:
           description: The noise suppression engine to use. Use 'disabled' to turn
             off noise suppression.
           enum:
+          - krisp
           - deepfilternet
           - disabled
           type: string
@@ -46250,6 +46261,51 @@ components:
           maximum: 14400
           minimum: 30
           type: integer
+        user_idle_timeout_secs:
+          description: Maximum duration in seconds of end user silence on the call.
+            When this limit is reached the assistant will be stopped. This limit does
+            not apply to portions of a call without an active assistant (for instance,
+            a call transferred to a human representative).
+          maximum: 14400
+          minimum: 30
+          type: integer
+        voicemail_detection:
+          description: Configuration for voicemail detection (AMD - Answering Machine
+            Detection) on outgoing calls.
+          properties:
+            on_voicemail_detected:
+              description: Action to take when voicemail is detected.
+              properties:
+                action:
+                  description: The action to take when voicemail is detected.
+                  enum:
+                  - stop_assistant
+                  - leave_message_and_stop_assistant
+                  - continue_assistant
+                  type: string
+                voicemail_message:
+                  description: Configuration for the voicemail message to leave. Only
+                    applicable when action is 'leave_message_and_stop_assistant'.
+                  properties:
+                    message:
+                      description: The specific message to leave as voicemail. Only
+                        applicable when type is 'message'.
+                      type: string
+                    prompt:
+                      description: The prompt to use for generating the voicemail
+                        message. Only applicable when type is 'prompt'.
+                      type: string
+                    type:
+                      description: The type of voicemail message. Use 'prompt' to
+                        have the assistant generate a message based on a prompt, or
+                        'message' to leave a specific message.
+                      enum:
+                      - prompt
+                      - message
+                      type: string
+                  type: object
+              type: object
+          type: object
       title: TelephonySettings
       type: object
     TelnyxBrand:
@@ -49552,7 +49608,10 @@ components:
           uniqueItems: true
         greeting:
           description: Text that the assistant will use to start the conversation.
-            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
+            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
+            Use an empty string to have the assistant wait for the user to speak first.
+            Use the special value `<assistant-speaks-first-with-model-generated-message>`
+            to have the assistant generate the greeting based on the system instructions.
           type: string
         insight_settings:
           $ref: '#/components/schemas/InsightSettings'
@@ -56275,7 +56334,10 @@ components:
           uniqueItems: true
         greeting:
           description: Text that the assistant will use to start the conversation.
-            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
+            This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
+            Use an empty string to have the assistant wait for the user to speak first.
+            Use the special value `<assistant-speaks-first-with-model-generated-message>`
+            to have the assistant generate the greeting based on the system instructions.
           type: string
         id:
           type: string
@@ -56384,6 +56446,11 @@ components:
       type: object
     inference-embedding_WebhookToolParams:
       properties:
+        async:
+          default: false
+          description: If async, the assistant will move forward without waiting for
+            your server to respond.
+          type: boolean
         body_parameters:
           description: The body parameters the webhook tool accepts, described as
             a JSON Schema object. These parameters will be passed to the webhook as
@@ -56504,6 +56571,12 @@ components:
               - object
               type: string
           type: object
+        timeout_ms:
+          description: The maximum number of milliseconds to wait for the webhook
+            to respond. Only applicable when async is false.
+          maximum: 10000
+          minimum: 500
+          type: integer
         url:
           description: 'The URL of the external tool to be called. This URL is going
             to be used by the assistant. The URL can be templated like: `https://example.com/api/v1/{id}`,
