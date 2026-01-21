@@ -3357,6 +3357,12 @@ components:
           schema:
             $ref: '#/components/schemas/AuditLogList'
       description: A list of audit log entries.
+    AuditLogsGenericErrorResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuditLogsErrors'
+      description: Unexpected error.
     AutoRechargePrefResponse:
       content:
         application/json:
@@ -3370,7 +3376,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/billing-group_Errors'
+            $ref: '#/components/schemas/invoice_Errors'
       description: Invalid request parameters
     BadRequestResponse:
       content:
@@ -3725,7 +3731,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/billing-group_Errors'
+            $ref: '#/components/schemas/Errors'
       description: Resource conflict or in use
     ConnectionResponse:
       content:
@@ -4292,7 +4298,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/billing-group_Errors'
+            $ref: '#/components/schemas/Errors'
       description: Insufficient permissions to access billing group
     ForbiddenResponse:
       content:
@@ -4329,8 +4335,8 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/call-recordings_Errors'
-      description: Unexpected error.
+            $ref: '#/components/schemas/billing_Errors'
+      description: Unexpected error
     GetAllAddressResponse:
       content:
         application/json:
@@ -6302,7 +6308,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/billing-group_Errors'
+            $ref: '#/components/schemas/Errors'
       description: Billing group not found
     NotFoundResponse:
       content:
@@ -7336,7 +7342,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/billing-group_Errors'
+            $ref: '#/components/schemas/Errors'
       description: Invalid request data
     UnprocessableEntityResponse:
       content:
@@ -7867,24 +7873,12 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful Response
-    billing-group_GenericErrorResponse:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/billing-group_Errors'
-      description: Unexpected error
     billing_ForbiddenErrorResponse:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/billing_Errors'
       description: Insufficient permissions to access balance information
-    billing_GenericErrorResponse:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/billing_Errors'
-      description: Unexpected error
     billing_UnprocessableEntityErrorResponse:
       content:
         application/json:
@@ -7969,6 +7963,12 @@ components:
           schema:
             $ref: '#/components/schemas/call-control_Errors'
       description: Unexpected error
+    call-recordings_GenericErrorResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/call-recordings_Errors'
+      description: Unexpected error.
     call-recordings_InternalServerErrorResponse:
       content:
         application/json:
@@ -8268,12 +8268,6 @@ components:
             $ref: '#/components/schemas/emergency_Errors'
       description: Unprocessable entity. Check the 'detail' field in response for
         details.
-    invoice_BadRequestErrorResponse:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/invoice_Errors'
-      description: Invalid request parameters
     invoice_ForbiddenErrorResponse:
       content:
         application/json:
@@ -9777,7 +9771,7 @@ components:
                 book_appointment: '#/components/schemas/BookAppointmentTool'
                 check_availability: '#/components/schemas/CheckAvailabilityTool'
                 hangup: '#/components/schemas/HangupTool'
-                retrieval: '#/components/schemas/RetrievalTool'
+                retrieval: '#/components/schemas/CallControlRetrievalTool'
                 transfer: '#/components/schemas/TransferTool'
                 webhook: '#/components/schemas/WebhookTool'
               propertyName: type
@@ -9787,7 +9781,7 @@ components:
             - $ref: '#/components/schemas/WebhookTool'
             - $ref: '#/components/schemas/HangupTool'
             - $ref: '#/components/schemas/TransferTool'
-            - $ref: '#/components/schemas/RetrievalTool'
+            - $ref: '#/components/schemas/CallControlRetrievalTool'
           type: array
       title: Assistant
       type: object
@@ -9993,11 +9987,11 @@ components:
         [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
       items:
         oneOf:
-        - $ref: '#/components/schemas/WebhookTool'
+        - $ref: '#/components/schemas/inference-embedding_WebhookTool'
         - $ref: '#/components/schemas/RetrievalTool'
         - $ref: '#/components/schemas/HandoffTool'
         - $ref: '#/components/schemas/HangupTool'
-        - $ref: '#/components/schemas/TransferTool'
+        - $ref: '#/components/schemas/inference-embedding_TransferTool'
         - $ref: '#/components/schemas/SIPReferTool'
         - $ref: '#/components/schemas/DTMFTool'
         - $ref: '#/components/schemas/SendMessageTool'
@@ -10223,6 +10217,13 @@ components:
         meta:
           $ref: '#/components/schemas/audit-logs_PaginationMeta'
       title: Audit Log List
+      type: object
+    AuditLogsErrors:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/audit-logs_Error'
+          type: array
       type: object
     AuthenticationProvider:
       properties:
@@ -11520,9 +11521,10 @@ components:
     BucketIds:
       properties:
         bucket_ids:
+          description: List of [embedded storage buckets](https://developers.telnyx.com/api-reference/embeddings/embed-documents)
+            to use for retrieval-augmented generation.
           items:
             type: string
-          title: Bucket Ids
           type: array
         max_num_results:
           description: The maximum number of results to retrieve as context for the
@@ -12630,6 +12632,21 @@ components:
           type: string
       title: Call Control Application Outbound
       type: object
+    CallControlBucketIds:
+      properties:
+        bucket_ids:
+          items:
+            type: string
+          title: Bucket Ids
+          type: array
+        max_num_results:
+          description: The maximum number of results to retrieve as context for the
+            language model.
+          type: integer
+      required:
+      - bucket_ids
+      title: BucketIds
+      type: object
     CallControlCommandResult:
       example:
         result: ok
@@ -12673,6 +12690,175 @@ components:
     CallControlId:
       example: v3:KBnLO0ZK3DhKM5s7bE9VluaSmKsOchKht_fUYvxcp8ysbmzCCtpkmA
       type: string
+    CallControlRetrievalTool:
+      properties:
+        retrieval:
+          $ref: '#/components/schemas/CallControlBucketIds'
+        type:
+          enum:
+          - retrieval
+          type: string
+      required:
+      - type
+      - retrieval
+      title: RetrievalTool
+      type: object
+    CallControlTransferToolParams:
+      properties:
+        from:
+          description: Number or SIP URI placing the call.
+          example: '+35319605860'
+          type: string
+        targets:
+          description: The different possible targets of the transfer. The assistant
+            will be able to choose one of the targets to transfer the call to.
+          items:
+            properties:
+              name:
+                description: The name of the target.
+                example: Support
+                type: string
+              to:
+                description: The destination number or SIP URI of the call.
+                example: '+13129457420'
+                type: string
+            type: object
+          type: array
+      required:
+      - targets
+      - from
+      title: TransferToolParams
+      type: object
+    CallControlWebhookToolParams:
+      properties:
+        body_parameters:
+          description: The body parameters the webhook tool accepts, described as
+            a JSON Schema object. These parameters will be passed to the webhook as
+            the body of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
+            for documentation about the format
+          example:
+            properties:
+              age:
+                description: The age of the customer.
+                type: integer
+              location:
+                description: The location of the customer.
+                type: string
+            required:
+            - age
+            - location
+            type: object
+          properties:
+            properties:
+              description: The properties of the body parameters.
+              type: object
+            required:
+              description: The required properties of the body parameters.
+              items:
+                type: string
+              type: array
+            type:
+              enum:
+              - object
+              type: string
+          type: object
+        description:
+          description: The description of the tool.
+          type: string
+        headers:
+          description: The headers to be sent to the external tool.
+          items:
+            properties:
+              name:
+                type: string
+              value:
+                description: The value of the header. Note that we support mustache
+                  templating for the value. For example you can use `Bearer {{#integration_secret}}test-secret{{/integration_secret}}`
+                  to pass the value of the integration secret as the bearer token.
+                type: string
+            type: object
+          type: array
+        method:
+          default: POST
+          description: The HTTP method to be used when calling the external tool.
+          enum:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          type: string
+        name:
+          description: The name of the tool.
+          type: string
+        path_parameters:
+          description: The path parameters the webhook tool accepts, described as
+            a JSON Schema object. These parameters will be passed to the webhook as
+            the path of the request if the URL contains a placeholder for a value.
+            See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
+            for documentation about the format
+          example:
+            properties:
+              id:
+                description: The id of the customer.
+                type: string
+            required:
+            - id
+            type: object
+          properties:
+            properties:
+              description: The properties of the path parameters.
+              type: object
+            required:
+              description: The required properties of the path parameters.
+              items:
+                type: string
+              type: array
+            type:
+              enum:
+              - object
+              type: string
+          type: object
+        query_parameters:
+          description: The query parameters the webhook tool accepts, described as
+            a JSON Schema object. These parameters will be passed to the webhook as
+            the query of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
+            for documentation about the format
+          example:
+            properties:
+              page:
+                description: The page number.
+                type: integer
+            required:
+            - page
+            type: object
+          properties:
+            properties:
+              description: The properties of the query parameters.
+              type: object
+            required:
+              description: The required properties of the query parameters.
+              items:
+                type: string
+              type: array
+            type:
+              enum:
+              - object
+              type: string
+          type: object
+        url:
+          description: 'The URL of the external tool to be called. This URL is going
+            to be used by the assistant. The URL can be templated like: `https://example.com/api/v1/{id}`,
+            where `{id}` is a placeholder for a value that will be provided by the
+            assistant if `path_parameters` are provided with the `id` attribute.'
+          example: https://example.com/api/v1/function
+          type: string
+      required:
+      - url
+      - name
+      - description
+      title: WebhookToolParams
+      type: object
     CallDtmfReceived:
       example:
         event_type: call.dtmf.received
@@ -16435,7 +16621,7 @@ components:
         mobile_network_code:
           description: National destination code (NDC), with a 0 prefix, if an NDC
             is found and the requested phone number type is mobile
-          example: 0866
+          example: "0866"
           type: string
         name:
           description: SPID (Service Provider ID) name, if the requested phone number
@@ -19518,16 +19704,18 @@ components:
             logo_uri:
               description: URL of the client logo
               format: uri
-              nullable: true
-              type: string
+              type:
+              - string
+              - 'null'
             name:
               description: Client name
               type: string
             policy_uri:
               description: URL of the client's privacy policy
               format: uri
-              nullable: true
-              type: string
+              type:
+              - string
+              - 'null'
             redirect_uri:
               description: The redirect URI for this authorization
               format: uri
@@ -19549,8 +19737,9 @@ components:
             tos_uri:
               description: URL of the client's terms of service
               format: uri
-              nullable: true
-              type: string
+              type:
+              - string
+              - 'null'
             verified:
               description: Whether the client is verified
               type: boolean
@@ -20951,7 +21140,7 @@ components:
           localization: string
           outbound_voice_profile_id: '1293384261075731499'
           t38_reinvite_source: customer
-          tech_prefix: '0123'
+          tech_prefix: "0123"
           timeout_1xx_secs: 10
           timeout_2xx_secs: 10
         rtcp_settings:
@@ -25680,7 +25869,7 @@ components:
       properties:
         errors:
           items:
-            $ref: '#/components/schemas/audit-logs_Error'
+            $ref: '#/components/schemas/billing-group_Error'
           type: array
       type: object
     EventStatus:
@@ -25999,7 +26188,7 @@ components:
           type: string
         mnc:
           description: Mobile network code.
-          example: '01'
+          example: "01"
           type: string
         phone_number:
           description: Phone number
@@ -29407,6 +29596,52 @@ components:
           format: date-time
           type: string
       type: object
+    InferenceEmbeddingTransferToolParams:
+      properties:
+        custom_headers:
+          description: Custom headers to be added to the SIP INVITE for the transfer
+            command.
+          items:
+            properties:
+              name:
+                type: string
+              value:
+                description: The value of the header. Note that we support mustache
+                  templating for the value. For example you can use `{{#integration_secret}}test-secret{{/integration_secret}}`
+                  to pass the value of the integration secret.
+                type: string
+            type: object
+          type: array
+        from:
+          description: Number or SIP URI placing the call.
+          example: '+35319605860'
+          type: string
+        targets:
+          description: The different possible targets of the transfer. The assistant
+            will be able to choose one of the targets to transfer the call to.
+          items:
+            properties:
+              name:
+                description: The name of the target.
+                example: Support
+                type: string
+              to:
+                description: The destination number or SIP URI of the call.
+                example: '+13129457420'
+                type: string
+            type: object
+          type: array
+        warm_transfer_instructions:
+          description: Natural language instructions for your agent for how to provide
+            context for the transfer recipient.
+          example: Briefly greet the transfer recipient and provide any relevant information
+            from the call. Let them know you will bridge the call right after.
+          type: string
+      required:
+      - targets
+      - from
+      title: TransferToolParams
+      type: object
     InitiateCallRequest:
       example:
         ApplicationSid: example-app-sid
@@ -31842,7 +32077,7 @@ components:
         mnc:
           description: Mobile network code. Only available for certain products, such
             as Global Outbound-Only from Alphanumeric Sender ID
-          example: '01'
+          example: "01"
           type: string
         on_net:
           description: Indicates whether both sender and recipient numbers are Telnyx-managed
@@ -34188,8 +34423,9 @@ components:
         client_secret:
           description: Client secret (only included when available, for confidential
             clients)
-          nullable: true
-          type: string
+          type:
+          - string
+          - 'null'
         client_type:
           description: OAuth client type
           enum:
@@ -34203,8 +34439,9 @@ components:
         logo_uri:
           description: URL of the client logo
           format: uri
-          nullable: true
-          type: string
+          type:
+          - string
+          - 'null'
         name:
           description: Human-readable name for the OAuth client
           type: string
@@ -34214,8 +34451,9 @@ components:
         policy_uri:
           description: URL of the client's privacy policy
           format: uri
-          nullable: true
-          type: string
+          type:
+          - string
+          - 'null'
         record_type:
           description: Record type identifier
           enum:
@@ -34234,8 +34472,9 @@ components:
         tos_uri:
           description: URL of the client's terms of service
           format: uri
-          nullable: true
-          type: string
+          type:
+          - string
+          - 'null'
         updated_at:
           description: Timestamp when the client was last updated
           format: date-time
@@ -34489,8 +34728,9 @@ components:
         last_used_at:
           description: Timestamp when the grant was last used
           format: date-time
-          nullable: true
-          type: string
+          type:
+          - string
+          - 'null'
         record_type:
           description: Record type identifier
           enum:
@@ -39803,7 +40043,7 @@ components:
         pon:
           description: Port order number assigned by the carrier the number will be
             ported out to
-          example: '00000000'
+          example: "00000000"
           type: string
         reason:
           description: The reason why the order is being rejected by the user. If
@@ -39871,7 +40111,7 @@ components:
           type: string
         zip:
           description: Postal Code of billing address
-          example: '00000'
+          example: "00000"
           type: string
       type: object
     PortoutEvent:
@@ -41783,7 +42023,7 @@ components:
     Retrieval:
       properties:
         retrieval:
-          $ref: '#/components/schemas/inference-embedding_BucketIds'
+          $ref: '#/components/schemas/BucketIds'
         type:
           enum:
           - retrieval
@@ -41796,7 +42036,7 @@ components:
     RetrievalTool:
       properties:
         retrieval:
-          $ref: '#/components/schemas/inference-embedding_BucketIds'
+          $ref: '#/components/schemas/BucketIds'
         type:
           enum:
           - retrieval
@@ -42384,7 +42624,7 @@ components:
             Register (HLR) or the Visitor Location Register (VLR).
 
             '
-          example: 081932214823362973
+          example: "081932214823362973"
           readOnly: true
           type: string
         ipv4:
@@ -43017,9 +43257,9 @@ components:
       properties:
         registration_codes:
           example:
-          - '0000000001'
-          - '0000000002'
-          - '0000000003'
+          - "0000000001"
+          - "0000000002"
+          - "0000000003"
           items:
             type: string
           type: array
@@ -43065,7 +43305,7 @@ components:
           type: string
         registration_code:
           description: The 10-digit SIM card registration code
-          example: 0123456789
+          example: "0123456789"
           type: string
         valid:
           description: The attribute that denotes whether the code is valid or not
@@ -44052,7 +44292,7 @@ components:
             Register (HLR) or the Visitor Location Register (VLR).
 
             '
-          example: 081932214823362973
+          example: "081932214823362973"
           readOnly: true
           type: string
         msisdn:
@@ -49544,7 +49784,7 @@ components:
     TransferTool:
       properties:
         transfer:
-          $ref: '#/components/schemas/inference-embedding_TransferToolParams'
+          $ref: '#/components/schemas/CallControlTransferToolParams'
         type:
           enum:
           - transfer
@@ -49553,32 +49793,6 @@ components:
       - type
       - transfer
       title: TransferTool
-      type: object
-    TransferToolParams:
-      properties:
-        from:
-          description: Number or SIP URI placing the call.
-          example: '+35319605860'
-          type: string
-        targets:
-          description: The different possible targets of the transfer. The assistant
-            will be able to choose one of the targets to transfer the call to.
-          items:
-            properties:
-              name:
-                description: The name of the target.
-                example: Support
-                type: string
-              to:
-                description: The destination number or SIP URI of the call.
-                example: '+13129457420'
-                type: string
-            type: object
-          type: array
-      required:
-      - targets
-      - from
-      title: TransferToolParams
       type: object
     TriggerBrandSmsOtpRequest:
       description: Request body for triggering a Brand SMS OTP
@@ -54517,7 +54731,7 @@ components:
           - webhook
           type: string
         webhook:
-          $ref: '#/components/schemas/inference-embedding_WebhookToolParams'
+          $ref: '#/components/schemas/CallControlWebhookToolParams'
       required:
       - type
       - webhook
@@ -54525,6 +54739,11 @@ components:
       type: object
     WebhookToolParams:
       properties:
+        async:
+          default: false
+          description: If async, the assistant will move forward without waiting for
+            your server to respond.
+          type: boolean
         body_parameters:
           description: The body parameters the webhook tool accepts, described as
             a JSON Schema object. These parameters will be passed to the webhook as
@@ -54544,6 +54763,7 @@ components:
             type: object
           properties:
             properties:
+              additionalProperties: true
               description: The properties of the body parameters.
               type: object
             required:
@@ -54569,6 +54789,8 @@ components:
                 description: The value of the header. Note that we support mustache
                   templating for the value. For example you can use `Bearer {{#integration_secret}}test-secret{{/integration_secret}}`
                   to pass the value of the integration secret as the bearer token.
+                  [Telnyx signature headers](https://developers.telnyx.com/docs/voice/programmable-voice/voice-api-webhooks)
+                  will be automatically added to the request.
                 type: string
             type: object
           type: array
@@ -54601,6 +54823,7 @@ components:
             type: object
           properties:
             properties:
+              additionalProperties: true
               description: The properties of the path parameters.
               type: object
             required:
@@ -54628,6 +54851,7 @@ components:
             type: object
           properties:
             properties:
+              additionalProperties: true
               description: The properties of the query parameters.
               type: object
             required:
@@ -54640,6 +54864,12 @@ components:
               - object
               type: string
           type: object
+        timeout_ms:
+          description: The maximum number of milliseconds to wait for the webhook
+            to respond. Only applicable when async is false.
+          maximum: 10000
+          minimum: 500
+          type: integer
         url:
           description: 'The URL of the external tool to be called. This URL is going
             to be used by the assistant. The URL can be templated like: `https://example.com/api/v1/{id}`,
@@ -55268,7 +55498,7 @@ components:
             Register (HLR) or the Visitor Location Register (VLR).
 
             '
-          example: 081932214823362973
+          example: "081932214823362973"
           readOnly: true
           type: string
         ipv4:
@@ -55552,13 +55782,6 @@ components:
       required:
       - code
       - title
-      type: object
-    billing-group_Errors:
-      properties:
-        errors:
-          items:
-            $ref: '#/components/schemas/billing-group_Error'
-          type: array
       type: object
     billing_Error:
       properties:
@@ -56572,213 +56795,31 @@ components:
       - model
       - instructions
       type: object
-    inference-embedding_BucketIds:
+    inference-embedding_TransferTool:
       properties:
-        bucket_ids:
-          description: List of [embedded storage buckets](https://developers.telnyx.com/api-reference/embeddings/embed-documents)
-            to use for retrieval-augmented generation.
-          items:
-            type: string
-          type: array
-        max_num_results:
-          description: The maximum number of results to retrieve as context for the
-            language model.
-          type: integer
-      required:
-      - bucket_ids
-      title: BucketIds
-      type: object
-    inference-embedding_TransferToolParams:
-      properties:
-        custom_headers:
-          description: Custom headers to be added to the SIP INVITE for the transfer
-            command.
-          items:
-            properties:
-              name:
-                type: string
-              value:
-                description: The value of the header. Note that we support mustache
-                  templating for the value. For example you can use `{{#integration_secret}}test-secret{{/integration_secret}}`
-                  to pass the value of the integration secret.
-                type: string
-            type: object
-          type: array
-        from:
-          description: Number or SIP URI placing the call.
-          example: '+35319605860'
-          type: string
-        targets:
-          description: The different possible targets of the transfer. The assistant
-            will be able to choose one of the targets to transfer the call to.
-          items:
-            properties:
-              name:
-                description: The name of the target.
-                example: Support
-                type: string
-              to:
-                description: The destination number or SIP URI of the call.
-                example: '+13129457420'
-                type: string
-            type: object
-          type: array
-        warm_transfer_instructions:
-          description: Natural language instructions for your agent for how to provide
-            context for the transfer recipient.
-          example: Briefly greet the transfer recipient and provide any relevant information
-            from the call. Let them know you will bridge the call right after.
-          type: string
-      required:
-      - targets
-      - from
-      title: TransferToolParams
-      type: object
-    inference-embedding_WebhookToolParams:
-      properties:
-        async:
-          default: false
-          description: If async, the assistant will move forward without waiting for
-            your server to respond.
-          type: boolean
-        body_parameters:
-          description: The body parameters the webhook tool accepts, described as
-            a JSON Schema object. These parameters will be passed to the webhook as
-            the body of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
-            for documentation about the format
-          example:
-            properties:
-              age:
-                description: The age of the customer.
-                type: integer
-              location:
-                description: The location of the customer.
-                type: string
-            required:
-            - age
-            - location
-            type: object
-          properties:
-            properties:
-              additionalProperties: true
-              description: The properties of the body parameters.
-              type: object
-            required:
-              description: The required properties of the body parameters.
-              items:
-                type: string
-              type: array
-            type:
-              enum:
-              - object
-              type: string
-          type: object
-        description:
-          description: The description of the tool.
-          type: string
-        headers:
-          description: The headers to be sent to the external tool.
-          items:
-            properties:
-              name:
-                type: string
-              value:
-                description: The value of the header. Note that we support mustache
-                  templating for the value. For example you can use `Bearer {{#integration_secret}}test-secret{{/integration_secret}}`
-                  to pass the value of the integration secret as the bearer token.
-                  [Telnyx signature headers](https://developers.telnyx.com/docs/voice/programmable-voice/voice-api-webhooks)
-                  will be automatically added to the request.
-                type: string
-            type: object
-          type: array
-        method:
-          default: POST
-          description: The HTTP method to be used when calling the external tool.
+        transfer:
+          $ref: '#/components/schemas/InferenceEmbeddingTransferToolParams'
+        type:
           enum:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - PATCH
-          type: string
-        name:
-          description: The name of the tool.
-          type: string
-        path_parameters:
-          description: The path parameters the webhook tool accepts, described as
-            a JSON Schema object. These parameters will be passed to the webhook as
-            the path of the request if the URL contains a placeholder for a value.
-            See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
-            for documentation about the format
-          example:
-            properties:
-              id:
-                description: The id of the customer.
-                type: string
-            required:
-            - id
-            type: object
-          properties:
-            properties:
-              additionalProperties: true
-              description: The properties of the path parameters.
-              type: object
-            required:
-              description: The required properties of the path parameters.
-              items:
-                type: string
-              type: array
-            type:
-              enum:
-              - object
-              type: string
-          type: object
-        query_parameters:
-          description: The query parameters the webhook tool accepts, described as
-            a JSON Schema object. These parameters will be passed to the webhook as
-            the query of the request. See the [JSON Schema reference](https://json-schema.org/understanding-json-schema)
-            for documentation about the format
-          example:
-            properties:
-              page:
-                description: The page number.
-                type: integer
-            required:
-            - page
-            type: object
-          properties:
-            properties:
-              additionalProperties: true
-              description: The properties of the query parameters.
-              type: object
-            required:
-              description: The required properties of the query parameters.
-              items:
-                type: string
-              type: array
-            type:
-              enum:
-              - object
-              type: string
-          type: object
-        timeout_ms:
-          description: The maximum number of milliseconds to wait for the webhook
-            to respond. Only applicable when async is false.
-          maximum: 10000
-          minimum: 500
-          type: integer
-        url:
-          description: 'The URL of the external tool to be called. This URL is going
-            to be used by the assistant. The URL can be templated like: `https://example.com/api/v1/{id}`,
-            where `{id}` is a placeholder for a value that will be provided by the
-            assistant if `path_parameters` are provided with the `id` attribute.'
-          example: https://example.com/api/v1/function
+          - transfer
           type: string
       required:
-      - url
-      - name
-      - description
-      title: WebhookToolParams
+      - type
+      - transfer
+      title: TransferTool
+      type: object
+    inference-embedding_WebhookTool:
+      properties:
+        type:
+          enum:
+          - webhook
+          type: string
+        webhook:
+          $ref: '#/components/schemas/WebhookToolParams'
+      required:
+      - type
+      - webhook
+      title: WebhookTool
       type: object
     integration-secrets_Error:
       properties:
@@ -63562,9 +63603,9 @@ paths:
         '200':
           $ref: '#/components/responses/AuditLogListResponse'
         '401':
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/AuditLogsGenericErrorResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/AuditLogsGenericErrorResponse'
       summary: List Audit Logs
       tags:
       - Audit Logs
@@ -64017,7 +64058,7 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailableErrorResponse'
         default:
-          $ref: '#/components/responses/billing_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: Get user balance details
       tags:
       - Billing
@@ -64066,7 +64107,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequestErrorResponse'
         default:
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: List all billing groups
       tags:
       - Billing Groups
@@ -64099,7 +64140,7 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         default:
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: Create a billing group
       tags:
       - Billing Groups
@@ -64138,7 +64179,7 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         default:
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: Delete a billing group
       tags:
       - Billing Groups
@@ -64172,7 +64213,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundErrorResponse'
         default:
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: Get a billing group
       tags:
       - Billing Groups
@@ -64216,7 +64257,7 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         default:
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
       summary: Update a billing group
       tags:
       - Billing Groups
@@ -67039,7 +67080,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Delete a stored credential
       tags:
       - Call Recordings
@@ -67057,7 +67098,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Retrieve a stored credential
       tags:
       - Call Recordings
@@ -67077,7 +67118,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Create a custom storage credential
       tags:
       - Call Recordings
@@ -67097,7 +67138,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Update a stored credential
       tags:
       - Call Recordings
@@ -70099,7 +70140,7 @@ paths:
         '200':
           $ref: '#/components/responses/InvoiceDetailResponse'
         '400':
-          $ref: '#/components/responses/invoice_BadRequestErrorResponse'
+          $ref: '#/components/responses/BadRequestErrorResponse'
         '403':
           $ref: '#/components/responses/invoice_ForbiddenErrorResponse'
         '404':
@@ -70395,12 +70436,12 @@ paths:
           description: Expected ledger billing group report response to a valid request
           headers: {}
         '401':
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
         '500':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/billing-group_Errors'
+                $ref: '#/components/schemas/Errors'
           description: Unexpected error
           headers: {}
       summary: Create a ledger billing group report
@@ -70433,12 +70474,12 @@ paths:
           description: Expected ledger billing group report response to a valid request
           headers: {}
         '401':
-          $ref: '#/components/responses/billing-group_GenericErrorResponse'
+          $ref: '#/components/responses/GenericErrorResponse'
         '500':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/billing-group_Errors'
+                $ref: '#/components/schemas/Errors'
           description: Unexpected error
           headers: {}
       summary: Get a ledger billing group report
@@ -79594,7 +79635,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: List all recording transcriptions
       tags:
       - Call Recordings
@@ -79613,7 +79654,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Delete a recording transcription
       tags:
       - Call Recordings
@@ -79631,7 +79672,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Retrieve a recording transcription
       tags:
       - Call Recordings
@@ -79715,7 +79756,7 @@ paths:
         '500':
           $ref: '#/components/responses/call-recordings_InternalServerErrorResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: List all call recordings
       tags:
       - Call Recordings
@@ -79734,7 +79775,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Delete a list of call recordings
       tags:
       - Call Recordings
@@ -79753,7 +79794,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Delete a call recording
       tags:
       - Call Recordings
@@ -79771,7 +79812,7 @@ paths:
         '404':
           $ref: '#/components/responses/call-recordings_NotFoundResponse'
         default:
-          $ref: '#/components/responses/GenericErrorResponse'
+          $ref: '#/components/responses/call-recordings_GenericErrorResponse'
       summary: Retrieve a call recording
       tags:
       - Call Recordings
@@ -80254,7 +80295,7 @@ paths:
         name: mnc
         schema:
           description: Mobile network code
-          example: '01'
+          example: "01"
           type: string
       - in: query
         name: imsi
@@ -80540,7 +80581,7 @@ paths:
               properties:
                 customer_reference:
                   description: Reference for the customer
-                  example: '0002'
+                  example: "0002"
                   type: string
                 regulatory_requirements:
                   items:
