@@ -109,13 +109,6 @@ components:
       required: true
       schema:
         type: string
-    ApplicationId:
-      description: The ID of the TeXML application used for the call.
-      in: path
-      name: application_id
-      required: true
-      schema:
-        type: string
     AuthorizationBearer:
       description: 'Format: Bearer <TOKEN>'
       in: header
@@ -4172,16 +4165,6 @@ components:
                 $ref: '#/components/schemas/WirelessBlocklist'
             type: object
       description: Successful Response
-    DeprecatedInitiateCallResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/InitiateCallResult'
-            title: Initiate TeXML Call Response
-            type: object
-      description: Successful response upon initiating a TeXML call.
     DialParticipantResponse:
       content:
         application/json:
@@ -7640,16 +7623,6 @@ components:
                 $ref: '#/components/schemas/SIMCard'
             type: object
       description: Successful response
-    UpdateTeXMLCallResponse:
-      content:
-        application/json:
-          schema:
-            properties:
-              data:
-                $ref: '#/components/schemas/UpdateCommandResult'
-            title: TeXML REST Command Response
-            type: object
-      description: Successful response upon updating a TeXML call.
     UpdateWirelessBlocklistResponse:
       content:
         application/json:
@@ -18941,6 +18914,12 @@ components:
           description: The number of items on the page
           example: 20
           type: integer
+        participants:
+          description: List of participant resources.
+          example: []
+          items:
+            type: object
+          type: array
         recordings:
           items:
             $ref: '#/components/schemas/ConferenceRecordingResource'
@@ -24273,221 +24252,6 @@ components:
             type: string
         title: DefaultGateway
         type: object
-    DeprecatedInitiateCallRequest:
-      example:
-        From: '+13120001234'
-        StatusCallback: https://www.example.com/statuscallback-listener
-        To: '+13121230000'
-        Url: https://www.example.com/texml.xml
-      properties:
-        AsyncAmd:
-          default: false
-          description: Select whether to perform answering machine detection in the
-            background. By default execution is blocked until Answering Machine Detection
-            is completed.
-          example: true
-          type: boolean
-        AsyncAmdStatusCallback:
-          description: URL destination for Telnyx to send AMD callback events to for
-            the call.
-          example: https://www.example.com/callback
-          type: string
-        AsyncAmdStatusCallbackMethod:
-          default: POST
-          description: HTTP request type used for `AsyncAmdStatusCallback`. The default
-            value is inherited from TeXML Application setting.
-          enum:
-          - GET
-          - POST
-          example: GET
-          type: string
-        CallerId:
-          description: To be used as the caller id name (SIP From Display Name) presented
-            to the destination (`To` number). The string should have a maximum of
-            128 characters, containing only letters, numbers, spaces, and `-_~!.+`
-            special characters. If ommited, the display name will be the same as the
-            number in the `From` field.
-          example: Info
-          type: string
-        CancelPlaybackOnDetectMessageEnd:
-          default: true
-          description: Whether to cancel ongoing playback on `greeting ended` detection.
-            Defaults to `true`.
-          example: false
-          type: boolean
-        CancelPlaybackOnMachineDetection:
-          default: true
-          description: Whether to cancel ongoing playback on `machine` detection.
-            Defaults to `true`.
-          example: false
-          type: boolean
-        DetectionMode:
-          default: Regular
-          description: Allows you to chose between Premium and Standard detections.
-          enum:
-          - Premium
-          - Regular
-          example: Premium
-          type: string
-        FallbackUrl:
-          description: A failover URL for which Telnyx will retrieve the TeXML call
-            instructions if the `Url` is not responding.
-          example: https://www.example.com/instructions-fallback.xml
-          type: string
-        From:
-          description: The phone number of the party that initiated the call. Phone
-            numbers are formatted with a `+` and country code.
-          example: '+16175551212'
-          type: string
-        MachineDetection:
-          default: Disable
-          description: Enables Answering Machine Detection.
-          enum:
-          - Enable
-          - Disable
-          - DetectMessageEnd
-          example: Enable
-          type: string
-        MachineDetectionSilenceTimeout:
-          default: 3500
-          description: If initial silence duration is greater than this value, consider
-            it a machine. Ignored when `premium` detection is used.
-          example: 2000
-          type: integer
-        MachineDetectionSpeechEndThreshold:
-          default: 800
-          description: Silence duration threshold after a greeting message or voice
-            for it be considered human. Ignored when `premium` detection is used.
-          example: 2000
-          type: integer
-        MachineDetectionSpeechThreshold:
-          default: 3500
-          description: Maximum threshold of a human greeting. If greeting longer than
-            this value, considered machine. Ignored when `premium` detection is used.
-          example: 2000
-          type: integer
-        MachineDetectionTimeout:
-          default: 30000
-          description: Maximum timeout threshold in milliseconds for overall detection.
-          example: 5000
-          maximum: 60000
-          minimum: 500
-          type: integer
-        PreferredCodecs:
-          description: The list of comma-separated codecs to be offered on a call.
-          example: PCMA,PCMU
-          type: string
-        Record:
-          description: Whether to record the entire participant's call leg. Defaults
-            to `false`.
-          example: false
-          type: boolean
-        RecordingChannels:
-          description: The number of channels in the final recording. Defaults to
-            `mono`.
-          enum:
-          - mono
-          - dual
-          example: dual
-          type: string
-        RecordingStatusCallback:
-          description: The URL the recording callbacks will be sent to.
-          example: https://example.com/recording_status_callback
-          type: string
-        RecordingStatusCallbackEvent:
-          description: 'The changes to the recording''s state that should generate
-            a call to `RecoridngStatusCallback`. Can be: `in-progress`, `completed`
-            and `absent`. Separate multiple values with a space. Defaults to `completed`.'
-          example: in-progress completed absent
-          type: string
-        RecordingStatusCallbackMethod:
-          description: HTTP request type used for `RecordingStatusCallback`. Defaults
-            to `POST`.
-          enum:
-          - GET
-          - POST
-          example: GET
-          type: string
-        RecordingTimeout:
-          default: 0
-          description: The number of seconds that Telnyx will wait for the recording
-            to be stopped if silence is detected. The timer only starts when the speech
-            is detected. Please note that the transcription is used to detect silence
-            and the related charge will be applied. The minimum value is 0. The default
-            value is 0 (infinite)
-          example: 5
-          type: integer
-        RecordingTrack:
-          description: The audio track to record for the call. The default is `both`.
-          enum:
-          - inbound
-          - outbound
-          - both
-          example: inbound
-          type: string
-        SipAuthPassword:
-          description: The password to use for SIP authentication.
-          example: '1234'
-          type: string
-        SipAuthUsername:
-          description: The username to use for SIP authentication.
-          example: user
-          type: string
-        StatusCallback:
-          description: URL destination for Telnyx to send status callback events to
-            for the call.
-          example: https://www.example.com/callback
-          type: string
-        StatusCallbackEvent:
-          default: completed
-          description: The call events for which Telnyx should send a webhook. Multiple
-            events can be defined when separated by a space.
-          enum:
-          - initiated
-          - ringing
-          - answered
-          - completed
-          example: initiated
-          type: string
-        StatusCallbackMethod:
-          default: POST
-          description: HTTP request type used for `StatusCallback`.
-          enum:
-          - GET
-          - POST
-          example: GET
-          type: string
-        To:
-          description: The phone number of the called party. Phone numbers are formatted
-            with a `+` and country code.
-          example: '+16175551212'
-          type: string
-        Trim:
-          description: Whether to trim any leading and trailing silence from the recording.
-            Defaults to `trim-silence`.
-          enum:
-          - trim-silence
-          - do-not-trim
-          example: trim-silence
-          type: string
-        Url:
-          description: The URL from which Telnyx will retrieve the TeXML call instructions.
-          example: https://www.example.com/instructions.xml
-          type: string
-        UrlMethod:
-          default: POST
-          description: HTTP request type used for `Url`. The default value is inherited
-            from TeXML Application setting.
-          enum:
-          - GET
-          - POST
-          example: GET
-          type: string
-      required:
-      - To
-      - From
-      title: Initiate Call Request
-      type: object
     DetailRecord:
       description: An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records
       discriminator:
@@ -33464,6 +33228,11 @@ components:
           description: The identifier of the coached participant's call.
           example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
           type: string
+        conference_sid:
+          description: The unique identifier for the conference.
+          example: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
+          format: uuid
+          type: string
         end_conference_on_exit:
           description: Whether the conference ends when the participant leaves.
           example: false
@@ -36511,6 +36280,11 @@ components:
         coaching_call_sid_legacy:
           description: The identifier of the coached participant's call.
           example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
+          type: string
+        conference_sid:
+          description: The unique identifier for the conference.
+          example: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
+          format: uuid
           type: string
         date_created:
           description: The timestamp of when the resource was created.
@@ -50630,19 +50404,6 @@ components:
           title: WebhookURL
           type: string
       title: UpdateCampaignRequest
-      type: object
-    UpdateCommandResult:
-      example:
-        sid: c46e06d7-b78f-4b13-96b6-c576af9640ff
-        status: accepted
-      properties:
-        sid:
-          example: c46e06d7-b78f-4b13-96b6-c576af9640ff
-          type: string
-        status:
-          example: accepted
-          type: string
-      title: TeXml REST Update Command Result
       type: object
     UpdateConferenceParticipantRequest:
       example:
@@ -84751,56 +84512,6 @@ paths:
         '404':
           $ref: '#/components/responses/call-scripting_NotFoundResponse'
       summary: Fetch a recording transcription resource
-      tags:
-      - TeXML REST Commands
-      x-group-parameters: 'true'
-      x-latency-category: responsive
-  /texml/calls/{application_id}:
-    post:
-      description: Initiate an outbound TeXML call. Telnyx will request TeXML from
-        the XML Request URL configured for the connection in the Mission Control Portal.
-      operationId: DeprecatedInitiateTexmlCall
-      parameters:
-      - $ref: '#/components/parameters/ApplicationId'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeprecatedInitiateCallRequest'
-        description: Iniatiate Call request object
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/DeprecatedInitiateCallResponse'
-        '422':
-          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
-      summary: (Deprecated) Initiate an outbound call
-      tags:
-      - TeXML REST Commands
-      x-group-parameters: 'true'
-      x-latency-category: responsive
-  /texml/calls/{call_sid}/update:
-    post:
-      description: Update TeXML call. Please note that the keys present in the payload
-        MUST BE formatted in CamelCase as specified in the example.
-      operationId: DeprecatedUpdateTexmlCall
-      parameters:
-      - $ref: '#/components/parameters/CallSid'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCallRequest'
-        description: Update Call request object
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/UpdateTeXMLCallResponse'
-        '404':
-          $ref: '#/components/responses/call-scripting_NotFoundResponse'
-        '422':
-          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
-      summary: (Deprecated) Update call
       tags:
       - TeXML REST Commands
       x-group-parameters: 'true'
