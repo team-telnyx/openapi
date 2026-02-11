@@ -302,6 +302,10 @@
       "description": "OTA updates operations"
     },
     {
+      "name": "OpenAI Embeddings",
+      "description": "OpenAI-compatible embeddings endpoints for generating vector representations of text"
+    },
+    {
       "name": "Opt-Out Management",
       "description": "Opt-Out Management"
     },
@@ -8353,6 +8357,86 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/ai/openai/embeddings": {
+      "post": {
+        "tags": [
+          "OpenAI Embeddings"
+        ],
+        "summary": "Create embeddings",
+        "description": "Creates an embedding vector representing the input text. This endpoint is compatible with the [OpenAI Embeddings API](https://platform.openai.com/docs/api-reference/embeddings) and may be used with the OpenAI JS or Python SDK by setting the base URL to `https://api.telnyx.com/v2/ai/openai`.",
+        "operationId": "create_openai_embeddings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenAIEmbeddingRequest"
+              },
+              "example": {
+                "input": "The quick brown fox jumps over the lazy dog",
+                "model": "thenlper/gte-large"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenAIEmbeddingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/ai/openai/embeddings/models": {
+      "get": {
+        "tags": [
+          "OpenAI Embeddings"
+        ],
+        "summary": "List embedding models",
+        "description": "Returns a list of available embedding models. This endpoint is compatible with the OpenAI Models API format.",
+        "operationId": "list_openai_embedding_models",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenAIEmbeddingModelsResponse"
                 }
               }
             }
@@ -86722,6 +86806,183 @@
           "scopes",
           "created_at"
         ]
+      },
+      "OpenAIEmbeddingData": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "default": "embedding",
+            "description": "The object type, always 'embedding'"
+          },
+          "embedding": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "The embedding vector"
+          },
+          "index": {
+            "type": "integer",
+            "description": "The index of the embedding in the list of embeddings"
+          }
+        },
+        "required": [
+          "object",
+          "embedding",
+          "index"
+        ],
+        "title": "OpenAIEmbeddingData"
+      },
+      "OpenAIEmbeddingModelMetadata": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The model identifier",
+            "example": "thenlper/gte-large"
+          },
+          "object": {
+            "type": "string",
+            "default": "model",
+            "description": "The object type, always 'model'"
+          },
+          "created": {
+            "type": "integer",
+            "description": "Unix timestamp of when the model was created"
+          },
+          "owned_by": {
+            "type": "string",
+            "description": "The organization that owns the model",
+            "example": "telnyx"
+          }
+        },
+        "required": [
+          "id",
+          "object",
+          "created",
+          "owned_by"
+        ],
+        "title": "OpenAIEmbeddingModelMetadata"
+      },
+      "OpenAIEmbeddingModelsResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "default": "list",
+            "description": "The object type, always 'list'"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenAIEmbeddingModelMetadata"
+            },
+            "description": "List of available embedding models"
+          }
+        },
+        "required": [
+          "object",
+          "data"
+        ],
+        "title": "OpenAIEmbeddingModelsResponse"
+      },
+      "OpenAIEmbeddingRequest": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "A single text string to embed"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "An array of text strings to embed"
+              }
+            ],
+            "description": "Input text to embed. Can be a string or array of strings."
+          },
+          "model": {
+            "type": "string",
+            "description": "ID of the model to use. Use the List embedding models endpoint to see available models.",
+            "example": "thenlper/gte-large"
+          },
+          "encoding_format": {
+            "type": "string",
+            "enum": [
+              "float",
+              "base64"
+            ],
+            "default": "float",
+            "description": "The format to return the embeddings in."
+          },
+          "dimensions": {
+            "type": "integer",
+            "description": "The number of dimensions the resulting output embeddings should have. Only supported in some models."
+          },
+          "user": {
+            "type": "string",
+            "description": "A unique identifier representing your end-user for monitoring and abuse detection."
+          }
+        },
+        "required": [
+          "input",
+          "model"
+        ],
+        "title": "OpenAIEmbeddingRequest"
+      },
+      "OpenAIEmbeddingResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "default": "list",
+            "description": "The object type, always 'list'"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenAIEmbeddingData"
+            },
+            "description": "List of embedding objects"
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used for embedding"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/OpenAIEmbeddingUsage"
+          }
+        },
+        "required": [
+          "object",
+          "data",
+          "model",
+          "usage"
+        ],
+        "title": "OpenAIEmbeddingResponse"
+      },
+      "OpenAIEmbeddingUsage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "description": "Number of tokens in the input"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "description": "Total number of tokens used"
+          }
+        },
+        "required": [
+          "prompt_tokens",
+          "total_tokens"
+        ],
+        "title": "OpenAIEmbeddingUsage"
       },
       "OptOutItem": {
         "type": "object",

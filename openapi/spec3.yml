@@ -34843,6 +34843,138 @@ components:
       - scopes
       - created_at
       type: object
+    OpenAIEmbeddingData:
+      properties:
+        embedding:
+          description: The embedding vector
+          items:
+            type: number
+          type: array
+        index:
+          description: The index of the embedding in the list of embeddings
+          type: integer
+        object:
+          default: embedding
+          description: The object type, always 'embedding'
+          type: string
+      required:
+      - object
+      - embedding
+      - index
+      title: OpenAIEmbeddingData
+      type: object
+    OpenAIEmbeddingModelMetadata:
+      properties:
+        created:
+          description: Unix timestamp of when the model was created
+          type: integer
+        id:
+          description: The model identifier
+          example: thenlper/gte-large
+          type: string
+        object:
+          default: model
+          description: The object type, always 'model'
+          type: string
+        owned_by:
+          description: The organization that owns the model
+          example: telnyx
+          type: string
+      required:
+      - id
+      - object
+      - created
+      - owned_by
+      title: OpenAIEmbeddingModelMetadata
+      type: object
+    OpenAIEmbeddingModelsResponse:
+      properties:
+        data:
+          description: List of available embedding models
+          items:
+            $ref: '#/components/schemas/OpenAIEmbeddingModelMetadata'
+          type: array
+        object:
+          default: list
+          description: The object type, always 'list'
+          type: string
+      required:
+      - object
+      - data
+      title: OpenAIEmbeddingModelsResponse
+      type: object
+    OpenAIEmbeddingRequest:
+      properties:
+        dimensions:
+          description: The number of dimensions the resulting output embeddings should
+            have. Only supported in some models.
+          type: integer
+        encoding_format:
+          default: float
+          description: The format to return the embeddings in.
+          enum:
+          - float
+          - base64
+          type: string
+        input:
+          description: Input text to embed. Can be a string or array of strings.
+          oneOf:
+          - description: A single text string to embed
+            type: string
+          - description: An array of text strings to embed
+            items:
+              type: string
+            type: array
+        model:
+          description: ID of the model to use. Use the List embedding models endpoint
+            to see available models.
+          example: thenlper/gte-large
+          type: string
+        user:
+          description: A unique identifier representing your end-user for monitoring
+            and abuse detection.
+          type: string
+      required:
+      - input
+      - model
+      title: OpenAIEmbeddingRequest
+      type: object
+    OpenAIEmbeddingResponse:
+      properties:
+        data:
+          description: List of embedding objects
+          items:
+            $ref: '#/components/schemas/OpenAIEmbeddingData'
+          type: array
+        model:
+          description: The model used for embedding
+          type: string
+        object:
+          default: list
+          description: The object type, always 'list'
+          type: string
+        usage:
+          $ref: '#/components/schemas/OpenAIEmbeddingUsage'
+      required:
+      - object
+      - data
+      - model
+      - usage
+      title: OpenAIEmbeddingResponse
+      type: object
+    OpenAIEmbeddingUsage:
+      properties:
+        prompt_tokens:
+          description: Number of tokens in the input
+          type: integer
+        total_tokens:
+          description: Total number of tokens used
+          type: integer
+      required:
+      - prompt_tokens
+      - total_tokens
+      title: OpenAIEmbeddingUsage
+      type: object
     OptOutItem:
       properties:
         created_at:
@@ -63707,6 +63839,61 @@ paths:
       tags:
       - Chat
       x-latency-category: responsive
+  /ai/openai/embeddings:
+    post:
+      description: Creates an embedding vector representing the input text. This endpoint
+        is compatible with the [OpenAI Embeddings API](https://platform.openai.com/docs/api-reference/embeddings)
+        and may be used with the OpenAI JS or Python SDK by setting the base URL to
+        `https://api.telnyx.com/v2/ai/openai`.
+      operationId: create_openai_embeddings
+      requestBody:
+        content:
+          application/json:
+            example:
+              input: The quick brown fox jumps over the lazy dog
+              model: thenlper/gte-large
+            schema:
+              $ref: '#/components/schemas/OpenAIEmbeddingRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenAIEmbeddingResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create embeddings
+      tags:
+      - OpenAI Embeddings
+      x-latency-category: responsive
+  /ai/openai/embeddings/models:
+    get:
+      description: Returns a list of available embedding models. This endpoint is
+        compatible with the OpenAI Models API format.
+      operationId: list_openai_embedding_models
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenAIEmbeddingModelsResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List embedding models
+      tags:
+      - OpenAI Embeddings
+      x-latency-category: responsive
   /ai/summarize:
     post:
       description: "Generate a summary of a file's contents. \n\n Supports the following\
@@ -87358,6 +87545,9 @@ tags:
   name: Number Settings
 - description: OTA updates operations
   name: OTA updates
+- description: OpenAI-compatible embeddings endpoints for generating vector representations
+    of text
+  name: OpenAI Embeddings
 - description: Opt-Out Management
   name: Opt-Out Management
 - description: Operations related to users in your organization
