@@ -19792,11 +19792,17 @@ components:
           additionalProperties:
             type: string
           description: Metadata associated with the conversation. Telnyx provides
-            several pieces of metadata, but customers can also add their own.
+            several pieces of metadata, but customers can also add their own. The
+            reserved field `ai_disabled` (boolean) can be set to `true` to prevent
+            AI-generated responses on this conversation. When `ai_disabled` is `true`,
+            calls to the chat endpoint will return a 400 error. Set to `false` or
+            remove the field to re-enable AI responses. This is useful when a human
+            agent needs to take over the conversation mid-stream (e.g., a technician
+            stepping in while AI was messaging a resident).
           example:
             assistant_id: assistant-123
             telnyx_agent_target: '+13128675309'
-            telnyx_conversation_channel: phone_call
+            telnyx_conversation_channel: sms
             telnyx_end_user_target: '+13128675309'
           type: object
         name:
@@ -20674,7 +20680,8 @@ components:
         metadata:
           additionalProperties:
             type: string
-          description: Metadata associated with the conversation.
+          description: Metadata associated with the conversation. Set `ai_disabled`
+            to `true` to create the conversation with AI message responses disabled.
           type: object
         name:
           type: string
@@ -29592,6 +29599,115 @@ components:
                 type: string
             type: object
           type: array
+        voicemail_detection:
+          description: Configuration for voicemail detection (AMD - Answering Machine
+            Detection) on the transferred call. Allows the assistant to detect when
+            a voicemail system answers the transferred call and take appropriate action.
+          properties:
+            detection_config:
+              description: Advanced AMD detection configuration parameters. All values
+                are optional - Telnyx will use defaults if not specified.
+              properties:
+                after_greeting_silence_millis:
+                  description: Duration of silence after greeting detection before
+                    finalizing the result.
+                  maximum: 5000
+                  minimum: 100
+                  type: integer
+                between_words_silence_millis:
+                  description: Maximum silence duration between words during greeting.
+                  maximum: 5000
+                  minimum: 10
+                  type: integer
+                greeting_duration_millis:
+                  description: Expected duration of greeting speech.
+                  maximum: 10000
+                  minimum: 100
+                  type: integer
+                greeting_silence_duration_millis:
+                  description: Duration of silence after the greeting to wait before
+                    considering the greeting complete.
+                  maximum: 50000
+                  minimum: 500
+                  type: integer
+                greeting_total_analysis_time_millis:
+                  description: Maximum time to spend analyzing the greeting.
+                  maximum: 300000
+                  minimum: 500
+                  type: integer
+                initial_silence_millis:
+                  description: Maximum silence duration at the start of the call before
+                    speech.
+                  maximum: 500000
+                  minimum: 100
+                  type: integer
+                maximum_number_of_words:
+                  description: Maximum number of words expected in a human greeting.
+                  maximum: 50
+                  minimum: 1
+                  type: integer
+                maximum_word_length_millis:
+                  description: Maximum duration of a single word.
+                  maximum: 5000
+                  minimum: 50
+                  type: integer
+                min_word_length_millis:
+                  description: Minimum duration for audio to be considered a word.
+                  maximum: 1000
+                  minimum: 1
+                  type: integer
+                silence_threshold:
+                  description: Audio level threshold for silence detection.
+                  maximum: 1000
+                  minimum: 1
+                  type: integer
+                total_analysis_time_millis:
+                  description: Total time allowed for AMD analysis.
+                  maximum: 60000
+                  minimum: 500
+                  type: integer
+              type: object
+            detection_mode:
+              description: The AMD detection mode to use. 'detect' enables answering
+                machine detection (works best when warm transfer instructions are
+                also set). 'disabled' turns off AMD detection.
+              enum:
+              - disabled
+              - detect
+              type: string
+            on_voicemail_detected:
+              description: Action to take when voicemail is detected on the transferred
+                call.
+              properties:
+                action:
+                  description: The action to take when voicemail is detected. 'stop_transfer'
+                    hangs up immediately. 'leave_message_and_stop_transfer' leaves
+                    a message then hangs up. 'continue_transfer' bridges the call
+                    despite voicemail detection.
+                  enum:
+                  - stop_transfer
+                  - leave_message_and_stop_transfer
+                  - continue_transfer
+                  type: string
+                voicemail_message:
+                  description: Configuration for the voicemail message to leave. Only
+                    applicable when action is 'leave_message_and_stop_transfer'.
+                  properties:
+                    message:
+                      description: The specific message to leave as voicemail (converted
+                        to speech). Only applicable when type is 'message'.
+                      type: string
+                    type:
+                      description: The type of voicemail message. Use 'message' to
+                        leave a specific TTS message, or 'warm_transfer_instructions'
+                        to play the warm transfer audio.
+                      enum:
+                      - message
+                      - warm_transfer_instructions
+                      type: string
+                  type: object
+              type: object
+          type: object
         warm_transfer_instructions:
           description: Natural language instructions for your agent for how to provide
             context for the transfer recipient.
@@ -50673,7 +50789,9 @@ components:
         metadata:
           additionalProperties:
             type: string
-          description: Metadata associated with the conversation.
+          description: Metadata associated with the conversation. Set `ai_disabled`
+            to `true` to stop AI from responding to messages (e.g., when a human agent
+            takes over). Set to `false` to re-enable AI responses.
           type: object
       title: UpdateConversationRequest
       type: object

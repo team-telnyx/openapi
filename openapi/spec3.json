@@ -68398,12 +68398,12 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Metadata associated with the conversation. Telnyx provides several pieces of metadata, but customers can also add their own.",
+            "description": "Metadata associated with the conversation. Telnyx provides several pieces of metadata, but customers can also add their own. The reserved field `ai_disabled` (boolean) can be set to `true` to prevent AI-generated responses on this conversation. When `ai_disabled` is `true`, calls to the chat endpoint will return a 400 error. Set to `false` or remove the field to re-enable AI responses. This is useful when a human agent needs to take over the conversation mid-stream (e.g., a technician stepping in while AI was messaging a resident).",
             "additionalProperties": {
               "type": "string"
             },
             "example": {
-              "telnyx_conversation_channel": "phone_call",
+              "telnyx_conversation_channel": "sms",
               "telnyx_agent_target": "+13128675309",
               "telnyx_end_user_target": "+13128675309",
               "assistant_id": "assistant-123"
@@ -69458,7 +69458,7 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Metadata associated with the conversation.",
+            "description": "Metadata associated with the conversation. Set `ai_disabled` to `true` to create the conversation with AI message responses disabled.",
             "additionalProperties": {
               "type": "string"
             }
@@ -80218,6 +80218,125 @@
                 "value": {
                   "description": "The value of the header. Note that we support mustache templating for the value. For example you can use `{{#integration_secret}}test-secret{{/integration_secret}}` to pass the value of the integration secret.",
                   "type": "string"
+                }
+              }
+            }
+          },
+          "voicemail_detection": {
+            "type": "object",
+            "description": "Configuration for voicemail detection (AMD - Answering Machine Detection) on the transferred call. Allows the assistant to detect when a voicemail system answers the transferred call and take appropriate action.",
+            "properties": {
+              "detection_mode": {
+                "type": "string",
+                "enum": [
+                  "disabled",
+                  "detect"
+                ],
+                "description": "The AMD detection mode to use. 'detect' enables answering machine detection (works best when warm transfer instructions are also set). 'disabled' turns off AMD detection."
+              },
+              "on_voicemail_detected": {
+                "type": "object",
+                "description": "Action to take when voicemail is detected on the transferred call.",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "stop_transfer",
+                      "leave_message_and_stop_transfer",
+                      "continue_transfer"
+                    ],
+                    "description": "The action to take when voicemail is detected. 'stop_transfer' hangs up immediately. 'leave_message_and_stop_transfer' leaves a message then hangs up. 'continue_transfer' bridges the call despite voicemail detection."
+                  },
+                  "voicemail_message": {
+                    "type": "object",
+                    "description": "Configuration for the voicemail message to leave. Only applicable when action is 'leave_message_and_stop_transfer'.",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "message",
+                          "warm_transfer_instructions"
+                        ],
+                        "description": "The type of voicemail message. Use 'message' to leave a specific TTS message, or 'warm_transfer_instructions' to play the warm transfer audio."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "The specific message to leave as voicemail (converted to speech). Only applicable when type is 'message'."
+                      }
+                    }
+                  }
+                }
+              },
+              "detection_config": {
+                "type": "object",
+                "description": "Advanced AMD detection configuration parameters. All values are optional - Telnyx will use defaults if not specified.",
+                "properties": {
+                  "greeting_silence_duration_millis": {
+                    "type": "integer",
+                    "minimum": 500,
+                    "maximum": 50000,
+                    "description": "Duration of silence after the greeting to wait before considering the greeting complete."
+                  },
+                  "greeting_total_analysis_time_millis": {
+                    "type": "integer",
+                    "minimum": 500,
+                    "maximum": 300000,
+                    "description": "Maximum time to spend analyzing the greeting."
+                  },
+                  "after_greeting_silence_millis": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 5000,
+                    "description": "Duration of silence after greeting detection before finalizing the result."
+                  },
+                  "between_words_silence_millis": {
+                    "type": "integer",
+                    "minimum": 10,
+                    "maximum": 5000,
+                    "description": "Maximum silence duration between words during greeting."
+                  },
+                  "greeting_duration_millis": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 10000,
+                    "description": "Expected duration of greeting speech."
+                  },
+                  "initial_silence_millis": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 500000,
+                    "description": "Maximum silence duration at the start of the call before speech."
+                  },
+                  "maximum_number_of_words": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "description": "Maximum number of words expected in a human greeting."
+                  },
+                  "maximum_word_length_millis": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 5000,
+                    "description": "Maximum duration of a single word."
+                  },
+                  "silence_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Audio level threshold for silence detection."
+                  },
+                  "total_analysis_time_millis": {
+                    "type": "integer",
+                    "minimum": 500,
+                    "maximum": 60000,
+                    "description": "Total time allowed for AMD analysis."
+                  },
+                  "min_word_length_millis": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Minimum duration for audio to be considered a word."
+                  }
                 }
               }
             }
@@ -105952,7 +106071,7 @@
         "properties": {
           "metadata": {
             "type": "object",
-            "description": "Metadata associated with the conversation.",
+            "description": "Metadata associated with the conversation. Set `ai_disabled` to `true` to stop AI from responding to messages (e.g., when a human agent takes over). Set to `false` to re-enable AI responses.",
             "additionalProperties": {
               "type": "string"
             }
