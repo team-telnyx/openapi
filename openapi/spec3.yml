@@ -9969,6 +9969,7 @@ components:
         - $ref: '#/components/schemas/SIPReferTool'
         - $ref: '#/components/schemas/DTMFTool'
         - $ref: '#/components/schemas/SendMessageTool'
+        - $ref: '#/components/schemas/SkipTurnTool'
       type: array
     AssistantsListData:
       properties:
@@ -19368,11 +19369,14 @@ components:
             - **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`).\
             \ The `ModelId` part is optional. To use ElevenLabs, you must provide\
             \ your ElevenLabs API key as an integration identifier secret in `\"voice_settings\"\
-            : {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets\
-            \ documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)\
-            \ for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
-            \ - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level\
-            \ basic, you may define the gender of the speaker (male or female)."
+            : {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
+            - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>`\
+            \ (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`,\
+            \ `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters:\
+            \ `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer,\
+            \ default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and\
+            \ `Turbo` (English only)."
           example: Telnyx.KokoroTTS.af
           type: string
         voice_settings:
@@ -19381,12 +19385,14 @@ components:
             mapping:
               aws: '#/components/schemas/AWSVoiceSettings'
               elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
               telnyx: '#/components/schemas/TelnyxVoiceSettings'
             propertyName: type
           oneOf:
           - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
           - $ref: '#/components/schemas/TelnyxVoiceSettings'
           - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
       required:
       - payload
       - voice
@@ -19662,7 +19668,8 @@ components:
           description: 'The attenuation limit value for the selected engine. Default
             values vary by engine: 0 for ''denoiser'', 80 for ''deep_filter_net'',
             ''deep_filter_net_large'', and all Krisp engines (''krisp_viva_tel'',
-            ''krisp_viva_tel_lite'', ''krisp_viva_promodel'', ''krisp_viva_ss'').'
+            ''krisp_viva_tel_lite'', ''krisp_viva_promodel'', ''krisp_viva_ss''),
+            100 for ''quail_voice_focus''.'
           example: 80
           maximum: 100
           minimum: 0
@@ -19674,7 +19681,8 @@ components:
             engine. 'deep_filter_net' and 'deep_filter_net_large' are alternative
             engines with different performance characteristics. Krisp engines ('krisp_viva_tel',
             'krisp_viva_tel_lite', 'krisp_viva_promodel', 'krisp_viva_ss') provide
-            advanced noise suppression capabilities.
+            advanced noise suppression capabilities. 'quail_voice_focus' provides
+            Quail-based voice focus noise suppression.
           enum:
           - denoiser
           - deep_filter_net
@@ -19683,6 +19691,7 @@ components:
           - krisp_viva_tel_lite
           - krisp_viva_promodel
           - krisp_viva_ss
+          - quail_voice_focus
           example: deep_filter_net
           type: string
       type: object
@@ -24583,6 +24592,12 @@ components:
             numbers are formatted with a `+` and country code.
           example: '+16175551212'
           type: string
+        Label:
+          description: A unique label for the participant that will be added to the
+            conference. The label can be used to reference the participant for updates
+            via the TeXML REST API.
+          example: customer
+          type: string
         MachineDetection:
           description: Whether to detect if a human or an answering machine picked
             up the call. Use `Enable` if you would like to ne notified as soon as
@@ -27762,11 +27777,14 @@ components:
             - **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`).\
             \ The `ModelId` part is optional. To use ElevenLabs, you must provide\
             \ your ElevenLabs API key as an integration identifier secret in `\"voice_settings\"\
-            : {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets\
-            \ documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)\
-            \ for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
-            \ - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level\
-            \ basic, you may define the gender of the speaker (male or female)."
+            : {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
+            - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>`\
+            \ (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`,\
+            \ `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters:\
+            \ `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer,\
+            \ default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and\
+            \ `Turbo` (English only)."
           example: Telnyx.KokoroTTS.af
           type: string
         voice_settings:
@@ -27775,12 +27793,14 @@ components:
             mapping:
               aws: '#/components/schemas/AWSVoiceSettings'
               elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
               telnyx: '#/components/schemas/TelnyxVoiceSettings'
             propertyName: type
           oneOf:
           - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
           - $ref: '#/components/schemas/TelnyxVoiceSettings'
           - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
       required:
       - voice
       - payload
@@ -32877,6 +32897,34 @@ components:
       - provider
       - provider_auth
       - bucket_name
+      type: object
+    MinimaxVoiceSettings:
+      properties:
+        pitch:
+          default: 0
+          description: Voice pitch adjustment. Default is 0.
+          example: 0
+          type: integer
+        speed:
+          default: 1.0
+          description: Speech speed multiplier. Default is 1.0.
+          example: 1.0
+          format: float
+          type: number
+        type:
+          description: Voice settings provider type
+          enum:
+          - minimax
+          type: string
+        vol:
+          default: 1.0
+          description: Speech volume multiplier. Default is 1.0.
+          example: 1.0
+          format: float
+          type: number
+      required:
+      - type
+      title: Minimax Voice Settings
       type: object
     MissionData:
       properties:
@@ -45183,6 +45231,29 @@ components:
       - data
       title: SIPREC Connector Response
       type: object
+    SkipTurnTool:
+      properties:
+        skip_turn:
+          $ref: '#/components/schemas/SkipTurnToolParams'
+        type:
+          enum:
+          - skip_turn
+          type: string
+      required:
+      - type
+      - skip_turn
+      title: SkipTurnTool
+      type: object
+    SkipTurnToolParams:
+      properties:
+        description:
+          default: This tool is used to skip the assistant turn without producing
+            a response.
+          description: The description of the function that will be passed to the
+            assistant.
+          type: string
+      title: SkipTurnToolParams
+      type: object
     SlimPhoneNumberDetailed:
       example:
         billing_group_id: 86f58db9-0fe3-4adc-9d1f-46e66e6e9323
@@ -45491,11 +45562,14 @@ components:
             - **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`).\
             \ The `ModelId` part is optional. To use ElevenLabs, you must provide\
             \ your ElevenLabs API key as an integration identifier secret in `\"voice_settings\"\
-            : {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets\
-            \ documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)\
-            \ for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
-            \ - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level\
-            \ basic, you may define the gender of the speaker (male or female)."
+            : {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n\
+            - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>`\
+            \ (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`,\
+            \ `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters:\
+            \ `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer,\
+            \ default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and\
+            \ `Turbo` (English only)."
           example: Telnyx.KokoroTTS.af
           type: string
         voice_settings:
@@ -45504,12 +45578,14 @@ components:
             mapping:
               aws: '#/components/schemas/AWSVoiceSettings'
               elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
               telnyx: '#/components/schemas/TelnyxVoiceSettings'
             propertyName: type
           oneOf:
           - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
           - $ref: '#/components/schemas/TelnyxVoiceSettings'
           - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
       required:
       - payload
       - voice
