@@ -58834,6 +58834,9 @@
             },
             {
               "$ref": "#/components/schemas/SendMessageTool"
+            },
+            {
+              "$ref": "#/components/schemas/SkipTurnTool"
             }
           ]
         }
@@ -70177,7 +70180,7 @@
             "example": "ssml"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters: `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer, default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g., `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and `Turbo` (English only).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -70192,6 +70195,9 @@
               },
               {
                 "$ref": "#/components/schemas/AWSVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/MinimaxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -70199,7 +70205,8 @@
               "mapping": {
                 "elevenlabs": "#/components/schemas/ElevenLabsVoiceSettings",
                 "telnyx": "#/components/schemas/TelnyxVoiceSettings",
-                "aws": "#/components/schemas/AWSVoiceSettings"
+                "aws": "#/components/schemas/AWSVoiceSettings",
+                "minimax": "#/components/schemas/MinimaxVoiceSettings"
               }
             }
           },
@@ -70578,7 +70585,7 @@
         "properties": {
           "engine": {
             "type": "string",
-            "description": "The noise suppression engine to use. 'denoiser' is the default engine. 'deep_filter_net' and 'deep_filter_net_large' are alternative engines with different performance characteristics. Krisp engines ('krisp_viva_tel', 'krisp_viva_tel_lite', 'krisp_viva_promodel', 'krisp_viva_ss') provide advanced noise suppression capabilities.",
+            "description": "The noise suppression engine to use. 'denoiser' is the default engine. 'deep_filter_net' and 'deep_filter_net_large' are alternative engines with different performance characteristics. Krisp engines ('krisp_viva_tel', 'krisp_viva_tel_lite', 'krisp_viva_promodel', 'krisp_viva_ss') provide advanced noise suppression capabilities. 'quail_voice_focus' provides Quail-based voice focus noise suppression.",
             "enum": [
               "denoiser",
               "deep_filter_net",
@@ -70586,14 +70593,15 @@
               "krisp_viva_tel",
               "krisp_viva_tel_lite",
               "krisp_viva_promodel",
-              "krisp_viva_ss"
+              "krisp_viva_ss",
+              "quail_voice_focus"
             ],
             "default": "denoiser",
             "example": "deep_filter_net"
           },
           "attenuation_limit": {
             "type": "integer",
-            "description": "The attenuation limit value for the selected engine. Default values vary by engine: 0 for 'denoiser', 80 for 'deep_filter_net', 'deep_filter_net_large', and all Krisp engines ('krisp_viva_tel', 'krisp_viva_tel_lite', 'krisp_viva_promodel', 'krisp_viva_ss').",
+            "description": "The attenuation limit value for the selected engine. Default values vary by engine: 0 for 'denoiser', 80 for 'deep_filter_net', 'deep_filter_net_large', and all Krisp engines ('krisp_viva_tel', 'krisp_viva_tel_lite', 'krisp_viva_promodel', 'krisp_viva_ss'), 100 for 'quail_voice_focus'.",
             "minimum": 0,
             "maximum": 100,
             "multipleOf": 10,
@@ -76017,6 +76025,55 @@
         "format": "date-time",
         "example": "2023-08-11T19:12:11Z"
       },
+      "DeepgramNova2Config": {
+        "type": "object",
+        "title": "DeepgramNova2Config",
+        "properties": {
+          "transcription_engine": {
+            "type": "string",
+            "enum": [
+              "Deepgram"
+            ]
+          },
+          "transcription_model": {
+            "type": "string",
+            "enum": [
+              "deepgram/nova-2"
+            ]
+          },
+          "language": {
+            "$ref": "#/components/schemas/DeepgramNova2TranscriptionLanguage"
+          },
+          "keywords_boosting": {
+            "type": "object",
+            "description": "Keywords and their respective intensifiers (boosting values) to improve transcription accuracy for specific words or phrases. The intensifier should be a numeric value. Example: `{\"snuffleupagus\": 5, \"systrom\": 2, \"krieger\": 1}`.",
+            "additionalProperties": {
+              "type": "number",
+              "description": "Boost intensifier for the keyword. Higher values increase recognition confidence."
+            },
+            "default": null,
+            "example": {
+              "snuffleupagus": 5,
+              "systrom": 2,
+              "krieger": 1
+            }
+          }
+        },
+        "required": [
+          "transcription_engine",
+          "transcription_model"
+        ],
+        "example": {
+          "transcription_engine": "Deepgram",
+          "transcription_model": "deepgram/nova-2",
+          "language": "en",
+          "keywords_boosting": {
+            "snuffleupagus": 5,
+            "systrom": 2,
+            "krieger": 1
+          }
+        }
+      },
       "DeepgramNova2TranscriptionLanguage": {
         "title": "Deepgram nova-2 transcription engine list of languages",
         "type": "string",
@@ -76079,6 +76136,55 @@
           "vi",
           "auto_detect"
         ]
+      },
+      "DeepgramNova3Config": {
+        "type": "object",
+        "title": "DeepgramNova3Config",
+        "properties": {
+          "transcription_engine": {
+            "type": "string",
+            "enum": [
+              "Deepgram"
+            ]
+          },
+          "transcription_model": {
+            "type": "string",
+            "enum": [
+              "deepgram/nova-3"
+            ]
+          },
+          "language": {
+            "$ref": "#/components/schemas/DeepgramNova3TranscriptionLanguage"
+          },
+          "keywords_boosting": {
+            "type": "object",
+            "description": "Keywords and their respective intensifiers (boosting values) to improve transcription accuracy for specific words or phrases. The intensifier should be a numeric value. Example: `{\"snuffleupagus\": 5, \"systrom\": 2, \"krieger\": 1}`.",
+            "additionalProperties": {
+              "type": "number",
+              "description": "Boost intensifier for the keyword. Higher values increase recognition confidence."
+            },
+            "default": null,
+            "example": {
+              "snuffleupagus": 5,
+              "systrom": 2,
+              "krieger": 1
+            }
+          }
+        },
+        "required": [
+          "transcription_engine",
+          "transcription_model"
+        ],
+        "example": {
+          "transcription_engine": "Deepgram",
+          "transcription_model": "deepgram/nova-3",
+          "language": "en",
+          "keywords_boosting": {
+            "snuffleupagus": 5,
+            "systrom": 2,
+            "krieger": 1
+          }
+        }
       },
       "DeepgramNova3TranscriptionLanguage": {
         "title": "Deepgram nova-3 transcription engine list of languages",
@@ -76291,6 +76397,11 @@
             "description": "Whether to end the conference when the participant leaves. Defaults to `false`.",
             "example": true,
             "type": "boolean"
+          },
+          "Label": {
+            "description": "A unique label for the participant that will be added to the conference. The label can be used to reference the participant for updates via the TeXML REST API.",
+            "example": "customer",
+            "type": "string"
           },
           "EarlyMedia": {
             "description": "Whether participant shall be bridged to conference before the participant answers (from early media if available). Defaults to `false`.",
@@ -80222,7 +80333,7 @@
             "example": "premium"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters: `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer, default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g., `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and `Turbo` (English only).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -80237,6 +80348,9 @@
               },
               {
                 "$ref": "#/components/schemas/AWSVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/MinimaxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -80244,7 +80358,8 @@
               "mapping": {
                 "elevenlabs": "#/components/schemas/ElevenLabsVoiceSettings",
                 "telnyx": "#/components/schemas/TelnyxVoiceSettings",
-                "aws": "#/components/schemas/AWSVoiceSettings"
+                "aws": "#/components/schemas/AWSVoiceSettings",
+                "minimax": "#/components/schemas/MinimaxVoiceSettings"
               }
             }
           },
@@ -82812,9 +82927,9 @@
                 "type": "string",
                 "enum": [
                   "disabled",
-                  "detect"
+                  "premium"
                 ],
-                "description": "The AMD detection mode to use. 'detect' enables answering machine detection (works best when warm transfer instructions are also set). 'disabled' turns off AMD detection."
+                "description": "The AMD detection mode to use. 'premium' enables premium answering machine detection. 'disabled' turns off AMD detection."
               },
               "on_voicemail_detected": {
                 "type": "object",
@@ -82824,10 +82939,9 @@
                     "type": "string",
                     "enum": [
                       "stop_transfer",
-                      "leave_message_and_stop_transfer",
-                      "continue_transfer"
+                      "leave_message_and_stop_transfer"
                     ],
-                    "description": "The action to take when voicemail is detected. 'stop_transfer' hangs up immediately. 'leave_message_and_stop_transfer' leaves a message then hangs up. 'continue_transfer' bridges the call despite voicemail detection."
+                    "description": "The action to take when voicemail is detected. 'stop_transfer' hangs up immediately. 'leave_message_and_stop_transfer' leaves a message then hangs up."
                   },
                   "voicemail_message": {
                     "type": "object",
@@ -86597,6 +86711,42 @@
           "provider",
           "provider_auth",
           "bucket_name"
+        ]
+      },
+      "MinimaxVoiceSettings": {
+        "type": "object",
+        "title": "Minimax Voice Settings",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "minimax"
+            ],
+            "description": "Voice settings provider type"
+          },
+          "speed": {
+            "description": "Speech speed multiplier. Default is 1.0.",
+            "type": "number",
+            "format": "float",
+            "example": 1.0,
+            "default": 1.0
+          },
+          "vol": {
+            "description": "Speech volume multiplier. Default is 1.0.",
+            "type": "number",
+            "format": "float",
+            "example": 1.0,
+            "default": 1.0
+          },
+          "pitch": {
+            "description": "Voice pitch adjustment. Default is 0.",
+            "type": "integer",
+            "example": 0,
+            "default": 0
+          }
+        },
+        "required": [
+          "type"
         ]
       },
       "MissionData": {
@@ -101806,6 +101956,36 @@
           }
         }
       },
+      "SkipTurnTool": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "skip_turn"
+            ]
+          },
+          "skip_turn": {
+            "$ref": "#/components/schemas/SkipTurnToolParams"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "skip_turn"
+        ],
+        "title": "SkipTurnTool"
+      },
+      "SkipTurnToolParams": {
+        "properties": {
+          "description": {
+            "type": "string",
+            "default": "This tool is used to skip the assistant turn without producing a response.",
+            "description": "The description of the function that will be passed to the assistant."
+          }
+        },
+        "type": "object",
+        "title": "SkipTurnToolParams"
+      },
       "SlimPhoneNumberDetailed": {
         "type": "object",
         "example": {
@@ -102067,7 +102247,7 @@
             "example": "current"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`.  Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Optional parameters: `speed` (float, default 1.0), `vol` (float, default 1.0), `pitch` (integer, default 0). \n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g., `Resemble.Pro.my_voice`). Supported models: `Pro` (multilingual) and `Turbo` (English only).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -102082,6 +102262,9 @@
               },
               {
                 "$ref": "#/components/schemas/AWSVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/MinimaxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -102089,7 +102272,8 @@
               "mapping": {
                 "elevenlabs": "#/components/schemas/ElevenLabsVoiceSettings",
                 "telnyx": "#/components/schemas/TelnyxVoiceSettings",
-                "aws": "#/components/schemas/AWSVoiceSettings"
+                "aws": "#/components/schemas/AWSVoiceSettings",
+                "minimax": "#/components/schemas/MinimaxVoiceSettings"
               }
             }
           },
@@ -107387,104 +107571,15 @@
       "TranscriptionEngineDeepgramConfig": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "Deepgram Nova-2 config",
-            "properties": {
-              "transcription_engine": {
-                "type": "string",
-                "enum": [
-                  "Deepgram"
-                ]
-              },
-              "transcription_model": {
-                "type": "string",
-                "enum": [
-                  "deepgram/nova-2"
-                ]
-              },
-              "language": {
-                "$ref": "#/components/schemas/DeepgramNova2TranscriptionLanguage"
-              },
-              "keywords_boosting": {
-                "type": "object",
-                "description": "Keywords and their respective intensifiers (boosting values) to improve transcription accuracy for specific words or phrases. The intensifier should be a numeric value. Example: `{\"snuffleupagus\": 5, \"systrom\": 2, \"krieger\": 1}`.",
-                "additionalProperties": {
-                  "type": "number",
-                  "description": "Boost intensifier for the keyword. Higher values increase recognition confidence."
-                },
-                "default": null,
-                "example": {
-                  "snuffleupagus": 5,
-                  "systrom": 2,
-                  "krieger": 1
-                }
-              }
-            },
-            "required": [
-              "transcription_engine",
-              "transcription_model"
-            ],
-            "example": {
-              "transcription_engine": "Deepgram",
-              "transcription_model": "deepgram/nova-2",
-              "language": "en",
-              "keywords_boosting": {
-                "snuffleupagus": 5,
-                "systrom": 2,
-                "krieger": 1
-              }
-            }
+            "$ref": "#/components/schemas/DeepgramNova2Config"
           },
           {
-            "type": "object",
-            "title": "Deepgram Nova-3 config",
-            "properties": {
-              "transcription_engine": {
-                "type": "string",
-                "enum": [
-                  "Deepgram"
-                ]
-              },
-              "transcription_model": {
-                "type": "string",
-                "enum": [
-                  "deepgram/nova-3"
-                ]
-              },
-              "language": {
-                "$ref": "#/components/schemas/DeepgramNova3TranscriptionLanguage"
-              },
-              "keywords_boosting": {
-                "type": "object",
-                "description": "Keywords and their respective intensifiers (boosting values) to improve transcription accuracy for specific words or phrases. The intensifier should be a numeric value. Example: `{\"snuffleupagus\": 5, \"systrom\": 2, \"krieger\": 1}`.",
-                "additionalProperties": {
-                  "type": "number",
-                  "description": "Boost intensifier for the keyword. Higher values increase recognition confidence."
-                },
-                "default": null,
-                "example": {
-                  "snuffleupagus": 5,
-                  "systrom": 2,
-                  "krieger": 1
-                }
-              }
-            },
-            "required": [
-              "transcription_engine",
-              "transcription_model"
-            ],
-            "example": {
-              "transcription_engine": "Deepgram",
-              "transcription_model": "deepgram/nova-3",
-              "language": "en",
-              "keywords_boosting": {
-                "snuffleupagus": 5,
-                "systrom": 2,
-                "krieger": 1
-              }
-            }
+            "$ref": "#/components/schemas/DeepgramNova3Config"
           }
-        ]
+        ],
+        "discriminator": {
+          "propertyName": "transcription_model"
+        }
       },
       "TranscriptionEngineGoogleConfig": {
         "type": "object",
