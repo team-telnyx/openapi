@@ -15261,6 +15261,12 @@ components:
           type: string
         sound_modifications:
           $ref: '#/components/schemas/SoundModifications'
+        stream_auth_token:
+          description: An authentication token to be sent as part of the WebSocket
+            connection when using streaming. Maximum length is 4000 characters.
+          example: your-auth-token
+          maxLength: 4000
+          type: string
         stream_bidirectional_codec:
           $ref: '#/components/schemas/StreamBidirectionalCodec'
         stream_bidirectional_mode:
@@ -27569,6 +27575,12 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        gather_ended_speech:
+          description: Text that will be played when the gathering has finished. There
+            is a 3,000 character limit.
+          example: Thank you for providing the information.
+          maxLength: 3000
+          type: string
         greeting:
           description: Text that will be played when the gathering starts, if none
             then nothing will be played when the gathering starts. The greeting can
@@ -27635,9 +27647,9 @@ components:
           $ref: '#/components/schemas/TranscriptionConfig'
         user_response_timeout_ms:
           default: 10000
-          description: The number of milliseconds to wait for a user response before
-            the voice assistant times out and check if the user is still there.
-          example: 5000
+          description: The maximum time in milliseconds to wait for user response
+            before timing out.
+          example: 15000
           type: integer
         voice:
           $ref: '#/components/schemas/VoiceConfig'
@@ -32873,6 +32885,57 @@ components:
       type: object
     MinimaxVoiceSettings:
       properties:
+        language_boost:
+          default: null
+          description: Enhances recognition for specific languages and dialects during
+            MiniMax TTS synthesis. Default is null (no boost). Set to 'auto' for automatic
+            language detection.
+          enum:
+          - null
+          - auto
+          - Chinese
+          - Chinese,Yue
+          - English
+          - Arabic
+          - Russian
+          - Spanish
+          - French
+          - Portuguese
+          - German
+          - Turkish
+          - Dutch
+          - Ukrainian
+          - Vietnamese
+          - Indonesian
+          - Japanese
+          - Italian
+          - Korean
+          - Thai
+          - Polish
+          - Romanian
+          - Greek
+          - Czech
+          - Finnish
+          - Hindi
+          - Bulgarian
+          - Danish
+          - Hebrew
+          - Malay
+          - Persian
+          - Slovak
+          - Swedish
+          - Croatian
+          - Filipino
+          - Hungarian
+          - Norwegian
+          - Slovenian
+          - Catalan
+          - Nynorsk
+          - Tamil
+          - Afrikaans
+          type:
+          - string
+          - 'null'
         pitch:
           default: 0
           description: Voice pitch adjustment. Default is 0.
@@ -45502,6 +45565,10 @@ components:
           - tr-TR
           example: en-US
           type: string
+        loop:
+          $ref: '#/components/schemas/Loopcount'
+          description: The number of times to play the audio file. Use `infinity`
+            to loop indefinitely. Defaults to 1.
         payload:
           description: The text or SSML to be converted into speech. There is a 3,000
             character limit.
@@ -45532,6 +45599,16 @@ components:
             file in the queue. Specify `all` to stop the current audio file being
             played and to also clear all audio files from the queue.
           example: current
+          type: string
+        target_legs:
+          default: self
+          description: Specifies which legs of the call should receive the spoken
+            audio.
+          enum:
+          - self
+          - opposite
+          - both
+          example: both
           type: string
         voice:
           description: "Specifies the voice used in speech synthesis.\n\n- Define\
@@ -45871,6 +45948,23 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        custom_parameters:
+          description: Custom parameters to be sent as part of the WebSocket connection.
+          example:
+          - name: param1
+            value: value1
+          - name: param2
+            value: value2
+          items:
+            properties:
+              name:
+                description: The name of the custom parameter.
+                type: string
+              value:
+                description: The value of the custom parameter.
+                type: string
+            type: object
+          type: array
         dialogflow_config:
           $ref: '#/components/schemas/DialogflowConfig'
         enable_dialogflow:
@@ -45879,6 +45973,12 @@ components:
             is false.
           example: true
           type: boolean
+        stream_auth_token:
+          description: An authentication token to be sent as part of the WebSocket
+            connection. Maximum length is 4000 characters.
+          example: your-auth-token
+          maxLength: 4000
+          type: string
         stream_bidirectional_codec:
           $ref: '#/components/schemas/StreamBidirectionalCodec'
         stream_bidirectional_mode:
@@ -50598,6 +50698,12 @@ components:
             behavior is to hang up the leg.
           example: self
           type: string
+        preferred_codecs:
+          description: The list of comma-separated codecs in order of preference to
+            be used during the call. The codecs supported are `G722`, `PCMU`, `PCMA`,
+            `G729`, `OPUS`, `VP8`, `H264`, `AMR-WB`.
+          example: G722,PCMU,PCMA,G729,OPUS,VP8,H264
+          type: string
         record:
           description: Start recording automatically after an event. Disabled by default.
           enum:
@@ -50736,6 +50842,27 @@ components:
           description: The DID or SIP URI to dial out to.
           example: +18005550100 or sip:username@sip.telnyx.com
           type: string
+        webhook_retries_policies:
+          additionalProperties:
+            properties:
+              retries_ms:
+                description: Array of delays in milliseconds between retry attempts.
+                  Total sum cannot exceed 60000ms.
+                items:
+                  type: integer
+                maxItems: 5
+                type: array
+            type: object
+          description: A map of event types to retry policies. Each retry policy contains
+            an array of `retries_ms` specifying the delays between retry attempts
+            in milliseconds. Maximum 5 retries, total delay cannot exceed 60 seconds.
+          example:
+            call.answered:
+              retries_ms:
+              - 1000
+              - 2000
+              - 5000
+          type: object
         webhook_url:
           description: Use this field to override the URL for which Telnyx will send
             subsequent webhooks to for this call.
@@ -50748,6 +50875,26 @@ components:
           - POST
           - GET
           example: GET
+          type: string
+        webhook_urls:
+          additionalProperties:
+            format: uri
+            type: string
+          description: A map of event types to webhook URLs. When an event of the
+            specified type occurs, the webhook URL associated with that event type
+            will be called instead of `webhook_url`. Events not mapped here will use
+            the default `webhook_url`.
+          example:
+            call.answered: https://www.example.com/webhooks/answered
+            call.hangup: https://www.example.com/webhooks/hangup
+          type: object
+        webhook_urls_method:
+          default: POST
+          description: HTTP request method to invoke `webhook_urls`.
+          enum:
+          - POST
+          - GET
+          example: POST
           type: string
       required:
       - to
@@ -55310,6 +55457,57 @@ components:
             - type
             - value
             type: object
+        language_boost:
+          default: null
+          description: Enhances recognition for specific languages and dialects during
+            MiniMax TTS synthesis. Default is null (no boost). Set to 'auto' for automatic
+            language detection. Only applicable when using MiniMax voices.
+          enum:
+          - null
+          - auto
+          - Chinese
+          - Chinese,Yue
+          - English
+          - Arabic
+          - Russian
+          - Spanish
+          - French
+          - Portuguese
+          - German
+          - Turkish
+          - Dutch
+          - Ukrainian
+          - Vietnamese
+          - Indonesian
+          - Japanese
+          - Italian
+          - Korean
+          - Thai
+          - Polish
+          - Romanian
+          - Greek
+          - Czech
+          - Finnish
+          - Hindi
+          - Bulgarian
+          - Danish
+          - Hebrew
+          - Malay
+          - Persian
+          - Slovak
+          - Swedish
+          - Croatian
+          - Filipino
+          - Hungarian
+          - Norwegian
+          - Slovenian
+          - Catalan
+          - Nynorsk
+          - Tamil
+          - Afrikaans
+          type:
+          - string
+          - 'null'
         similarity_boost:
           default: 0.75
           description: Determines how closely the AI should adhere to the original
