@@ -15261,6 +15261,12 @@ components:
           type: string
         sound_modifications:
           $ref: '#/components/schemas/SoundModifications'
+        stream_auth_token:
+          description: An authentication token to be sent as part of the WebSocket
+            connection when using streaming. Maximum length is 4000 characters.
+          example: your-auth-token
+          maxLength: 4000
+          type: string
         stream_bidirectional_codec:
           $ref: '#/components/schemas/StreamBidirectionalCodec'
         stream_bidirectional_mode:
@@ -17998,6 +18004,97 @@ components:
           type: string
       title: Conference Floor Changed
       type: object
+    ConferenceGatherUsingAudioRequest:
+      example:
+        audio_url: http://example.com/gather_prompt.wav
+        call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+        maximum_digits: 4
+        minimum_digits: 1
+        timeout_millis: 30000
+      properties:
+        audio_url:
+          description: The URL of the audio file to play as the gather prompt. Must
+            be WAV or MP3 format.
+          example: http://example.com/gather_prompt.wav
+          type: string
+        call_control_id:
+          description: Unique identifier and token for controlling the call leg that
+            will receive the gather prompt.
+          example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+          type: string
+        client_state:
+          description: Use this field to add state to every subsequent webhook. Must
+            be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        gather_id:
+          description: Identifier for this gather command. Will be included in the
+            gather ended webhook. Maximum 100 characters.
+          maxLength: 100
+          type: string
+        initial_timeout_millis:
+          description: Duration in milliseconds to wait for the first digit before
+            timing out.
+          example: 10000
+          type: integer
+        inter_digit_timeout_millis:
+          default: 5000
+          description: Duration in milliseconds to wait between digits.
+          example: 3000
+          type: integer
+        invalid_audio_url:
+          description: URL of audio file to play when invalid input is received.
+          type: string
+        invalid_media_name:
+          description: Name of media file to play when invalid input is received.
+          type: string
+        maximum_digits:
+          default: 128
+          description: Maximum number of digits to gather.
+          example: 10
+          minimum: 1
+          type: integer
+        maximum_tries:
+          default: 3
+          description: Maximum number of times to play the prompt if no input is received.
+          example: 3
+          minimum: 1
+          type: integer
+        media_name:
+          description: The name of the media file uploaded to the Media Storage API
+            to play as the gather prompt.
+          type: string
+        minimum_digits:
+          default: 1
+          description: Minimum number of digits to gather.
+          example: 1
+          minimum: 1
+          type: integer
+        stop_playback_on_dtmf:
+          default: true
+          description: Whether to stop the audio playback when a DTMF digit is received.
+          example: true
+          type: boolean
+        terminating_digit:
+          default: '#'
+          description: Digit that terminates gathering.
+          example: '#'
+          type: string
+        timeout_millis:
+          default: 60000
+          description: Duration in milliseconds to wait for input before timing out.
+          example: 30000
+          type: integer
+        valid_digits:
+          default: 0123456789#*
+          description: Digits that are valid for gathering. All other digits will
+            be ignored.
+          example: "0123456789"
+          type: string
+      required:
+      - call_control_id
+      title: Conference Gather Using Audio Request
+      type: object
     ConferenceHoldRequest:
       example:
         audio_url: http://example.com/message.wav
@@ -18041,6 +18138,58 @@ components:
         region:
           $ref: '#/components/schemas/ConferenceRegion'
       title: Conference Mute Request
+      type: object
+    ConferenceParticipant:
+      properties:
+        call_control_id:
+          description: Unique identifier and token for controlling the participant's
+            call leg.
+          type: string
+        call_leg_id:
+          description: Unique identifier for the call leg.
+          type: string
+        conference_id:
+          description: Unique identifier for the conference.
+          type: string
+        created_at:
+          description: Timestamp when the participant joined.
+          format: date-time
+          type: string
+        end_conference_on_exit:
+          description: Whether the conference ends when this participant exits.
+          type: boolean
+        id:
+          description: Uniquely identifies the participant.
+          type: string
+        label:
+          description: Label assigned to the participant when joining.
+          type: string
+        muted:
+          description: Whether the participant is muted.
+          type: boolean
+        on_hold:
+          description: Whether the participant is on hold.
+          type: boolean
+        soft_end_conference_on_exit:
+          description: Whether the conference soft-ends when this participant exits.
+          type: boolean
+        status:
+          description: Status of the participant.
+          enum:
+          - joining
+          - joined
+          - left
+          type: string
+        updated_at:
+          description: Timestamp when the participant was last updated.
+          format: date-time
+          type: string
+        whisper_call_control_ids:
+          description: List of call control IDs this participant is whispering to.
+          items:
+            type: string
+          type: array
+      title: Conference Participant
       type: object
     ConferenceParticipantDetailRecord:
       properties:
@@ -18458,6 +18607,12 @@ components:
         data:
           $ref: '#/components/schemas/ConferenceParticipantPlaybackStarted'
       title: Conference Participant Playback Started Event
+      type: object
+    ConferenceParticipantResource:
+      properties:
+        data:
+          $ref: '#/components/schemas/ConferenceParticipant'
+      title: Conference Participant Resource
       type: object
     ConferenceParticipantSpeakEnded:
       example:
@@ -19217,6 +19372,40 @@ components:
           example: /v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Conferences.json?Page=0&PageSize=1
           type: string
       title: Multiple conference resources
+      type: object
+    ConferenceSendDTMFRequest:
+      example:
+        digits: 1234#
+        duration_millis: 250
+      properties:
+        call_control_ids:
+          description: Array of participant call control IDs to send DTMF to. When
+            empty, DTMF will be sent to all participants.
+          example:
+          - v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+          items:
+            type: string
+          type: array
+        client_state:
+          description: Use this field to add state to every subsequent webhook. Must
+            be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        digits:
+          description: 'DTMF digits to send. Valid characters: 0-9, A-D, *, #, w (0.5s
+            pause), W (1s pause).'
+          example: 1234#
+          type: string
+        duration_millis:
+          default: 250
+          description: Duration of each DTMF digit in milliseconds.
+          example: 250
+          maximum: 500
+          minimum: 100
+          type: integer
+      required:
+      - digits
+      title: Conference Send DTMF Request
       type: object
     ConferenceSid:
       example: cd5a70f4-759b-4d5e-9c06-88c00f16f3c1
@@ -24325,6 +24514,12 @@ components:
         transcription_engine: Deepgram
         transcription_model: deepgram/nova-2
       properties:
+        interim_results:
+          default: false
+          description: Whether to send also interim results. If set to false, only
+            final results will be sent.
+          example: true
+          type: boolean
         keywords_boosting:
           additionalProperties:
             description: Boost intensifier for the keyword. Higher values increase
@@ -24350,6 +24545,14 @@ components:
           enum:
           - deepgram/nova-2
           type: string
+        utterance_end_ms:
+          default: 1000
+          description: Number of milliseconds of silence to consider an utterance
+            ended. Ranges from 0 to 5000 ms.
+          example: 800
+          maximum: 5000
+          minimum: 0
+          type: integer
       required:
       - transcription_engine
       - transcription_model
@@ -24426,6 +24629,12 @@ components:
         transcription_engine: Deepgram
         transcription_model: deepgram/nova-3
       properties:
+        interim_results:
+          default: false
+          description: Whether to send also interim results. If set to false, only
+            final results will be sent.
+          example: true
+          type: boolean
         keywords_boosting:
           additionalProperties:
             description: Boost intensifier for the keyword. Higher values increase
@@ -24451,6 +24660,14 @@ components:
           enum:
           - deepgram/nova-3
           type: string
+        utterance_end_ms:
+          default: 1000
+          description: Number of milliseconds of silence to consider an utterance
+            ended. Ranges from 0 to 5000 ms.
+          example: 800
+          maximum: 5000
+          minimum: 0
+          type: integer
       required:
       - transcription_engine
       - transcription_model
@@ -25748,6 +25965,16 @@ components:
       type:
       - string
       - 'null'
+    EndConferenceRequest:
+      example: {}
+      properties:
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same conference.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: End Conference Request
+      type: object
     EnqueueRequest:
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -27569,6 +27796,12 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        gather_ended_speech:
+          description: Text that will be played when the gathering has finished. There
+            is a 3,000 character limit.
+          example: Thank you for providing the information.
+          maxLength: 3000
+          type: string
         greeting:
           description: Text that will be played when the gathering starts, if none
             then nothing will be played when the gathering starts. The greeting can
@@ -27635,9 +27868,9 @@ components:
           $ref: '#/components/schemas/TranscriptionConfig'
         user_response_timeout_ms:
           default: 10000
-          description: The number of milliseconds to wait for a user response before
-            the voice assistant times out and check if the user is still there.
-          example: 5000
+          description: The maximum time in milliseconds to wait for user response
+            before timing out.
+          example: 15000
           type: integer
         voice:
           $ref: '#/components/schemas/VoiceConfig'
@@ -30141,6 +30374,23 @@ components:
             Url.
           example: <?xml version="1.0" encoding="UTF-8"?><Response><Say>Hello</Say></Response>
           type: string
+        TimeLimit:
+          default: 14400
+          description: The maximum duration of the call in seconds. The minimum value
+            is 30 and the maximum value is 14400 (4 hours). Default is 14400 seconds.
+          example: 3600
+          maximum: 14400
+          minimum: 30
+          type: integer
+        Timeout:
+          default: 30
+          description: The number of seconds to wait for the called party to answer
+            the call before the call is canceled. The minimum value is 5 and the maximum
+            value is 120. Default is 30 seconds.
+          example: 60
+          maximum: 120
+          minimum: 5
+          type: integer
         To:
           description: The phone number of the called party. Phone numbers are formatted
             with a `+` and country code.
@@ -32873,6 +33123,57 @@ components:
       type: object
     MinimaxVoiceSettings:
       properties:
+        language_boost:
+          default: null
+          description: Enhances recognition for specific languages and dialects during
+            MiniMax TTS synthesis. Default is null (no boost). Set to 'auto' for automatic
+            language detection.
+          enum:
+          - null
+          - auto
+          - Chinese
+          - Chinese,Yue
+          - English
+          - Arabic
+          - Russian
+          - Spanish
+          - French
+          - Portuguese
+          - German
+          - Turkish
+          - Dutch
+          - Ukrainian
+          - Vietnamese
+          - Indonesian
+          - Japanese
+          - Italian
+          - Korean
+          - Thai
+          - Polish
+          - Romanian
+          - Greek
+          - Czech
+          - Finnish
+          - Hindi
+          - Bulgarian
+          - Danish
+          - Hebrew
+          - Malay
+          - Persian
+          - Slovak
+          - Swedish
+          - Croatian
+          - Filipino
+          - Hungarian
+          - Norwegian
+          - Slovenian
+          - Catalan
+          - Nynorsk
+          - Tamil
+          - Afrikaans
+          type:
+          - string
+          - 'null'
         pitch:
           default: 0
           description: Voice pitch adjustment. Default is 0.
@@ -45502,6 +45803,10 @@ components:
           - tr-TR
           example: en-US
           type: string
+        loop:
+          $ref: '#/components/schemas/Loopcount'
+          description: The number of times to play the audio file. Use `infinity`
+            to loop indefinitely. Defaults to 1.
         payload:
           description: The text or SSML to be converted into speech. There is a 3,000
             character limit.
@@ -45532,6 +45837,16 @@ components:
             file in the queue. Specify `all` to stop the current audio file being
             played and to also clear all audio files from the queue.
           example: current
+          type: string
+        target_legs:
+          default: self
+          description: Specifies which legs of the call should receive the spoken
+            audio.
+          enum:
+          - self
+          - opposite
+          - both
+          example: both
           type: string
         voice:
           description: "Specifies the voice used in speech synthesis.\n\n- Define\
@@ -45871,6 +46186,23 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        custom_parameters:
+          description: Custom parameters to be sent as part of the WebSocket connection.
+          example:
+          - name: param1
+            value: value1
+          - name: param2
+            value: value2
+          items:
+            properties:
+              name:
+                description: The name of the custom parameter.
+                type: string
+              value:
+                description: The value of the custom parameter.
+                type: string
+            type: object
+          type: array
         dialogflow_config:
           $ref: '#/components/schemas/DialogflowConfig'
         enable_dialogflow:
@@ -45879,6 +46211,12 @@ components:
             is false.
           example: true
           type: boolean
+        stream_auth_token:
+          description: An authentication token to be sent as part of the WebSocket
+            connection. Maximum length is 4000 characters.
+          example: your-auth-token
+          maxLength: 4000
+          type: string
         stream_bidirectional_codec:
           $ref: '#/components/schemas/StreamBidirectionalCodec'
         stream_bidirectional_mode:
@@ -50598,6 +50936,12 @@ components:
             behavior is to hang up the leg.
           example: self
           type: string
+        preferred_codecs:
+          description: The list of comma-separated codecs in order of preference to
+            be used during the call. The codecs supported are `G722`, `PCMU`, `PCMA`,
+            `G729`, `OPUS`, `VP8`, `H264`, `AMR-WB`.
+          example: G722,PCMU,PCMA,G729,OPUS,VP8,H264
+          type: string
         record:
           description: Start recording automatically after an event. Disabled by default.
           enum:
@@ -50736,6 +51080,27 @@ components:
           description: The DID or SIP URI to dial out to.
           example: +18005550100 or sip:username@sip.telnyx.com
           type: string
+        webhook_retries_policies:
+          additionalProperties:
+            properties:
+              retries_ms:
+                description: Array of delays in milliseconds between retry attempts.
+                  Total sum cannot exceed 60000ms.
+                items:
+                  type: integer
+                maxItems: 5
+                type: array
+            type: object
+          description: A map of event types to retry policies. Each retry policy contains
+            an array of `retries_ms` specifying the delays between retry attempts
+            in milliseconds. Maximum 5 retries, total delay cannot exceed 60 seconds.
+          example:
+            call.answered:
+              retries_ms:
+              - 1000
+              - 2000
+              - 5000
+          type: object
         webhook_url:
           description: Use this field to override the URL for which Telnyx will send
             subsequent webhooks to for this call.
@@ -50748,6 +51113,26 @@ components:
           - POST
           - GET
           example: GET
+          type: string
+        webhook_urls:
+          additionalProperties:
+            format: uri
+            type: string
+          description: A map of event types to webhook URLs. When an event of the
+            specified type occurs, the webhook URL associated with that event type
+            will be called instead of `webhook_url`. Events not mapped here will use
+            the default `webhook_url`.
+          example:
+            call.answered: https://www.example.com/webhooks/answered
+            call.hangup: https://www.example.com/webhooks/hangup
+          type: object
+        webhook_urls_method:
+          default: POST
+          description: HTTP request method to invoke `webhook_urls`.
+          enum:
+          - POST
+          - GET
+          example: POST
           type: string
       required:
       - to
@@ -51504,69 +51889,28 @@ components:
       type: object
     UpdateConferenceParticipantRequest:
       example:
-        BeepOnExit: false
+        beep_enabled: never
+        end_conference_on_exit: true
       properties:
-        AnnounceMethod:
-          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
-            `POST`.
+        beep_enabled:
+          description: Whether entry/exit beeps are enabled for this participant.
           enum:
-          - GET
-          - POST
-          example: GET
+          - always
+          - never
+          - on_enter
+          - on_exit
+          example: always
           type: string
-        AnnounceUrl:
-          description: The URL to call to announce something to the participant. The
-            URL may return an MP3 fileo a WAV file, or a TwiML document that contains
-            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
-          example: https://www.example.com/announce.xml
-          type: string
-        BeepOnExit:
-          description: Whether to play a notification beep to the conference when
-            the participant exits.
+        end_conference_on_exit:
+          description: Whether the conference should end when this participant exits.
           example: false
           type: boolean
-        CallSidToCoach:
-          description: The SID of the participant who is being coached. The participant
-            being coached is the only participant who can hear the participant who
-            is coaching.
-          example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
-          type: string
-        Coaching:
-          description: Whether the participant is coaching another call. When `true`,
-            `CallSidToCoach` has to be given.
+        soft_end_conference_on_exit:
+          description: Whether the conference should soft-end when this participant
+            exits. A soft end will stop new participants from joining but allow existing
+            participants to remain.
           example: false
           type: boolean
-        EndConferenceOnExit:
-          description: Whether to end the conference when the participant leaves.
-          example: false
-          type: boolean
-        Hold:
-          description: Whether the participant should be on hold.
-          example: true
-          type: boolean
-        HoldMethod:
-          description: The HTTP method to use when calling the `HoldUrl`.
-          enum:
-          - GET
-          - POST
-          example: POST
-          type: string
-        HoldUrl:
-          description: The URL to be called using the `HoldMethod` for music that
-            plays when the participant is on hold. The URL may return an MP3 file,
-            a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`,
-            or `<Redirect>` verbs.
-          example: https://www.example.com/hold-music.xml
-          type: string
-        Muted:
-          description: Whether the participant should be muted.
-          example: true
-          type: boolean
-        WaitUrl:
-          description: The URL to call for an audio file to play while the participant
-            is waiting for the conference to start.
-          example: https://www.example.com/wait_music.mp3
-          type: string
       title: Update Conference Participant Request
       type: object
     UpdateConferenceRequest:
@@ -55310,6 +55654,57 @@ components:
             - type
             - value
             type: object
+        language_boost:
+          default: null
+          description: Enhances recognition for specific languages and dialects during
+            MiniMax TTS synthesis. Default is null (no boost). Set to 'auto' for automatic
+            language detection. Only applicable when using MiniMax voices.
+          enum:
+          - null
+          - auto
+          - Chinese
+          - Chinese,Yue
+          - English
+          - Arabic
+          - Russian
+          - Spanish
+          - French
+          - Portuguese
+          - German
+          - Turkish
+          - Dutch
+          - Ukrainian
+          - Vietnamese
+          - Indonesian
+          - Japanese
+          - Italian
+          - Korean
+          - Thai
+          - Polish
+          - Romanian
+          - Greek
+          - Czech
+          - Finnish
+          - Hindi
+          - Bulgarian
+          - Danish
+          - Hebrew
+          - Malay
+          - Persian
+          - Slovak
+          - Swedish
+          - Croatian
+          - Filipino
+          - Hungarian
+          - Norwegian
+          - Slovenian
+          - Catalan
+          - Nynorsk
+          - Tamil
+          - Afrikaans
+          type:
+          - string
+          - 'null'
         similarity_boost:
           default: 0.75
           description: Determines how closely the AI should adhere to the original
@@ -56956,6 +57351,73 @@ components:
             type: object
           type: array
       title: Resource not found
+      type: object
+    call-scripting_UpdateConferenceParticipantRequest:
+      example:
+        BeepOnExit: false
+      properties:
+        AnnounceMethod:
+          description: The HTTP method used to call the `AnnounceUrl`. Defaults to
+            `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        AnnounceUrl:
+          description: The URL to call to announce something to the participant. The
+            URL may return an MP3 fileo a WAV file, or a TwiML document that contains
+            `<Play>`, `<Say>`, `<Pause>`, or `<Redirect>` verbs.
+          example: https://www.example.com/announce.xml
+          type: string
+        BeepOnExit:
+          description: Whether to play a notification beep to the conference when
+            the participant exits.
+          example: false
+          type: boolean
+        CallSidToCoach:
+          description: The SID of the participant who is being coached. The participant
+            being coached is the only participant who can hear the participant who
+            is coaching.
+          example: v3:9X2vxPDFY2RHSJ1EdMS0RHRksMTg7ldNxdjWbVr9zBjbGjGsSe-aiQ
+          type: string
+        Coaching:
+          description: Whether the participant is coaching another call. When `true`,
+            `CallSidToCoach` has to be given.
+          example: false
+          type: boolean
+        EndConferenceOnExit:
+          description: Whether to end the conference when the participant leaves.
+          example: false
+          type: boolean
+        Hold:
+          description: Whether the participant should be on hold.
+          example: true
+          type: boolean
+        HoldMethod:
+          description: The HTTP method to use when calling the `HoldUrl`.
+          enum:
+          - GET
+          - POST
+          example: POST
+          type: string
+        HoldUrl:
+          description: The URL to be called using the `HoldMethod` for music that
+            plays when the participant is on hold. The URL may return an MP3 file,
+            a WAV file, or a TwiML document that contains `<Play>`, `<Say>`, `<Pause>`,
+            or `<Redirect>` verbs.
+          example: https://www.example.com/hold-music.xml
+          type: string
+        Muted:
+          description: Whether the participant should be muted.
+          example: true
+          type: boolean
+        WaitUrl:
+          description: The URL to call for an audio file to play while the participant
+            is waiting for the conference to start.
+          example: https://www.example.com/wait_music.mp3
+          type: string
+      title: Update Conference Participant Request
       type: object
     call-scripting_UpdateConferenceRequest:
       example:
@@ -68908,6 +69370,69 @@ paths:
       tags:
       - Conference Commands
       x-latency-category: interactive
+  /conferences/{id}/actions/end:
+    post:
+      description: End a conference and terminate all active participants.
+      operationId: EndConference
+      parameters:
+      - description: Uniquely identifies the conference.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndConferenceRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConferenceCommandResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: End a conference
+      tags:
+      - Conference Commands
+      x-endpoint-cost: 0.01
+      x-latency-category: interactive
+  /conferences/{id}/actions/gather_using_audio:
+    post:
+      description: Play an audio file to a specific conference participant and gather
+        DTMF input.
+      operationId: ConferenceGatherUsingAudio
+      parameters:
+      - description: Uniquely identifies the conference.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConferenceGatherUsingAudioRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConferenceCommandResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Gather DTMF using audio prompt in a conference
+      tags:
+      - Conference Commands
+      x-endpoint-cost: 0.01
+      x-latency-category: interactive
   /conferences/{id}/actions/hold:
     post:
       description: Hold a list of participants in a conference call
@@ -69198,6 +69723,37 @@ paths:
       tags:
       - Conference Commands
       x-latency-category: interactive
+  /conferences/{id}/actions/send_dtmf:
+    post:
+      description: Send DTMF tones to one or more conference participants.
+      operationId: ConferenceSendDTMF
+      parameters:
+      - description: Uniquely identifies the conference.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConferenceSendDTMFRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ConferenceCommandResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Send DTMF to conference participants
+      tags:
+      - Conference Commands
+      x-endpoint-cost: 0.01
+      x-latency-category: interactive
   /conferences/{id}/actions/speak:
     post:
       description: Convert text to speech and play it to all or some participants.
@@ -69347,6 +69903,83 @@ paths:
       summary: Update conference participant
       tags:
       - Conference Commands
+      x-latency-category: interactive
+  /conferences/{id}/participants/{participant_id}:
+    get:
+      description: Retrieve details of a specific conference participant by their
+        ID or label.
+      operationId: RetrieveConferenceParticipant
+      parameters:
+      - description: Uniquely identifies the conference.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Uniquely identifies the participant by their ID or label.
+        in: path
+        name: participant_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConferenceParticipantResource'
+          description: Successful response
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Retrieve a conference participant
+      tags:
+      - Conference Commands
+      x-endpoint-cost: 0.01
+      x-latency-category: interactive
+    patch:
+      description: Update properties of a conference participant.
+      operationId: UpdateConferenceParticipant
+      parameters:
+      - description: Uniquely identifies the conference.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Uniquely identifies the participant.
+        in: path
+        name: participant_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConferenceParticipantRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConferenceParticipantResource'
+          description: Successful response
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Update a conference participant
+      tags:
+      - Conference Commands
+      x-endpoint-cost: 0.01
       x-latency-category: interactive
   /connections:
     get:
@@ -86962,7 +87595,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/UpdateConferenceParticipantRequest'
+              $ref: '#/components/schemas/call-scripting_UpdateConferenceParticipantRequest'
         description: Update Conference Participant request object
         required: true
       responses:
