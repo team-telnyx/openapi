@@ -3335,6 +3335,15 @@ components:
           schema:
             $ref: '#/components/schemas/AdvancedOrder'
       description: An Advanced Order Response
+    AlphanumericSenderIdResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/AlphanumericSenderId'
+            type: object
+      description: Successful response with a single alphanumeric sender ID.
     AuditLogListResponse:
       content:
         application/json:
@@ -5014,6 +5023,19 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: Successful response
+    ListAlphanumericSenderIdsResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/AlphanumericSenderId'
+                type: array
+              meta:
+                $ref: '#/components/schemas/messaging_PaginationMeta'
+            type: object
+      description: Successful response with a list of alphanumeric sender IDs.
     ListAvailablePhoneNumbersBlockResponse:
       content:
         application/json:
@@ -8370,12 +8392,36 @@ components:
             $ref: '#/components/schemas/media-streaming_Errors'
       description: Unprocessable entity. The request was well-formed but contains
         semantic errors.
+    messaging_BadRequestResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/messaging_Errors'
+      description: Bad Request
     messaging_GenericErrorResponse:
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/messaging_Errors'
       description: Unexpected error
+    messaging_NotFoundResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/messaging_Errors'
+      description: Not Found
+    messaging_UnauthorizedResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/messaging_Errors'
+      description: Unauthorized
+    messaging_UnprocessableEntityResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/messaging_Errors'
+      description: Unprocessable Entity
     netapps_GenericErrorResponse:
       content:
         application/json:
@@ -9357,6 +9403,35 @@ components:
           title: Requirement Group ID
           type: string
       title: AdvancedOrderRequest
+      type: object
+    AlphanumericSenderId:
+      properties:
+        alphanumeric_sender_id:
+          description: The alphanumeric sender ID string.
+          example: MyCompany
+          type: string
+        id:
+          description: Uniquely identifies the alphanumeric sender ID resource.
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        messaging_profile_id:
+          description: The messaging profile this sender ID belongs to.
+          format: uuid
+          type: string
+        organization_id:
+          description: The organization that owns this sender ID.
+          type: string
+        record_type:
+          enum:
+          - alphanumeric_sender_id
+          example: alphanumeric_sender_id
+          type: string
+        us_long_code_fallback:
+          description: A US long code number to use as fallback when sending to US
+            destinations.
+          example: '+15551234567'
+          type: string
       type: object
     AltBusinessIdType:
       description: An enumeration.
@@ -11702,6 +11777,11 @@ components:
         - '+18880000001'
         - '+18880000002'
       properties:
+        assign_only:
+          default: false
+          description: If true, only assign numbers to the profile without changing
+            other settings.
+          type: boolean
         messaging_profile_id:
           description: 'Configure the messaging profile these phone numbers are assigned
             to:
@@ -20364,6 +20444,25 @@ components:
               type: boolean
           type: object
       type: object
+    CreateAlphanumericSenderIdRequest:
+      properties:
+        alphanumeric_sender_id:
+          description: The alphanumeric sender ID string.
+          example: MyCompany
+          type: string
+        messaging_profile_id:
+          description: The messaging profile to associate the sender ID with.
+          format: uuid
+          type: string
+        us_long_code_fallback:
+          description: A US long code number to use as fallback when sending to US
+            destinations.
+          example: '+15551234567'
+          type: string
+      required:
+      - alphanumeric_sender_id
+      - messaging_profile_id
+      type: object
     CreateAndroidPushCredentialRequest:
       properties:
         alias:
@@ -22319,6 +22418,12 @@ components:
         whitelisted_destinations:
         - US
       properties:
+        ai_assistant_id:
+          description: The AI assistant ID to associate with this messaging profile.
+          maxLength: 64
+          type:
+          - string
+          - 'null'
         alpha_sender:
           description: The alphanumeric sender ID to use when sending to destinations
             that require an alphanumeric sender ID.
@@ -22338,6 +22443,13 @@ components:
           default: true
           description: Specifies whether the messaging profile is enabled or not.
           type: boolean
+        health_webhook_url:
+          description: A URL to receive health check webhooks for numbers in this
+            profile.
+          format: url
+          type:
+          - string
+          - 'null'
         mms_fall_back_to_sms:
           default: false
           description: enables SMS fallback for MMS messages.
@@ -22355,6 +22467,12 @@ components:
           type: string
         number_pool_settings:
           $ref: '#/components/schemas/NumberPoolSettings'
+        resource_group_id:
+          description: The resource group ID to associate with this messaging profile.
+          maxLength: 64
+          type:
+          - string
+          - 'null'
         smart_encoding:
           default: false
           description: Enables automatic character encoding optimization for SMS messages.
@@ -32855,6 +32973,11 @@ components:
         whitelisted_destinations:
         - US
       properties:
+        ai_assistant_id:
+          description: The AI assistant ID associated with this messaging profile.
+          type:
+          - string
+          - 'null'
         alpha_sender:
           description: The alphanumeric sender ID to use when sending to destinations
             that require an alphanumeric sender ID.
@@ -32906,6 +33029,9 @@ components:
           type: string
         number_pool_settings:
           $ref: '#/components/schemas/NumberPoolSettings'
+        organization_id:
+          description: The organization that owns this messaging profile.
+          type: string
         record_type:
           description: Identifies the type of the resource.
           enum:
@@ -32922,6 +33048,11 @@ components:
           description: Determines how much information is redacted in messages for
             privacy or compliance purposes.
           type: integer
+        resource_group_id:
+          description: The resource group ID associated with this messaging profile.
+          type:
+          - string
+          - 'null'
         smart_encoding:
           default: false
           description: Enables automatic character encoding optimization for SMS messages.
@@ -33800,6 +33931,9 @@ components:
           type:
           - string
           - 'null'
+        organization_id:
+          description: The organization that owns this phone number.
+          type: string
         phone_number:
           description: +E.164 formatted phone number.
           readOnly: true
@@ -33813,6 +33947,11 @@ components:
           example: messaging_settings
           readOnly: true
           type: string
+        tags:
+          description: Tags associated with this phone number.
+          items:
+            type: string
+          type: array
         traffic_type:
           description: The messaging traffic or use case for which the number is currently
             configured.
@@ -36832,6 +36971,11 @@ components:
           - string
           - 'null'
       type: object
+    OutboundMessageResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/OutboundMessagePayload'
+      type: object
     OutboundVoiceProfile:
       example:
         billing_group_id: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
@@ -38356,6 +38500,9 @@ components:
           type:
           - string
           - 'null'
+        organization_id:
+          description: The organization that owns this phone number.
+          type: string
         phone_number:
           description: +E.164 formatted phone number.
           readOnly: true
@@ -38369,6 +38516,11 @@ components:
           example: messaging_settings
           readOnly: true
           type: string
+        tags:
+          description: Tags associated with this phone number.
+          items:
+            type: string
+          type: array
         traffic_type:
           description: The messaging traffic or use case for which the number is currently
             configured.
@@ -41375,6 +41527,14 @@ components:
       - phoneNumber
       - status
       title: ProfileAssignmentPhoneNumbers
+      type: object
+    ProfileMetrics:
+      additionalProperties: true
+      description: Detailed metrics for a messaging profile.
+      type: object
+    ProfileMetricsHighLevel:
+      additionalProperties: true
+      description: High-level metrics summary for a messaging profile.
       type: object
     PublicInternetGateway:
       allOf:
@@ -51586,13 +51746,13 @@ components:
       type: object
     UpdateBrand:
       properties:
-        altBusinessIdType:
-          $ref: '#/components/schemas/AltBusinessIdType'
-        altBusiness_id:
+        altBusinessId:
           description: Alternate business identifier such as DUNS, LEI, or GIIN
           maxLength: 50
           title: Altbusiness Id
           type: string
+        altBusinessIdType:
+          $ref: '#/components/schemas/AltBusinessIdType'
         businessContactEmail:
           description: 'Business contact email.
 
@@ -53195,6 +53355,11 @@ components:
             * Set this field to a quoted UUID of a messaging profile to assign this
             number to that messaging profile'
           type: string
+        tags:
+          description: Tags to set on this phone number.
+          items:
+            type: string
+          type: array
       type: object
     UpdatePhoneNumberRequest:
       example:
@@ -61177,7 +61342,7 @@ paths:
           - brandDisplayName
           - -brandDisplayName
           - tcrBrandId
-          - -tcrBranId
+          - -tcrBrandId
           - tcrCampaignId
           - -tcrCampaignId
           - createdAt
@@ -66709,6 +66874,108 @@ paths:
       summary: Summarize file content
       tags:
       - Chat
+      x-latency-category: responsive
+  /alphanumeric_sender_ids:
+    get:
+      description: List all alphanumeric sender IDs for the authenticated user.
+      operationId: ListAlphanumericSenderIds
+      parameters:
+      - description: Filter by messaging profile ID.
+        in: query
+        name: filter[messaging_profile_id]
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Page number.
+        in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          type: integer
+      - description: Page size.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ListAlphanumericSenderIdsResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/messaging_UnprocessableEntityResponse'
+      summary: List alphanumeric sender IDs
+      tags:
+      - Messaging
+      x-latency-category: responsive
+    post:
+      description: Create a new alphanumeric sender ID associated with a messaging
+        profile.
+      operationId: CreateAlphanumericSenderId
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlphanumericSenderIdRequest'
+        required: true
+      responses:
+        '201':
+          $ref: '#/components/responses/AlphanumericSenderIdResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/messaging_UnprocessableEntityResponse'
+      summary: Create an alphanumeric sender ID
+      tags:
+      - Messaging
+      x-latency-category: responsive
+  /alphanumeric_sender_ids/{id}:
+    delete:
+      description: Delete an alphanumeric sender ID and disassociate it from its messaging
+        profile.
+      operationId: DeleteAlphanumericSenderId
+      parameters:
+      - description: The identifier of the alphanumeric sender ID.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AlphanumericSenderIdResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Delete an alphanumeric sender ID
+      tags:
+      - Messaging
+      x-latency-category: responsive
+    get:
+      description: Retrieve a specific alphanumeric sender ID.
+      operationId: GetAlphanumericSenderId
+      parameters:
+      - description: The identifier of the alphanumeric sender ID.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AlphanumericSenderIdResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Retrieve an alphanumeric sender ID
+      tags:
+      - Messaging
       x-latency-category: responsive
   /audit_events:
     get:
@@ -75013,6 +75280,102 @@ paths:
       tags:
       - Messages
       x-latency-category: responsive
+  /messages/alphanumeric_sender_id:
+    post:
+      description: Send an SMS message using an alphanumeric sender ID. This is SMS
+        only.
+      operationId: SendAlphanumericSenderIdMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                from:
+                  description: A valid alphanumeric sender ID on the user's account.
+                  example: MyCompany
+                  type: string
+                messaging_profile_id:
+                  description: The messaging profile ID to use.
+                  format: uuid
+                  type: string
+                text:
+                  description: The message body.
+                  type: string
+                to:
+                  $ref: '#/components/schemas/ToNumber'
+                  description: Receiving address (+E.164 formatted phone number).
+                use_profile_webhooks:
+                  description: If true, use the messaging profile's webhook settings.
+                  type: boolean
+                webhook_failover_url:
+                  description: Failover callback URL for delivery status updates.
+                  format: url
+                  type:
+                  - string
+                  - 'null'
+                webhook_url:
+                  description: Callback URL for delivery status updates.
+                  format: url
+                  type:
+                  - string
+                  - 'null'
+              required:
+              - from
+              - to
+              - text
+              - messaging_profile_id
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboundMessageResponse'
+          description: Successful response with the sent message.
+        '400':
+          $ref: '#/components/responses/messaging_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/messaging_UnprocessableEntityResponse'
+      summary: Send a message using an alphanumeric sender ID
+      tags:
+      - Messages
+      x-latency-category: responsive
+  /messages/group/{message_id}:
+    get:
+      description: Retrieve all messages in a group MMS conversation by the group
+        message ID.
+      operationId: GetGroupMmsMessages
+      parameters:
+      - description: The group message ID.
+        in: path
+        name: message_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      $ref: '#/components/schemas/OutboundMessagePayload'
+                    type: array
+                type: object
+          description: Successful response with group MMS messages.
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Retrieve group MMS messages
+      tags:
+      - Messages
+      x-latency-category: responsive
   /messages/group_mms:
     post:
       operationId: CreateGroupMmsMessage
@@ -75610,6 +75973,71 @@ paths:
       tags:
       - Hosted Numbers
       x-latency-category: responsive
+  /messaging_hosted_numbers:
+    get:
+      description: List all hosted numbers associated with the authenticated user.
+      operationId: ListMessagingHostedNumbers
+      parameters:
+      - description: Filter by messaging profile ID.
+        in: query
+        name: filter[messaging_profile_id]
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Filter by exact phone number.
+        in: query
+        name: filter[phone_number]
+        required: false
+        schema:
+          type: string
+      - description: Filter by phone number substring.
+        in: query
+        name: filter[phone_number][contains]
+        required: false
+        schema:
+          type: string
+      - description: Sort by phone number.
+        in: query
+        name: sort[phone_number]
+        required: false
+        schema:
+          enum:
+          - asc
+          - desc
+          type: string
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          type: integer
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      $ref: '#/components/schemas/PhoneNumberWithMessagingSettings'
+                    type: array
+                  meta:
+                    $ref: '#/components/schemas/messaging_PaginationMeta'
+                type: object
+          description: Successful response with a list of hosted numbers.
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+      summary: List messaging hosted numbers
+      tags:
+      - Messaging
+      x-latency-category: responsive
   /messaging_hosted_numbers/{id}:
     delete:
       operationId: DeleteMessagingHostedNumber
@@ -75628,6 +76056,69 @@ paths:
       summary: Delete a messaging hosted number
       tags:
       - Hosted Numbers
+      x-latency-category: responsive
+    get:
+      description: Retrieve a specific messaging hosted number by its ID or phone
+        number.
+      operationId: GetMessagingHostedNumber
+      parameters:
+      - description: The ID or phone number of the hosted number.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PhoneNumberWithMessagingSettings'
+                type: object
+          description: Successful response with a hosted number.
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Retrieve a messaging hosted number
+      tags:
+      - Messaging
+      x-latency-category: responsive
+    patch:
+      description: Update the messaging settings for a hosted number.
+      operationId: UpdateMessagingHostedNumber
+      parameters:
+      - description: The ID or phone number of the hosted number.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePhoneNumberMessagingSettingsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PhoneNumberWithMessagingSettings'
+                type: object
+          description: Successful response with the updated hosted number.
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Update a messaging hosted number
+      tags:
+      - Messaging
       x-latency-category: responsive
   /messaging_numbers_bulk_updates:
     post:
@@ -75737,6 +76228,48 @@ paths:
       tags:
       - Opt-Out Management
       x-latency-category: responsive
+  /messaging_profile_metrics:
+    get:
+      description: List high-level metrics for all messaging profiles belonging to
+        the authenticated user.
+      operationId: ListProfileMetrics
+      parameters:
+      - description: The time frame for metrics.
+        in: query
+        name: time_frame
+        required: false
+        schema:
+          default: 24h
+          enum:
+          - 1h
+          - 3h
+          - 24h
+          - 3d
+          - 7d
+          - 30d
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    items:
+                      $ref: '#/components/schemas/ProfileMetricsHighLevel'
+                    type: array
+                  meta:
+                    $ref: '#/components/schemas/messaging_PaginationMeta'
+                type: object
+          description: Successful response with high-level profile metrics.
+        '400':
+          $ref: '#/components/responses/messaging_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+      summary: List high-level messaging profile metrics
+      tags:
+      - Messaging
+      x-latency-category: responsive
   /messaging_profiles:
     get:
       operationId: ListMessagingProfiles
@@ -75754,6 +76287,18 @@ paths:
           type: object
         style: deepObject
       - $ref: '#/components/parameters/PageConsolidated'
+      - description: Filter profiles by exact name match.
+        in: query
+        name: filter[name][eq]
+        required: false
+        schema:
+          type: string
+      - description: Filter profiles by name containing the given string.
+        in: query
+        name: filter[name][contains]
+        required: false
+        schema:
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/ListMessagingProfilesResponse'
@@ -75830,6 +76375,112 @@ paths:
       summary: Update a messaging profile
       tags:
       - Profiles
+      x-latency-category: responsive
+  /messaging_profiles/{id}/actions/regenerate_secret:
+    post:
+      description: Regenerate the v1 secret for a messaging profile.
+      operationId: RegenerateMessagingProfileSecret
+      parameters:
+      - description: The identifier of the messaging profile.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/MessagingProfileResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Regenerate messaging profile secret
+      tags:
+      - Messaging
+      x-latency-category: responsive
+  /messaging_profiles/{id}/alphanumeric_sender_ids:
+    get:
+      description: List all alphanumeric sender IDs associated with a specific messaging
+        profile.
+      operationId: ListProfileAlphanumericSenderIds
+      parameters:
+      - description: The identifier of the messaging profile.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          type: integer
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ListAlphanumericSenderIdsResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: List alphanumeric sender IDs for a messaging profile
+      tags:
+      - Messaging
+      x-latency-category: responsive
+  /messaging_profiles/{id}/metrics:
+    get:
+      description: Get detailed metrics for a specific messaging profile, broken down
+        by time interval.
+      operationId: GetDetailedProfileMetrics
+      parameters:
+      - description: The identifier of the messaging profile.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: The time frame for metrics.
+        in: query
+        name: time_frame
+        required: false
+        schema:
+          default: 24h
+          enum:
+          - 1h
+          - 3h
+          - 24h
+          - 3d
+          - 7d
+          - 30d
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProfileMetrics'
+                type: object
+          description: Successful response with detailed profile metrics.
+        '400':
+          $ref: '#/components/responses/messaging_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/messaging_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/messaging_NotFoundResponse'
+      summary: Get detailed messaging profile metrics
+      tags:
+      - Messaging
       x-latency-category: responsive
   /messaging_profiles/{id}/phone_numbers:
     get:
@@ -79820,6 +80471,44 @@ paths:
       operationId: ListPhoneNumbersWithMessagingSettings
       parameters:
       - $ref: '#/components/parameters/PageConsolidated'
+      - description: Filter by messaging profile ID.
+        in: query
+        name: filter[messaging_profile_id]
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Filter by exact phone number (supports comma-separated list).
+        in: query
+        name: filter[phone_number]
+        required: false
+        schema:
+          type: string
+      - description: Filter by phone number substring.
+        in: query
+        name: filter[phone_number][contains]
+        required: false
+        schema:
+          type: string
+      - description: Filter by phone number type.
+        in: query
+        name: filter[type]
+        required: false
+        schema:
+          enum:
+          - tollfree
+          - longcode
+          - shortcode
+          type: string
+      - description: Sort by phone number.
+        in: query
+        name: sort[phone_number]
+        required: false
+        schema:
+          enum:
+          - asc
+          - desc
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/ListPhoneNumbersWithMessagingSettingsResponse'
