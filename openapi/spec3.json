@@ -486,6 +486,10 @@
       "description": "Speech to text usage reports"
     },
     {
+      "name": "Stored Payment Transactions",
+      "description": "Operations for managing stored payment transactions."
+    },
+    {
       "name": "TeXML Applications",
       "description": "TeXML Applications operations"
     },
@@ -34830,7 +34834,114 @@
         "x-latency-category": "responsive"
       }
     },
+    "/queues": {
+      "get": {
+        "summary": "List queues",
+        "description": "List all queues for the authenticated user.",
+        "operationId": "ListQueues",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "page[number]",
+            "in": "query",
+            "description": "The page number to load",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "description": "The size of the page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 250,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListQueuesResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "post": {
+        "summary": "Create a queue",
+        "description": "Create a new call queue.",
+        "operationId": "CreateQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/queues/{queue_name}": {
+      "delete": {
+        "summary": "Delete a queue",
+        "description": "Delete an existing call queue.",
+        "operationId": "DeleteQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Queue deleted successfully."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
       "get": {
         "summary": "Retrieve a call queue",
         "description": "Retrieve an existing call queue",
@@ -34855,6 +34966,49 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "post": {
+        "summary": "Update a queue",
+        "description": "Update properties of an existing call queue.",
+        "operationId": "UpdateQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
           }
         },
         "x-latency-category": "interactive"
@@ -41965,7 +42119,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/CreateQueueRequest"
+                "$ref": "#/components/schemas/call-scripting_CreateQueueRequest"
               }
             }
           }
@@ -42053,7 +42207,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateQueueRequest"
+                "$ref": "#/components/schemas/call-scripting_UpdateQueueRequest"
               }
             }
           }
@@ -43510,6 +43664,99 @@
           },
           "422": {
             "description": "Unprocessable Entity"
+          }
+        },
+        "x-latency-category": "responsive"
+      }
+    },
+    "/v2/payment/stored_payment_transactions": {
+      "post": {
+        "summary": "Create a stored payment transaction",
+        "operationId": "createStoredPaymentTransaction",
+        "tags": [
+          "Stored Payment Transactions"
+        ],
+        "x-endpoint-cost": "light",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoredPaymentTransactionRequest"
+              },
+              "example": {
+                "amount": "120.00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored payment transaction created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredPaymentTransactionResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "de06811a-2e43-4561-af5a-7d0a26e20aaa",
+                    "record_type": "transaction",
+                    "amount_cents": 12000,
+                    "processor_status": "submitted_for_settlement",
+                    "amount_currency": "USD",
+                    "created_at": "2026-02-25T10:00:00Z",
+                    "auto_recharge": false,
+                    "transaction_processing_type": "stored_payment"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10027",
+                      "title": "Invalid amount format",
+                      "detail": "Amount must include dollars and cents (e.g. \"120.00\").",
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10027"
+                      },
+                      "source": {
+                        "pointer": "/"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "x-latency-category": "responsive"
@@ -54009,6 +54256,28 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/QueueCall"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListQueuesResponse": {
+        "description": "Successful response with a list of queues.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Queues Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Queue"
                   }
                 },
                 "meta": {
@@ -75893,21 +76162,28 @@
       "CreateQueueRequest": {
         "type": "object",
         "title": "Create Queue Request",
+        "required": [
+          "queue_name"
+        ],
         "properties": {
-          "MaxSize": {
-            "description": "The maximum size of the queue.",
-            "example": 10,
-            "type": "integer"
+          "queue_name": {
+            "description": "The name of the queue. Must be between 1 and 255 characters.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "tier_1_support"
           },
-          "FriendlyName": {
-            "description": "A human readable name for the queue.",
-            "example": "Support Queue",
-            "type": "string"
+          "max_size": {
+            "description": "The maximum number of calls allowed in the queue.",
+            "type": "integer",
+            "minimum": 1,
+            "default": 300,
+            "example": 100
           }
         },
         "example": {
-          "MaxSize": 10,
-          "FriendlyName": "Support Queue"
+          "queue_name": "tier_1_support",
+          "max_size": 100
         }
       },
       "CreateRoomClientTokenRequest": {
@@ -104946,6 +105222,60 @@
         "type": "boolean",
         "default": false
       },
+      "StoredPaymentTransactionRequest": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "Amount in dollars and cents, e.g. \"120.00\"",
+            "example": "120.00"
+          }
+        }
+      },
+      "StoredPaymentTransactionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "record_type": {
+                "type": "string",
+                "enum": [
+                  "transaction"
+                ]
+              },
+              "amount_cents": {
+                "type": "integer"
+              },
+              "processor_status": {
+                "type": "string"
+              },
+              "amount_currency": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "auto_recharge": {
+                "type": "boolean"
+              },
+              "transaction_processing_type": {
+                "type": "string",
+                "enum": [
+                  "stored_payment"
+                ]
+              }
+            }
+          }
+        }
+      },
       "StreamBidirectionalCodec": {
         "type": "string",
         "title": "Bidirectional Stream Codec",
@@ -113191,15 +113521,19 @@
       "UpdateQueueRequest": {
         "type": "object",
         "title": "Update Queue Request",
+        "required": [
+          "max_size"
+        ],
         "properties": {
-          "MaxSize": {
-            "description": "The maximum size of the queue.",
-            "example": 10,
-            "type": "integer"
+          "max_size": {
+            "description": "The maximum number of calls allowed in the queue.",
+            "type": "integer",
+            "minimum": 1,
+            "example": 200
           }
         },
         "example": {
-          "MaxSize": 10
+          "max_size": 200
         }
       },
       "UpdateQueuedCallRequest": {
@@ -118381,6 +118715,26 @@
         },
         "type": "object"
       },
+      "call-scripting_CreateQueueRequest": {
+        "type": "object",
+        "title": "Create Queue Request",
+        "properties": {
+          "MaxSize": {
+            "description": "The maximum size of the queue.",
+            "example": 10,
+            "type": "integer"
+          },
+          "FriendlyName": {
+            "description": "A human readable name for the queue.",
+            "example": "Support Queue",
+            "type": "string"
+          }
+        },
+        "example": {
+          "MaxSize": 10,
+          "FriendlyName": "Support Queue"
+        }
+      },
       "call-scripting_PaginationMeta": {
         "title": "Pagination Meta",
         "type": "object",
@@ -118525,6 +118879,20 @@
         },
         "example": {
           "Status": "completed"
+        }
+      },
+      "call-scripting_UpdateQueueRequest": {
+        "type": "object",
+        "title": "Update Queue Request",
+        "properties": {
+          "MaxSize": {
+            "description": "The maximum size of the queue.",
+            "example": 10,
+            "type": "integer"
+          }
+        },
+        "example": {
+          "MaxSize": 10
         }
       },
       "callConversationEnded": {
@@ -121472,6 +121840,11 @@
         "description": "OAuth 2.0 authentication for Telnyx API and MCP integrations"
       },
       "outbound-voice-profiles_bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "stored-payment-transactions_bearerAuth": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"

@@ -5996,6 +5996,20 @@ components:
             title: List Queue Calls Response
             type: object
       description: Successful response with a list of calls in a queue.
+    ListQueuesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Queue'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            title: List Queues Response
+            type: object
+      description: Successful response with a list of queues.
     ListRecordingTranscriptionsResponse:
       content:
         application/json:
@@ -23203,17 +23217,23 @@ components:
       type: object
     CreateQueueRequest:
       example:
-        FriendlyName: Support Queue
-        MaxSize: 10
+        max_size: 100
+        queue_name: tier_1_support
       properties:
-        FriendlyName:
-          description: A human readable name for the queue.
-          example: Support Queue
-          type: string
-        MaxSize:
-          description: The maximum size of the queue.
-          example: 10
+        max_size:
+          default: 300
+          description: The maximum number of calls allowed in the queue.
+          example: 100
+          minimum: 1
           type: integer
+        queue_name:
+          description: The name of the queue. Must be between 1 and 255 characters.
+          example: tier_1_support
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - queue_name
       title: Create Queue Request
       type: object
     CreateRoomClientTokenRequest:
@@ -46951,6 +46971,42 @@ components:
       default: false
       description: Should fax preview be stored on temporary URL.
       type: boolean
+    StoredPaymentTransactionRequest:
+      properties:
+        amount:
+          description: Amount in dollars and cents, e.g. "120.00"
+          example: '120.00'
+          type: string
+      required:
+      - amount
+      type: object
+    StoredPaymentTransactionResponse:
+      properties:
+        data:
+          properties:
+            amount_cents:
+              type: integer
+            amount_currency:
+              type: string
+            auto_recharge:
+              type: boolean
+            created_at:
+              format: date-time
+              type: string
+            id:
+              type: string
+            processor_status:
+              type: string
+            record_type:
+              enum:
+              - transaction
+              type: string
+            transaction_processing_type:
+              enum:
+              - stored_payment
+              type: string
+          type: object
+      type: object
     StreamBidirectionalCodec:
       default: PCMU
       description: Indicates codec for bidirectional streaming RTP payloads. Used
@@ -53838,12 +53894,15 @@ components:
       type: object
     UpdateQueueRequest:
       example:
-        MaxSize: 10
+        max_size: 200
       properties:
-        MaxSize:
-          description: The maximum size of the queue.
-          example: 10
+        max_size:
+          description: The maximum number of calls allowed in the queue.
+          example: 200
+          minimum: 1
           type: integer
+      required:
+      - max_size
       title: Update Queue Request
       type: object
     UpdateQueuedCallRequest:
@@ -57992,6 +58051,21 @@ components:
             $ref: '#/components/schemas/call-recordings_Error'
           type: array
       type: object
+    call-scripting_CreateQueueRequest:
+      example:
+        FriendlyName: Support Queue
+        MaxSize: 10
+      properties:
+        FriendlyName:
+          description: A human readable name for the queue.
+          example: Support Queue
+          type: string
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Create Queue Request
+      type: object
     call-scripting_PaginationMeta:
       properties:
         page_number:
@@ -58113,6 +58187,16 @@ components:
           example: completed
           type: string
       title: Update Conference Request
+      type: object
+    call-scripting_UpdateQueueRequest:
+      example:
+        MaxSize: 10
+      properties:
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Update Queue Request
       type: object
     callConversationEnded:
       example:
@@ -60306,6 +60390,10 @@ components:
           tokenUrl: https://api.telnyx.com/v2/oauth/token
       type: oauth2
     outbound-voice-profiles_bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+    stored-payment-transactions_bearerAuth:
       bearerFormat: JWT
       scheme: bearer
       type: http
@@ -83957,7 +84045,80 @@ paths:
       tags:
       - Public Internet Gateways
       x-latency-category: responsive
+  /queues:
+    get:
+      description: List all queues for the authenticated user.
+      operationId: ListQueues
+      parameters:
+      - description: The page number to load
+        in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ListQueuesResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List queues
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
+    post:
+      description: Create a new call queue.
+      operationId: CreateQueue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQueueRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Create a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
   /queues/{queue_name}:
+    delete:
+      description: Delete an existing call queue.
+      operationId: DeleteQueue
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Queue deleted successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Delete a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
     get:
       description: Retrieve an existing call queue
       operationId: RetrieveCallQueue
@@ -83974,6 +84135,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a call queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
+    post:
+      description: Update properties of an existing call queue.
+      operationId: UpdateQueue
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQueueRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Update a queue
       tags:
       - Queue Commands
       x-latency-category: interactive
@@ -88915,7 +89104,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CreateQueueRequest'
+              $ref: '#/components/schemas/call-scripting_CreateQueueRequest'
         description: Create Queue request object
         required: true
       responses:
@@ -88968,7 +89157,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/UpdateQueueRequest'
+              $ref: '#/components/schemas/call-scripting_UpdateQueueRequest'
         description: Update Queue request object
         required: true
       responses:
@@ -89954,6 +90143,66 @@ paths:
       summary: Update a Mobile Voice Connection
       tags:
       - Mobile Voice Connections
+      x-latency-category: responsive
+  /v2/payment/stored_payment_transactions:
+    post:
+      operationId: createStoredPaymentTransaction
+      requestBody:
+        content:
+          application/json:
+            example:
+              amount: '120.00'
+            schema:
+              $ref: '#/components/schemas/StoredPaymentTransactionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                  amount_cents: 12000
+                  amount_currency: USD
+                  auto_recharge: false
+                  created_at: '2026-02-25T10:00:00Z'
+                  id: de06811a-2e43-4561-af5a-7d0a26e20aaa
+                  processor_status: submitted_for_settlement
+                  record_type: transaction
+                  transaction_processing_type: stored_payment
+              schema:
+                $ref: '#/components/schemas/StoredPaymentTransactionResponse'
+          description: Stored payment transaction created successfully
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Forbidden - insufficient permissions
+        '422':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10027'
+                  detail: Amount must include dollars and cents (e.g. "120.00").
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10027
+                  source:
+                    pointer: /
+                  title: Invalid amount format
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+          description: Unprocessable entity
+      summary: Create a stored payment transaction
+      tags:
+      - Stored Payment Transactions
+      x-endpoint-cost: light
       x-latency-category: responsive
   /verifications/by_phone_number/{phone_number}:
     get:
@@ -91757,6 +92006,8 @@ tags:
   name: Speech to Text Batch Reports
 - description: Speech to text usage reports
   name: Speech to text Usage Reports
+- description: Operations for managing stored payment transactions.
+  name: Stored Payment Transactions
 - description: TeXML Applications operations
   name: TeXML Applications
 - description: TeXML REST Commands
