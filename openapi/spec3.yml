@@ -5996,6 +5996,20 @@ components:
             title: List Queue Calls Response
             type: object
       description: Successful response with a list of calls in a queue.
+    ListQueuesResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/components/schemas/Queue'
+                type: array
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+            title: List Queues Response
+            type: object
+      description: Successful response with a list of queues.
     ListRecordingTranscriptionsResponse:
       content:
         application/json:
@@ -23203,17 +23217,23 @@ components:
       type: object
     CreateQueueRequest:
       example:
-        FriendlyName: Support Queue
-        MaxSize: 10
+        max_size: 100
+        queue_name: tier_1_support
       properties:
-        FriendlyName:
-          description: A human readable name for the queue.
-          example: Support Queue
-          type: string
-        MaxSize:
-          description: The maximum size of the queue.
-          example: 10
+        max_size:
+          default: 300
+          description: The maximum number of calls allowed in the queue.
+          example: 100
+          minimum: 1
           type: integer
+        queue_name:
+          description: The name of the queue. Must be between 1 and 255 characters.
+          example: tier_1_support
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - queue_name
       title: Create Queue Request
       type: object
     CreateRoomClientTokenRequest:
@@ -53838,12 +53858,15 @@ components:
       type: object
     UpdateQueueRequest:
       example:
-        MaxSize: 10
+        max_size: 200
       properties:
-        MaxSize:
-          description: The maximum size of the queue.
-          example: 10
+        max_size:
+          description: The maximum number of calls allowed in the queue.
+          example: 200
+          minimum: 1
           type: integer
+      required:
+      - max_size
       title: Update Queue Request
       type: object
     UpdateQueuedCallRequest:
@@ -57992,6 +58015,21 @@ components:
             $ref: '#/components/schemas/call-recordings_Error'
           type: array
       type: object
+    call-scripting_CreateQueueRequest:
+      example:
+        FriendlyName: Support Queue
+        MaxSize: 10
+      properties:
+        FriendlyName:
+          description: A human readable name for the queue.
+          example: Support Queue
+          type: string
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Create Queue Request
+      type: object
     call-scripting_PaginationMeta:
       properties:
         page_number:
@@ -58113,6 +58151,16 @@ components:
           example: completed
           type: string
       title: Update Conference Request
+      type: object
+    call-scripting_UpdateQueueRequest:
+      example:
+        MaxSize: 10
+      properties:
+        MaxSize:
+          description: The maximum size of the queue.
+          example: 10
+          type: integer
+      title: Update Queue Request
       type: object
     callConversationEnded:
       example:
@@ -83957,7 +84005,80 @@ paths:
       tags:
       - Public Internet Gateways
       x-latency-category: responsive
+  /queues:
+    get:
+      description: List all queues for the authenticated user.
+      operationId: ListQueues
+      parameters:
+      - description: The page number to load
+        in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ListQueuesResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: List queues
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
+    post:
+      description: Create a new call queue.
+      operationId: CreateQueue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQueueRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Create a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
   /queues/{queue_name}:
+    delete:
+      description: Delete an existing call queue.
+      operationId: DeleteQueue
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Queue deleted successfully.
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+      summary: Delete a queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
     get:
       description: Retrieve an existing call queue
       operationId: RetrieveCallQueue
@@ -83974,6 +84095,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundResponse'
       summary: Retrieve a call queue
+      tags:
+      - Queue Commands
+      x-latency-category: interactive
+    post:
+      description: Update properties of an existing call queue.
+      operationId: UpdateQueue
+      parameters:
+      - description: Uniquely identifies the queue by name
+        in: path
+        name: queue_name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQueueRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QueueResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+      summary: Update a queue
       tags:
       - Queue Commands
       x-latency-category: interactive
@@ -88915,7 +89064,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/CreateQueueRequest'
+              $ref: '#/components/schemas/call-scripting_CreateQueueRequest'
         description: Create Queue request object
         required: true
       responses:
@@ -88968,7 +89117,7 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/UpdateQueueRequest'
+              $ref: '#/components/schemas/call-scripting_UpdateQueueRequest'
         description: Update Queue request object
         required: true
       responses:

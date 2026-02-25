@@ -34830,7 +34830,114 @@
         "x-latency-category": "responsive"
       }
     },
+    "/queues": {
+      "get": {
+        "summary": "List queues",
+        "description": "List all queues for the authenticated user.",
+        "operationId": "ListQueues",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "page[number]",
+            "in": "query",
+            "description": "The page number to load",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "description": "The size of the page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 250,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListQueuesResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "post": {
+        "summary": "Create a queue",
+        "description": "Create a new call queue.",
+        "operationId": "CreateQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/queues/{queue_name}": {
+      "delete": {
+        "summary": "Delete a queue",
+        "description": "Delete an existing call queue.",
+        "operationId": "DeleteQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Queue deleted successfully."
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
       "get": {
         "summary": "Retrieve a call queue",
         "description": "Retrieve an existing call queue",
@@ -34855,6 +34962,49 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      },
+      "post": {
+        "summary": "Update a queue",
+        "description": "Update properties of an existing call queue.",
+        "operationId": "UpdateQueue",
+        "tags": [
+          "Queue Commands"
+        ],
+        "parameters": [
+          {
+            "name": "queue_name",
+            "description": "Uniquely identifies the queue by name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/QueueResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
           }
         },
         "x-latency-category": "interactive"
@@ -41965,7 +42115,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/CreateQueueRequest"
+                "$ref": "#/components/schemas/call-scripting_CreateQueueRequest"
               }
             }
           }
@@ -42053,7 +42203,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateQueueRequest"
+                "$ref": "#/components/schemas/call-scripting_UpdateQueueRequest"
               }
             }
           }
@@ -54009,6 +54159,28 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/QueueCall"
+                  }
+                },
+                "meta": {
+                  "$ref": "#/components/schemas/PaginationMeta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ListQueuesResponse": {
+        "description": "Successful response with a list of queues.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "title": "List Queues Response",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Queue"
                   }
                 },
                 "meta": {
@@ -75893,21 +76065,28 @@
       "CreateQueueRequest": {
         "type": "object",
         "title": "Create Queue Request",
+        "required": [
+          "queue_name"
+        ],
         "properties": {
-          "MaxSize": {
-            "description": "The maximum size of the queue.",
-            "example": 10,
-            "type": "integer"
+          "queue_name": {
+            "description": "The name of the queue. Must be between 1 and 255 characters.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "tier_1_support"
           },
-          "FriendlyName": {
-            "description": "A human readable name for the queue.",
-            "example": "Support Queue",
-            "type": "string"
+          "max_size": {
+            "description": "The maximum number of calls allowed in the queue.",
+            "type": "integer",
+            "minimum": 1,
+            "default": 300,
+            "example": 100
           }
         },
         "example": {
-          "MaxSize": 10,
-          "FriendlyName": "Support Queue"
+          "queue_name": "tier_1_support",
+          "max_size": 100
         }
       },
       "CreateRoomClientTokenRequest": {
@@ -113191,15 +113370,19 @@
       "UpdateQueueRequest": {
         "type": "object",
         "title": "Update Queue Request",
+        "required": [
+          "max_size"
+        ],
         "properties": {
-          "MaxSize": {
-            "description": "The maximum size of the queue.",
-            "example": 10,
-            "type": "integer"
+          "max_size": {
+            "description": "The maximum number of calls allowed in the queue.",
+            "type": "integer",
+            "minimum": 1,
+            "example": 200
           }
         },
         "example": {
-          "MaxSize": 10
+          "max_size": 200
         }
       },
       "UpdateQueuedCallRequest": {
@@ -118381,6 +118564,26 @@
         },
         "type": "object"
       },
+      "call-scripting_CreateQueueRequest": {
+        "type": "object",
+        "title": "Create Queue Request",
+        "properties": {
+          "MaxSize": {
+            "description": "The maximum size of the queue.",
+            "example": 10,
+            "type": "integer"
+          },
+          "FriendlyName": {
+            "description": "A human readable name for the queue.",
+            "example": "Support Queue",
+            "type": "string"
+          }
+        },
+        "example": {
+          "MaxSize": 10,
+          "FriendlyName": "Support Queue"
+        }
+      },
       "call-scripting_PaginationMeta": {
         "title": "Pagination Meta",
         "type": "object",
@@ -118525,6 +118728,20 @@
         },
         "example": {
           "Status": "completed"
+        }
+      },
+      "call-scripting_UpdateQueueRequest": {
+        "type": "object",
+        "title": "Update Queue Request",
+        "properties": {
+          "MaxSize": {
+            "description": "The maximum size of the queue.",
+            "example": 10,
+            "type": "integer"
+          }
+        },
+        "example": {
+          "MaxSize": 10
         }
       },
       "callConversationEnded": {
