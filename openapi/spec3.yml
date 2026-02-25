@@ -9696,6 +9696,27 @@ components:
           type: boolean
         transcription_config:
           $ref: '#/components/schemas/TranscriptionStartRequest'
+        webhook_retries_policies:
+          additionalProperties:
+            properties:
+              retries_ms:
+                description: Array of delays in milliseconds between retry attempts.
+                  Total sum cannot exceed 60000ms.
+                items:
+                  type: integer
+                maxItems: 5
+                type: array
+            type: object
+          description: A map of event types to retry policies. Each retry policy contains
+            an array of `retries_ms` specifying the delays between retry attempts
+            in milliseconds. Maximum 5 retries, total delay cannot exceed 60 seconds.
+          example:
+            call.hangup:
+              retries_ms:
+              - 1000
+              - 2000
+              - 5000
+          type: object
         webhook_url:
           description: Use this field to override the URL for which Telnyx will send
             subsequent webhooks to for this call.
@@ -9708,6 +9729,26 @@ components:
           - POST
           - GET
           example: GET
+          type: string
+        webhook_urls:
+          additionalProperties:
+            format: uri
+            type: string
+          description: A map of event types to webhook URLs. When an event of the
+            specified type occurs, the webhook URL associated with that event type
+            will be called instead of `webhook_url`. Events not mapped here will use
+            the default `webhook_url`.
+          example:
+            call.bridge: https://www.example.com/webhooks/bridge
+            call.hangup: https://www.example.com/webhooks/hangup
+          type: object
+        webhook_urls_method:
+          default: POST
+          description: HTTP request method to invoke `webhook_urls`.
+          enum:
+          - POST
+          - GET
+          example: POST
           type: string
       title: Answer Request
       type: object
@@ -11490,6 +11531,12 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        hold_after_unbridge:
+          description: Specifies behavior after the bridge ends. If set to `true`,
+            the current leg will be put on hold after unbridge instead of being hung
+            up.
+          example: true
+          type: boolean
         mute_dtmf:
           default: none
           description: When enabled, DTMF tones are not passed to the call participant.
@@ -29232,6 +29279,16 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        custom_headers:
+          description: Custom headers to be added to the SIP BYE message.
+          example:
+          - name: head_1
+            value: val_1
+          - name: head_2
+            value: val_2
+          items:
+            $ref: '#/components/schemas/CustomSipHeader'
+          type: array
       title: Hangup Request
       type: object
     HangupTool:
