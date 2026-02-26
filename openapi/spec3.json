@@ -502,6 +502,10 @@
       "description": "Number lookup usage reports"
     },
     {
+      "name": "Text To Speech Commands",
+      "description": "Text to speech streaming command operations"
+    },
+    {
       "name": "Text to Speech Commands",
       "description": "Text to Speech commands operations"
     },
@@ -42611,55 +42615,68 @@
       }
     },
     "/text-to-speech/speech": {
-      "post": {
-        "summary": "Generate speech from text",
-        "description": "Converts the provided text to speech using the specified voice and returns audio data",
-        "operationId": "generateTextToSpeech",
+      "get": {
+        "summary": "Stream text to speech over WebSocket",
+        "description": "Open a WebSocket connection to stream text and receive synthesized audio in real time. Authentication is provided via the standard `Authorization: Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive JSON frames containing base64-encoded audio chunks.\n\nSupported providers: `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`.\n\n**Connection flow:**\n1. Open WebSocket with query parameters specifying provider, voice, and model.\n2. Send an initial handshake message `{\"text\": \" \"}` (single space) with optional `voice_settings` to initialize the session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive audio chunks as JSON frames with base64-encoded audio.\n5. A final frame with `isFinal: true` indicates the end of audio for the current text.\n\nTo interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014 the current worker is stopped and a new one is started.",
+        "operationId": "TextToSpeechOverWs",
         "tags": [
-          "Text to Speech Commands"
+          "Text To Speech Commands"
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "voice",
-                  "text"
-                ],
-                "properties": {
-                  "voice": {
-                    "type": "string",
-                    "description": "The voice ID in the format Provider.ModelId.VoiceId.\n\nExamples:\n- AWS.Polly.Joanna-Neural\n- Azure.en-US-AvaMultilingualNeural\n- ElevenLabs.eleven_multilingual_v2.Rachel\n- Telnyx.KokoroTTS.af\n\nUse the `GET /text-to-speech/voices` endpoint to get a complete list of available voices."
-                  },
-                  "text": {
-                    "type": "string",
-                    "description": "The text to convert to speech"
-                  }
-                }
-              }
-            }
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/voice"
+          },
+          {
+            "$ref": "#/components/parameters/provider"
+          },
+          {
+            "$ref": "#/components/parameters/model_id"
+          },
+          {
+            "$ref": "#/components/parameters/voice_id"
+          },
+          {
+            "$ref": "#/components/parameters/disable_cache"
+          },
+          {
+            "$ref": "#/components/parameters/audio_format"
+          },
+          {
+            "$ref": "#/components/parameters/socket_id"
           }
-        },
+        ],
         "responses": {
-          "200": {
-            "description": "Audio data generated from the provided text",
+          "101": {
+            "description": "WebSocket connection established. Communication proceeds via JSON frames.\n\n**Client \u2192 Server:** See `ClientTextFrame` schema.\n**Server \u2192 Client:** See `AudioChunkFrame`, `FinalFrame`, and `ErrorFrame` schemas.",
             "content": {
-              "audio/mpeg": {
+              "application/json": {
                 "schema": {
-                  "type": "object",
-                  "format": "binary",
-                  "description": "Raw audio data in MP3 format"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ClientTextFrame"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AudioChunkFrame"
+                    },
+                    {
+                      "$ref": "#/components/schemas/FinalFrame"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ErrorFrame"
+                    }
+                  ]
                 }
               }
             }
+          },
+          "200": {
+            "description": "WebSocket upgrade successful \u2014 this response is not returned directly. See 101 for frame documentation."
+          },
+          "400": {
+            "description": "Invalid parameters \u2014 provider not supported or missing required fields."
           },
           "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "422": {
-            "description": "Invalid request parameters"
+            "description": "Authentication failed \u2014 missing or invalid `x-telnyx-auth-rev2` header."
           }
         },
         "x-latency-category": "interactive"
@@ -47867,6 +47884,19 @@
           "example": "318fb664-d341-44d2-8405-e6bfb9ced6d9"
         }
       },
+      "audio_format": {
+        "name": "audio_format",
+        "in": "query",
+        "required": false,
+        "description": "Audio output format override. Supported for Telnyx `Natural`/`NaturalHD` models only. Accepted values: `pcm`, `wav`.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "pcm",
+            "wav"
+          ]
+        }
+      },
       "audit-logs_FilterConsolidated": {
         "name": "filter",
         "in": "query",
@@ -48400,6 +48430,16 @@
           }
         }
       },
+      "disable_cache": {
+        "name": "disable_cache",
+        "in": "query",
+        "required": false,
+        "description": "When `true`, bypass the audio cache and generate fresh audio.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
       "documents_PageConsolidated": {
         "name": "page",
         "in": "query",
@@ -48623,6 +48663,15 @@
               "$ref": "#/components/schemas/telnyx_models"
             }
           ]
+        }
+      },
+      "model_id": {
+        "name": "model_id",
+        "in": "query",
+        "required": false,
+        "description": "Model identifier for the chosen provider. Examples: `Natural`, `NaturalHD` (Telnyx); `Polly.Generative` (AWS).",
+        "schema": {
+          "type": "string"
         }
       },
       "notifications_FilterConsolidated": {
@@ -48975,6 +49024,26 @@
           "default": "created_at"
         }
       },
+      "provider": {
+        "name": "provider",
+        "in": "query",
+        "required": false,
+        "description": "TTS provider. Defaults to `telnyx` if not specified. Ignored when `voice` is provided.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "aws",
+            "telnyx",
+            "azure",
+            "elevenlabs",
+            "minimax",
+            "murfai",
+            "rime",
+            "resemble"
+          ],
+          "default": "telnyx"
+        }
+      },
       "push-notifications_PageConsolidated": {
         "name": "page",
         "in": "query",
@@ -49009,6 +49078,15 @@
           "format": "uuid",
           "type": "string",
           "example": "7b6a6449-b055-45a6-81f6-f6f0dffa4cc6"
+        }
+      },
+      "socket_id": {
+        "name": "socket_id",
+        "in": "query",
+        "required": false,
+        "description": "Client-provided socket identifier for tracking. If not provided, one is generated server-side.",
+        "schema": {
+          "type": "string"
         }
       },
       "telephony-credentials_FilterConsolidated": {
@@ -49233,6 +49311,15 @@
           }
         }
       },
+      "voice": {
+        "name": "voice",
+        "in": "query",
+        "required": false,
+        "description": "Voice identifier in the format `provider.model_id.voice_id` or `provider.voice_id` (e.g. `telnyx.NaturalHD.Telnyx_Alloy` or `azure.en-US-AvaMultilingualNeural`). When provided, the `provider`, `model_id`, and `voice_id` are extracted automatically. Takes precedence over individual `provider`/`model_id`/`voice_id` parameters.",
+        "schema": {
+          "type": "string"
+        }
+      },
       "voice-channels_PageConsolidated": {
         "name": "page",
         "in": "query",
@@ -49256,6 +49343,15 @@
               "description": "The page number to load"
             }
           }
+        }
+      },
+      "voice_id": {
+        "name": "voice_id",
+        "in": "query",
+        "required": false,
+        "description": "Voice identifier for the chosen provider.",
+        "schema": {
+          "type": "string"
         }
       },
       "wireless_PageConsolidated": {
@@ -60401,6 +60497,38 @@
         ],
         "title": "AssistantsListData"
       },
+      "AudioChunkFrame": {
+        "type": "object",
+        "description": "Server-to-client frame containing a base64-encoded audio chunk.",
+        "properties": {
+          "audio": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base64-encoded audio data. May be `null` for providers that use `drop_concatenated_audio` mode (Telnyx Natural/NaturalHD, Rime, Minimax, MurfAI, Resemble) \u2014 in that case only streamed chunks carry audio."
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The text segment that this audio chunk corresponds to."
+          },
+          "isFinal": {
+            "type": "boolean",
+            "description": "Always `false` for audio chunk frames."
+          },
+          "cached": {
+            "type": "boolean",
+            "description": "Whether this audio was served from cache."
+          },
+          "timeToFirstAudioFrameMs": {
+            "type": "integer",
+            "description": "Milliseconds from the start-of-speech request to the first audio frame. Only present on the first audio chunk of a synthesis request."
+          }
+        }
+      },
       "AudioTranscriptionRequest": {
         "type": "object",
         "properties": {
@@ -69442,6 +69570,43 @@
         "example": {
           "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d"
         }
+      },
+      "ClientTextFrame": {
+        "type": "object",
+        "description": "Client-to-server frame containing text to synthesize.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Text to convert to speech. Send `\" \"` (single space) as an initial handshake with optional `voice_settings`. Subsequent messages contain the actual text to synthesize."
+          },
+          "voice_settings": {
+            "type": "object",
+            "description": "Provider-specific voice settings sent with the initial handshake. Contents vary by provider \u2014 e.g. `{\"speed\": 1.2}` for Minimax, `{\"voice_speed\": 1.5}` for Telnyx.",
+            "additionalProperties": true
+          },
+          "force": {
+            "type": "boolean",
+            "description": "When `true`, stops the current synthesis worker and starts a new one. Used to interrupt speech mid-stream and begin synthesizing new text."
+          }
+        },
+        "examples": [
+          {
+            "text": " ",
+            "voice_settings": {
+              "voice_speed": 1.2
+            }
+          },
+          {
+            "text": "Hello, welcome to Telnyx text to speech."
+          },
+          {
+            "text": "New text after interruption.",
+            "force": true
+          }
+        ]
       },
       "CloudflareSyncStatus": {
         "title": "CloudflareSyncStatus",
@@ -80043,6 +80208,16 @@
         },
         "type": "object"
       },
+      "ErrorFrame": {
+        "type": "object",
+        "description": "Server-to-client frame indicating an error during synthesis. The connection is closed shortly after.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message describing what went wrong."
+          }
+        }
+      },
       "ErrorRecord": {
         "type": "object",
         "properties": {
@@ -81550,6 +81725,29 @@
             "type": "string",
             "description": "Billing group UUID to filter by",
             "example": "adfaa016-f921-4b6c-97bb-e4c1dad231c5"
+          }
+        }
+      },
+      "FinalFrame": {
+        "type": "object",
+        "description": "Server-to-client frame indicating synthesis is complete for the current text.",
+        "properties": {
+          "audio": {
+            "type": "null",
+            "description": "Always `null` for the final frame."
+          },
+          "text": {
+            "type": "string",
+            "description": "Empty string."
+          },
+          "isFinal": {
+            "type": "boolean",
+            "description": "Always `true`.",
+            "const": true
+          },
+          "timeToFirstAudioFrameMs": {
+            "type": "integer",
+            "description": "Present if this was the first response frame."
           }
         }
       },

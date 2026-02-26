@@ -1558,6 +1558,17 @@ components:
         example: 318fb664-d341-44d2-8405-e6bfb9ced6d9
         format: uuid
         type: string
+    audio_format:
+      description: 'Audio output format override. Supported for Telnyx `Natural`/`NaturalHD`
+        models only. Accepted values: `pcm`, `wav`.'
+      in: query
+      name: audio_format
+      required: false
+      schema:
+        enum:
+        - pcm
+        - wav
+        type: string
     audit-logs_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
         filter[created_before], filter[created_after]'
@@ -2013,6 +2024,14 @@ components:
             type: integer
         type: object
       style: deepObject
+    disable_cache:
+      description: When `true`, bypass the audio cache and generate fresh audio.
+      in: query
+      name: disable_cache
+      required: false
+      schema:
+        default: false
+        type: boolean
     documents_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -2199,6 +2218,14 @@ components:
         - $ref: '#/components/schemas/deepgram_models'
         - $ref: '#/components/schemas/google_models'
         - $ref: '#/components/schemas/telnyx_models'
+    model_id:
+      description: 'Model identifier for the chosen provider. Examples: `Natural`,
+        `NaturalHD` (Telnyx); `Polly.Generative` (AWS).'
+      in: query
+      name: model_id
+      required: false
+      schema:
+        type: string
     notifications_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
         filter[associated_record_type][eq], filter[channel_type_id][eq], filter[notification_profile_id][eq],
@@ -2485,6 +2512,24 @@ components:
         - active
         example: application_name
         type: string
+    provider:
+      description: TTS provider. Defaults to `telnyx` if not specified. Ignored when
+        `voice` is provided.
+      in: query
+      name: provider
+      required: false
+      schema:
+        default: telnyx
+        enum:
+        - aws
+        - telnyx
+        - azure
+        - elevenlabs
+        - minimax
+        - murfai
+        - rime
+        - resemble
+        type: string
     push-notifications_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -2514,6 +2559,14 @@ components:
       schema:
         example: 7b6a6449-b055-45a6-81f6-f6f0dffa4cc6
         format: uuid
+        type: string
+    socket_id:
+      description: Client-provided socket identifier for tracking. If not provided,
+        one is generated server-side.
+      in: query
+      name: socket_id
+      required: false
+      schema:
         type: string
     telephony-credentials_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -2695,6 +2748,16 @@ components:
             type: integer
         type: object
       style: deepObject
+    voice:
+      description: Voice identifier in the format `provider.model_id.voice_id` or
+        `provider.voice_id` (e.g. `telnyx.NaturalHD.Telnyx_Alloy` or `azure.en-US-AvaMultilingualNeural`).
+        When provided, the `provider`, `model_id`, and `voice_id` are extracted automatically.
+        Takes precedence over individual `provider`/`model_id`/`voice_id` parameters.
+      in: query
+      name: voice
+      required: false
+      schema:
+        type: string
     voice-channels_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -2716,6 +2779,13 @@ components:
             type: integer
         type: object
       style: deepObject
+    voice_id:
+      description: Voice identifier for the chosen provider.
+      in: query
+      name: voice_id
+      required: false
+      schema:
+        type: string
     wireless_PageConsolidated:
       description: 'Consolidated pagination parameter (deepObject style). Originally:
         page[number], page[size]'
@@ -10118,6 +10188,33 @@ components:
       required:
       - data
       title: AssistantsListData
+      type: object
+    AudioChunkFrame:
+      description: Server-to-client frame containing a base64-encoded audio chunk.
+      properties:
+        audio:
+          description: "Base64-encoded audio data. May be `null` for providers that\
+            \ use `drop_concatenated_audio` mode (Telnyx Natural/NaturalHD, Rime,\
+            \ Minimax, MurfAI, Resemble) \u2014 in that case only streamed chunks\
+            \ carry audio."
+          type:
+          - string
+          - 'null'
+        cached:
+          description: Whether this audio was served from cache.
+          type: boolean
+        isFinal:
+          description: Always `false` for audio chunk frames.
+          type: boolean
+        text:
+          description: The text segment that this audio chunk corresponds to.
+          type:
+          - string
+          - 'null'
+        timeToFirstAudioFrameMs:
+          description: Milliseconds from the start-of-speech request to the first
+            audio frame. Only present on the first audio chunk of a synthesis request.
+          type: integer
       type: object
     AudioTranscriptionRequest:
       properties:
@@ -17591,6 +17688,35 @@ components:
       required:
       - client_state
       title: Update client state Request
+      type: object
+    ClientTextFrame:
+      description: Client-to-server frame containing text to synthesize.
+      examples:
+      - text: ' '
+        voice_settings:
+          voice_speed: 1.2
+      - text: Hello, welcome to Telnyx text to speech.
+      - force: true
+        text: New text after interruption.
+      properties:
+        force:
+          description: When `true`, stops the current synthesis worker and starts
+            a new one. Used to interrupt speech mid-stream and begin synthesizing
+            new text.
+          type: boolean
+        text:
+          description: Text to convert to speech. Send `" "` (single space) as an
+            initial handshake with optional `voice_settings`. Subsequent messages
+            contain the actual text to synthesize.
+          type: string
+        voice_settings:
+          additionalProperties: true
+          description: "Provider-specific voice settings sent with the initial handshake.\
+            \ Contents vary by provider \u2014 e.g. `{\"speed\": 1.2}` for Minimax,\
+            \ `{\"voice_speed\": 1.5}` for Telnyx."
+          type: object
+      required:
+      - text
       type: object
     CloudflareSyncStatus:
       description: An enumeration.
@@ -26480,6 +26606,14 @@ components:
       - code
       - title
       type: object
+    ErrorFrame:
+      description: Server-to-client frame indicating an error during synthesis. The
+        connection is closed shortly after.
+      properties:
+        error:
+          description: Error message describing what went wrong.
+          type: string
+      type: object
     ErrorRecord:
       properties:
         code:
@@ -27644,6 +27778,24 @@ components:
           description: Tag name to filter by
           example: tag1
           type: string
+      type: object
+    FinalFrame:
+      description: Server-to-client frame indicating synthesis is complete for the
+        current text.
+      properties:
+        audio:
+          description: Always `null` for the final frame.
+          type: 'null'
+        isFinal:
+          const: true
+          description: Always `true`.
+          type: boolean
+        text:
+          description: Empty string.
+          type: string
+        timeToFirstAudioFrameMs:
+          description: Present if this was the first response frame.
+          type: integer
       type: object
     FineTuningJob:
       description: The `fine_tuning.job` object represents a fine-tuning job that
@@ -89417,57 +89569,55 @@ paths:
       - TeXML Applications
       x-latency-category: interactive
   /text-to-speech/speech:
-    post:
-      description: Converts the provided text to speech using the specified voice
-        and returns audio data
-      operationId: generateTextToSpeech
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                text:
-                  description: The text to convert to speech
-                  type: string
-                voice:
-                  description: 'The voice ID in the format Provider.ModelId.VoiceId.
-
-
-                    Examples:
-
-                    - AWS.Polly.Joanna-Neural
-
-                    - Azure.en-US-AvaMultilingualNeural
-
-                    - ElevenLabs.eleven_multilingual_v2.Rachel
-
-                    - Telnyx.KokoroTTS.af
-
-
-                    Use the `GET /text-to-speech/voices` endpoint to get a complete
-                    list of available voices.'
-                  type: string
-              required:
-              - voice
-              - text
-              type: object
-        required: true
+    get:
+      description: "Open a WebSocket connection to stream text and receive synthesized\
+        \ audio in real time. Authentication is provided via the standard `Authorization:\
+        \ Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive\
+        \ JSON frames containing base64-encoded audio chunks.\n\nSupported providers:\
+        \ `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`.\n\
+        \n**Connection flow:**\n1. Open WebSocket with query parameters specifying\
+        \ provider, voice, and model.\n2. Send an initial handshake message `{\"text\"\
+        : \" \"}` (single space) with optional `voice_settings` to initialize the\
+        \ session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive\
+        \ audio chunks as JSON frames with base64-encoded audio.\n5. A final frame\
+        \ with `isFinal: true` indicates the end of audio for the current text.\n\n\
+        To interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014\
+        \ the current worker is stopped and a new one is started."
+      operationId: TextToSpeechOverWs
+      parameters:
+      - $ref: '#/components/parameters/voice'
+      - $ref: '#/components/parameters/provider'
+      - $ref: '#/components/parameters/model_id'
+      - $ref: '#/components/parameters/voice_id'
+      - $ref: '#/components/parameters/disable_cache'
+      - $ref: '#/components/parameters/audio_format'
+      - $ref: '#/components/parameters/socket_id'
       responses:
-        '200':
+        '101':
           content:
-            audio/mpeg:
+            application/json:
               schema:
-                description: Raw audio data in MP3 format
-                format: binary
-                type: object
-          description: Audio data generated from the provided text
+                oneOf:
+                - $ref: '#/components/schemas/ClientTextFrame'
+                - $ref: '#/components/schemas/AudioChunkFrame'
+                - $ref: '#/components/schemas/FinalFrame'
+                - $ref: '#/components/schemas/ErrorFrame'
+          description: "WebSocket connection established. Communication proceeds via\
+            \ JSON frames.\n\n**Client \u2192 Server:** See `ClientTextFrame` schema.\n\
+            **Server \u2192 Client:** See `AudioChunkFrame`, `FinalFrame`, and `ErrorFrame`\
+            \ schemas."
+        '200':
+          description: "WebSocket upgrade successful \u2014 this response is not returned\
+            \ directly. See 101 for frame documentation."
+        '400':
+          description: "Invalid parameters \u2014 provider not supported or missing\
+            \ required fields."
         '401':
-          $ref: '#/components/responses/UnauthorizedResponse'
-        '422':
-          description: Invalid request parameters
-      summary: Generate speech from text
+          description: "Authentication failed \u2014 missing or invalid `x-telnyx-auth-rev2`\
+            \ header."
+      summary: Stream text to speech over WebSocket
       tags:
-      - Text to Speech Commands
+      - Text To Speech Commands
       x-latency-category: interactive
   /text-to-speech/voices:
     get:
@@ -92014,6 +92164,8 @@ tags:
   name: TeXML REST Commands
 - description: Number lookup usage reports
   name: Telco Data Usage Reports
+- description: Text to speech streaming command operations
+  name: Text To Speech Commands
 - description: Text to Speech commands operations
   name: Text to Speech Commands
 - description: Usage data reporting across Telnyx products
