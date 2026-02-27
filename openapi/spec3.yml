@@ -10925,6 +10925,30 @@ components:
       description: AWS credentials access key id.
       example: AKIAIOSFODNN7EXAMPLE
       type: string
+    AwsProviderParams:
+      description: AWS Polly provider-specific parameters.
+      properties:
+        language_code:
+          description: Language code (e.g. `en-US`, `es-ES`).
+          type: string
+        lexicon_names:
+          description: List of lexicon names to apply.
+          items:
+            type: string
+          type: array
+        output_format:
+          description: Audio output format.
+          type: string
+        sample_rate:
+          description: Audio sample rate.
+          type: string
+        text_type:
+          description: Input text type.
+          enum:
+          - text
+          - ssml
+          type: string
+      type: object
     AwsSecretAccessKey:
       description: AWS secret access key.
       example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
@@ -10953,6 +10977,41 @@ components:
       required:
       - backend
       title: Azure Blob Storage Configuration Data
+      type: object
+    AzureProviderParams:
+      description: Azure Cognitive Services provider-specific parameters.
+      properties:
+        api_key:
+          description: Custom Azure API key. If not provided, the default Telnyx key
+            is used.
+          type: string
+        deployment_id:
+          description: Custom Azure deployment ID.
+          type: string
+        effect:
+          description: Azure audio effect to apply.
+          type: string
+        gender:
+          description: Voice gender preference.
+          type: string
+        language_code:
+          default: en-US
+          description: Language code (e.g. `en-US`).
+          type: string
+        output_format:
+          default: audio-24khz-160kbitrate-mono-mp3
+          description: Azure audio output format.
+          type: string
+        region:
+          description: Azure region (e.g. `eastus`, `westeurope`).
+          type: string
+        text_type:
+          default: text
+          description: Input text type. Use `ssml` for SSML-formatted input.
+          enum:
+          - text
+          - ssml
+          type: string
       type: object
     AzureTranscriptionLanguage:
       default: en
@@ -11137,6 +11196,13 @@ components:
       required:
       - data
       title: BackgroundTasksQueryResponseData
+      type: object
+    Base64AudioResponse:
+      description: Response when `output_type` is `base64_output`.
+      properties:
+        base64_audio:
+          description: Base64-encoded audio data.
+          type: string
       type: object
     BillingBundleResponse:
       properties:
@@ -26135,6 +26201,21 @@ components:
       - amount
       title: SIMCardRegistration
       type: object
+    ElevenLabsProviderParams:
+      description: ElevenLabs provider-specific parameters.
+      properties:
+        api_key:
+          description: Custom ElevenLabs API key. If not provided, the default Telnyx
+            key is used.
+          type: string
+        language_code:
+          description: Language code.
+          type: string
+        voice_settings:
+          additionalProperties: true
+          description: ElevenLabs voice settings (stability, similarity_boost, etc.).
+          type: object
+      type: object
     ElevenLabsVoiceSettings:
       properties:
         api_key_ref:
@@ -28750,6 +28831,72 @@ components:
       - name
       - channels
       title: Channel zone object
+      type: object
+    GenerateSpeechRequest:
+      description: Request body for generating speech from text.
+      properties:
+        aws:
+          $ref: '#/components/schemas/AwsProviderParams'
+        azure:
+          $ref: '#/components/schemas/AzureProviderParams'
+        disable_cache:
+          default: false
+          description: When `true`, bypass the audio cache and generate fresh audio.
+          type: boolean
+        elevenlabs:
+          $ref: '#/components/schemas/ElevenLabsProviderParams'
+        language:
+          description: Language code (e.g. `en-US`). Usage varies by provider.
+          type: string
+        minimax:
+          $ref: '#/components/schemas/MinimaxProviderParams'
+        output_type:
+          default: binary_output
+          description: Determines the response format. `binary_output` returns raw
+            audio bytes, `base64_output` returns base64-encoded audio in JSON.
+          enum:
+          - binary_output
+          - base64_output
+          type: string
+        provider:
+          description: TTS provider. Required unless `voice` is provided.
+          enum:
+          - aws
+          - telnyx
+          - azure
+          - elevenlabs
+          - minimax
+          - rime
+          - resemble
+          type: string
+        resemble:
+          $ref: '#/components/schemas/ResembleProviderParams'
+        rime:
+          $ref: '#/components/schemas/RimeProviderParams'
+        telnyx:
+          $ref: '#/components/schemas/TelnyxProviderParams'
+        text:
+          description: The text to convert to speech.
+          type: string
+        text_type:
+          description: Text type. Use `ssml` for SSML-formatted input (supported by
+            AWS and Azure).
+          enum:
+          - text
+          - ssml
+          type: string
+        voice:
+          description: 'Voice identifier in the format `provider.model_id.voice_id`
+            or `provider.voice_id`. Examples: `telnyx.NaturalHD.Alloy`, `azure.en-US-AvaMultilingualNeural`,
+            `aws.Polly.Generative.Lucia`. When provided, `provider`, `model_id`, and
+            `voice_id` are extracted automatically and take precedence over individual
+            parameters.'
+          type: string
+        voice_settings:
+          additionalProperties: true
+          description: "Provider-specific voice settings. Contents vary by provider\
+            \ \u2014 see provider-specific parameter objects below."
+          type: object
       type: object
     GenericError:
       properties:
@@ -33661,6 +33808,27 @@ components:
       - provider
       - provider_auth
       - bucket_name
+      type: object
+    MinimaxProviderParams:
+      description: Minimax provider-specific parameters.
+      properties:
+        language_boost:
+          description: Language code to boost pronunciation for.
+          type: string
+        pitch:
+          description: Pitch adjustment.
+          type: integer
+        response_format:
+          description: Audio output format.
+          type: string
+        speed:
+          description: Speech speed multiplier.
+          format: float
+          type: number
+        vol:
+          description: Volume level.
+          format: float
+          type: number
       type: object
     MinimaxVoiceSettings:
       properties:
@@ -43476,6 +43644,22 @@ components:
           format: date-time
           type: string
       type: object
+    ResembleProviderParams:
+      description: Resemble AI provider-specific parameters.
+      properties:
+        api_key:
+          description: Custom Resemble API key.
+          type: string
+        format:
+          description: Audio output format.
+          type: string
+        precision:
+          description: Synthesis precision.
+          type: string
+        sample_rate:
+          description: Audio sample rate.
+          type: string
+      type: object
     ResembleSampleRate:
       default: '48000'
       description: Audio sample rate in Hz.
@@ -43679,6 +43863,20 @@ components:
       required:
       - data
       title: RetrieveVerificationResponse
+      type: object
+    RimeProviderParams:
+      description: Rime provider-specific parameters.
+      properties:
+        response_format:
+          description: Audio output format.
+          type: string
+        sampling_rate:
+          description: Audio sampling rate in Hz.
+          type: integer
+        voice_speed:
+          description: Voice speed multiplier.
+          format: float
+          type: number
       type: object
     RimeVoiceSettings:
       properties:
@@ -49514,6 +49712,27 @@ components:
           type: integer
       title: TelnyxDownstreamCampaignRecordSet
       type: object
+    TelnyxProviderParams:
+      description: Telnyx provider-specific parameters.
+      properties:
+        response_format:
+          default: mp3
+          description: Audio response format.
+          type: string
+        sampling_rate:
+          default: 24000
+          description: Audio sampling rate in Hz.
+          type: integer
+        temperature:
+          default: 0.5
+          description: Sampling temperature.
+          format: float
+          type: number
+        voice_speed:
+          description: Voice speed multiplier.
+          format: float
+          type: number
+      type: object
     TelnyxTranscriptionLanguage:
       default: en
       description: Language to use for speech recognition
@@ -55282,6 +55501,16 @@ components:
       - type
       title: ValidationError
       type: object
+    ValidationErrorResponse:
+      properties:
+        errors:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          description: Validation error details keyed by field name.
+          type: object
+      type: object
     Verification:
       properties:
         created_at:
@@ -56469,6 +56698,25 @@ components:
             type: boolean
         title: VirtualCrossConnectPatch
         type: object
+    Voice:
+      description: A voice available for text-to-speech synthesis.
+      properties:
+        gender:
+          description: Voice gender.
+          type: string
+        language:
+          description: Language code.
+          type: string
+        name:
+          description: Voice name.
+          type: string
+        provider:
+          description: The TTS provider.
+          type: string
+        voice_id:
+          description: Voice identifier.
+          type: string
+      type: object
     VoiceConfig:
       default: Telnyx.KokoroTTS.af
       description: "The voice to be used by the voice assistant. Currently we support\
@@ -56671,6 +56919,14 @@ components:
           description: The pin used for voicemail
           example: '1234'
           type: string
+      type: object
+    VoicesResponse:
+      description: List of available voices.
+      properties:
+        voices:
+          items:
+            $ref: '#/components/schemas/Voice'
+          type: array
       type: object
     Volume:
       description: Message Volume Enums
@@ -59992,6 +60248,23 @@ components:
       - openai/whisper-tiny
       - openai/whisper-large-v3-turbo
       type: string
+    text-to-speech-file_ErrorResponse:
+      properties:
+        errors:
+          items:
+            properties:
+              code:
+                description: Error code.
+                type: string
+              detail:
+                description: Detailed error description.
+                type: string
+              title:
+                description: Error title.
+                type: string
+            type: object
+          type: array
+      type: object
     toll-free-verification_EntityType:
       description: Business entity classification
       enum:
@@ -89634,24 +89907,32 @@ paths:
       x-latency-category: interactive
   /text-to-speech/voices:
     get:
-      description: Returns a list of voices that can be used with the text to speech
-        commands.
-      operationId: listTextToSpeechVoices
+      description: 'Retrieve a list of available voices from one or all TTS providers.
+        When `provider` is specified, returns voices for that provider only. Otherwise,
+        returns voices from all providers.
+
+
+        Some providers (ElevenLabs, Resemble) require an API key to list voices.'
+      operationId: listVoices
       parameters:
-      - description: Filter voices by provider
+      - description: Filter voices by provider. If omitted, voices from all providers
+          are returned.
         in: query
         name: provider
         required: false
         schema:
           enum:
           - aws
+          - telnyx
           - azure
           - elevenlabs
-          - telnyx
+          - minimax
+          - rime
+          - resemble
           type: string
-      - description: Reference to your ElevenLabs API key stored in the Telnyx Portal
+      - description: API key for providers that require one to list voices (e.g. ElevenLabs).
         in: query
-        name: elevenlabs_api_key_ref
+        name: api_key
         required: false
         schema:
           type: string
@@ -89660,35 +89941,20 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  voices:
-                    items:
-                      properties:
-                        accent:
-                          type: string
-                        age:
-                          type: string
-                        gender:
-                          type: string
-                        id:
-                          type: string
-                        label:
-                          type: string
-                        language:
-                          type: string
-                        name:
-                          type: string
-                        provider:
-                          type: string
-                      type: object
-                    type: array
-                type: object
-          description: Successful response with list of available voices
+                $ref: '#/components/schemas/VoicesResponse'
+          description: List of available voices.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/text-to-speech-file_ErrorResponse'
+          description: "Bad request \u2014 invalid provider or missing required API\
+            \ key."
         '401':
-          $ref: '#/components/responses/UnauthorizedResponse'
-      summary: List available text to speech voices
+          description: "Authentication failed \u2014 missing or invalid API key."
+      summary: List available voices
       tags:
-      - Text to Speech Commands
+      - Text To Speech Commands
       x-latency-category: interactive
   /usage_reports:
     get:
@@ -92177,6 +92443,8 @@ tags:
   name: TeXML REST Commands
 - description: Number lookup usage reports
   name: Telco Data Usage Reports
+- description: Text to speech file-based command operations
+  name: Text To Speech Commands
 - description: Text to speech streaming command operations
   name: Text To Speech Commands
 - description: Text to Speech commands operations
