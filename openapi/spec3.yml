@@ -60213,7 +60213,7 @@ components:
       - openai/whisper-tiny
       - openai/whisper-large-v3-turbo
       type: string
-    text-to-speech-file_ErrorResponse:
+    text-to-speech_ErrorResponse:
       properties:
         errors:
           items:
@@ -89870,6 +89870,67 @@ paths:
       tags:
       - Text To Speech Commands
       x-latency-category: interactive
+    post:
+      description: 'Generate synthesized speech audio from text input. Returns audio
+        in the requested format (binary audio stream, base64-encoded JSON, or an audio
+        URL for later retrieval).
+
+
+        Authentication is provided via the standard `Authorization: Bearer <API_KEY>`
+        header.
+
+
+        The `voice` parameter provides a convenient shorthand to specify provider,
+        model, and voice in a single string (e.g. `telnyx.NaturalHD.Alloy`). Alternatively,
+        specify `provider` explicitly along with provider-specific parameters.
+
+
+        Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `rime`,
+        `resemble`.'
+      operationId: generateSpeech
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateSpeechRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Base64AudioResponse'
+            audio/mpeg:
+              schema:
+                description: Raw audio bytes. Returned when `output_type` is `binary_output`
+                  (default).
+                format: binary
+                type: string
+          description: 'Speech generated successfully. The response format depends
+            on the `output_type` parameter:
+
+            - `binary_output` (default): Returns raw audio bytes with the appropriate
+            `Content-Type` header (e.g. `audio/mpeg`).
+
+            - `base64_output`: Returns a JSON object with `base64_audio` field.'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/text-to-speech_ErrorResponse'
+          description: "Bad request \u2014 invalid parameters or provider error."
+        '401':
+          description: "Authentication failed \u2014 missing or invalid API key."
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+          description: "Validation failed \u2014 invalid or missing required fields."
+      summary: Generate speech from text
+      tags:
+      - Text To Speech over WebSockets
+      x-latency-category: interactive
   /text-to-speech/voices:
     get:
       description: 'Retrieve a list of available voices from one or all TTS providers.
@@ -89912,7 +89973,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/text-to-speech-file_ErrorResponse'
+                $ref: '#/components/schemas/text-to-speech_ErrorResponse'
           description: "Bad request \u2014 invalid provider or missing required API\
             \ key."
         '401':
@@ -92410,8 +92471,6 @@ tags:
   name: Telco Data Usage Reports
 - description: Text to speech streaming command operations
   name: Text To Speech Commands
-- description: Text to speech file-based command operations
-  name: Text To Speech over WebSockets
 - description: Text to Speech commands operations
   name: Text to Speech Commands
 - description: Usage data reporting across Telnyx products
