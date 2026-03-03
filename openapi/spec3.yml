@@ -17666,6 +17666,34 @@ components:
       - api_key_ref
       title: CheckAvailabilityToolParams
       type: object
+    ChildRelationshipInfo:
+      properties:
+        child_event:
+          type: string
+        child_product:
+          type: string
+        child_record_type:
+          type: string
+        cost_rollup:
+          type: boolean
+        description:
+          type: string
+        relationship_type:
+          type: string
+        traversal_enabled:
+          type: boolean
+        via:
+          $ref: '#/components/schemas/MetadataFieldMapping'
+      required:
+      - relationship_type
+      - via
+      - cost_rollup
+      - traversal_enabled
+      - description
+      - child_product
+      - child_event
+      - child_record_type
+      type: object
     CivicAddress:
       example:
         city_or_town: Austin
@@ -20595,6 +20623,22 @@ components:
       - data
       title: ConversationsListData
       type: object
+    CostInfo:
+      properties:
+        cumulative_cost:
+          description: Cumulative cost including all descendants.
+          type: string
+        currency:
+          description: ISO 4217 currency code.
+          type: string
+        event_cost:
+          description: Cost of this individual event.
+          type: string
+      required:
+      - event_cost
+      - cumulative_cost
+      - currency
+      type: object
     CostInformation:
       example:
         currency: USD
@@ -20611,6 +20655,18 @@ components:
         upfront_cost:
           example: '3.21'
           type: string
+      type: object
+    CostSummary:
+      properties:
+        currency:
+          description: ISO 4217 currency code.
+          type: string
+        total:
+          description: Total session cost as a decimal string.
+          type: string
+      required:
+      - total
+      - currency
       type: object
     Country:
       properties:
@@ -26789,6 +26845,45 @@ components:
       - timestamp
       title: EventData
       type: object
+    EventNode:
+      properties:
+        children:
+          description: Child events in the session tree.
+          items:
+            $ref: '#/components/schemas/EventNode'
+          type: array
+        cost:
+          $ref: '#/components/schemas/CostInfo'
+        event_name:
+          description: Name of the event type.
+          type: string
+        id:
+          description: Event identifier.
+          type: string
+        links:
+          $ref: '#/components/schemas/Links'
+        product:
+          description: Product that generated this event.
+          type: string
+        record:
+          additionalProperties: true
+          description: The underlying detail record data. Contents vary by record
+            type.
+          type: object
+        relationship:
+          description: Relationship to the parent node, null for root.
+          oneOf:
+          - $ref: '#/components/schemas/RelationshipInfo'
+          - type: 'null'
+      required:
+      - id
+      - product
+      - event_name
+      - cost
+      - links
+      - record
+      - children
+      type: object
     EventResponse:
       properties:
         data:
@@ -27819,6 +27914,18 @@ components:
         name:
           example: sms
           type: string
+      type: object
+    FieldMapping:
+      properties:
+        local_field:
+          description: Field name on the child record.
+          type: string
+        parent_field:
+          description: Field name on the parent record.
+          type: string
+      required:
+      - local_field
+      - parent_field
       type: object
     Filter:
       description: 'Query filter criteria. Note: The first filter object must specify
@@ -32146,6 +32253,18 @@ components:
       - telnyx_agent_id
       title: LinkTelnyxAgentRequest
       type: object
+    Links:
+      properties:
+        records:
+          description: Link to the underlying detail records.
+          type: string
+        self:
+          description: Link to this session analysis node.
+          type: string
+      required:
+      - self
+      - records
+      type: object
     ListPushCredentialsResponse:
       description: Mobile mobile push credentials
       properties:
@@ -33753,6 +33872,45 @@ components:
           format: integer
           type: number
       title: Metadata
+      type: object
+    MetadataFieldMapping:
+      properties:
+        local_field:
+          type: string
+        parent_field:
+          type: string
+      required:
+      - local_field
+      - parent_field
+      type: object
+    MetadataInfo:
+      properties:
+        last_updated:
+          format: date-time
+          type: string
+        total_record_types:
+          type: integer
+      required:
+      - total_record_types
+      - last_updated
+      type: object
+    MetadataOverviewResponse:
+      properties:
+        meta:
+          $ref: '#/components/schemas/MetadataInfo'
+        query_parameters:
+          additionalProperties:
+            $ref: '#/components/schemas/QueryParameterInfo'
+          description: Map of supported query parameter names to their definitions.
+          type: object
+        record_types:
+          items:
+            $ref: '#/components/schemas/RecordTypeInfo'
+          type: array
+      required:
+      - record_types
+      - query_parameters
+      - meta
       type: object
     MigrationParams:
       properties:
@@ -37970,6 +38128,34 @@ components:
       - page_number
       - page_size
       title: PaginationResponse
+      type: object
+    ParentRelationshipInfo:
+      properties:
+        cost_rollup:
+          type: boolean
+        description:
+          type: string
+        parent_event:
+          type: string
+        parent_product:
+          type: string
+        parent_record_type:
+          type: string
+        relationship_type:
+          type: string
+        traversal_enabled:
+          type: boolean
+        via:
+          $ref: '#/components/schemas/MetadataFieldMapping'
+      required:
+      - relationship_type
+      - via
+      - cost_rollup
+      - traversal_enabled
+      - description
+      - parent_product
+      - parent_event
+      - parent_record_type
       type: object
     Participant:
       example:
@@ -42248,6 +42434,33 @@ components:
       - ultra_dark
       example: high
       type: string
+    QueryParameterInfo:
+      properties:
+        default:
+          type: string
+        description:
+          type: string
+        enum_values:
+          items:
+            type: string
+          type:
+          - array
+          - 'null'
+        max:
+          type:
+          - integer
+          - 'null'
+        min:
+          type:
+          - integer
+          - 'null'
+        type:
+          type: string
+      required:
+      - type
+      - default
+      - description
+      type: object
     Queue:
       example:
         average_wait_time_secs: 175
@@ -43094,6 +43307,73 @@ components:
       enum:
       - custom_storage_credentials
       type: string
+    RecordTypeInfo:
+      properties:
+        aliases:
+          items:
+            type: string
+          type: array
+        child_relationships:
+          items:
+            $ref: '#/components/schemas/ChildRelationshipInfo'
+          type: array
+        description:
+          type: string
+        event:
+          type: string
+        parent_relationships:
+          items:
+            $ref: '#/components/schemas/ParentRelationshipInfo'
+          type: array
+        product:
+          type: string
+        record_type:
+          type: string
+      required:
+      - record_type
+      - aliases
+      - product
+      - event
+      - description
+      - child_relationships
+      - parent_relationships
+      type: object
+    RecordTypeMetadataResponse:
+      properties:
+        aliases:
+          items:
+            type: string
+          type: array
+        child_relationships:
+          items:
+            $ref: '#/components/schemas/ChildRelationshipInfo'
+          type: array
+        event:
+          type: string
+        examples:
+          additionalProperties: true
+          description: Example queries and responses for this record type.
+          type: object
+        meta:
+          $ref: '#/components/schemas/RelationshipMetadata'
+        parent_relationships:
+          items:
+            $ref: '#/components/schemas/ParentRelationshipInfo'
+          type: array
+        product:
+          type: string
+        record_type:
+          type: string
+      required:
+      - record_type
+      - aliases
+      - product
+      - event
+      - child_relationships
+      - parent_relationships
+      - examples
+      - meta
+      type: object
     RecordingResponse:
       properties:
         data:
@@ -43563,6 +43843,37 @@ components:
       - cause
       title: Reject Request
       type: object
+    RelationshipInfo:
+      properties:
+        parent_id:
+          description: Identifier of the parent event.
+          type: string
+        type:
+          description: Relationship type identifier.
+          type: string
+        via:
+          $ref: '#/components/schemas/FieldMapping'
+      required:
+      - type
+      - via
+      - parent_id
+      type: object
+    RelationshipMetadata:
+      properties:
+        max_recommended_depth:
+          type: integer
+        total_children:
+          type: integer
+        total_parents:
+          type: integer
+        total_siblings:
+          type: integer
+      required:
+      - total_children
+      - total_siblings
+      - total_parents
+      - max_recommended_depth
+      type: object
     Release:
       properties:
         created_at:
@@ -43818,6 +44129,20 @@ components:
                 type: string
             type: object
           type: array
+      type: object
+    ResponseMeta:
+      properties:
+        event_count:
+          description: Total number of events in the session tree.
+          type: integer
+        products:
+          description: List of distinct products involved in the session.
+          items:
+            type: string
+          type: array
+      required:
+      - event_count
+      - products
       type: object
     ResumeConferenceRecordingRequest:
       properties:
@@ -45784,6 +46109,59 @@ components:
       - global
       example: global
       type: string
+    SessionAnalysisError:
+      properties:
+        code:
+          type: string
+        detail:
+          type: string
+        message:
+          type: string
+      required:
+      - code
+      - message
+      type: object
+    SessionAnalysisErrorResponse:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/SessionAnalysisError'
+          type: array
+      required:
+      - errors
+      type: object
+    SessionAnalysisResponse:
+      properties:
+        completed_at:
+          description: When the session completed.
+          format: date-time
+          type:
+          - string
+          - 'null'
+        cost:
+          $ref: '#/components/schemas/CostSummary'
+        created_at:
+          description: When the session started.
+          format: date-time
+          type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+        root:
+          $ref: '#/components/schemas/EventNode'
+        session_id:
+          description: Identifier for the analyzed session.
+          type: string
+        status:
+          description: Analysis status (e.g. "completed").
+          type: string
+      required:
+      - session_id
+      - status
+      - created_at
+      - cost
+      - root
+      - meta
+      type: object
     SettingsDataErrorMessage:
       properties:
         message:
@@ -87044,6 +87422,184 @@ paths:
       - Rooms
       x-endpoint-cost: medium
       x-latency-category: responsive
+  /session_analysis/metadata:
+    get:
+      description: Returns all available record types and supported query parameters
+        for session analysis.
+      operationId: GetSessionAnalysisMetadata
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetadataOverviewResponse'
+          description: Metadata overview
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Internal server error
+      summary: Get metadata overview
+      tags:
+      - Session Analysis
+      x-latency-category: responsive
+  /session_analysis/metadata/{record_type}:
+    get:
+      description: Returns detailed metadata for a specific record type, including
+        relationships and examples.
+      operationId: GetSessionAnalysisRecordTypeMetadata
+      parameters:
+      - description: The record type identifier (e.g. "call-control").
+        in: path
+        name: record_type
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordTypeMetadataResponse'
+          description: Record type metadata
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Record type not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Internal server error
+      summary: Get record type metadata
+      tags:
+      - Session Analysis
+      x-latency-category: responsive
+  /session_analysis/{record_type}/{event_id}:
+    get:
+      description: Retrieves a full session analysis tree for a given event, including
+        costs, child events, and product linkages.
+      operationId: GetSessionAnalysis
+      parameters:
+      - description: The record type identifier.
+        in: path
+        name: record_type
+        required: true
+        schema:
+          type: string
+      - description: The event identifier (UUID).
+        in: path
+        name: event_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Whether to include child events in the response.
+        in: query
+        name: include_children
+        required: false
+        schema:
+          default: true
+          type: boolean
+      - description: Maximum traversal depth for the event tree.
+        in: query
+        name: max_depth
+        required: false
+        schema:
+          default: 2
+          maximum: 5
+          minimum: 1
+          type: integer
+      - description: Controls what data to expand on each event node.
+        in: query
+        name: expand
+        required: false
+        schema:
+          default: record
+          enum:
+          - record
+          - none
+          type: string
+      - description: ISO 8601 timestamp to narrow index selection for faster lookups.
+        in: query
+        name: date_time
+        required: false
+        schema:
+          format: date-time
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                completed_at: '2025-01-12T10:05:00Z'
+                cost:
+                  currency: USD
+                  total: '0.056800'
+                created_at: '2025-01-12T10:00:00Z'
+                meta:
+                  event_count: 3
+                  products:
+                  - ai-voice-assistant
+                  - callcontrol-cdrs
+                  - inference
+                root:
+                  children: []
+                  cost:
+                    cumulative_cost: '0.056800'
+                    currency: USD
+                    event_cost: '0.001800'
+                  event_name: callcontrol-cdrs
+                  id: call-123
+                  links:
+                    records: /v2/detail_records?record_type=callcontrol-cdrs&id=call-123
+                    self: /v2/session_analysis/callcontrol-cdrs/call-123
+                  product: callcontrol-cdrs
+                  record: {}
+                  relationship: null
+                session_id: call-123
+                status: completed
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisResponse'
+          description: Session analysis result
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Invalid request parameters
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Event not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionAnalysisErrorResponse'
+          description: Internal server error
+      summary: Get session analysis
+      tags:
+      - Session Analysis
+      x-latency-category: responsive
   /seti/black_box_test_results:
     get:
       description: Returns the results of the various black box tests
@@ -92518,6 +93074,9 @@ tags:
   name: SIM Cards
 - description: SIPREC connectors configuration.
   name: SIPREC Connectors
+- description: Analyze voice AI sessions, costs, and event hierarchies across Telnyx
+    products.
+  name: Session Analysis
 - description: Short codes
   name: Short Codes
 - description: Speech to text command operations
