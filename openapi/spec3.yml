@@ -33638,6 +33638,18 @@ components:
           - successful
           type: string
       type: object
+    MessagingMetricsTimeFrame:
+      default: 24h
+      description: The time frame for metrics aggregation.
+      enum:
+      - 1h
+      - 3h
+      - 24h
+      - 3d
+      - 7d
+      - 30d
+      title: Messaging Metrics Time Frame
+      type: string
     MessagingProfile:
       example:
         created_at: '2019-01-23T18:10:02.574Z'
@@ -47921,6 +47933,21 @@ components:
       - start_date
       - end_date
       type: object
+    SttErrorFrame:
+      description: Server-to-client frame indicating an error during transcription.
+        The connection may be closed shortly after.
+      properties:
+        error:
+          description: Error message describing what went wrong.
+          type: string
+        type:
+          const: error
+          description: Frame type identifier.
+          type: string
+      required:
+      - type
+      - error
+      type: object
     SttGetDetailReportByIdResponse:
       properties:
         data:
@@ -47938,6 +47965,16 @@ components:
         data:
           $ref: '#/components/schemas/SttDetailReportResponse'
       type: object
+    SttServerEvent:
+      description: Union of all server-to-client WebSocket events for STT streaming.
+      discriminator:
+        mapping:
+          error: '#/components/schemas/SttErrorFrame'
+          transcript: '#/components/schemas/TranscriptFrame'
+        propertyName: type
+      oneOf:
+      - $ref: '#/components/schemas/TranscriptFrame'
+      - $ref: '#/components/schemas/SttErrorFrame'
     SttUsageReportResponse:
       properties:
         data:
@@ -51371,6 +51408,27 @@ components:
       - conversational
       example: conversational
       type: string
+    TranscriptFrame:
+      description: Server-to-client frame containing a transcription result.
+      properties:
+        confidence:
+          description: Confidence score of the transcription, ranging from 0 to 1.
+          type: number
+        is_final:
+          description: Whether this is a final transcription result. When `false`,
+            this is an interim result that may be refined.
+          type: boolean
+        transcript:
+          description: The transcribed text from the audio.
+          type: string
+        type:
+          const: transcript
+          description: Frame type identifier.
+          type: string
+      required:
+      - type
+      - transcript
+      type: object
     Transcription:
       example:
         event_type: call.transcription
@@ -77605,15 +77663,7 @@ paths:
         name: time_frame
         required: false
         schema:
-          default: 24h
-          enum:
-          - 1h
-          - 3h
-          - 24h
-          - 3d
-          - 7d
-          - 30d
-          type: string
+          $ref: '#/components/schemas/MessagingMetricsTimeFrame'
       responses:
         '200':
           content:
@@ -77819,15 +77869,7 @@ paths:
         name: time_frame
         required: false
         schema:
-          default: 24h
-          enum:
-          - 1h
-          - 3h
-          - 24h
-          - 3d
-          - 7d
-          - 30d
-          type: string
+          $ref: '#/components/schemas/MessagingMetricsTimeFrame'
       responses:
         '200':
           content:
@@ -88694,7 +88736,25 @@ paths:
       x-latency-category: responsive
   /speech-to-text/transcription:
     get:
-      description: Transcribe audio streams to text over WebSocket.
+      description: 'Open a WebSocket connection to stream audio and receive transcriptions
+        in real-time. Authentication is provided via the standard `Authorization:
+        Bearer <API_KEY>` header.
+
+
+        Supported engines: `Azure`, `Deepgram`, `Google`, `Telnyx`.
+
+
+        **Connection flow:**
+
+        1. Open WebSocket with query parameters specifying engine, input format, and
+        language.
+
+        2. Send binary audio frames (mp3/wav format).
+
+        3. Receive JSON transcript frames with `transcript`, `is_final`, and `confidence`
+        fields.
+
+        4. Close connection when done.'
       operationId: TranscriptionOverWs
       parameters:
       - $ref: '#/components/parameters/transcription_engine'
@@ -88703,11 +88763,27 @@ paths:
       - $ref: '#/components/parameters/interim_results'
       - $ref: '#/components/parameters/model'
       responses:
+        '101':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SttServerEvent'
+          description: "WebSocket connection established. Communication proceeds via\
+            \ binary audio frames (client) and JSON transcript frames (server).\n\n\
+            **Client \u2192 Server:** Binary audio data (mp3/wav).\n**Server \u2192\
+            \ Client:** See `TranscriptFrame` and `SttErrorFrame` schemas."
         '200':
-          description: The request processed successfully.
+          description: "WebSocket upgrade successful \u2014 this response is not returned\
+            \ directly. See 101 for frame documentation."
+        '400':
+          description: "Invalid parameters \u2014 engine not supported or missing\
+            \ required fields."
+        '401':
+          description: "Authentication failed \u2014 missing or invalid Authorization\
+            \ header."
         '422':
           $ref: '#/components/responses/speech-to-text_UnprocessableEntityResponse'
-      summary: Speech to text over websocket
+      summary: Speech to text over WebSocket
       tags:
       - Speech To Text over WebSockets
       x-latency-category: interactive
