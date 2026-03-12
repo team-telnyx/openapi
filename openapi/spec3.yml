@@ -536,6 +536,13 @@ components:
             example: USACG
             type: string
         type: object
+    FilterName:
+      description: Case-insensitive substring filter on the name field.
+      in: query
+      name: filter[name]
+      required: false
+      schema:
+        type: string
     FilterOTAUpdatesConsolidated:
       description: 'Consolidated filter parameter for OTA updates (deepObject style).
         Originally: filter[status], filter[sim_card_id], filter[type]'
@@ -2801,6 +2808,38 @@ components:
             type: integer
         type: object
       style: deepObject
+    voice-designs_PageNumber:
+      description: Page number for pagination (1-based).
+      in: query
+      name: page[number]
+      required: false
+      schema:
+        default: 1
+        minimum: 1
+        type: integer
+    voice-designs_PageSize:
+      description: Number of results per page.
+      in: query
+      name: page[size]
+      required: false
+      schema:
+        default: 20
+        maximum: 250
+        minimum: 1
+        type: integer
+    voice-designs_Sort:
+      description: Sort order. Prefix with `-` for descending. Defaults to `-created_at`.
+      in: query
+      name: sort
+      required: false
+      schema:
+        default: -created_at
+        enum:
+        - name
+        - -name
+        - created_at
+        - -created_at
+        type: string
     voice_id:
       description: Voice identifier for the chosen provider.
       in: query
@@ -26904,6 +26943,27 @@ components:
         type:
           const: error
           description: Frame type identifier.
+          type: string
+      type: object
+    ErrorObject:
+      description: A single error object.
+      properties:
+        code:
+          description: Telnyx-specific error code.
+          type: string
+        detail:
+          description: Detailed, human-readable explanation of the error.
+          type: string
+        source:
+          description: Reference to the source of the error.
+          properties:
+            pointer:
+              description: A JSON Pointer (RFC 6901) to the field that caused the
+                error.
+              type: string
+          type: object
+        title:
+          description: Short, human-readable summary of the error.
           type: string
       type: object
     ErrorRecord:
@@ -57450,6 +57510,188 @@ components:
           description: Voice identifier.
           type: string
       type: object
+    VoiceCloneData:
+      description: A voice clone object.
+      properties:
+        created_at:
+          description: Timestamp when the voice clone was created.
+          format: date-time
+          type: string
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          - null
+          type:
+          - string
+          - 'null'
+        id:
+          description: Unique identifier for the voice clone.
+          format: uuid
+          type: string
+        label:
+          description: Voice style description. If not explicitly set on upload, falls
+            back to the source design's prompt text.
+          type:
+          - string
+          - 'null'
+        language:
+          description: ISO 639-1 language code of the voice clone.
+          type:
+          - string
+          - 'null'
+        name:
+          description: Name of the voice clone.
+          type: string
+        record_type:
+          description: Identifies the resource type.
+          enum:
+          - voice_clone
+          type: string
+        source_voice_design_id:
+          description: UUID of the source voice design. `null` for upload-based clones.
+          format: uuid
+          type:
+          - string
+          - 'null'
+        source_voice_design_version:
+          description: Version of the source voice design used. `null` for upload-based
+            clones.
+          type:
+          - integer
+          - 'null'
+        updated_at:
+          description: Timestamp when the voice clone was last updated.
+          format: date-time
+          type: string
+      type: object
+    VoiceCloneListResponse:
+      description: Paginated list of voice clones.
+      properties:
+        data:
+          description: Array of voice clone objects.
+          items:
+            $ref: '#/components/schemas/VoiceCloneData'
+          type: array
+        meta:
+          $ref: '#/components/schemas/voice-designs_PaginationMeta'
+      type: object
+    VoiceCloneRequest:
+      description: Request body for creating a voice clone from an existing voice
+        design.
+      example:
+        gender: male
+        language: en
+        name: clone-narrator
+        voice_design_id: 550e8400-e29b-41d4-a716-446655440000
+      properties:
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        language:
+          description: ISO 639-1 language code for the clone (e.g. `en`, `fr`, `de`).
+          type: string
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          minLength: 1
+          type: string
+        voice_design_id:
+          description: UUID of the source voice design to clone.
+          format: uuid
+          type: string
+      required:
+      - name
+      - voice_design_id
+      - language
+      - gender
+      type: object
+    VoiceCloneResponse:
+      description: Response envelope for a single voice clone.
+      example:
+        data:
+          created_at: '2024-01-01T00:00:00Z'
+          gender: male
+          id: 660f9511-f3ac-52e5-b827-557766551111
+          label: Speak in a warm, friendly tone
+          language: en
+          name: clone-narrator
+          record_type: voice_clone
+          source_voice_design_id: 550e8400-e29b-41d4-a716-446655440000
+          source_voice_design_version: 1
+          updated_at: '2024-01-01T00:00:00Z'
+      properties:
+        data:
+          $ref: '#/components/schemas/VoiceCloneData'
+      type: object
+    VoiceCloneUpdateRequest:
+      description: Request body for updating a voice clone.
+      example:
+        name: updated-clone
+      properties:
+        gender:
+          description: Updated gender for the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        language:
+          description: Updated ISO 639-1 language code or `auto`.
+          type: string
+        name:
+          description: New name for the voice clone.
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - name
+      type: object
+    VoiceCloneUploadRequest:
+      description: Multipart form data for creating a voice clone from a direct audio
+        upload.
+      properties:
+        audio_file:
+          description: "Audio file to clone the voice from. Supported formats: WAV,\
+            \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
+            \ clear, uninterrupted speech. Maximum size: 2MB."
+          format: binary
+          type: string
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        label:
+          description: Optional custom label describing the voice style. If omitted,
+            falls back to the source design's prompt text.
+          type: string
+        language:
+          description: ISO 639-1 language code (e.g. `en`, `fr`) or `auto` for automatic
+            detection.
+          pattern: ^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$
+          type: string
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          type: string
+        ref_text:
+          description: Optional transcript of the audio file. Providing this improves
+            clone quality.
+          type: string
+      required:
+      - audio_file
+      - language
+      - name
+      type: object
     VoiceConfig:
       default: Telnyx.KokoroTTS.af
       description: "The voice to be used by the voice assistant. Currently we support\
@@ -57470,6 +57712,198 @@ components:
         \ `Mini`, `Max`."
       example: Telnyx.KokoroTTS.af
       type: string
+    VoiceDesignData:
+      description: A voice design object with full version detail.
+      properties:
+        created_at:
+          description: Timestamp when the voice design was first created.
+          format: date-time
+          type: string
+        id:
+          description: Unique identifier for the voice design.
+          format: uuid
+          type: string
+        name:
+          description: Name of the voice design.
+          type: string
+        prompt:
+          description: Natural language prompt used to define the voice style for
+            this version.
+          type: string
+        record_type:
+          description: Identifies the resource type.
+          enum:
+          - voice_design
+          type: string
+        text:
+          description: Sample text used to synthesize this version.
+          type: string
+        updated_at:
+          description: Timestamp when the voice design was last updated.
+          format: date-time
+          type: string
+        version:
+          description: Version number of this voice design.
+          type: integer
+        version_created_at:
+          description: Timestamp when this specific version was created.
+          format: date-time
+          type: string
+        voice_sample_size:
+          description: Size of the voice sample audio in bytes.
+          type: integer
+      type: object
+    VoiceDesignListResponse:
+      description: Paginated list of voice designs.
+      properties:
+        data:
+          description: Array of voice design summary objects.
+          items:
+            $ref: '#/components/schemas/VoiceDesignSummaryData'
+          type: array
+        meta:
+          $ref: '#/components/schemas/voice-designs_PaginationMeta'
+      type: object
+    VoiceDesignRequest:
+      description: Request body for creating a new voice design or adding a version
+        to an existing one. Omit `voice_design_id` to create a new design; include
+        it to add a new version.
+      example:
+        language: Auto
+        name: friendly-narrator
+        prompt: Speak in a warm, friendly tone
+        text: Hello, welcome to our service.
+      properties:
+        language:
+          default: Auto
+          description: 'Language for synthesis. Supported values: Auto, Chinese, English,
+            Japanese, Korean, German, French, Russian, Portuguese, Spanish, Italian.
+            Defaults to Auto.'
+          type: string
+        max_new_tokens:
+          description: 'Maximum number of tokens to generate. Default: 2048.'
+          maximum: 4096
+          minimum: 100
+          type: integer
+        name:
+          description: Name for the voice design. Required when creating a new design
+            (`voice_design_id` is not provided); ignored when adding a version. Cannot
+            be a UUID.
+          maxLength: 255
+          minLength: 1
+          type: string
+        prompt:
+          description: Natural language description of the voice style, e.g. 'Speak
+            in a warm, friendly tone with a slight British accent'.
+          type: string
+        repetition_penalty:
+          description: 'Repetition penalty to reduce repeated patterns in generated
+            audio. Default: 1.05.'
+          format: float
+          maximum: 2.0
+          minimum: 1.0
+          type: number
+        temperature:
+          description: 'Sampling temperature controlling randomness. Higher values
+            produce more varied output. Default: 0.9.'
+          format: float
+          maximum: 2.0
+          minimum: 0.0
+          type: number
+        text:
+          description: Sample text to synthesize for this voice design.
+          type: string
+        top_k:
+          description: "Top-k sampling parameter \u2014 limits the token vocabulary\
+            \ considered at each step. Default: 50."
+          maximum: 1000
+          minimum: 1
+          type: integer
+        top_p:
+          description: "Top-p (nucleus) sampling parameter \u2014 cumulative probability\
+            \ cutoff for token selection. Default: 1.0."
+          format: float
+          maximum: 1.0
+          minimum: 0.0
+          type: number
+        voice_design_id:
+          description: ID of an existing voice design to add a new version to. When
+            provided, a new version is created instead of a new design.
+          format: uuid
+          type: string
+      required:
+      - text
+      - prompt
+      type: object
+    VoiceDesignResponse:
+      description: Response envelope for a single voice design with full version detail.
+      example:
+        data:
+          created_at: '2024-01-01T00:00:00Z'
+          id: 550e8400-e29b-41d4-a716-446655440000
+          name: friendly-narrator
+          prompt: Speak in a warm tone
+          record_type: voice_design
+          text: Hello, welcome.
+          updated_at: '2024-01-01T00:00:00Z'
+          version: 1
+          version_created_at: '2024-01-01T00:00:00Z'
+          voice_sample_size: 48000
+      properties:
+        data:
+          $ref: '#/components/schemas/VoiceDesignData'
+      type: object
+    VoiceDesignSummaryData:
+      description: A summarized voice design object (without version-specific fields).
+      properties:
+        created_at:
+          description: Timestamp when the voice design was first created.
+          format: date-time
+          type: string
+        id:
+          description: Unique identifier for the voice design.
+          format: uuid
+          type: string
+        name:
+          description: Name of the voice design.
+          type: string
+        record_type:
+          description: Identifies the resource type.
+          enum:
+          - voice_design
+          type: string
+        updated_at:
+          description: Timestamp when the voice design was last updated.
+          format: date-time
+          type: string
+      type: object
+    VoiceDesignUpdateRequest:
+      description: Request body for renaming a voice design.
+      example:
+        name: updated-narrator
+      properties:
+        name:
+          description: New name for the voice design.
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - name
+      type: object
+    VoiceDesignUpdatedResponse:
+      description: Response envelope for a voice design after a rename operation (no
+        version-specific fields).
+      example:
+        data:
+          created_at: '2024-01-01T00:00:00Z'
+          id: 550e8400-e29b-41d4-a716-446655440000
+          name: updated-narrator
+          record_type: voice_design
+          updated_at: '2024-01-02T00:00:00Z'
+      properties:
+        data:
+          $ref: '#/components/schemas/VoiceDesignSummaryData'
+      type: object
     VoiceSettings:
       properties:
         api_key_ref:
@@ -61622,6 +62056,40 @@ components:
           items:
             $ref: '#/components/schemas/voice-channels_Error'
           type: array
+      type: object
+    voice-designs_ErrorResponse:
+      description: Standard error response envelope.
+      example:
+        errors:
+        - code: '10005'
+          detail: Voice design not found
+          title: Resource not found
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/ErrorObject'
+          type: array
+      type: object
+    voice-designs_PaginationMeta:
+      description: Pagination metadata returned with list responses.
+      example:
+        page_number: 1
+        page_size: 20
+        total_pages: 3
+        total_results: 42
+      properties:
+        page_number:
+          description: Current page number (1-based).
+          type: integer
+        page_size:
+          description: Number of results per page.
+          type: integer
+        total_pages:
+          description: Total number of pages.
+          type: integer
+        total_results:
+          description: Total number of results across all pages.
+          type: integer
       type: object
     webhook_delivery:
       description: Record of all attempts to deliver a webhook.
@@ -93365,6 +93833,534 @@ paths:
       tags:
       - Virtual Cross Connects
       x-latency-category: responsive
+  /voice_clones:
+    get:
+      description: Returns a paginated list of voice clones belonging to the authenticated
+        account.
+      operationId: listVoiceClones
+      parameters:
+      - $ref: '#/components/parameters/voice-designs_PageNumber'
+      - $ref: '#/components/parameters/voice-designs_PageSize'
+      - $ref: '#/components/parameters/FilterName'
+      - $ref: '#/components/parameters/voice-designs_Sort'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCloneListResponse'
+          description: A paginated list of voice clones.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+      summary: List voice clones
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+    post:
+      description: Creates a new voice clone by capturing the voice identity of an
+        existing voice design. The clone can then be used for text-to-speech synthesis.
+      operationId: createVoiceClone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceCloneRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCloneResponse'
+          description: Voice clone created successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design not found.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unprocessable entity \u2014 validation error in the request\
+            \ body."
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Bad gateway \u2014 upstream voice cloning service is unavailable."
+      summary: Create a voice clone from a voice design
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+  /voice_clones/from_upload:
+    post:
+      description: "Creates a new voice clone by uploading an audio file directly.\
+        \ Supported formats: WAV, MP3, FLAC, OGG, M4A. For best results, provide 5\u2013\
+        10 seconds of clear speech. Maximum file size: 2MB."
+      operationId: createVoiceCloneFromUpload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceCloneUploadRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCloneResponse'
+          description: Voice clone created successfully from the uploaded audio.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Bad request \u2014 the audio file is invalid, unsupported,\
+            \ or exceeds the size limit."
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unprocessable entity \u2014 validation error in the request\
+            \ body."
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Bad gateway \u2014 upstream voice cloning service is unavailable."
+      summary: Create a voice clone from an audio file upload
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+  /voice_clones/{id}:
+    delete:
+      description: Permanently deletes a voice clone. This action cannot be undone.
+      operationId: deleteVoiceClone
+      parameters:
+      - description: The voice clone UUID.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '204':
+          description: Voice clone deleted successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice clone not found.
+      summary: Delete a voice clone
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+    patch:
+      description: Updates the name, language, or gender of a voice clone.
+      operationId: updateVoiceClone
+      parameters:
+      - description: The voice clone UUID.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceCloneUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCloneResponse'
+          description: Voice clone updated successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice clone not found.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unprocessable entity \u2014 validation error in the request\
+            \ body."
+      summary: Update a voice clone
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+  /voice_clones/{id}/sample:
+    get:
+      description: Downloads the WAV audio sample that was used to create the voice
+        clone.
+      operationId: getVoiceCloneSample
+      parameters:
+      - description: The voice clone UUID.
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            audio/wav:
+              schema:
+                format: binary
+                type: string
+          description: WAV audio sample binary.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice clone not found.
+      summary: Download voice clone audio sample
+      tags:
+      - Voice Clones
+      x-latency-category: interactive
+  /voice_designs:
+    get:
+      description: Returns a paginated list of voice designs belonging to the authenticated
+        account.
+      operationId: listVoiceDesigns
+      parameters:
+      - $ref: '#/components/parameters/voice-designs_PageNumber'
+      - $ref: '#/components/parameters/voice-designs_PageSize'
+      - $ref: '#/components/parameters/FilterName'
+      - $ref: '#/components/parameters/voice-designs_Sort'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDesignListResponse'
+          description: A paginated list of voice designs.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+      summary: List voice designs
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+    post:
+      description: Creates a new voice design (version 1) when `voice_design_id` is
+        omitted. When `voice_design_id` is provided, adds a new version to the existing
+        design instead. A design can have at most 50 versions.
+      operationId: createVoiceDesign
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceDesignRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDesignResponse'
+          description: Voice design created or new version added successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Voice design not found \u2014 the specified `voice_design_id`\
+            \ does not exist."
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Conflict \u2014 the voice design has reached the maximum of\
+            \ 50 versions."
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unprocessable entity \u2014 validation error in the request\
+            \ body."
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Bad gateway \u2014 upstream voice synthesis service is unavailable."
+      summary: Create or add a version to a voice design
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+  /voice_designs/{id}:
+    delete:
+      description: Permanently deletes a voice design and all of its versions. This
+        action cannot be undone.
+      operationId: deleteVoiceDesign
+      parameters:
+      - description: The voice design UUID or name.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Voice design deleted successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design not found.
+      summary: Delete a voice design
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+    get:
+      description: Returns the latest version of a voice design, or a specific version
+        when `?version=N` is provided. The `id` parameter accepts either a UUID or
+        the design name.
+      operationId: getVoiceDesign
+      parameters:
+      - description: The voice design UUID or name.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - description: Specific version number to retrieve. Defaults to the latest version.
+        in: query
+        name: version
+        required: false
+        schema:
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDesignResponse'
+          description: The requested voice design.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design not found.
+      summary: Get a voice design
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+    patch:
+      description: Updates the name of a voice design. All versions retain their other
+        properties.
+      operationId: updateVoiceDesign
+      parameters:
+      - description: The voice design UUID or name.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceDesignUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDesignUpdatedResponse'
+          description: Voice design renamed successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design not found.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unprocessable entity \u2014 validation error in the request\
+            \ body."
+      summary: Rename a voice design
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+  /voice_designs/{id}/sample:
+    get:
+      description: Downloads the WAV audio sample for the voice design. Returns the
+        latest version's sample by default, or a specific version when `?version=N`
+        is provided. The `id` parameter accepts either a UUID or the design name.
+      operationId: getVoiceDesignSample
+      parameters:
+      - description: The voice design UUID or name.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - description: Specific version number to download the sample for. Defaults
+          to the latest version.
+        in: query
+        name: version
+        required: false
+        schema:
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            audio/wav:
+              schema:
+                format: binary
+                type: string
+          description: WAV audio sample binary.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design or version not found.
+      summary: Download voice design audio sample
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
+  /voice_designs/{id}/versions/{version}:
+    delete:
+      description: Permanently deletes a specific version of a voice design. The version
+        number must be a positive integer.
+      operationId: deleteVoiceDesignVersion
+      parameters:
+      - description: The voice design UUID or name.
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - description: The version number to delete.
+        in: path
+        name: version
+        required: true
+        schema:
+          minimum: 1
+          type: integer
+      responses:
+        '204':
+          description: Voice design version deleted successfully.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Bad request \u2014 invalid version number."
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: "Unauthorized \u2014 missing or invalid bearer token."
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/voice-designs_ErrorResponse'
+          description: Voice design or version not found.
+      summary: Delete a specific version of a voice design
+      tags:
+      - Voice Designs
+      x-latency-category: interactive
   /webhook_deliveries:
     get:
       description: Lists webhook_deliveries for the authenticated user
@@ -94323,6 +95319,12 @@ tags:
   name: Virtual Cross Connects
 - description: Voice Channels
   name: Voice Channels
+- description: Capture and manage voice identities as clones for use in text-to-speech
+    synthesis.
+  name: Voice Clones
+- description: Create and manage AI-generated voice designs using natural language
+    prompts.
+  name: Voice Designs
 - description: Voicemail API
   name: Voicemail
 - description: Webhooks operations
