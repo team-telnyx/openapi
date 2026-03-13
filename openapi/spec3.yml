@@ -43705,6 +43705,11 @@ components:
           description: Uniquely identifies the conference.
           example: 84a97d76-e40f-11ed-9074-02420a0daa69
           type: string
+        connection_id:
+          description: Identifies the Telnyx application (Call Control, TeXML) or
+            SIP connection resource associated with this recording.
+          example: '175237942907135762'
+          type: string
         created_at:
           description: ISO 8601 formatted date indicating when the resource was created.
           example: '2018-02-02T22:25:27.521Z'
@@ -43724,9 +43729,20 @@ components:
           example: 60000
           format: int32
           type: integer
+        from:
+          description: The `from` (caller) number for the call that generated this
+            recording.
+          example: '+15551234567'
+          type: string
         id:
           description: Uniquely identifies the recording.
           example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+          type: string
+        initiated_by:
+          description: Indicates what triggered the recording. Possible values include
+            `DialVerb`, `Conference`, `OutboundAPI`, `Trunking`, `RecordVerb`, `StartCallRecordingAPI`,
+            `StartConferenceRecordingAPI`.
+          example: StartCallRecordingAPI
           type: string
         record_type:
           enum:
@@ -43754,6 +43770,10 @@ components:
           enum:
           - completed
           example: completed
+          type: string
+        to:
+          description: The `to` (callee) number for the call that generated this recording.
+          example: '+15557654321'
           type: string
         updated_at:
           description: ISO 8601 formatted date indicating when the resource was updated.
@@ -86270,6 +86290,36 @@ paths:
     get:
       description: Returns a list of your recording transcriptions.
       operationId: getRecordingTranscriptions
+      parameters:
+      - $ref: '#/components/parameters/call-recordings_PageConsolidated'
+      - description: Filter recording transcriptions by various attributes.
+        explode: true
+        in: query
+        name: filter
+        schema:
+          properties:
+            created_at:
+              additionalProperties: false
+              properties:
+                gte:
+                  description: Returns only transcriptions created later than or at
+                    given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+                lte:
+                  description: Returns only transcriptions created earlier than or
+                    at given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+              type: object
+            recording_id:
+              description: If present, transcriptions will be filtered to those associated
+                with the given recording.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              format: uuid
+              type: string
+          type: object
+        style: deepObject
       responses:
         '200':
           $ref: '#/components/responses/ListRecordingTranscriptionsResponse'
@@ -86326,15 +86376,17 @@ paths:
       operationId: GetRecordings
       parameters:
       - $ref: '#/components/parameters/call-recordings_PageConsolidated'
-      - description: 'Consolidated filter parameter (deepObject style). Originally:
-          filter[conference_id], filter[created_at][gte], filter[created_at][lte],
-          filter[call_leg_id], filter[call_session_id], filter[from], filter[to],
-          filter[connection_id], filter[sip_call_id]'
+      - description: Filter recordings by various attributes.
         explode: true
         in: query
         name: filter
         schema:
           properties:
+            call_control_id:
+              description: If present, recordings will be filtered to those with a
+                matching `call_control_id`.
+              example: v3:e-31OnvjEM7Y4wvxr3TKNk8M3QyLcGZPiUIzCGtwQtOtEjY-B0urkw
+              type: string
             call_leg_id:
               description: If present, recordings will be filtered to those with a
                 matching call_leg_id.
@@ -86350,6 +86402,11 @@ paths:
             conference_id:
               description: Returns only recordings associated with a given conference.
               example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              type: string
+            conference_region:
+              description: If present, recordings will be filtered to those with a
+                matching `conference_region`.
+              example: us
               type: string
             connection_id:
               description: If present, recordings will be filtered to those with a
@@ -86370,6 +86427,20 @@ paths:
                   example: '2019-03-29T11:10:00Z'
                   type: string
               type: object
+            end_time:
+              additionalProperties: false
+              properties:
+                gte:
+                  description: Returns only recordings with an end time later than
+                    or equal to the given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+                lte:
+                  description: Returns only recordings with an end time earlier than
+                    or equal to the given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+              type: object
             from:
               description: If present, recordings will be filtered to those with a
                 matching `from` attribute (case-sensitive).
@@ -86377,9 +86448,23 @@ paths:
               type: string
             sip_call_id:
               description: If present, recordings will be filtered to those with a
-                matching `sip_call_id` attribute. Matching is case-sensitive
+                matching `sip_call_id` attribute. Matching is case-sensitive.
               example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
               type: string
+            start_time:
+              additionalProperties: false
+              properties:
+                gte:
+                  description: Returns only recordings with a start time later than
+                    or equal to the given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+                lte:
+                  description: Returns only recordings with a start time earlier than
+                    or equal to the given ISO 8601 datetime.
+                  example: '2019-03-29T11:10:00Z'
+                  type: string
+              type: object
             to:
               description: If present, recordings will be filtered to those with a
                 matching `to` attribute (case-sensitive).
@@ -86411,7 +86496,17 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/DeleteRecordingsRequest'
       responses:
-        '204':
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    enum:
+                    - ok
+                    example: ok
+                    type: string
+                type: object
           description: The recordings have been successfully deleted.
         '401':
           $ref: '#/components/responses/call-recordings_UnauthorizedResponse'
