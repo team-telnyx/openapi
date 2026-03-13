@@ -59676,6 +59676,188 @@ components:
           example: USD
           type: string
       type: object
+    X402PaymentRequirements:
+      description: x402 protocol v2 payment requirements. Contains all information
+        needed to construct and sign a payment authorization.
+      properties:
+        accepts:
+          description: Accepted payment schemes. Currently only the `exact` EVM scheme
+            is supported.
+          items:
+            properties:
+              amount:
+                description: Amount in the token's smallest unit.
+                type: string
+              asset:
+                description: Token contract address (e.g. USDC on Base).
+                type: string
+              extra:
+                description: Additional scheme-specific parameters including EIP-712
+                  domain info and the facilitator URL.
+                properties:
+                  facilitatorUrl:
+                    type: string
+                  name:
+                    description: EIP-712 domain name (e.g. "USD Coin").
+                    type: string
+                  quoteId:
+                    type: string
+                  version:
+                    description: EIP-712 domain version.
+                    type: string
+                type: object
+              maxTimeoutSeconds:
+                description: Maximum time in seconds before the payment authorization
+                  expires.
+                type: integer
+              network:
+                description: Blockchain network identifier in CAIP-2 format (e.g.
+                  "eip155:8453" for Base).
+                type: string
+              payTo:
+                description: Recipient wallet address.
+                type: string
+              scheme:
+                description: Payment scheme (e.g. "exact").
+                type: string
+            type: object
+          type: array
+        resource:
+          description: The resource being paid for. Included in the payment signature.
+          properties:
+            description:
+              description: Human-readable description of the payment.
+              type: string
+            mimeType:
+              description: MIME type of the resource.
+              type: string
+            url:
+              description: Canonical URL of the payment resource.
+              type: string
+          type: object
+        x402Version:
+          description: x402 protocol version. Currently always 2.
+          enum:
+          - 2
+          type: integer
+      type: object
+    X402QuoteRequest:
+      properties:
+        amount_usd:
+          description: Amount in USD to fund (minimum 5.00, maximum 10000.00).
+          example: '50.00'
+          type: string
+      required:
+      - amount_usd
+      type: object
+    X402QuoteResponse:
+      properties:
+        data:
+          properties:
+            amount_crypto:
+              description: The equivalent amount in the payment cryptocurrency's smallest
+                unit (e.g. USDC has 6 decimals, so $50.00 = "50000000").
+              type: string
+            amount_usd:
+              description: The quoted amount in USD.
+              type: string
+            expires_at:
+              description: ISO 8601 timestamp when the quote expires.
+              format: date-time
+              type: string
+            id:
+              description: Unique quote identifier. Use this to settle the payment.
+              type: string
+            network:
+              description: The blockchain network for the payment in CAIP-2 format
+                (e.g. eip155:8453 for Base).
+              type: string
+            payment_requirements:
+              $ref: '#/components/schemas/X402PaymentRequirements'
+            record_type:
+              enum:
+              - quote
+              type: string
+          type: object
+      type: object
+    X402SettleRequest:
+      properties:
+        id:
+          description: The quote ID to settle.
+          type: string
+        payment_signature:
+          description: Base64-encoded signed payment authorization (x402 PaymentPayload).
+            Can alternatively be provided via the PAYMENT-SIGNATURE header.
+          type: string
+      required:
+      - id
+      type: object
+    X402SettlementErrorResponse:
+      description: Error response for x402 settlement failures. Uses string error
+        codes from the x402 error handling system.
+      properties:
+        errors:
+          items:
+            properties:
+              code:
+                description: Machine-readable error code.
+                enum:
+                - invalid_signature
+                - expired_authorization
+                - invalid_nonce
+                - insufficient_balance
+                - insufficient_funds
+                - insufficient_allowance
+                - facilitator_unavailable
+                - facilitator_timeout
+                - settlement_timeout
+                - transaction_failed
+                - unknown
+                type: string
+              detail:
+                description: Human-readable error description with guidance.
+                type: string
+              title:
+                description: Short error title (e.g. "Payment Failed").
+                type: string
+            type: object
+          type: array
+      type: object
+    X402TransactionResponse:
+      properties:
+        data:
+          properties:
+            amount:
+              description: The transaction amount in the specified currency.
+              type: string
+            created_at:
+              description: ISO 8601 timestamp when the transaction was created.
+              format: date-time
+              type: string
+            currency:
+              description: The currency of the transaction amount (e.g. USD).
+              type: string
+            id:
+              description: Unique transaction identifier.
+              type: string
+            quote_id:
+              description: The original quote ID associated with this transaction.
+              type: string
+            record_type:
+              enum:
+              - x402_transaction
+              type: string
+            status:
+              description: The settlement status of the transaction.
+              enum:
+              - settled
+              type: string
+            tx_hash:
+              description: The on-chain transaction hash, if available.
+              nullable: true
+              type: string
+          type: object
+      type: object
     active:
       default: true
       description: The active status of the authentication provider
@@ -62331,6 +62513,30 @@ components:
       example: '2018-02-02T22:25:27.521Z'
       readOnly: true
       type: string
+    x402-transactions_ErrorResponse:
+      properties:
+        errors:
+          items:
+            properties:
+              code:
+                type: string
+              detail:
+                type: string
+              meta:
+                properties:
+                  url:
+                    type: string
+                type: object
+              source:
+                properties:
+                  pointer:
+                    type: string
+                type: object
+              title:
+                type: string
+            type: object
+          type: array
+      type: object
   securitySchemes:
     bearerAuth:
       scheme: bearer
@@ -93049,6 +93255,233 @@ paths:
       tags:
       - Whatsapp Message Templates
       x-latency-category: responsive
+  /v2/x402/credit_account:
+    post:
+      description: "Settles an x402 payment using the quote ID and a signed payment\
+        \ authorization. The payment signature can be provided via the `PAYMENT-SIGNATURE`\
+        \ header or the `payment_signature` body parameter. Settlement is idempotent\
+        \ \u2014 submitting the same quote ID multiple times returns the existing\
+        \ transaction."
+      operationId: settleX402Payment
+      parameters:
+      - description: Signed payment authorization for the quote. Alternative to providing
+          `payment_signature` in the request body.
+        in: header
+        name: PAYMENT-SIGNATURE
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              id: quote_abc123
+              payment_signature: 0xabc123...
+            schema:
+              $ref: '#/components/schemas/X402SettleRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/X402TransactionResponse'
+          description: Payment already settled (idempotent response)
+        '201':
+          content:
+            application/json:
+              example:
+                data:
+                  amount: '50.00'
+                  created_at: '2026-03-13T15:00:00Z'
+                  currency: USD
+                  id: de06811a-2e43-4561-af5a-7d0a26e20aaa
+                  quote_id: quote_abc123
+                  record_type: x402_transaction
+                  status: settled
+                  tx_hash: 0xabc123def456...
+              schema:
+                $ref: '#/components/schemas/X402TransactionResponse'
+          description: Payment settled successfully
+        '400':
+          content:
+            application/json:
+              examples:
+                expired_authorization:
+                  summary: Expired payment authorization
+                  value:
+                    errors:
+                    - code: expired_authorization
+                      detail: 'Payment failed: the payment authorization has expired.
+                        Please request a new quote and try again.'
+                      title: Payment Failed
+                invalid_signature:
+                  summary: Invalid payment signature
+                  value:
+                    errors:
+                    - code: invalid_signature
+                      detail: 'Payment failed: the payment signature is invalid. Please
+                        sign a new payment authorization.'
+                      title: Payment Failed
+              schema:
+                $ref: '#/components/schemas/X402SettlementErrorResponse'
+          description: "Bad request \u2014 invalid signature, expired authorization,\
+            \ invalid nonce, or malformed payment payload"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: "Forbidden \u2014 x402 payments not enabled, account tier ineligible,\
+            \ or account suspended"
+        '422':
+          content:
+            application/json:
+              examples:
+                insufficient_balance:
+                  summary: Insufficient wallet balance
+                  value:
+                    errors:
+                    - code: insufficient_balance
+                      detail: 'Payment failed: your wallet does not have enough USDC
+                        to complete this transaction. Please add funds and try again.'
+                      title: Payment Failed
+                validation_error:
+                  summary: Missing required parameter
+                  value:
+                    errors:
+                    - code: unknown
+                      detail: id is required
+                      title: Invalid request
+              schema:
+                $ref: '#/components/schemas/X402SettlementErrorResponse'
+          description: "Unprocessable entity \u2014 missing required parameters or\
+            \ insufficient funds/allowance"
+        '500':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: transaction_failed
+                  detail: Payment transaction failed on-chain. Your funds have not
+                    been transferred. Please try again or contact support.
+                  title: Payment Failed
+              schema:
+                $ref: '#/components/schemas/X402SettlementErrorResponse'
+          description: "Internal server error \u2014 facilitator unavailable, transaction\
+            \ failed on-chain, or unknown error"
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: "Bad gateway \u2014 upstream settlement service error"
+        '503':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: facilitator_timeout
+                  detail: Payment processing timed out. Your funds have not been transferred.
+                    Please try again.
+                  title: Payment Failed
+              schema:
+                $ref: '#/components/schemas/X402SettlementErrorResponse'
+          description: "Service unavailable \u2014 facilitator or settlement timeout"
+      summary: Settle a payment
+      tags:
+      - x402 Payment Transactions
+      x-endpoint-cost: light
+      x-latency-category: responsive
+  /v2/x402/credit_account/quote:
+    post:
+      description: Creates a payment quote for the specified USD amount. Returns payment
+        details including the x402 payment requirements, network, and expiration time.
+        The quote must be settled before it expires.
+      operationId: createX402Quote
+      requestBody:
+        content:
+          application/json:
+            example:
+              amount_usd: '50.00'
+            schema:
+              $ref: '#/components/schemas/X402QuoteRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                  amount_crypto: '50000000'
+                  amount_usd: '50.00'
+                  expires_at: '2026-03-13T15:05:00Z'
+                  id: quote_abc123
+                  network: eip155:8453
+                  payment_requirements:
+                    accepts:
+                    - amount: '50000000'
+                      asset: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                      extra:
+                        facilitatorUrl: https://api.cdp.coinbase.com/platform/v2/x402
+                        name: USD Coin
+                        quoteId: quote_abc123
+                        version: '2'
+                      maxTimeoutSeconds: 900
+                      network: eip155:8453
+                      payTo: '0x1234567890abcdef1234567890abcdef12345678'
+                      scheme: exact
+                    resource:
+                      description: Payment of $50.00 USD
+                      mimeType: application/json
+                      url: https://api.telnyx.com/v2/x402/credit_account
+                    x402Version: 2
+                  record_type: quote
+              schema:
+                $ref: '#/components/schemas/X402QuoteResponse'
+          description: Quote created successfully
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: Unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: "Forbidden \u2014 x402 payments not enabled, account tier ineligible,\
+            \ or account suspended"
+        '422':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: unknown
+                  detail: amount_usd must be at least 5.00
+                  title: Invalid request
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: "Unprocessable entity \u2014 invalid amount"
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/x402-transactions_ErrorResponse'
+          description: "Bad gateway \u2014 upstream payment service failed to create\
+            \ quote"
+      summary: Create a payment quote
+      tags:
+      - x402 Payment Transactions
+      x-endpoint-cost: light
+      x-latency-category: responsive
   /verifications/by_phone_number/{phone_number}:
     get:
       operationId: ListVerifications
@@ -95440,6 +95873,9 @@ tags:
   name: Wireless Blocklists
 - description: Regions for wireless services
   name: Wireless Regions
+- description: Operations for x402 cryptocurrency payment transactions. Fund your
+    Telnyx account using USDC stablecoin payments via the x402 protocol.
+  name: x402 Payment Transactions
 webhooks:
   CallAIGatherEnded:
     post:
