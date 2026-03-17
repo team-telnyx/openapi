@@ -9100,6 +9100,57 @@ components:
           type: array
       title: AI Assistant Add Messages Request
       type: object
+    AIAssistantJoinParticipant:
+      properties:
+        id:
+          description: The call_control_id of the participant to add to the conversation.
+          example: v3:abc123def456
+          type: string
+        name:
+          description: Display name for the participant.
+          example: John Doe
+          type: string
+        on_hangup:
+          default: continue_conversation
+          description: Determines what happens to the conversation when this participant
+            hangs up.
+          enum:
+          - continue_conversation
+          - end_conversation
+          example: continue_conversation
+          type: string
+        role:
+          description: The role of the participant in the conversation.
+          enum:
+          - user
+          example: user
+          type: string
+      required:
+      - id
+      - role
+      type: object
+    AIAssistantJoinRequest:
+      properties:
+        client_state:
+          description: Use this field to add state to every subsequent webhook. It
+            must be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        conversation_id:
+          description: The ID of the AI assistant conversation to join.
+          example: v3:abc123
+          type: string
+        participant:
+          $ref: '#/components/schemas/AIAssistantJoinParticipant'
+      required:
+      - conversation_id
+      - participant
+      type: object
     AIAssistantStartRequest:
       properties:
         assistant:
@@ -70469,6 +70520,8 @@ paths:
         required: false
         schema:
           enum:
+          - bulk_disable_voice
+          - bulk_enable_voice
           - bulk_set_public_ips
           example: bulk_set_public_ips
           type: string
@@ -70956,6 +71009,31 @@ paths:
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Add messages to AI Assistant
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/ai_assistant_join:
+    post:
+      description: Add a participant to an existing AI assistant conversation. Use
+        this command to bring an additional call leg into a running AI conversation.
+      operationId: CallJoinAIAssistant
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIAssistantJoinRequest'
+        description: AI Assistant Join request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponseWithConversationId'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+        default:
+          $ref: '#/components/responses/call-control_GenericErrorResponse'
+      summary: Join AI Assistant Conversation
       tags:
       - Call Commands
       x-latency-category: interactive
