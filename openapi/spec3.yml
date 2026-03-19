@@ -1587,8 +1587,9 @@ components:
         format: uuid
         type: string
     audio_format:
-      description: 'Audio output format override. Supported for Telnyx `Natural`/`NaturalHD`
-        models only. Accepted values: `pcm`, `wav`.'
+      description: Audio output format override. Supported for Telnyx models. `pcm`
+        and `wav` are available for `Natural`/`NaturalHD` models. The `Ultra` model
+        outputs PCM at 24kHz s16le or MP3 at 128kbps 24kHz.
       in: query
       name: audio_format
       required: false
@@ -1596,6 +1597,7 @@ components:
         enum:
         - pcm
         - wav
+        - mp3
         type: string
     audit-logs_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -2277,7 +2279,7 @@ components:
         - $ref: '#/components/schemas/telnyx_models'
     model_id:
       description: 'Model identifier for the chosen provider. Examples: `Natural`,
-        `NaturalHD` (Telnyx); `Polly.Generative` (AWS).'
+        `NaturalHD`, `Ultra` (Telnyx); `Polly.Generative` (AWS).'
       in: query
       name: model_id
       required: false
@@ -2586,7 +2588,6 @@ components:
         - murfai
         - rime
         - resemble
-        - inworld
         type: string
     push-notifications_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
@@ -2817,9 +2818,10 @@ components:
       style: deepObject
     voice:
       description: Voice identifier in the format `provider.model_id.voice_id` or
-        `provider.voice_id` (e.g. `telnyx.NaturalHD.Telnyx_Alloy` or `azure.en-US-AvaMultilingualNeural`).
-        When provided, the `provider`, `model_id`, and `voice_id` are extracted automatically.
-        Takes precedence over individual `provider`/`model_id`/`voice_id` parameters.
+        `provider.voice_id` (e.g. `telnyx.NaturalHD.Telnyx_Alloy`, `Telnyx.Ultra.<voice_id>`,
+        or `azure.en-US-AvaMultilingualNeural`). When provided, the `provider`, `model_id`,
+        and `voice_id` are extracted automatically. Takes precedence over individual
+        `provider`/`model_id`/`voice_id` parameters.
       in: query
       name: voice
       required: false
@@ -29295,8 +29297,6 @@ components:
           type: boolean
         elevenlabs:
           $ref: '#/components/schemas/ElevenLabsProviderParams'
-        inworld:
-          $ref: '#/components/schemas/InworldProviderParams'
         language:
           description: Language code (e.g. `en-US`). Usage varies by provider.
           type: string
@@ -29320,7 +29320,6 @@ components:
           - minimax
           - rime
           - resemble
-          - inworld
           type: string
         resemble:
           $ref: '#/components/schemas/ResembleProviderParams'
@@ -29340,10 +29339,10 @@ components:
           type: string
         voice:
           description: 'Voice identifier in the format `provider.model_id.voice_id`
-            or `provider.voice_id`. Examples: `telnyx.NaturalHD.Alloy`, `azure.en-US-AvaMultilingualNeural`,
-            `aws.Polly.Generative.Lucia`. When provided, `provider`, `model_id`, and
-            `voice_id` are extracted automatically and take precedence over individual
-            parameters.'
+            or `provider.voice_id`. Examples: `telnyx.NaturalHD.Alloy`, `Telnyx.Ultra.<voice_id>`,
+            `azure.en-US-AvaMultilingualNeural`, `aws.Polly.Generative.Lucia`. When
+            provided, `provider`, `model_id`, and `voice_id` are extracted automatically
+            and take precedence over individual parameters.'
           type: string
         voice_settings:
           additionalProperties: true
@@ -32127,9 +32126,6 @@ components:
           example: https://api.telnyx.com:443/v2/invoices/48eff763-ea80-4345-b688-78249eb165a8
           format: uri
           type: string
-      type: object
-    InworldProviderParams:
-      description: Inworld provider-specific parameters.
       type: object
     InworldVoiceSettings:
       properties:
@@ -50615,8 +50611,22 @@ components:
       title: TelnyxDownstreamCampaignRecordSet
       type: object
     TelnyxProviderParams:
-      description: Telnyx provider-specific parameters.
+      description: Telnyx provider-specific parameters. Use `voice_speed` and `temperature`
+        for `Natural` and `NaturalHD` models. For the `Ultra` model, use `voice_speed`,
+        `volume`, and `emotion`.
       properties:
+        emotion:
+          description: Emotion control for the Ultra model. Adjusts the emotional
+            tone of the synthesized speech.
+          enum:
+          - neutral
+          - happy
+          - sad
+          - angry
+          - fearful
+          - disgusted
+          - surprised
+          type: string
         response_format:
           default: mp3
           description: Audio response format.
@@ -50627,12 +50637,24 @@ components:
           type: integer
         temperature:
           default: 0.5
-          description: Sampling temperature.
+          description: Sampling temperature. Applies to `Natural` and `NaturalHD`
+            models only.
           format: float
           type: number
         voice_speed:
-          description: Voice speed multiplier.
+          default: 1.0
+          description: 'Voice speed multiplier. Applies to all models. Range: 0.5
+            to 2.0.'
           format: float
+          maximum: 2.0
+          minimum: 0.5
+          type: number
+        volume:
+          default: 1.0
+          description: 'Volume level for the Ultra model. Range: 0.0 to 2.0.'
+          format: float
+          maximum: 2.0
+          minimum: 0.0
           type: number
       type: object
     TelnyxTranscriptionLanguage:
@@ -92191,15 +92213,17 @@ paths:
         \ audio in real time. Authentication is provided via the standard `Authorization:\
         \ Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive\
         \ JSON frames containing base64-encoded audio chunks.\n\nSupported providers:\
-        \ `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`,\
-        \ `inworld`.\n\n**Connection flow:**\n1. Open WebSocket with query parameters\
-        \ specifying provider, voice, and model.\n2. Send an initial handshake message\
-        \ `{\"text\": \" \"}` (single space) with optional `voice_settings` to initialize\
-        \ the session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n\
-        4. Receive audio chunks as JSON frames with base64-encoded audio.\n5. A final\
-        \ frame with `isFinal: true` indicates the end of audio for the current text.\n\
-        \nTo interrupt and restart synthesis mid-stream, send `{\"force\": true}`\
-        \ \u2014 the current worker is stopped and a new one is started."
+        \ `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`.\n\
+        \n**Connection flow:**\n1. Open WebSocket with query parameters specifying\
+        \ provider, voice, and model.\n2. Send an initial handshake message `{\"text\"\
+        : \" \"}` (single space) with optional `voice_settings` to initialize the\
+        \ session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive\
+        \ audio chunks as JSON frames with base64-encoded audio.\n5. A final frame\
+        \ with `isFinal: true` indicates the end of audio for the current text.\n\n\
+        To interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014\
+        \ the current worker is stopped and a new one is started.\n\n**Note:** The\
+        \ Telnyx `Ultra` model is not available over WebSocket. Use the HTTP POST\
+        \ `/text-to-speech/speech` endpoint instead."
       operationId: TextToSpeechOverWs
       parameters:
       - $ref: '#/components/parameters/voice'
@@ -92245,12 +92269,18 @@ paths:
 
 
         The `voice` parameter provides a convenient shorthand to specify provider,
-        model, and voice in a single string (e.g. `telnyx.NaturalHD.Alloy`). Alternatively,
-        specify `provider` explicitly along with provider-specific parameters.
+        model, and voice in a single string (e.g. `telnyx.NaturalHD.Alloy` or `Telnyx.Ultra.<voice_id>`).
+        Alternatively, specify `provider` explicitly along with provider-specific
+        parameters.
 
 
         Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `rime`,
-        `resemble`, `inworld`.'
+        `resemble`.
+
+
+        The Telnyx `Ultra` model supports 44 languages with emotion control, speed
+        adjustment, and volume control. Use the `telnyx` provider-specific parameters
+        to configure these features.'
       operationId: generateSpeech
       requestBody:
         content:
@@ -92319,7 +92349,6 @@ paths:
           - minimax
           - rime
           - resemble
-          - inworld
           type: string
       - description: API key for providers that require one to list voices (e.g. ElevenLabs).
         in: query
