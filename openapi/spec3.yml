@@ -622,6 +622,18 @@ components:
             type: object
         type: object
       style: deepObject
+    FilterProvider:
+      description: Filter by voice synthesis provider. Case-insensitive.
+      in: query
+      name: filter[provider]
+      required: false
+      schema:
+        enum:
+        - telnyx
+        - minimax
+        - Telnyx
+        - Minimax
+        type: string
     FilterReleasesConsolidated:
       description: Filter parameter for releases (deepObject style). Supports filtering
         by status, civic_address_id, location_id, and phone_number with eq/contains
@@ -58026,6 +58038,26 @@ components:
         name:
           description: Name of the voice clone.
           type: string
+        provider:
+          description: Voice synthesis provider used for this clone.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
+          type: string
+        provider_supported_models:
+          description: List of TTS model identifiers supported by this clone's provider.
+          items:
+            type: string
+          type: array
+        provider_voice_id:
+          description: Provider-specific voice identifier used for TTS synthesis.
+            For Telnyx clones this equals the clone ID; for Minimax it is the Minimax-assigned
+            voice ID.
+          type:
+          - string
+          - 'null'
         record_type:
           description: Identifies the resource type.
           enum:
@@ -58066,6 +58098,7 @@ components:
         gender: male
         language: en
         name: clone-narrator
+        provider: telnyx
         voice_design_id: 550e8400-e29b-41d4-a716-446655440000
       properties:
         gender:
@@ -58082,6 +58115,15 @@ components:
           description: Name for the voice clone.
           maxLength: 255
           minLength: 1
+          type: string
+        provider:
+          default: telnyx
+          description: Voice synthesis provider. Case-insensitive. Defaults to `telnyx`.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
           type: string
         voice_design_id:
           description: UUID of the source voice design to clone.
@@ -58103,6 +58145,10 @@ components:
           label: Speak in a warm, friendly tone
           language: en
           name: clone-narrator
+          provider: Telnyx
+          provider_supported_models:
+          - Qwen3TTS
+          provider_voice_id: 660f9511-f3ac-52e5-b827-557766551111
           record_type: voice_clone
           source_voice_design_id: 550e8400-e29b-41d4-a716-446655440000
           source_voice_design_version: 1
@@ -58141,7 +58187,8 @@ components:
         audio_file:
           description: "Audio file to clone the voice from. Supported formats: WAV,\
             \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
-            \ clear, uninterrupted speech. Maximum size: 2MB."
+            \ clear, uninterrupted speech. Maximum size: 5MB for Telnyx, 20MB for\
+            \ Minimax."
           format: binary
           type: string
         gender:
@@ -58163,6 +58210,15 @@ components:
         name:
           description: Name for the voice clone.
           maxLength: 255
+          type: string
+        provider:
+          default: telnyx
+          description: Voice synthesis provider. Case-insensitive. Defaults to `telnyx`.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
           type: string
         ref_text:
           description: Optional transcript of the audio file. Providing this improves
@@ -58211,6 +58267,30 @@ components:
           description: Natural language prompt used to define the voice style for
             this version.
           type: string
+        provider:
+          description: Voice synthesis provider used for this design.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
+          - null
+          type:
+          - string
+          - 'null'
+        provider_supported_models:
+          description: List of TTS model identifiers supported by this design's provider
+            (e.g. `Qwen3TTS`, `speech-02-turbo`).
+          items:
+            type: string
+          type: array
+        provider_voice_id:
+          description: Provider-specific voice identifier. For Telnyx designs this
+            is the design version ID; for Minimax it is the Minimax-assigned voice
+            ID.
+          type:
+          - string
+          - 'null'
         record_type:
           description: Identifies the resource type.
           enum:
@@ -58253,6 +58333,7 @@ components:
         language: Auto
         name: friendly-narrator
         prompt: Speak in a warm, friendly tone
+        provider: telnyx
         text: Hello, welcome to our service.
       properties:
         language:
@@ -58276,6 +58357,17 @@ components:
         prompt:
           description: Natural language description of the voice style, e.g. 'Speak
             in a warm, friendly tone with a slight British accent'.
+          type: string
+        provider:
+          default: telnyx
+          description: Voice synthesis provider. `telnyx` uses the Qwen3TTS model;
+            `minimax` uses the Minimax speech models. Case-insensitive. Defaults to
+            `telnyx`.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
           type: string
         repetition_penalty:
           description: 'Repetition penalty to reduce repeated patterns in generated
@@ -58324,6 +58416,10 @@ components:
           id: 550e8400-e29b-41d4-a716-446655440000
           name: friendly-narrator
           prompt: Speak in a warm tone
+          provider: Telnyx
+          provider_supported_models:
+          - Qwen3TTS
+          provider_voice_id: 550e8400-e29b-41d4-a716-446655440000
           record_type: voice_design
           text: Hello, welcome.
           updated_at: '2024-01-01T00:00:00Z'
@@ -58348,6 +58444,22 @@ components:
         name:
           description: Name of the voice design.
           type: string
+        provider:
+          description: Voice synthesis provider used for this design.
+          enum:
+          - telnyx
+          - minimax
+          - Telnyx
+          - Minimax
+          - null
+          type:
+          - string
+          - 'null'
+        provider_supported_models:
+          description: List of TTS model identifiers supported by this design's provider.
+          items:
+            type: string
+          type: array
         record_type:
           description: Identifies the resource type.
           enum:
@@ -95136,6 +95248,7 @@ paths:
       - $ref: '#/components/parameters/voice-designs_PageNumber'
       - $ref: '#/components/parameters/voice-designs_PageSize'
       - $ref: '#/components/parameters/FilterName'
+      - $ref: '#/components/parameters/FilterProvider'
       - $ref: '#/components/parameters/voice-designs_Sort'
       responses:
         '200':
