@@ -59432,20 +59432,36 @@ components:
     WhatsappCreateTemplateRequest:
       properties:
         category:
+          description: 'Template category: AUTHENTICATION, UTILITY, or MARKETING.'
           enum:
           - MARKETING
           - UTILITY
           - AUTHENTICATION
           type: string
         components:
+          description: Template components defining message structure. Passed through
+            to Meta Graph API. Templates with variables must include example values.
+            Supports HEADER, BODY, FOOTER, BUTTONS, CAROUSEL and any future Meta component
+            types.
           items:
-            type: object
+            description: A template component. Additional Meta component types not
+              listed here are also accepted.
+            oneOf:
+            - $ref: '#/components/schemas/WhatsappTemplateHeaderComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateBodyComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateFooterComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateButtonsComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateCarouselComponent'
           type: array
         language:
+          description: Template language code (e.g. en_US, es, pt_BR).
           type: string
         name:
+          description: Template name. Lowercase letters, numbers, and underscores
+            only.
           type: string
         waba_id:
+          description: The WhatsApp Business Account ID.
           type: string
       required:
       - waba_id
@@ -59876,6 +59892,135 @@ components:
               - 'null'
           type: object
       type: object
+    WhatsappTemplateBodyComponent:
+      description: The main text content of the message. Supports multiple variable
+        parameters ({{1}}, {{2}}, etc.). Variables cannot be at the start or end.
+        Maximum 1024 characters.
+      properties:
+        example:
+          description: Sample values for body variables. Required when body text contains
+            parameters.
+          properties:
+            body_text:
+              description: Array containing one array of sample values, one per variable
+                in order.
+              items:
+                items:
+                  type: string
+                type: array
+              type: array
+          type: object
+        text:
+          description: Body text content. Use {{1}}, {{2}}, etc. for variable placeholders.
+            Required for MARKETING and UTILITY templates. Optional for AUTHENTICATION
+            templates where Meta provides the built-in OTP body.
+          maxLength: 1024
+          type: string
+        type:
+          enum:
+          - BODY
+          type: string
+      required:
+      - type
+      type: object
+    WhatsappTemplateButtonsComponent:
+      description: Optional interactive buttons. Maximum 3 buttons per template.
+      properties:
+        buttons:
+          description: Array of button objects. Meta supports various combinations
+            of button types.
+          items:
+            properties:
+              autofill_text:
+                description: Custom autofill button text for ONE_TAP OTP buttons.
+                type: string
+              example:
+                description: Sample values for URL variable.
+                items:
+                  type: string
+                type: array
+              flow_action:
+                description: Flow action type for FLOW-type buttons.
+                enum:
+                - navigate
+                - data_exchange
+                type: string
+              flow_id:
+                description: Flow ID for FLOW-type buttons.
+                type: string
+              navigate_screen:
+                description: Target screen name for FLOW buttons with navigate action.
+                type: string
+              otp_type:
+                enum:
+                - COPY_CODE
+                - ONE_TAP
+                type: string
+              package_name:
+                description: Android package name. Required for ONE_TAP OTP buttons.
+                type: string
+              phone_number:
+                description: Phone number in E.164 format.
+                type: string
+              signature_hash:
+                description: Android app signing key hash. Required for ONE_TAP OTP
+                  buttons.
+                type: string
+              text:
+                description: Button label text. Maximum 25 characters. Required for
+                  URL, PHONE_NUMBER, and QUICK_REPLY buttons. Not required for OTP
+                  buttons (Meta supplies the label).
+                maxLength: 25
+                type: string
+              type:
+                enum:
+                - URL
+                - PHONE_NUMBER
+                - QUICK_REPLY
+                - OTP
+                - COPY_CODE
+                - FLOW
+                type: string
+              url:
+                description: URL for URL-type buttons. Supports one variable ({{1}}).
+                type: string
+              zero_tap_terms_accepted:
+                description: Whether zero-tap terms have been accepted.
+                type: boolean
+            required:
+            - type
+            type: object
+          type: array
+        type:
+          enum:
+          - BUTTONS
+          type: string
+      required:
+      - type
+      - buttons
+      type: object
+    WhatsappTemplateCarouselComponent:
+      description: Carousel component for multi-card templates. Each card can contain
+        its own header, body, and buttons.
+      properties:
+        cards:
+          description: Array of card objects, each with its own components.
+          items:
+            properties:
+              components:
+                items:
+                  type: object
+                type: array
+            type: object
+          type: array
+        type:
+          enum:
+          - CAROUSEL
+          type: string
+      required:
+      - type
+      - cards
+      type: object
     WhatsappTemplateData:
       properties:
         category:
@@ -59885,7 +60030,8 @@ components:
           - AUTHENTICATION
           type: string
         components:
-          description: Whatsapp template components (header, body, footer, buttons)
+          description: Template components (header, body, footer, buttons) as submitted,
+            including example values.
           items:
             type: object
           type: array
@@ -59904,6 +60050,9 @@ components:
         rejection_reason:
           type: string
         status:
+          description: Current template status from Meta (e.g. PENDING, APPROVED,
+            REJECTED, PAUSED, DISABLED). Additional statuses may be returned as Meta
+            evolves the template lifecycle.
           type: string
         template_id:
           type: string
@@ -59915,6 +60064,65 @@ components:
             id:
               type: string
           type: object
+      type: object
+    WhatsappTemplateFooterComponent:
+      description: Optional footer displayed at the bottom of the message. Does not
+        support variables.
+      properties:
+        code_expiration_minutes:
+          description: OTP code expiration time in minutes. Used in AUTHENTICATION
+            template footers instead of free-form text.
+          type: integer
+        text:
+          description: Footer text. Maximum 60 characters. For non-authentication
+            templates.
+          maxLength: 60
+          type: string
+        type:
+          enum:
+          - FOOTER
+          type: string
+      required:
+      - type
+      type: object
+    WhatsappTemplateHeaderComponent:
+      description: Optional header displayed at the top of the message.
+      properties:
+        example:
+          description: Sample values for header variables.
+          properties:
+            header_handle:
+              description: Media handle for IMAGE, VIDEO, or DOCUMENT headers.
+              items:
+                type: string
+              type: array
+            header_text:
+              description: Sample values for text header variables.
+              items:
+                type: string
+              type: array
+          type: object
+        format:
+          description: 'Header format type: TEXT (supports one variable), IMAGE, VIDEO,
+            DOCUMENT, or LOCATION.'
+          enum:
+          - TEXT
+          - IMAGE
+          - VIDEO
+          - DOCUMENT
+          - LOCATION
+          type: string
+        text:
+          description: Header text. Required when format is TEXT. Supports one variable
+            ({{1}}). Variables cannot be at the start or end.
+          type: string
+        type:
+          enum:
+          - HEADER
+          type: string
+      required:
+      - type
+      - format
       type: object
     WhatsappUpdateProfileRequest:
       properties:
@@ -59944,8 +60152,16 @@ components:
           - AUTHENTICATION
           type: string
         components:
+          description: Updated template components. Same structure as the create request.
           items:
-            type: object
+            description: A template component. Additional Meta component types not
+              listed here are also accepted.
+            oneOf:
+            - $ref: '#/components/schemas/WhatsappTemplateHeaderComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateBodyComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateFooterComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateButtonsComponent'
+            - $ref: '#/components/schemas/WhatsappTemplateCarouselComponent'
           type: array
       type: object
     WhatsappVerifyCodeRequest:
