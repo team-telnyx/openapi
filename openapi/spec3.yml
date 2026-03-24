@@ -21481,6 +21481,11 @@ components:
           $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
           $ref: '#/components/schemas/TelephonySettings'
+        tool_ids:
+          items:
+            type: string
+          title: Ids of shared tools
+          type: array
         tools:
           $ref: '#/components/schemas/AssistantTools'
         transcription:
@@ -24299,6 +24304,45 @@ components:
           type: string
       required:
       - to
+      type: object
+    CreateSharedToolRequest:
+      additionalProperties: true
+      description: Request model for creating a shared (org-level) tool.
+      properties:
+        display_name:
+          title: Display Name
+          type: string
+        function:
+          additionalProperties: true
+          title: Function
+          type: object
+        handoff:
+          additionalProperties: true
+          title: Handoff
+          type: object
+        invite:
+          additionalProperties: true
+          title: Invite
+          type: object
+        retrieval:
+          additionalProperties: true
+          title: Retrieval
+          type: object
+        timeout_ms:
+          default: 5000
+          title: Timeout Ms
+          type: integer
+        type:
+          title: Type
+          type: string
+        webhook:
+          additionalProperties: true
+          title: Webhook
+          type: object
+      required:
+      - type
+      - display_name
+      title: CreateSharedToolRequest
       type: object
     CreateShortCodeMessageRequest:
       example:
@@ -46988,6 +47032,48 @@ components:
           type: integer
       title: SharedCampaignRecordSet
       type: object
+    SharedToolListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/SharedToolResponse'
+          title: Data
+          type: array
+        meta:
+          $ref: '#/components/schemas/Meta'
+      required:
+      - data
+      - meta
+      title: SharedToolListResponse
+      type: object
+    SharedToolResponse:
+      properties:
+        created_at:
+          title: Created At
+          type: string
+        display_name:
+          title: Display Name
+          type: string
+        id:
+          title: Id
+          type: string
+        timeout_ms:
+          default: 5000
+          title: Timeout Ms
+          type: integer
+        tool_definition:
+          additionalProperties: true
+          title: Tool Definition
+          type: object
+        type:
+          title: Type
+          type: string
+      required:
+      - id
+      - type
+      - tool_definition
+      title: SharedToolResponse
+      type: object
     ShortCode:
       example:
         country_code: US
@@ -53687,6 +53773,11 @@ components:
           $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
           $ref: '#/components/schemas/TelephonySettings'
+        tool_ids:
+          items:
+            type: string
+          title: Ids of shared tools
+          type: array
         tools:
           $ref: '#/components/schemas/AssistantTools'
         transcription:
@@ -55650,6 +55741,41 @@ components:
           example: 8ffb3622-7c6b-4ccc-b65f-7a3dc0099576
           format: uuid
           type: string
+      type: object
+    UpdateSharedToolRequest:
+      additionalProperties: true
+      description: Request model for updating a shared tool.
+      properties:
+        display_name:
+          title: Display Name
+          type: string
+        function:
+          additionalProperties: true
+          title: Function
+          type: object
+        handoff:
+          additionalProperties: true
+          title: Handoff
+          type: object
+        invite:
+          additionalProperties: true
+          title: Invite
+          type: object
+        retrieval:
+          additionalProperties: true
+          title: Retrieval
+          type: object
+        timeout_ms:
+          title: Timeout Ms
+          type: integer
+        type:
+          title: Type
+          type: string
+        webhook:
+          additionalProperties: true
+          title: Webhook
+          type: object
+      title: UpdateSharedToolRequest
       type: object
     UpdateShortCodeRequest:
       example:
@@ -67120,6 +67246,69 @@ paths:
       tags:
       - Assistants
       x-latency-category: responsive
+  /ai/assistants/{assistant_id}/tools/{tool_id}:
+    delete:
+      operationId: remove_assistant_tool
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Remove Assistant Tool
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    put:
+      operationId: add_assistant_tool
+      parameters:
+      - in: path
+        name: assistant_id
+        required: true
+        schema:
+          title: Assistant Id
+          type: string
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Add Assistant Tool
+      tags:
+      - Assistants
+      x-latency-category: responsive
   /ai/assistants/{assistant_id}/tools/{tool_id}/test:
     post:
       description: Test a webhook tool for an assistant
@@ -70519,6 +70708,165 @@ paths:
       summary: Summarize file content
       tags:
       - Chat
+      x-latency-category: responsive
+  /ai/tools:
+    get:
+      operationId: list_tools
+      parameters:
+      - in: query
+        name: filter[type]
+        required: false
+        schema:
+          title: Filter[Type]
+          type: string
+      - in: query
+        name: filter[name]
+        required: false
+        schema:
+          title: Filter[Name]
+          type: string
+      - in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          title: Page[Size]
+          type: integer
+      - in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          title: Page[Number]
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedToolListResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: List Tools
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    post:
+      operationId: create_tool_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSharedToolRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedToolResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create Tool
+      tags:
+      - Assistants
+      x-latency-category: responsive
+  /ai/tools/{tool_id}:
+    delete:
+      operationId: delete_tool_tool_id
+      parameters:
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Delete Tool
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    get:
+      operationId: get_tool_tool_id
+      parameters:
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedToolResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get Tool
+      tags:
+      - Assistants
+      x-latency-category: responsive
+    patch:
+      operationId: update_tool_tool_id
+      parameters:
+      - in: path
+        name: tool_id
+        required: true
+        schema:
+          title: Tool Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSharedToolRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedToolResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Update Tool
+      tags:
+      - Assistants
       x-latency-category: responsive
   /alphanumeric_sender_ids:
     get:
