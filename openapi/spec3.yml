@@ -247,6 +247,15 @@ components:
       required: false
       schema:
         type: string
+    EnterpriseId:
+      description: Unique identifier of the enterprise (UUID)
+      in: path
+      name: enterprise_id
+      required: true
+      schema:
+        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        format: uuid
+        type: string
     FilterBasicStatusLifecycle:
       description: Filter by a specific status of the resource's lifecycle.
       in: query
@@ -1179,12 +1188,12 @@ components:
         format: uuid
         type: string
     PhoneNumber:
-      description: The phone number to be looked up
+      description: Phone number in E.164 format
       in: path
       name: phone_number
       required: true
       schema:
-        example: '+18665552368'
+        example: '+16035551234'
         type: string
     PrivateWirelessGatewayId:
       description: Identifies the private wireless gateway.
@@ -2386,6 +2395,14 @@ components:
       schema:
         format: uuid
         type: string
+    number-lookup_PhoneNumber:
+      description: The phone number to be looked up
+      in: path
+      name: phone_number
+      required: true
+      schema:
+        example: '+18665552368'
+        type: string
     numbers_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -3557,6 +3574,12 @@ components:
                 $ref: '#/components/schemas/AutoRechargePref'
             type: object
       description: Successful response
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/branded-calling_ErrorResponse'
+      description: "Bad request \u2014 invalid input or validation error"
     BadRequestErrorResponse:
       content:
         application/json:
@@ -3602,6 +3625,12 @@ components:
       description: 'Bad request. The request was invalid or cannot be served. Common
         causes include: audio file download failures, attempting to delete non-empty
         queues, invalid characters in the request, or character encoding errors.'
+    BadRequestTelnyx:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/branded-calling_ErrorResponse'
+      description: Bad request
     BlackBoxTestResultsResponse:
       content:
         application/json:
@@ -6563,6 +6592,12 @@ components:
                 $ref: '#/components/schemas/Network'
             type: object
       description: Successful response
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/branded-calling_ErrorResponse'
+      description: Resource not found
     NotFoundErrorResponse:
       content:
         application/json:
@@ -7543,6 +7578,12 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
       description: Unauthorized
+    Unauthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/branded-calling_ErrorResponse'
+      description: "Unauthorized \u2014 missing or invalid API key"
     UnauthorizedErrorResponse:
       content:
         application/json:
@@ -7596,9 +7637,9 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/documents_Errors'
-      description: Unprocessable entity. Check the 'detail' field in response for
-        details.
+            $ref: '#/components/schemas/branded-calling_ErrorResponse'
+      description: "Unprocessable entity \u2014 request structure is valid but contains\
+        \ semantic errors"
     UnprocessableEntityErrorResponse:
       content:
         application/json:
@@ -8580,6 +8621,13 @@ components:
           schema:
             $ref: '#/components/schemas/documents_Errors'
       description: Unexpected error
+    documents_UnprocessableEntity:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/documents_Errors'
+      description: Unprocessable entity. Check the 'detail' field in response for
+        details.
     emergency_BadRequestResponse:
       content:
         application/json:
@@ -11575,6 +11623,46 @@ components:
           description: Base64-encoded audio data.
           type: string
       type: object
+    BillingAddress:
+      properties:
+        administrative_area:
+          description: State or province
+          example: Illinois
+          maxLength: 100
+          type: string
+        city:
+          description: City name
+          example: Chicago
+          maxLength: 100
+          type: string
+        country:
+          description: Country name (e.g., United States)
+          example: United States
+          maxLength: 100
+          type: string
+        extended_address:
+          description: Additional address line (suite, apt, etc.)
+          example: Suite 400
+          maxLength: 255
+          nullable: true
+          type: string
+        postal_code:
+          description: ZIP or postal code
+          example: '60601'
+          maxLength: 20
+          type: string
+        street_address:
+          description: Street address
+          example: 123 Main St
+          maxLength: 255
+          type: string
+      required:
+      - country
+      - administrative_area
+      - city
+      - postal_code
+      - street_address
+      type: object
     BillingBundleResponse:
       properties:
         data:
@@ -11695,6 +11783,35 @@ components:
       - is_public
       - created_at
       title: BillingBundleSummary
+      type: object
+    BillingContact:
+      properties:
+        email:
+          description: Contact's email address
+          example: billing@acme.com
+          format: email
+          maxLength: 255
+          type: string
+        first_name:
+          description: Contact's first name
+          example: John
+          maxLength: 255
+          type: string
+        last_name:
+          description: Contact's last name
+          example: Doe
+          maxLength: 255
+          type: string
+        phone_number:
+          description: Contact's phone number (10-15 digits)
+          example: '15551234568'
+          maxLength: 20
+          type: string
+      required:
+      - first_name
+      - last_name
+      - email
+      - phone_number
       type: object
     BillingGroup:
       example:
@@ -27242,6 +27359,406 @@ components:
       - queue_name
       title: Enqueue Request
       type: object
+    EnterpriseCreate:
+      properties:
+        billing_address:
+          $ref: '#/components/schemas/BillingAddress'
+        billing_contact:
+          $ref: '#/components/schemas/BillingContact'
+        corporate_registration_number:
+          description: Corporate registration number (optional)
+          maxLength: 100
+          type: string
+        country_code:
+          description: Country code. Currently only 'US' is accepted.
+          example: US
+          maxLength: 2
+          minLength: 2
+          type: string
+        customer_reference:
+          description: Optional customer reference identifier for your own tracking
+          maxLength: 255
+          type: string
+        doing_business_as:
+          description: Primary business name / DBA name
+          example: Acme
+          maxLength: 255
+          type: string
+        dun_bradstreet_number:
+          description: D-U-N-S Number (optional)
+          maxLength: 20
+          type: string
+        fein:
+          description: 'Federal Employer Identification Number. Format: XX-XXXXXXX
+            or 9-digit number (minimum 9 digits).'
+          example: 12-3456789
+          maxLength: 20
+          type: string
+        industry:
+          description: 'Industry classification. Case-insensitive. Accepted values:
+            accounting, finance, billing, collections, business, charity, nonprofit,
+            communications, telecom, customer service, support, delivery, shipping,
+            logistics, education, financial, banking, government, public, healthcare,
+            health, pharmacy, medical, insurance, legal, law, notifications, scheduling,
+            real estate, property, retail, ecommerce, sales, marketing, software,
+            technology, tech, media, surveys, market research, travel, hospitality,
+            hotel'
+          example: technology
+          type: string
+        legal_name:
+          description: Legal name of the enterprise
+          example: Acme Corp Inc.
+          maxLength: 64
+          minLength: 3
+          type: string
+        number_of_employees:
+          description: Employee count range
+          enum:
+          - 1-10
+          - 11-50
+          - 51-200
+          - 201-500
+          - 501-2000
+          - 2001-10000
+          - 10001+
+          example: 51-200
+          type: string
+        organization_contact:
+          $ref: '#/components/schemas/OrganizationContact'
+        organization_legal_type:
+          description: Legal structure type
+          enum:
+          - corporation
+          - llc
+          - partnership
+          - nonprofit
+          - other
+          example: corporation
+          type: string
+        organization_physical_address:
+          $ref: '#/components/schemas/PhysicalAddress'
+        organization_type:
+          description: Type of organization
+          enum:
+          - commercial
+          - government
+          - non_profit
+          example: commercial
+          type: string
+        primary_business_domain_sic_code:
+          description: SIC Code (optional)
+          example: '7372'
+          maxLength: 10
+          type: string
+        professional_license_number:
+          description: Professional license number (optional)
+          maxLength: 100
+          type: string
+        role_type:
+          default: enterprise
+          description: Role type in Branded Calling / Number Reputation services
+          enum:
+          - enterprise
+          - bpo
+          type: string
+        website:
+          description: "Enterprise website URL. Accepts any string \u2014 no URL format\
+            \ validation enforced."
+          example: https://acme.com
+          maxLength: 255
+          type: string
+      required:
+      - legal_name
+      - doing_business_as
+      - organization_type
+      - country_code
+      - website
+      - fein
+      - industry
+      - number_of_employees
+      - organization_legal_type
+      - organization_contact
+      - billing_contact
+      - organization_physical_address
+      - billing_address
+      type: object
+    EnterpriseListPublic:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/EnterprisePublic'
+          type: array
+        meta:
+          $ref: '#/components/schemas/MetaInfo'
+      type: object
+    EnterprisePublic:
+      properties:
+        billing_address:
+          $ref: '#/components/schemas/BillingAddress'
+        billing_contact:
+          $ref: '#/components/schemas/BillingContact'
+        corporate_registration_number:
+          description: Corporate registration number
+          nullable: true
+          type: string
+        country_code:
+          description: ISO 3166-1 alpha-2 country code
+          example: US
+          type: string
+        created_at:
+          description: When the enterprise was created
+          format: date-time
+          type: string
+        customer_reference:
+          description: Customer reference identifier
+          nullable: true
+          type: string
+        doing_business_as:
+          description: DBA name
+          example: Acme
+          type: string
+        dun_bradstreet_number:
+          description: D-U-N-S Number
+          nullable: true
+          type: string
+        fein:
+          description: Federal Employer Identification Number
+          nullable: true
+          type: string
+        id:
+          description: Unique identifier of the enterprise
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        industry:
+          description: Industry classification
+          nullable: true
+          type: string
+        legal_name:
+          description: Legal name of the enterprise
+          example: Acme Corp Inc.
+          type: string
+        number_of_employees:
+          description: Employee count range
+          enum:
+          - 1-10
+          - 11-50
+          - 51-200
+          - 201-500
+          - 501-2000
+          - 2001-10000
+          - 10001+
+          nullable: true
+          type: string
+        organization_contact:
+          $ref: '#/components/schemas/OrganizationContact'
+        organization_legal_type:
+          description: Legal structure type
+          enum:
+          - corporation
+          - llc
+          - partnership
+          - nonprofit
+          - other
+          nullable: true
+          type: string
+        organization_physical_address:
+          $ref: '#/components/schemas/PhysicalAddress'
+        organization_type:
+          description: Type of organization
+          enum:
+          - commercial
+          - government
+          - non_profit
+          type: string
+        primary_business_domain_sic_code:
+          description: SIC Code
+          nullable: true
+          type: string
+        professional_license_number:
+          description: Professional license number
+          nullable: true
+          type: string
+        role_type:
+          description: Role type in Branded Calling / Number Reputation services
+          enum:
+          - enterprise
+          - bpo
+          type: string
+        updated_at:
+          description: When the enterprise was last updated
+          format: date-time
+          type: string
+        website:
+          description: Company website URL
+          nullable: true
+          type: string
+      type: object
+    EnterprisePublicWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/EnterprisePublic'
+      type: object
+    EnterpriseReputationCreate:
+      properties:
+        check_frequency:
+          default: business_daily
+          description: Frequency for automatically refreshing reputation data
+          enum:
+          - business_daily
+          - daily
+          - weekly
+          - biweekly
+          - monthly
+          - never
+          type: string
+        loa_document_id:
+          description: ID of the signed Letter of Authorization (LOA) document uploaded
+            to the document service
+          example: doc_01HXYZ1234ABCDEF
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - loa_document_id
+      type: object
+    EnterpriseReputationPublic:
+      properties:
+        check_frequency:
+          description: Frequency for refreshing reputation data
+          enum:
+          - business_daily
+          - daily
+          - weekly
+          - biweekly
+          - monthly
+          - never
+          type: string
+        created_at:
+          description: When the reputation settings were created
+          format: date-time
+          type: string
+        enterprise_id:
+          description: ID of the associated enterprise
+          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          format: uuid
+          type: string
+        loa_document_id:
+          description: ID of the signed LOA document
+          nullable: true
+          type: string
+        rejection_reasons:
+          description: Reasons for rejection (present when status is rejected)
+          items:
+            type: string
+          nullable: true
+          type: array
+        status:
+          description: Current enrollment status
+          enum:
+          - pending
+          - approved
+          - rejected
+          - deleted
+          type: string
+        updated_at:
+          description: When the reputation settings were last updated
+          format: date-time
+          type: string
+      type: object
+    EnterpriseReputationPublicWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/EnterpriseReputationPublic'
+      type: object
+    EnterpriseReputationUpdateFrequency:
+      properties:
+        check_frequency:
+          description: New frequency for refreshing reputation data
+          enum:
+          - business_daily
+          - daily
+          - weekly
+          - biweekly
+          - monthly
+          - never
+          type: string
+      required:
+      - check_frequency
+      type: object
+    EnterpriseUpdate:
+      description: All fields are optional. Only provided fields will be updated.
+      properties:
+        billing_address:
+          $ref: '#/components/schemas/BillingAddress'
+        billing_contact:
+          $ref: '#/components/schemas/BillingContact'
+        corporate_registration_number:
+          description: Corporate registration number
+          maxLength: 100
+          type: string
+        customer_reference:
+          description: Customer reference identifier
+          maxLength: 255
+          type: string
+        doing_business_as:
+          description: DBA name
+          maxLength: 255
+          type: string
+        dun_bradstreet_number:
+          description: D-U-N-S Number
+          maxLength: 20
+          type: string
+        fein:
+          description: 'Federal Employer Identification Number. Format: XX-XXXXXXX
+            or XXXXXXXXX'
+          maxLength: 20
+          type: string
+        industry:
+          description: Industry classification
+          type: string
+        legal_name:
+          description: Legal name of the enterprise
+          maxLength: 64
+          minLength: 3
+          type: string
+        number_of_employees:
+          description: Employee count range
+          enum:
+          - 1-10
+          - 11-50
+          - 51-200
+          - 201-500
+          - 501-2000
+          - 2001-10000
+          - 10001+
+          type: string
+        organization_contact:
+          $ref: '#/components/schemas/OrganizationContact'
+        organization_legal_type:
+          description: Legal structure type
+          enum:
+          - corporation
+          - llc
+          - partnership
+          - nonprofit
+          - other
+          type: string
+        organization_physical_address:
+          $ref: '#/components/schemas/PhysicalAddress'
+        primary_business_domain_sic_code:
+          description: SIC Code
+          maxLength: 10
+          type: string
+        professional_license_number:
+          description: Professional license number
+          maxLength: 100
+          type: string
+        website:
+          description: Company website URL
+          maxLength: 255
+          type: string
+      type: object
     EntityType:
       description: Entity type behind the brand. This is the form of business establishment.
       enum:
@@ -34519,6 +35036,21 @@ components:
       - page_size
       title: Meta
       type: object
+    MetaInfo:
+      properties:
+        page_number:
+          description: Current page number
+          type: integer
+        page_size:
+          description: Items per page
+          type: integer
+        total_pages:
+          description: Total number of pages
+          type: integer
+        total_results:
+          description: Total number of results
+          type: integer
+      type: object
     MetaResponse:
       properties:
         url:
@@ -37353,6 +37885,43 @@ components:
       - evpId
       - vettingClass
       title: OrderExternalVetting
+      type: object
+    OrganizationContact:
+      description: 'Organization contact information. Note: the response returns this
+        object with the phone field as ''phone'' (not ''phone_number'').'
+      properties:
+        email:
+          description: Contact's email address
+          example: jane.smith@acme.com
+          format: email
+          maxLength: 255
+          type: string
+        first_name:
+          description: Contact's first name
+          example: Jane
+          maxLength: 255
+          type: string
+        job_title:
+          description: Contact's job title (required)
+          example: VP of Engineering
+          maxLength: 255
+          type: string
+        last_name:
+          description: Contact's last name
+          example: Smith
+          maxLength: 255
+          type: string
+        phone:
+          description: Contact's phone number in E.164 format
+          example: '+16035551234'
+          maxLength: 20
+          type: string
+      required:
+      - first_name
+      - last_name
+      - email
+      - job_title
+      - phone
       type: object
     OrganizationUser:
       example:
@@ -40460,6 +41029,46 @@ components:
           $ref: '#/components/schemas/UpdatePhoneNumberVoiceSettingsRequest'
       required:
       - phone_numbers
+      type: object
+    PhysicalAddress:
+      properties:
+        administrative_area:
+          description: State or province
+          example: Illinois
+          maxLength: 100
+          type: string
+        city:
+          description: City name
+          example: Chicago
+          maxLength: 100
+          type: string
+        country:
+          description: Country name (e.g., United States)
+          example: United States
+          maxLength: 100
+          type: string
+        extended_address:
+          description: Additional address line (suite, apt, etc.)
+          example: Suite 400
+          maxLength: 255
+          nullable: true
+          type: string
+        postal_code:
+          description: ZIP or postal code
+          example: '60601'
+          maxLength: 20
+          type: string
+        street_address:
+          description: Street address
+          example: 123 Main St
+          maxLength: 255
+          type: string
+      required:
+      - country
+      - administrative_area
+      - city
+      - postal_code
+      - street_address
       type: object
     PlanResponse:
       properties:
@@ -44745,6 +45354,123 @@ components:
         data:
           $ref: '#/components/schemas/ReplacedLinkClick'
       type: object
+    ReputationData:
+      description: Reputation metrics
+      properties:
+        connection_score:
+          description: "Connection quality metric (0\u2013100)"
+          maximum: 100
+          minimum: 0
+          nullable: true
+          type: integer
+        engagement_score:
+          description: "Engagement metric (0\u2013100). Higher = more positive engagement"
+          maximum: 100
+          minimum: 0
+          nullable: true
+          type: integer
+        last_refreshed_at:
+          description: Timestamp of the last reputation data refresh
+          format: date-time
+          nullable: true
+          type: string
+        maturity_score:
+          description: "Maturity metric (0\u2013100). Higher = more established number"
+          maximum: 100
+          minimum: 0
+          nullable: true
+          type: integer
+        sentiment_score:
+          description: "Sentiment metric (0\u2013100). Higher = more positive sentiment"
+          maximum: 100
+          minimum: 0
+          nullable: true
+          type: integer
+        spam_category:
+          description: Spam category classification (e.g., Telemarketing, Debt Collector)
+          nullable: true
+          type: string
+        spam_risk:
+          description: Overall spam risk level
+          enum:
+          - low
+          - medium
+          - high
+          nullable: true
+          type: string
+      type: object
+    ReputationPhoneNumberCreate:
+      properties:
+        phone_numbers:
+          description: List of phone numbers to associate for reputation monitoring
+            (max 100)
+          items:
+            description: Phone number in E.164 format
+            example: '+16035551234'
+            type: string
+          maxItems: 100
+          minItems: 1
+          type: array
+      required:
+      - phone_numbers
+      type: object
+    ReputationPhoneNumberList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ReputationPhoneNumberPublic'
+          type: array
+        meta:
+          $ref: '#/components/schemas/MetaInfo'
+      type: object
+    ReputationPhoneNumberListWithReputation:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ReputationPhoneNumberWithReputationData'
+          type: array
+        meta:
+          $ref: '#/components/schemas/MetaInfo'
+      type: object
+    ReputationPhoneNumberPublic:
+      properties:
+        created_at:
+          description: When the number was associated
+          format: date-time
+          type: string
+        enterprise_id:
+          description: ID of the associated enterprise
+          format: uuid
+          type: string
+        id:
+          description: Unique identifier
+          format: uuid
+          type: string
+        phone_number:
+          description: Phone number in E.164 format
+          example: '+16035551234'
+          type: string
+        updated_at:
+          description: When the record was last updated
+          format: date-time
+          type: string
+      type: object
+    ReputationPhoneNumberWithReputation:
+      properties:
+        data:
+          $ref: '#/components/schemas/ReputationPhoneNumberWithReputationData'
+      type: object
+    ReputationPhoneNumberWithReputationData:
+      allOf:
+      - $ref: '#/components/schemas/ReputationPhoneNumberPublic'
+      - properties:
+          reputation_data:
+            description: Reputation metrics (null if not yet fetched)
+            oneOf:
+            - $ref: '#/components/schemas/ReputationData'
+            - nullable: true
+              type: object
+        type: object
     RequirementGroup:
       properties:
         action:
@@ -51010,6 +51736,39 @@ components:
           title: Totalrecords
           type: integer
       title: TelnyxDownstreamCampaignRecordSet
+      type: object
+    TelnyxError:
+      properties:
+        code:
+          description: Telnyx error code
+          example: '10015'
+          type: string
+        detail:
+          description: Human-readable error detail
+          example: User has already agreed to Terms of Service version v1.0.0
+          type: string
+        meta:
+          properties:
+            url:
+              description: Link to error documentation
+              format: uri
+              type: string
+          type: object
+        source:
+          description: Reference to the field that caused the error
+          properties:
+            pointer:
+              description: JSON pointer (RFC6901) to the field that caused the error
+              example: /body/organization_type
+              type: string
+          type: object
+        title:
+          description: Short error title
+          example: Bad Request
+          type: string
+      required:
+      - code
+      - title
       type: object
     TelnyxProviderParams:
       description: Telnyx provider-specific parameters. Use `voice_speed` and `temperature`
@@ -61080,6 +61839,13 @@ components:
         in the US but is used for some international addresses.
       example: Guadalajara
       type: string
+    branded-calling_ErrorResponse:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/TelnyxError'
+          type: array
+      type: object
     business_name:
       description: The business name associated with the address. An address must
         have either a first last name or a business name.
@@ -63558,6 +64324,10 @@ components:
       type: object
   securitySchemes:
     bearerAuth:
+      scheme: bearer
+      type: http
+    branded-calling_bearerAuth:
+      description: API key passed as a Bearer token in the Authorization header
       scheme: bearer
       type: http
     oauthClientAuth:
@@ -75158,7 +75928,7 @@ paths:
         '200':
           $ref: '#/components/responses/DocServiceDocumentResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/documents_UnprocessableEntity'
         default:
           $ref: '#/components/responses/documents_GenericErrorResponse'
       summary: Upload a document
@@ -75297,7 +76067,7 @@ paths:
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/documents_UnprocessableEntity'
         default:
           $ref: '#/components/responses/documents_GenericErrorResponse'
       summary: Generate a temporary download link for a document
@@ -75553,6 +76323,444 @@ paths:
       summary: Get a dynamic emergency endpoint
       tags:
       - Dynamic Emergency Endpoints
+      x-latency-category: responsive
+  /enterprises:
+    get:
+      description: Retrieve a paginated list of enterprises associated with your account.
+      operationId: ListEnterprises
+      parameters:
+      - description: Page number (1-indexed)
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page[size]
+        schema:
+          default: 10
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Filter by legal name (partial match)
+        in: query
+        name: legal_name
+        schema:
+          example: Acme
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseListPublic'
+          description: List of enterprises
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      summary: List enterprises
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+    post:
+      description: 'Create a new enterprise for Branded Calling / Number Reputation
+        services.
+
+
+        Registers the enterprise in the Branded Calling / Number Reputation services,
+        enabling it to create Display Identity Records (DIRs) or enroll in Number
+        Reputation monitoring.
+
+
+        **Required Fields:** `legal_name`, `doing_business_as`, `organization_type`,
+        `country_code`, `website`, `fein`, `industry`, `number_of_employees`, `organization_legal_type`,
+        `organization_contact`, `billing_contact`, `organization_physical_address`,
+        `billing_address`'
+      operationId: CreateEnterprise
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnterpriseCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterprisePublicWrapped'
+          description: Enterprise created successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          description: "Bad request \u2014 invalid input, validation error, or duplicate\
+            \ legal_name"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Create an enterprise
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}:
+    delete:
+      description: Delete an enterprise and all associated resources. This action
+        is irreversible.
+      operationId: DeleteEnterprise
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '204':
+          description: Enterprise deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Delete an enterprise
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+    get:
+      description: Retrieve details of a specific enterprise by ID.
+      operationId: GetEnterprise
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterprisePublicWrapped'
+          description: Enterprise details
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Get an enterprise
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+    put:
+      description: "Update enterprise information. All fields are optional \u2014\
+        \ only the provided fields will be updated."
+      operationId: UpdateEnterprise
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnterpriseUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterprisePublicWrapped'
+          description: Enterprise updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Update an enterprise
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation:
+    delete:
+      description: 'Disable Number Reputation for an enterprise.
+
+
+        This will:
+
+        - Delete the reputation settings record
+
+        - Log the deletion for audit purposes
+
+        - Stop all future automated reputation checks
+
+
+        **Note:** Can only be performed on `approved` reputation settings.'
+      operationId: DisableReputationSettings
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '204':
+          description: Reputation settings disabled successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Disable Number Reputation
+      tags:
+      - Number Reputation Settings
+      x-latency-category: responsive
+    get:
+      description: 'Retrieve the current Number Reputation settings for an enterprise.
+
+
+        Returns the enrollment status (`pending`, `approved`, `rejected`, `deleted`),
+        check frequency, and any rejection reasons.
+
+
+        Returns `404` if reputation has not been enabled for this enterprise.'
+      operationId: GetReputationSettings
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
+          description: Reputation settings
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/branded-calling_ErrorResponse'
+          description: Reputation settings not found for this enterprise
+      summary: Get reputation settings
+      tags:
+      - Number Reputation Settings
+      x-latency-category: responsive
+    post:
+      description: "Enable Number Reputation service for an enterprise.\n\n**Requirements:**\n\
+        - Signed LOA (Letter of Authorization) document ID\n- Reputation check frequency\
+        \ (defaults to `business_daily`)\n- Number Reputation Terms of Service must\
+        \ be accepted\n\n**Flow:**\n1. Registers the enterprise for reputation monitoring\n\
+        2. Creates reputation settings with `pending` status\n3. Awaits admin approval\
+        \ before monitoring begins\n\n**Resubmission After Rejection:**\nIf a previously\
+        \ rejected record exists, this endpoint will delete it and create a new `pending`\
+        \ record.\n\n**Available Frequencies:**\n- `business_daily` \u2014 Monday\u2013\
+        Friday\n- `daily` \u2014 Every day\n- `weekly` \u2014 Once per week\n- `biweekly`\
+        \ \u2014 Once every two weeks\n- `monthly` \u2014 Once per month\n- `never`\
+        \ \u2014 Manual refresh only"
+      operationId: EnableReputationSettings
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnterpriseReputationCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
+          description: Reputation settings created (pending admin approval)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/branded-calling_ErrorResponse'
+          description: Reputation settings already exist for this enterprise
+      summary: Enable Number Reputation
+      tags:
+      - Number Reputation Settings
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/frequency:
+    patch:
+      description: "Update how often reputation data is automatically refreshed.\n\
+        \n**Note:** The enterprise must have `approved` reputation settings. Updating\
+        \ frequency on `pending` or `rejected` settings will return an error.\n\n\
+        **Available Frequencies:**\n- `business_daily` \u2014 Monday\u2013Friday\n\
+        - `daily` \u2014 Every day including weekends\n- `weekly` \u2014 Once per\
+        \ week\n- `biweekly` \u2014 Once every two weeks\n- `monthly` \u2014 Once\
+        \ per month\n- `never` \u2014 Manual refresh only (no automatic checks)"
+      operationId: UpdateReputationFrequency
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnterpriseReputationUpdateFrequency'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
+          description: Reputation frequency updated
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Update reputation check frequency
+      tags:
+      - Number Reputation Settings
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/numbers:
+    get:
+      description: 'List all phone numbers associated with an enterprise for Number
+        Reputation monitoring.
+
+
+        Returns phone numbers with their cached reputation data (if available). Supports
+        pagination and filtering by phone number.'
+      operationId: ListReputationNumbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - description: Page number (1-indexed)
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page[size]
+        schema:
+          default: 10
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Filter by specific phone number (E.164 format)
+        in: query
+        name: phone_number
+        schema:
+          example: '+16035551234'
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationPhoneNumberListWithReputation'
+          description: List of phone numbers with reputation data
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: List reputation phone numbers
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
+    post:
+      description: "Associate one or more phone numbers with an enterprise for Number\
+        \ Reputation monitoring.\n\n**Validations:**\n- Phone numbers must be in E.164\
+        \ format (e.g., `+16035551234`)\n- Phone numbers must be in-service and belong\
+        \ to your account (verified via Warehouse)\n- Phone numbers must be US local\
+        \ numbers\n- Phone numbers cannot already be associated with any enterprise\n\
+        \n**Note:** This operation is atomic \u2014 if any number fails validation,\
+        \ the entire request fails.\n\n**Maximum:** 100 phone numbers per request."
+      operationId: AssociateReputationNumbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReputationPhoneNumberCreate'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationPhoneNumberList'
+          description: Phone numbers associated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Associate phone numbers for reputation
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/numbers/{phone_number}:
+    delete:
+      description: 'Remove a phone number from Number Reputation monitoring for an
+        enterprise.
+
+
+        The number will no longer be tracked and reputation data will no longer be
+        refreshed.'
+      operationId: DisassociateReputationNumber
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/PhoneNumber'
+      responses:
+        '204':
+          description: Phone number disassociated successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Disassociate a phone number
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
+    get:
+      description: "Get detailed reputation data for a specific phone number associated\
+        \ with an enterprise.\n\n**Query Parameters:**\n- `fresh` (default: `false`):\
+        \ When `true`, fetches fresh reputation data (incurs API cost). When `false`,\
+        \ returns cached data. If no cached data exists, fresh data is automatically\
+        \ fetched.\n\n**Returns:**\n- `spam_risk`: Overall spam risk level (`low`,\
+        \ `medium`, `high`)\n- `spam_category`: Spam category classification\n- `maturity_score`:\
+        \ Maturity metric (0\u2013100)\n- `connection_score`: Connection quality metric\
+        \ (0\u2013100)\n- `engagement_score`: Engagement metric (0\u2013100)\n- `sentiment_score`:\
+        \ Sentiment metric (0\u2013100)\n- `last_refreshed_at`: Timestamp of last\
+        \ data refresh"
+      operationId: GetPhoneNumberReputation
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/PhoneNumber'
+      - description: When true, fetches fresh reputation data (incurs API cost). When
+          false, returns cached data.
+        in: query
+        name: fresh
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationPhoneNumberWithReputation'
+          description: Phone number reputation data
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/branded-calling_ErrorResponse'
+          description: Enterprise is not approved for reputation tracking
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/branded-calling_ErrorResponse'
+          description: Phone number is not associated with this enterprise
+      summary: Get reputation data for a phone number
+      tags:
+      - Reputation Phone Numbers
       x-latency-category: responsive
   /external_connections:
     get:
@@ -82079,7 +83287,7 @@ paths:
       description: Returns information about the provided phone number.
       operationId: LookupNumber
       parameters:
-      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/number-lookup_PhoneNumber'
       - $ref: '#/components/parameters/NumberLookupType'
       responses:
         '200':
@@ -88587,6 +89795,97 @@ paths:
       tags:
       - WDR Detail Reports
       x-latency-category: interactive
+  /reputation/numbers:
+    get:
+      description: "List all phone numbers enrolled in Number Reputation monitoring\
+        \ for your account. This is a simplified endpoint that does not require an\
+        \ `enterprise_id` \u2014 it returns numbers across all your enterprises.\n\
+        \nSupports pagination and filtering by phone number."
+      operationId: ListReputationNumbersSimplified
+      parameters:
+      - description: Page number (1-indexed)
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page
+        in: query
+        name: page[size]
+        schema:
+          default: 10
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Filter by specific phone number (E.164 format)
+        in: query
+        name: phone_number
+        schema:
+          example: '+16035551234'
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationPhoneNumberListWithReputation'
+          description: List of phone numbers with reputation data
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      summary: List reputation phone numbers (simplified)
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
+  /reputation/numbers/{phone_number}:
+    delete:
+      description: Remove a phone number from Number Reputation monitoring without
+        requiring an `enterprise_id`.
+      operationId: DisassociateReputationNumberSimplified
+      parameters:
+      - $ref: '#/components/parameters/PhoneNumber'
+      responses:
+        '204':
+          description: Phone number disassociated successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Disassociate a phone number (simplified)
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
+    get:
+      description: 'Get reputation data for a specific phone number without requiring
+        an `enterprise_id`.
+
+
+        Same response as the enterprise-scoped endpoint. Uses cached data by default.'
+      operationId: GetPhoneNumberReputationSimplified
+      parameters:
+      - $ref: '#/components/parameters/PhoneNumber'
+      - description: When true, fetches fresh reputation data (incurs API cost). When
+          false, returns cached data.
+        in: query
+        name: fresh
+        schema:
+          default: false
+          type: boolean
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationPhoneNumberWithReputation'
+          description: Phone number reputation data
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      summary: Get reputation data for a phone number (simplified)
+      tags:
+      - Reputation Phone Numbers
+      x-latency-category: responsive
   /requirement_groups:
     get:
       operationId: GetRequirementGroups
@@ -92532,6 +93831,30 @@ paths:
       summary: Create an Access Token.
       tags:
       - Access Tokens
+      x-latency-category: responsive
+  /terms-of-service/number-reputation/agree:
+    post:
+      description: 'Accept the Terms of Service for the Number Reputation product.
+        Must be called before using Number Reputation endpoints.
+
+
+        Returns `400` with error code `10015` if the user has already agreed to the
+        current ToS version.'
+      operationId: AgreeNumberReputationTermsOfService
+      responses:
+        '200':
+          description: Terms of Service accepted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestTelnyx'
+          description: "Bad request \u2014 e.g. user has already agreed to this Terms\
+            \ of Service version (error code 10015)"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+      summary: Agree to Number Reputation Terms of Service
+      tags:
+      - Terms of Service
       x-latency-category: responsive
   /texml/Accounts/{account_sid}/Calls:
     get:
@@ -97177,6 +98500,8 @@ tags:
   name: Dynamic Emergency Endpoints
 - description: Embed documents and perform text searches
   name: Embeddings
+- description: Enterprise management for Branded Calling and Number Reputation services
+  name: Enterprises
 - description: External Connections operations
   name: External Connections
 - description: FQDN connection operations
@@ -97236,6 +98561,9 @@ tags:
   name: Number Lookup
 - description: Number portout operations
   name: Number Portout
+- description: Manage Number Reputation enrollment and check frequency settings for
+    an enterprise
+  name: Number Reputation Settings
 - description: Configure your phone numbers
   name: Number Settings
 - description: OTA updates operations
@@ -97293,6 +98621,9 @@ tags:
   name: Reporting
 - description: Ledger billing reports
   name: Reports
+- description: Associate phone numbers with an enterprise for reputation monitoring
+    and retrieve reputation scores
+  name: Reputation Phone Numbers
 - description: Requirement Groups
   name: Requirement Groups
 - description: Types of requirements for international numbers and porting orders
@@ -97345,6 +98676,8 @@ tags:
   name: TeXML REST Commands
 - description: Number lookup usage reports
   name: Telco Data Usage Reports
+- description: Terms of Service agreement endpoints
+  name: Terms of Service
 - description: Text to speech streaming command operations
   name: Text To Speech Commands
 - description: Text to Speech commands operations
