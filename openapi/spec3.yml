@@ -10703,20 +10703,32 @@ components:
       - model
       type: object
     AudioTranscriptionResponse:
+      description: Response fields vary by model. `distil-whisper/distil-large-v2`
+        returns `text`, `duration`, and `segments` in `verbose_json` mode. `openai/whisper-large-v3-turbo`
+        returns `text` only. `deepgram/nova-3` returns `text` and, depending on `model_config`,
+        may include `words` with per-word timestamps and speaker labels.
       properties:
         duration:
-          description: The duration of the audio file in seconds. This is only included
-            if `response_format` is set to `verbose_json`.
+          description: The duration of the audio file in seconds. Returned by `distil-whisper/distil-large-v2`
+            and `deepgram/nova-3` when `response_format` is `verbose_json`. Not returned
+            by `openai/whisper-large-v3-turbo`.
           type: number
         segments:
           description: Segments of the transcribed text and their corresponding details.
-            This is only included if `response_format` is set to `verbose_json`.
+            Returned by `distil-whisper/distil-large-v2` when `response_format` is
+            `verbose_json`. Not returned by `openai/whisper-large-v3-turbo`.
           items:
             $ref: '#/components/schemas/AudioTranscriptionResponseSegments'
           type: array
         text:
           description: The transcribed text for the audio file.
           type: string
+        words:
+          description: Word-level timestamps and optional speaker labels. Only returned
+            by `deepgram/nova-3` when word-level output is enabled via `model_config`.
+          items:
+            $ref: '#/components/schemas/AudioTranscriptionResponseWord'
+          type: array
       required:
       - text
       type: object
@@ -10739,6 +10751,31 @@ components:
       - start
       - end
       - text
+      type: object
+    AudioTranscriptionResponseWord:
+      description: Word-level timing detail. Only present when using `deepgram/nova-3`
+        with `model_config` options that enable word timestamps.
+      properties:
+        confidence:
+          description: Confidence score for the word (0.0 to 1.0).
+          type: number
+        end:
+          description: End time of the word in seconds.
+          type: number
+        speaker:
+          description: Speaker index. Only present when diarization is enabled via
+            `model_config`.
+          type: integer
+        start:
+          description: Start time of the word in seconds.
+          type: number
+        word:
+          description: The transcribed word.
+          type: string
+      required:
+      - word
+      - start
+      - end
       type: object
     AudioVisualizerConfig:
       properties:
@@ -21594,6 +21631,8 @@ components:
           type: string
         name:
           type: string
+        observability_settings:
+          $ref: '#/components/schemas/ObservabilityReq'
         privacy_settings:
           $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
@@ -24781,6 +24820,27 @@ components:
           type: array
           writeOnly: true
       type: object
+    CreateVerificationRequest:
+      description: The request body when creating a verification.
+      properties:
+        phone_number:
+          description: +E164 formatted phone number.
+          example: '+13035551234'
+          type: string
+        timeout_secs:
+          description: The number of seconds the verification code is valid for.
+          example: 300
+          type: integer
+        verify_profile_id:
+          description: The identifier of the associated Verify profile.
+          example: 12ade33a-21c0-473b-b055-b3c836e1c292
+          format: uuid
+          type: string
+      required:
+      - phone_number
+      - verify_profile_id
+      title: CreateVerificationRequest
+      type: object
     CreateVerificationRequestCall:
       description: The request body when creating a verification.
       properties:
@@ -24817,27 +24877,6 @@ components:
       - phone_number
       - verify_profile_id
       title: CreateVerificationRequestCall
-      type: object
-    CreateVerificationRequestFlashcall:
-      description: The request body when creating a verification.
-      properties:
-        phone_number:
-          description: +E164 formatted phone number.
-          example: '+13035551234'
-          type: string
-        timeout_secs:
-          description: The number of seconds the verification code is valid for.
-          example: 300
-          type: integer
-        verify_profile_id:
-          description: The identifier of the associated Verify profile.
-          example: 12ade33a-21c0-473b-b055-b3c836e1c292
-          format: uuid
-          type: string
-      required:
-      - phone_number
-      - verify_profile_id
-      title: CreateVerificationRequestFlashcall
       type: object
     CreateVerificationRequestSMS:
       description: The request body when creating a verification.
@@ -24924,36 +24963,6 @@ components:
             type: string
           type: array
       title: CreateVerifyProfileCallRequest
-      type: object
-    CreateVerifyProfileFlashcallRequest:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: CreateVerifyProfileFlashcallRequest
       type: object
     CreateVerifyProfileRCSRequest:
       properties:
@@ -25047,6 +25056,36 @@ components:
             type: string
           type: array
       title: CreateVerifyProfileSMSRequest
+      type: object
+    CreateVerifyProfileSettingsRequest:
+      properties:
+        app_name:
+          description: The name that identifies the application requesting 2fa in
+            the verification message.
+          example: Example Secure App
+          pattern: ^[A-Za-z0-9 -]{1,30}$
+          type: string
+        default_verification_timeout_secs:
+          default: 300
+          description: For every request that is initiated via this Verify profile,
+            this sets the number of seconds before a verification request code expires.
+            Once the verification request expires, the user cannot use the code to
+            verify their identity.
+          example: 300
+          type: integer
+        whitelisted_destinations:
+          description: Enabled country destinations to send verification codes. The
+            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
+            set to `["*"]`, all destinations will be allowed.
+          example:
+          - US
+          - CA
+          items:
+            description: ISO 3166-1 alpha-2 country code
+            pattern: ^[A-Z]{2}$
+            type: string
+          type: array
+      title: CreateVerifyProfileSettingsRequest
       type: object
     CreatedAt:
       description: ISO 8601 formatted date indicating when the resource was created.
@@ -37703,6 +37742,44 @@ components:
       - scopes
       - created_at
       type: object
+    Observability:
+      properties:
+        host:
+          title: Host
+          type: string
+        public_key_ref:
+          title: Public Key Ref
+          type: string
+        secret_key_ref:
+          title: Secret Key Ref
+          type: string
+        status:
+          $ref: '#/components/schemas/ObservabilityStatus'
+          default: disabled
+      title: Observability
+      type: object
+    ObservabilityReq:
+      properties:
+        host:
+          title: Host
+          type: string
+        public_key_ref:
+          title: Public Key Ref
+          type: string
+        secret_key_ref:
+          title: Secret Key Ref
+          type: string
+        status:
+          $ref: '#/components/schemas/ObservabilityStatus'
+          default: disabled
+      title: ObservabilityReq
+      type: object
+    ObservabilityStatus:
+      enum:
+      - enabled
+      - disabled
+      title: ObservabilityStatus
+      type: string
     OpenAIEmbeddingData:
       properties:
         embedding:
@@ -50657,6 +50734,11 @@ components:
               - single
               - dual
               type: string
+            enabled:
+              default: true
+              description: Whether call recording is enabled. When set to false, calls
+                will not be recorded regardless of other recording configuration.
+              type: boolean
             format:
               default: mp3
               description: The format of the recording file.
@@ -54528,6 +54610,8 @@ components:
           type: string
         name:
           type: string
+        observability_settings:
+          $ref: '#/components/schemas/ObservabilityReq'
         privacy_settings:
           $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
@@ -56739,36 +56823,6 @@ components:
           type: array
       title: UpdateVerifyProfileCallRequest
       type: object
-    UpdateVerifyProfileFlashcallRequest:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: UpdateVerifyProfileFlashcallRequest
-      type: object
     UpdateVerifyProfileRCSRequest:
       properties:
         app_name:
@@ -56861,6 +56915,36 @@ components:
             type: string
           type: array
       title: UpdateVerifyProfileSMSRequest
+      type: object
+    UpdateVerifyProfileSettingsRequest:
+      properties:
+        app_name:
+          description: The name that identifies the application requesting 2fa in
+            the verification message.
+          example: Example Secure App
+          pattern: ^[A-Za-z0-9 -]{1,30}$
+          type: string
+        default_verification_timeout_secs:
+          default: 300
+          description: For every request that is initiated via this Verify profile,
+            this sets the number of seconds before a verification request code expires.
+            Once the verification request expires, the user cannot use the code to
+            verify their identity.
+          example: 300
+          type: integer
+        whitelisted_destinations:
+          description: Enabled country destinations to send verification codes. The
+            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
+            set to `["*"]`, all destinations will be allowed.
+          example:
+          - US
+          - CA
+          items:
+            description: ISO 3166-1 alpha-2 country code
+            pattern: ^[A-Z]{2}$
+            type: string
+          type: array
+      title: UpdateVerifyProfileSettingsRequest
       type: object
     UpdatedAt:
       description: ISO 8601 formatted date indicating when the resource was updated.
@@ -58238,6 +58322,7 @@ components:
       - sms
       - call
       - flashcall
+      - whatsapp
       example: sms
       title: VerificationType
       type: string
@@ -59588,7 +59673,7 @@ components:
           type: boolean
         voice:
           description: 'The voice to be used by the voice assistant. Check the full
-            list of [available voices](https://developers.telnyx.com/api/call-control/list-text-to-speech-voices)
+            list of [available voices](https://developers.telnyx.com/docs/tts-stt/tts-available-voices)
             via our voices API.
 
             To use ElevenLabs, you must reference your ElevenLabs API key as an integration
@@ -60603,6 +60688,86 @@ components:
           $ref: '#/components/schemas/WhatsappReaction'
         sticker:
           $ref: '#/components/schemas/WhatsappMedia'
+        template:
+          description: Template message object. Provide either template_id or name
+            + language to identify the template.
+          properties:
+            components:
+              description: Template parameter values for header, body, and button
+                components.
+              items:
+                properties:
+                  index:
+                    description: Button index (required for button components)
+                    type: integer
+                  parameters:
+                    items:
+                      properties:
+                        text:
+                          type: string
+                        type:
+                          enum:
+                          - text
+                          - image
+                          - video
+                          - document
+                          - currency
+                          - date_time
+                          type: string
+                      type: object
+                    type: array
+                  sub_type:
+                    enum:
+                    - quick_reply
+                    - url
+                    type: string
+                  type:
+                    enum:
+                    - header
+                    - body
+                    - button
+                    type: string
+                type: object
+              type: array
+            language:
+              description: Template language. Required unless template_id is provided.
+              properties:
+                code:
+                  description: Language code (e.g. en_US)
+                  example: en_US
+                  type: string
+                policy:
+                  example: deterministic
+                  type: string
+              required:
+              - code
+              type: object
+            name:
+              description: Template name as registered with Meta. Required unless
+                template_id is provided.
+              example: order_confirmation
+              type: string
+            template_id:
+              description: Telnyx template ID (the id field from template list/get
+                responses). When provided, name and language are resolved automatically.
+              example: 019cd44b-3a1c-781b-956e-bd33e9fd2ac6
+              type: string
+          type: object
+        text:
+          description: Text message content. Can only be sent within a 24-hour customer
+            service window.
+          properties:
+            body:
+              description: The text message body.
+              example: Hello from Telnyx!
+              type: string
+            preview_url:
+              default: false
+              description: Whether to show a URL preview in the message.
+              type: boolean
+          required:
+          - body
+          type: object
         type:
           enum:
           - audio
@@ -60615,6 +60780,7 @@ components:
           - template
           - reaction
           - contacts
+          - text
           type: string
         video:
           $ref: '#/components/schemas/WhatsappMedia'
@@ -62895,6 +63061,8 @@ components:
           type: string
         name:
           type: string
+        observability_settings:
+          $ref: '#/components/schemas/Observability'
         privacy_settings:
           $ref: '#/components/schemas/PrivacySettings'
         telephony_settings:
@@ -96412,7 +96580,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateVerificationRequestFlashcall'
+              $ref: '#/components/schemas/CreateVerificationRequest'
         required: true
       responses:
         '200':
@@ -96446,6 +96614,28 @@ paths:
         '400':
           $ref: '#/components/responses/verify_GenericErrorResponse'
       summary: Trigger SMS verification
+      tags:
+      - Verify
+      x-latency-category: responsive
+  /verifications/whatsapp:
+    post:
+      operationId: CreateWhatsappVerification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVerificationRequestSMS'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVerificationResponse'
+          description: Expected verifications response to a valid request.
+        '400':
+          $ref: '#/components/responses/verify_GenericErrorResponse'
+      summary: Trigger WhatsApp verification
       tags:
       - Verify
       x-latency-category: responsive
@@ -96784,7 +96974,7 @@ paths:
                   additionalProperties: true
                   type: object
                 flashcall:
-                  $ref: '#/components/schemas/CreateVerifyProfileFlashcallRequest'
+                  $ref: '#/components/schemas/CreateVerifyProfileSettingsRequest'
                   additionalProperties: true
                   type: object
                 language:
@@ -96807,6 +96997,10 @@ paths:
                 webhook_url:
                   example: http://example.com/webhook
                   type: string
+                whatsapp:
+                  $ref: '#/components/schemas/CreateVerifyProfileSettingsRequest'
+                  additionalProperties: true
+                  type: object
               required:
               - name
               title: Create Verify Profile Request
@@ -96970,7 +97164,7 @@ paths:
                   additionalProperties: true
                   type: object
                 flashcall:
-                  $ref: '#/components/schemas/UpdateVerifyProfileFlashcallRequest'
+                  $ref: '#/components/schemas/UpdateVerifyProfileSettingsRequest'
                   additionalProperties: true
                   type: object
                 language:
@@ -96993,6 +97187,10 @@ paths:
                 webhook_url:
                   example: http://example.com/webhook
                   type: string
+                whatsapp:
+                  $ref: '#/components/schemas/UpdateVerifyProfileSettingsRequest'
+                  additionalProperties: true
+                  type: object
               title: Update Verify Profile Request
               type: object
         required: true
