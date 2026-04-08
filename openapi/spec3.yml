@@ -2609,6 +2609,15 @@ components:
         - active
         example: application_name
         type: string
+    pronunciation_dict_id:
+      description: The UUID of the pronunciation dictionary.
+      in: path
+      name: id
+      required: true
+      schema:
+        example: c215a3e1-be41-4701-97e8-1d3c22f9a5b7
+        format: uuid
+        type: string
     provider:
       description: TTS provider. Defaults to `telnyx` if not specified. Ignored when
         `voice` is provided.
@@ -5219,6 +5228,12 @@ components:
             title: List Inexplicit Number Orders Response
             type: object
       description: Successful response with a list of inexplicit number orders.
+    InitiateAICallResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InitiateAICallResult'
+      description: Successful response upon initiating an AI call.
     InitiateCallResponse:
       content:
         application/json:
@@ -16259,6 +16274,15 @@ components:
             bridged. Disabled by default.
           example: true
           type: boolean
+        privacy:
+          description: Indicates the privacy level to be used for the call. When set
+            to `id`, caller ID information (name and number) will be hidden from the
+            called party. When set to `none` or omitted, caller ID will be shown normally.
+          enum:
+          - id
+          - none
+          example: id
+          type: string
         record:
           description: Start recording automatically after an event. Disabled by default.
           enum:
@@ -24196,6 +24220,27 @@ components:
           example: Please, let me know when the port completes
           type: string
       type: object
+    CreatePronunciationDictRequest:
+      description: Request body for creating a pronunciation dictionary.
+      properties:
+        items:
+          description: List of pronunciation items (alias or phoneme type). At least
+            one item is required.
+          items:
+            $ref: '#/components/schemas/PronunciationDictItem'
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          description: Human-readable name. Must be unique within the organization.
+          example: Brand Names
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - name
+      - items
+      type: object
     CreateQueueRequest:
       example:
         max_size: 100
@@ -27927,24 +27972,26 @@ components:
           type: string
       type: object
     ErrorObject:
-      description: A single error object.
       properties:
         code:
-          description: Telnyx-specific error code.
+          description: Machine-readable error code.
+          example: '90202'
           type: string
         detail:
-          description: Detailed, human-readable explanation of the error.
+          description: Detailed error description.
+          example: items must have at least one item
           type: string
         source:
-          description: Reference to the source of the error.
+          description: Source of the error.
           properties:
             pointer:
-              description: A JSON Pointer (RFC 6901) to the field that caused the
-                error.
+              description: JSON pointer to the field that caused the error.
+              example: /items
               type: string
           type: object
         title:
-          description: Short, human-readable summary of the error.
+          description: Short human-readable error title.
+          example: Validation failed
           type: string
       type: object
     ErrorRecord:
@@ -32123,6 +32170,302 @@ components:
       - from
       title: TransferToolParams
       type: object
+    InitiateAICallRequest:
+      example:
+        AIAssistantId: ai-assistant-id-123
+        From: '+13120001234'
+        To: '+13121230000'
+      properties:
+        AIAssistantDynamicVariables:
+          additionalProperties:
+            type: string
+          description: Key-value map of dynamic variables to pass to the AI assistant.
+          example:
+            account_id: '12345'
+            customer_name: John Doe
+          type: object
+        AIAssistantId:
+          description: The ID of the AI assistant to use for the call.
+          type: string
+        AIAssistantVersion:
+          description: The version of the AI assistant to use.
+          type: string
+        AsyncAmd:
+          default: false
+          description: Select whether to perform answering machine detection in the
+            background. By default execution is blocked until Answering Machine Detection
+            is completed.
+          example: true
+          type: boolean
+        AsyncAmdStatusCallback:
+          description: URL destination for Telnyx to send AMD callback events to for
+            the call.
+          example: https://www.example.com/callback
+          type: string
+        AsyncAmdStatusCallbackMethod:
+          default: POST
+          description: HTTP request type used for `AsyncAmdStatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        CallerId:
+          description: To be used as the caller id name (SIP From Display Name) presented
+            to the destination (`To` number). The string should have a maximum of
+            128 characters, containing only letters, numbers, spaces, and `-_~!.+`
+            special characters. If omitted, the display name will be the same as the
+            number in the `From` field.
+          example: Info
+          type: string
+        ConversationCallback:
+          description: URL destination for Telnyx to send conversation callback events
+            to.
+          example: https://www.example.com/conversation-callback
+          type: string
+        ConversationCallbackMethod:
+          default: POST
+          description: HTTP request type used for `ConversationCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        ConversationCallbacks:
+          description: An array of URL destinations for conversation callback events.
+          example:
+          - https://www.example.com/conversation-callback1
+          - https://www.example.com/conversation-callback2
+          items:
+            type: string
+          type: array
+        CustomHeaders:
+          description: Custom HTTP headers to be sent with the call. Each header should
+            be an object with 'name' and 'value' properties.
+          example:
+          - name: X-Custom-Header
+            value: custom-value
+          items:
+            properties:
+              name:
+                description: The name of the custom header
+                type: string
+              value:
+                description: The value of the custom header
+                type: string
+            required:
+            - name
+            - value
+            type: object
+          type: array
+        DetectionMode:
+          default: Regular
+          description: Allows you to choose between Premium and Standard detections.
+          enum:
+          - Premium
+          - Regular
+          example: Premium
+          type: string
+        From:
+          description: The phone number of the party initiating the call. Phone numbers
+            are formatted with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        MachineDetection:
+          default: Disable
+          description: Enables Answering Machine Detection.
+          enum:
+          - Enable
+          - Disable
+          - DetectMessageEnd
+          example: Enable
+          type: string
+        MachineDetectionSilenceTimeout:
+          default: 3500
+          description: If initial silence duration is greater than this value, consider
+            it a machine. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionSpeechEndThreshold:
+          default: 800
+          description: Silence duration threshold after a greeting message or voice
+            for it be considered human. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionSpeechThreshold:
+          default: 3500
+          description: Maximum threshold of a human greeting. If greeting longer than
+            this value, considered machine. Ignored when `premium` detection is used.
+          example: 2000
+          type: integer
+        MachineDetectionTimeout:
+          default: 30000
+          description: Maximum timeout threshold in milliseconds for overall detection.
+          example: 5000
+          maximum: 60000
+          minimum: 500
+          type: integer
+        Passports:
+          description: A string of passport identifiers to associate with the call.
+          type: string
+        PreferredCodecs:
+          description: The list of comma-separated codecs to be offered on a call.
+          example: PCMA,PCMU
+          type: string
+        Record:
+          description: Whether to record the entire participant's call leg. Defaults
+            to `false`.
+          example: false
+          type: boolean
+        RecordingChannels:
+          description: The number of channels in the final recording. Defaults to
+            `mono`.
+          enum:
+          - mono
+          - dual
+          example: dual
+          type: string
+        RecordingStatusCallback:
+          description: The URL the recording callbacks will be sent to.
+          example: https://example.com/recording_status_callback
+          type: string
+        RecordingStatusCallbackEvent:
+          description: 'The changes to the recording''s state that should generate
+            a call to `RecordingStatusCallback`. Can be: `in-progress`, `completed`
+            and `absent`. Separate multiple values with a space. Defaults to `completed`.'
+          example: in-progress completed absent
+          type: string
+        RecordingStatusCallbackMethod:
+          description: HTTP request type used for `RecordingStatusCallback`. Defaults
+            to `POST`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        RecordingTimeout:
+          default: 0
+          description: The number of seconds that Telnyx will wait for the recording
+            to be stopped if silence is detected. The timer only starts when the speech
+            is detected. The minimum value is 0. The default value is 0 (infinite).
+          example: 5
+          type: integer
+        RecordingTrack:
+          description: The audio track to record for the call. The default is `both`.
+          enum:
+          - inbound
+          - outbound
+          - both
+          example: inbound
+          type: string
+        SendRecordingUrl:
+          $ref: '#/components/schemas/SendRecordingUrl'
+        SipAuthPassword:
+          description: The password to use for SIP authentication.
+          example: '1234'
+          type: string
+        SipAuthUsername:
+          description: The username to use for SIP authentication.
+          example: user
+          type: string
+        SipRegion:
+          default: US
+          description: Defines the SIP region to be used for the call.
+          enum:
+          - US
+          - Europe
+          - Canada
+          - Australia
+          - Middle East
+          example: Canada
+          type: string
+        StatusCallback:
+          description: URL destination for Telnyx to send status callback events to
+            for the call.
+          example: https://www.example.com/callback
+          type: string
+        StatusCallbackEvent:
+          default: completed
+          description: 'The call events for which Telnyx should send a webhook. Multiple
+            events can be defined when separated by a space. Valid values: initiated,
+            ringing, answered, completed.'
+          example: initiated answered
+          type: string
+        StatusCallbackMethod:
+          default: POST
+          description: HTTP request type used for `StatusCallback`.
+          enum:
+          - GET
+          - POST
+          example: GET
+          type: string
+        StatusCallbacks:
+          description: An array of URL destinations for Telnyx to send status callback
+            events to for the call.
+          example:
+          - https://www.example.com/callback1
+          - https://www.example.com/callback2
+          items:
+            type: string
+          type: array
+        TimeLimit:
+          default: 14400
+          description: The maximum duration of the call in seconds. The minimum value
+            is 30 and the maximum value is 14400 (4 hours). Default is 14400 seconds.
+          example: 3600
+          maximum: 14400
+          minimum: 30
+          type: integer
+        Timeout:
+          default: 30
+          description: The number of seconds to wait for the called party to answer
+            the call before the call is canceled. The minimum value is 5 and the maximum
+            value is 120. Default is 30 seconds.
+          example: 60
+          maximum: 120
+          minimum: 5
+          type: integer
+          x-stainless-param: timeout_seconds
+        To:
+          description: The phone number of the called party. Phone numbers are formatted
+            with a `+` and country code.
+          example: '+16175551212'
+          type: string
+        Trim:
+          description: Whether to trim any leading and trailing silence from the recording.
+            Defaults to `trim-silence`.
+          enum:
+          - trim-silence
+          - do-not-trim
+          example: trim-silence
+          type: string
+      required:
+      - From
+      - To
+      - AIAssistantId
+      title: Initiate AI Call Request
+      type: object
+    InitiateAICallResult:
+      example:
+        call_sid: v3:example-call-sid
+        from: '+13120001234'
+        status: queued
+        to: '+13121230000'
+      properties:
+        call_sid:
+          example: v3:example-call-sid
+          type: string
+        from:
+          example: '+13120001234'
+          type: string
+        status:
+          example: queued
+          type: string
+        to:
+          example: '+13120000000'
+          type: string
+      title: Initiate AI Call Result
+      type: object
     InitiateCallRequest:
       example:
         ApplicationSid: example-app-sid
@@ -32130,6 +32473,25 @@ components:
         StatusCallback: https://www.example.com/statuscallback-listener
         To: '+13121230000'
         Url: https://www.example.com/texml.xml
+      oneOf:
+      - properties:
+          Texml:
+            not: {}
+        required:
+        - Url
+        title: With URL
+      - properties:
+          Url:
+            not: {}
+        required:
+        - Texml
+        title: With TeXML
+      - properties:
+          Texml:
+            not: {}
+          Url:
+            not: {}
+        title: Application Default
       properties:
         ApplicationSid:
           description: The ID of the TeXML Application.
@@ -43765,6 +44127,140 @@ components:
       additionalProperties: true
       description: High-level metrics summary for a messaging profile.
       type: object
+    PronunciationDictAliasItem:
+      additionalProperties: false
+      description: An alias pronunciation item. When the `text` value is found in
+        input, it is replaced with the `alias` before speech synthesis.
+      properties:
+        alias:
+          description: The replacement text that will be spoken instead.
+          example: tel-nicks
+          maxLength: 500
+          minLength: 1
+          type: string
+        text:
+          description: The text to match in the input. Case-insensitive matching is
+            used during synthesis.
+          example: Telnyx
+          maxLength: 200
+          minLength: 1
+          type: string
+        type:
+          description: The item type.
+          enum:
+          - alias
+          example: alias
+          type: string
+      required:
+      - text
+      - type
+      - alias
+      type: object
+    PronunciationDictData:
+      description: A pronunciation dictionary record.
+      properties:
+        created_at:
+          description: ISO 8601 timestamp with millisecond precision.
+          example: '2026-03-25T12:00:00.000Z'
+          format: date-time
+          type: string
+        id:
+          description: Unique identifier for the pronunciation dictionary.
+          example: c215a3e1-be41-4701-97e8-1d3c22f9a5b7
+          format: uuid
+          type: string
+        items:
+          description: List of pronunciation items (alias or phoneme type).
+          items:
+            $ref: '#/components/schemas/PronunciationDictItem'
+          type: array
+        name:
+          description: Human-readable name for the dictionary. Must be unique within
+            the organization.
+          example: Brand Names
+          type: string
+        record_type:
+          description: Identifies the resource type.
+          enum:
+          - pronunciation_dict
+          example: pronunciation_dict
+          type: string
+        updated_at:
+          description: ISO 8601 timestamp with millisecond precision.
+          example: '2026-03-25T12:00:00.000Z'
+          format: date-time
+          type: string
+        version:
+          description: Auto-incrementing version number. Increases by 1 on each update.
+            Used for optimistic concurrency control and cache invalidation.
+          example: 1
+          type: integer
+      type: object
+    PronunciationDictItem:
+      description: A single pronunciation dictionary item. Use type 'alias' to replace
+        matched text with a spoken alias, or type 'phoneme' to specify exact pronunciation
+        using IPA notation.
+      discriminator:
+        mapping:
+          alias: '#/components/schemas/PronunciationDictAliasItem'
+          phoneme: '#/components/schemas/PronunciationDictPhonemeItem'
+        propertyName: type
+      oneOf:
+      - $ref: '#/components/schemas/PronunciationDictAliasItem'
+      - $ref: '#/components/schemas/PronunciationDictPhonemeItem'
+    PronunciationDictListResponse:
+      description: Paginated list of pronunciation dictionaries.
+      properties:
+        data:
+          description: Array of pronunciation dictionary objects.
+          items:
+            $ref: '#/components/schemas/PronunciationDictData'
+          type: array
+        meta:
+          $ref: '#/components/schemas/pronunciation-dicts_PaginationMeta'
+      type: object
+    PronunciationDictPhonemeItem:
+      additionalProperties: false
+      description: A phoneme pronunciation item. When the `text` value is found in
+        input, it is pronounced using the specified IPA phoneme notation.
+      properties:
+        alphabet:
+          description: The phonetic alphabet used for the phoneme notation.
+          enum:
+          - ipa
+          example: ipa
+          type: string
+        phoneme:
+          description: The phoneme notation representing the desired pronunciation.
+          example: "\u02C8t\u025Bl.n\u026Aks"
+          maxLength: 500
+          minLength: 1
+          type: string
+        text:
+          description: The text to match in the input. Case-insensitive matching is
+            used during synthesis.
+          example: Telnyx
+          maxLength: 200
+          minLength: 1
+          type: string
+        type:
+          description: The item type.
+          enum:
+          - phoneme
+          example: phoneme
+          type: string
+      required:
+      - text
+      - type
+      - phoneme
+      - alphabet
+      type: object
+    PronunciationDictResponse:
+      description: Response containing a single pronunciation dictionary.
+      properties:
+        data:
+          $ref: '#/components/schemas/PronunciationDictData'
+      type: object
     PublicInternetGateway:
       allOf:
       - $ref: '#/components/schemas/Record'
@@ -54190,6 +54686,15 @@ components:
             `G729`, `OPUS`, `VP8`, `H264`, `AMR-WB`.
           example: G722,PCMU,PCMA,G729,OPUS,VP8,H264
           type: string
+        privacy:
+          description: Indicates the privacy level to be used for the call. When set
+            to `id`, caller ID information (name and number) will be hidden from the
+            called party. When set to `none` or omitted, caller ID will be shown normally.
+          enum:
+          - id
+          - none
+          example: id
+          type: string
         record:
           description: Start recording automatically after an event. Disabled by default.
           enum:
@@ -56570,6 +57075,25 @@ components:
       required:
       - field_value
       - requirement_type_id
+      type: object
+    UpdatePronunciationDictRequest:
+      description: Request body for updating a pronunciation dictionary. At least
+        one field must be provided.
+      minProperties: 1
+      properties:
+        items:
+          description: Updated list of pronunciation items (alias or phoneme type).
+          items:
+            $ref: '#/components/schemas/PronunciationDictItem'
+          maxItems: 100
+          minItems: 1
+          type: array
+        name:
+          description: Updated dictionary name.
+          example: Updated Brand Names
+          maxLength: 255
+          minLength: 1
+          type: string
       type: object
     UpdateQueueRequest:
       example:
@@ -63636,6 +64160,34 @@ components:
       - event
       example: event
       type: string
+    pronunciation-dicts_ErrorResponse:
+      description: Standard Telnyx error response.
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/ErrorObject'
+          type: array
+      type: object
+    pronunciation-dicts_PaginationMeta:
+      description: Pagination metadata returned with list responses.
+      properties:
+        page_number:
+          description: Current page number (1-based).
+          example: 1
+          type: integer
+        page_size:
+          description: Number of results per page.
+          example: 20
+          type: integer
+        total_pages:
+          description: Total number of pages.
+          example: 1
+          type: integer
+        total_results:
+          description: Total number of results across all pages.
+          example: 3
+          type: integer
+      type: object
     push-notifications_Error:
       properties:
         code:
@@ -64235,6 +64787,27 @@ components:
             $ref: '#/components/schemas/voice-channels_Error'
           type: array
       type: object
+    voice-designs_ErrorObject:
+      description: A single error object.
+      properties:
+        code:
+          description: Telnyx-specific error code.
+          type: string
+        detail:
+          description: Detailed, human-readable explanation of the error.
+          type: string
+        source:
+          description: Reference to the source of the error.
+          properties:
+            pointer:
+              description: A JSON Pointer (RFC 6901) to the field that caused the
+                error.
+              type: string
+          type: object
+        title:
+          description: Short, human-readable summary of the error.
+          type: string
+      type: object
     voice-designs_ErrorResponse:
       description: Standard error response envelope.
       example:
@@ -64245,7 +64818,7 @@ components:
       properties:
         errors:
           items:
-            $ref: '#/components/schemas/ErrorObject'
+            $ref: '#/components/schemas/voice-designs_ErrorObject'
           type: array
       type: object
     voice-designs_PaginationMeta:
@@ -64537,6 +65110,10 @@ components:
       type: oauth2
     outbound-voice-profiles_bearerAuth:
       bearerFormat: JWT
+      scheme: bearer
+      type: http
+    pronunciation-dicts_bearerAuth:
+      description: Telnyx API v2 key. Obtain from https://portal.telnyx.com
       scheme: bearer
       type: http
     stored-payment-transactions_bearerAuth:
@@ -88865,6 +89442,246 @@ paths:
       tags:
       - Private Wireless Gateways
       x-latency-category: responsive
+  /pronunciation_dicts:
+    get:
+      description: List all pronunciation dictionaries for the authenticated organization.
+        Results are paginated using offset-based pagination.
+      operationId: ListPronunciationDicts
+      parameters:
+      - description: Page number (1-based). Defaults to 1.
+        in: query
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of results per page. Defaults to 20, maximum 250.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PronunciationDictListResponse'
+          description: A paginated list of pronunciation dictionaries.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Invalid pagination parameters.
+        '401':
+          description: Unauthorized. Invalid or missing API key.
+      summary: List pronunciation dictionaries
+      tags:
+      - Pronunciation Dictionaries
+      x-latency-category: interactive
+    post:
+      description: 'Create a new pronunciation dictionary for the authenticated organization.
+        Each dictionary contains a list of items that control how specific words are
+        spoken. Items can be alias type (text replacement) or phoneme type (IPA pronunciation
+        notation).
+
+
+        As an alternative to providing items directly as JSON, you can upload a dictionary
+        file (PLS/XML or plain text format, max 1MB) using multipart/form-data. PLS
+        files use the standard W3C Pronunciation Lexicon Specification XML format.
+        Text files use a line-based format: `word=alias` for aliases, `word:/phoneme/`
+        for IPA phonemes.
+
+
+        Limits:
+
+        - Maximum 50 dictionaries per organization
+
+        - Maximum 100 items per dictionary
+
+        - Text: max 200 characters
+
+        - Alias/phoneme value: max 500 characters
+
+        - File upload: max 1MB (1,048,576 bytes)'
+      operationId: CreatePronunciationDict
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePronunciationDictRequest'
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  description: 'Dictionary file to upload. Supported formats: PLS/XML
+                    (.pls, .xml) and plain text (.txt). Max size: 1MB (1,048,576 bytes).'
+                  format: binary
+                  type: string
+                name:
+                  description: Human-readable name. Must be unique within the organization.
+                  example: Brand Names
+                  maxLength: 255
+                  minLength: 1
+                  type: string
+              required:
+              - name
+              - file
+              type: object
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PronunciationDictResponse'
+          description: Pronunciation dictionary created successfully.
+        '401':
+          description: Unauthorized. Invalid or missing API key.
+        '422':
+          content:
+            application/json:
+              examples:
+                duplicate_name:
+                  summary: Duplicate dictionary name
+                  value:
+                    errors:
+                    - code: '90202'
+                      detail: organization_id, name a dictionary with this name already
+                        exists
+                      source:
+                        pointer: /organization_id, name
+                      title: Validation failed
+                limit_exceeded:
+                  summary: Organization limit exceeded
+                  value:
+                    errors:
+                    - code: '90203'
+                      detail: Maximum number of pronunciation dictionaries (50) reached
+                      source:
+                        pointer: /
+                      title: Limit exceeded
+                validation_error:
+                  summary: Validation failed
+                  value:
+                    errors:
+                    - code: '90202'
+                      detail: items must have at least one item
+                      source:
+                        pointer: /items
+                      title: Validation failed
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Validation error or organization limit exceeded.
+      summary: Create a pronunciation dictionary
+      tags:
+      - Pronunciation Dictionaries
+      x-latency-category: interactive
+  /pronunciation_dicts/{id}:
+    delete:
+      description: Permanently delete a pronunciation dictionary.
+      operationId: DeletePronunciationDict
+      parameters:
+      - $ref: '#/components/parameters/pronunciation_dict_id'
+      responses:
+        '204':
+          description: Dictionary deleted successfully. No content returned.
+        '401':
+          description: Unauthorized. Invalid or missing API key.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Pronunciation dictionary not found.
+      summary: Delete a pronunciation dictionary
+      tags:
+      - Pronunciation Dictionaries
+      x-latency-category: interactive
+    get:
+      description: Retrieve a single pronunciation dictionary by ID.
+      operationId: GetPronunciationDict
+      parameters:
+      - $ref: '#/components/parameters/pronunciation_dict_id'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PronunciationDictResponse'
+          description: The requested pronunciation dictionary.
+        '401':
+          description: Unauthorized. Invalid or missing API key.
+        '404':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '90201'
+                  detail: The requested pronunciation dictionary does not exist
+                  title: Pronunciation dictionary not found
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Pronunciation dictionary not found.
+      summary: Get a pronunciation dictionary
+      tags:
+      - Pronunciation Dictionaries
+      x-latency-category: interactive
+    patch:
+      description: "Update the name and/or items of an existing pronunciation dictionary.\
+        \ Uses optimistic locking \u2014 if the dictionary was modified concurrently,\
+        \ the request returns 409 Conflict."
+      operationId: UpdatePronunciationDict
+      parameters:
+      - $ref: '#/components/parameters/pronunciation_dict_id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePronunciationDictRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PronunciationDictResponse'
+          description: Pronunciation dictionary updated successfully.
+        '401':
+          description: Unauthorized. Invalid or missing API key.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Pronunciation dictionary not found.
+        '409':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '90200'
+                  detail: Dictionary was modified concurrently, please retry
+                  title: Pronunciation dictionary error
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Conflict. The dictionary was modified concurrently. Re-fetch
+            and retry.
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pronunciation-dicts_ErrorResponse'
+          description: Validation error.
+      summary: Update a pronunciation dictionary
+      tags:
+      - Pronunciation Dictionaries
+      x-latency-category: interactive
   /public_internet_gateways:
     get:
       description: List all Public Internet Gateways.
@@ -94661,6 +95478,39 @@ paths:
       - TeXML REST Commands
       x-group-parameters: 'true'
       x-latency-category: responsive
+  /texml/ai_calls/{connection_id}:
+    post:
+      description: Initiate an outbound AI call with warm-up support. Validates parameters,
+        builds an internal TeXML with an AI Assistant configuration, encodes instructions
+        into client state, and calls the dial API. The Twiml, Texml, and Url parameters
+        are not allowed and will result in a 422 error.
+      operationId: InitiateTexmlAICall
+      parameters:
+      - description: The ID of the TeXML connection to use for the call.
+        in: path
+        name: connection_id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateAICallRequest'
+        description: Initiate AI Call request object
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InitiateAICallResponse'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedResponse'
+        '422':
+          $ref: '#/components/responses/call-scripting_UnprocessableEntityResponse'
+      summary: Initiate an outbound AI call
+      tags:
+      - TeXML REST Commands
+      x-group-parameters: 'true'
+      x-latency-category: responsive
   /texml/secrets:
     post:
       description: Create a TeXML secret which can be later used as a Dynamic Parameter
@@ -98498,51 +99348,6 @@ paths:
       tags:
       - Wireless Blocklists
       x-latency-category: responsive
-    patch:
-      description: Update a Wireless Blocklist.
-      operationId: UpdateWirelessBlocklist
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                name:
-                  description: The name of the Wireless Blocklist.
-                  example: My Wireless Blocklist
-                  type: string
-                type:
-                  description: The type of wireless blocklist.
-                  enum:
-                  - country
-                  - mcc
-                  - plmn
-                  example: country
-                  type: string
-                values:
-                  description: Values to block. The values here depend on the `type`
-                    of Wireless Blocklist.
-                  example:
-                  - CA
-                  - US
-                  items:
-                    anyOf:
-                    - $ref: '#/components/schemas/CountryCode'
-                    - $ref: '#/components/schemas/MobileCountryCode'
-                    - $ref: '#/components/schemas/PLMNCode'
-                  type: array
-              type: object
-        required: true
-      responses:
-        '202':
-          $ref: '#/components/responses/UpdateWirelessBlocklistResponse'
-        '422':
-          $ref: '#/components/responses/wireless_UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/wireless_GenericErrorResponse'
-      summary: Update a Wireless Blocklist
-      tags:
-      - Wireless Blocklists
-      x-latency-category: responsive
     post:
       description: Create a Wireless Blocklist to prevent SIMs from connecting to
         certain networks.
@@ -98623,6 +99428,45 @@ paths:
         default:
           $ref: '#/components/responses/wireless_GenericErrorResponse'
       summary: Get a Wireless Blocklist
+      tags:
+      - Wireless Blocklists
+      x-latency-category: responsive
+    patch:
+      description: Update a Wireless Blocklist.
+      operationId: UpdateWirelessBlocklist
+      parameters:
+      - $ref: '#/components/parameters/WirelessBlocklistId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                name:
+                  description: The name of the Wireless Blocklist.
+                  example: My Wireless Blocklist
+                  type: string
+                values:
+                  description: Values to block. The values here depend on the `type`
+                    of Wireless Blocklist.
+                  example:
+                  - CA
+                  - US
+                  items:
+                    anyOf:
+                    - $ref: '#/components/schemas/CountryCode'
+                    - $ref: '#/components/schemas/MobileCountryCode'
+                    - $ref: '#/components/schemas/PLMNCode'
+                  type: array
+              type: object
+        required: true
+      responses:
+        '202':
+          $ref: '#/components/responses/UpdateWirelessBlocklistResponse'
+        '422':
+          $ref: '#/components/responses/wireless_UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/wireless_GenericErrorResponse'
+      summary: Update a Wireless Blocklist
       tags:
       - Wireless Blocklists
       x-latency-category: responsive
@@ -98826,6 +99670,10 @@ tags:
   name: Programmable Fax Applications
 - description: Programmable fax command operations
   name: Programmable Fax Commands
+- description: Manage pronunciation dictionaries for text-to-speech synthesis. Dictionaries
+    contain alias items (text replacement) and phoneme items (IPA pronunciation notation)
+    that control how specific words are spoken.
+  name: Pronunciation Dictionaries
 - description: Public Internet Gateway operations
   name: Public Internet Gateways
 - description: Mobile push credential management
