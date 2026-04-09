@@ -9308,22 +9308,7 @@ components:
     AIAssistantStartRequest:
       properties:
         assistant:
-          description: AI Assistant configuration
-          properties:
-            id:
-              description: The identifier of the AI assistant to use
-              type: string
-            instructions:
-              description: The system instructions that the voice assistant uses during
-                the start assistant command. This will overwrite the instructions
-                set in the assistant configuration.
-              example: You are a friendly voice assistant.
-              type: string
-            openai_api_key_ref:
-              description: Reference to the OpenAI API key. Required only when using
-                OpenAI models
-              type: string
-          type: object
+          $ref: '#/components/schemas/CallAssistantRequest'
         client_state:
           description: Use this field to add state to every subsequent webhook. It
             must be a valid Base-64 encoded string.
@@ -10056,12 +10041,20 @@ components:
       type: string
     AnswerRequest:
       example:
+        assistant:
+          greeting: Hi, I'm your assistant. How can I help?
+          id: asst_123
+          tools:
+          - hangup: {}
+            type: hangup
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
         send_silence_when_idle: true
         webhook_url: https://www.example.com/server-b/
         webhook_url_method: POST
       properties:
+        assistant:
+          $ref: '#/components/schemas/CallAssistantRequest'
         billing_group_id:
           description: Use this field to set the Billing Group ID for the call. Must
             be a valid and existing Billing Group ID.
@@ -13295,6 +13288,112 @@ components:
           $ref: '#/components/schemas/CallAnswered'
       title: Call Answered Event
       type: object
+    CallAssistantRequest:
+      description: "AI Assistant configuration. All fields except `id` are optional\
+        \ \u2014 the assistant's stored configuration will be used as fallback for\
+        \ any omitted fields."
+      properties:
+        dynamic_variables:
+          additionalProperties:
+            oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+          description: Map of dynamic variables and their default values. Dynamic
+            variables can be referenced in instructions, greeting, and tool definitions
+            using the `{{variable_name}}` syntax. Call-control-agent automatically
+            merges in `telnyx_call_*` variables (telnyx_call_to, telnyx_call_from,
+            telnyx_conversation_channel, telnyx_agent_target, telnyx_end_user_target,
+            telnyx_call_caller_id_name) and custom header variables.
+          example:
+            account_id: ACC-12345
+            customer_name: John
+          type: object
+        external_llm:
+          description: External LLM configuration for bringing your own LLM endpoint.
+          properties: {}
+          type: object
+        fallback_config:
+          description: Fallback LLM configuration used when the primary LLM provider
+            is unavailable.
+          properties: {}
+          type: object
+        greeting:
+          description: Initial greeting text spoken when the assistant starts. Can
+            be plain text for any voice or SSML for `AWS.Polly.<voice_id>` voices.
+            There is a 3,000 character limit.
+          maxLength: 3000
+          type: string
+        id:
+          description: The identifier of the AI assistant to use.
+          type: string
+        instructions:
+          description: System instructions for the voice assistant. Can be templated
+            with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
+            This will overwrite the instructions set in the assistant configuration.
+          example: You are a friendly voice assistant.
+          type: string
+        llm_api_key_ref:
+          description: Integration secret identifier for the LLM provider API key.
+            Use this field to reference an [integration secret](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)
+            containing your LLM provider API key. Supports any LLM provider (OpenAI,
+            Anthropic, etc.).
+          example: my_llm_api_key
+          type: string
+        mcp_servers:
+          description: MCP (Model Context Protocol) server configurations for extending
+            the assistant's capabilities with external tools and data sources.
+          items:
+            properties: {}
+            type: object
+          type: array
+        model:
+          description: LLM model override for this call. If omitted, the assistant's
+            configured model is used.
+          example: gpt-4o
+          type: string
+        name:
+          description: Assistant name override for this call.
+          type: string
+        observability_settings:
+          description: Observability configuration for the assistant session, including
+            Langfuse integration for tracing and monitoring.
+          properties: {}
+          type: object
+        openai_api_key_ref:
+          deprecated: true
+          description: "Deprecated \u2014 use `llm_api_key_ref` instead. Integration\
+            \ secret identifier for the OpenAI API key. This field is maintained for\
+            \ backward compatibility; `llm_api_key_ref` is the canonical field name\
+            \ and supports all LLM providers."
+          example: my_openai_api_key
+          type: string
+          x-sdk-deprecation-message: Use llm_api_key_ref instead
+        tools:
+          description: Inline tool definitions available to the assistant (webhook,
+            retrieval, transfer, hangup, etc.). Overrides the assistant's stored tools
+            if provided.
+          items:
+            discriminator:
+              mapping:
+                book_appointment: '#/components/schemas/BookAppointmentTool'
+                check_availability: '#/components/schemas/CheckAvailabilityTool'
+                hangup: '#/components/schemas/HangupTool'
+                retrieval: '#/components/schemas/CallControlRetrievalTool'
+                transfer: '#/components/schemas/TransferTool'
+                webhook: '#/components/schemas/WebhookTool'
+              propertyName: type
+            oneOf:
+            - $ref: '#/components/schemas/BookAppointmentTool'
+            - $ref: '#/components/schemas/CheckAvailabilityTool'
+            - $ref: '#/components/schemas/WebhookTool'
+            - $ref: '#/components/schemas/HangupTool'
+            - $ref: '#/components/schemas/TransferTool'
+            - $ref: '#/components/schemas/CallControlRetrievalTool'
+          type: array
+      required:
+      - id
+      type: object
     CallBridged:
       example:
         event_type: call.bridged
@@ -16060,6 +16159,8 @@ components:
               format: int32
               type: integer
           type: object
+        assistant:
+          $ref: '#/components/schemas/CallAssistantRequest'
         audio_url:
           description: The URL of a file to be played back to the callee when the
             call is answered. The URL can point to either a WAV or MP3 file. media_name
@@ -35649,6 +35750,100 @@ components:
       - provider_auth
       - bucket_name
       type: object
+    MinimaxClone:
+      description: Upload-based voice clone using the Minimax provider.
+      properties:
+        audio_file:
+          description: "Audio file to clone the voice from. Supported formats: WAV,\
+            \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
+            \ clear, uninterrupted speech. Maximum size: 20MB."
+          format: binary
+          type: string
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        label:
+          description: Optional custom label describing the voice style.
+          type: string
+        language:
+          description: ISO 639-1 language code from the Minimax language set.
+          pattern: ^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$
+          type: string
+        model_id:
+          description: "TTS model identifier. Nullable \u2014 defaults to speech-2.8-turbo."
+          enum:
+          - speech-2.8-turbo
+          - null
+          type:
+          - string
+          - 'null'
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          type: string
+        provider:
+          description: Voice synthesis provider. Must be `minimax`.
+          enum:
+          - minimax
+          - Minimax
+          type: string
+        ref_text:
+          description: Optional transcript of the audio file. Providing this improves
+            clone quality.
+          type: string
+      required:
+      - audio_file
+      - name
+      - language
+      - gender
+      - provider
+      type: object
+    MinimaxDesignClone:
+      description: Create a voice clone from a voice design using the Minimax provider.
+      example:
+        gender: male
+        language: en
+        name: clone-narrator
+        provider: minimax
+        voice_design_id: 550e8400-e29b-41d4-a716-446655440000
+      properties:
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        language:
+          description: ISO 639-1 language code for the clone. Supports the Minimax
+            language set.
+          type: string
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          minLength: 1
+          type: string
+        provider:
+          description: Voice synthesis provider. Must be `minimax`.
+          enum:
+          - minimax
+          - Minimax
+          type: string
+        voice_design_id:
+          description: UUID of the source voice design to clone.
+          format: uuid
+          type: string
+      required:
+      - name
+      - voice_design_id
+      - language
+      - gender
+      - provider
+      type: object
     MinimaxProviderParams:
       description: Minimax provider-specific parameters.
       properties:
@@ -52125,6 +52320,48 @@ components:
       - web_chat
       title: TelnyxConversationChannel
       type: string
+    TelnyxDesignClone:
+      description: Create a voice clone from a voice design using the Telnyx provider.
+      example:
+        gender: male
+        language: en
+        name: clone-narrator
+        provider: telnyx
+        voice_design_id: 550e8400-e29b-41d4-a716-446655440000
+      properties:
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        language:
+          description: ISO 639-1 language code for the clone. Supports the combined
+            Telnyx language set.
+          type: string
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          minLength: 1
+          type: string
+        provider:
+          default: telnyx
+          description: Voice synthesis provider. Defaults to `telnyx`.
+          enum:
+          - telnyx
+          - Telnyx
+          type: string
+        voice_design_id:
+          description: UUID of the source voice design to clone.
+          format: uuid
+          type: string
+      required:
+      - name
+      - voice_design_id
+      - language
+      - gender
+      type: object
     TelnyxDownstreamCampaign:
       description: Campaign is generated by the 10DLC registry once the corresponding
         campaign request is approved. Each campaign is assigned a unique identifier
@@ -52418,6 +52655,59 @@ components:
           minimum: 0.0
           type: number
       type: object
+    TelnyxQwen3TTSClone:
+      description: Upload-based voice clone using the Telnyx Qwen3TTS model (default).
+      properties:
+        audio_file:
+          description: "Audio file to clone the voice from. Supported formats: WAV,\
+            \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
+            \ clear, uninterrupted speech. Maximum size: 5MB."
+          format: binary
+          type: string
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        label:
+          description: Optional custom label describing the voice style.
+          type: string
+        language:
+          description: ISO 639-1 language code from the Qwen language set.
+          pattern: ^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$
+          type: string
+        model_id:
+          description: "TTS model identifier. Nullable/omittable \u2014 defaults to\
+            \ Qwen3TTS."
+          enum:
+          - Qwen3TTS
+          - null
+          type:
+          - string
+          - 'null'
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          type: string
+        provider:
+          description: Voice synthesis provider. Must be `telnyx`.
+          enum:
+          - telnyx
+          - Telnyx
+          type: string
+        ref_text:
+          description: Optional transcript of the audio file. Providing this improves
+            clone quality.
+          type: string
+      required:
+      - audio_file
+      - name
+      - language
+      - gender
+      - provider
+      type: object
     TelnyxTranscriptionLanguage:
       default: en
       description: Language to use for speech recognition
@@ -52525,6 +52815,56 @@ components:
       example: en
       title: Telnyx transcription engine list of languages
       type: string
+    TelnyxUltraClone:
+      description: Upload-based voice clone using the Telnyx Ultra model.
+      properties:
+        audio_file:
+          description: "Audio file to clone the voice from. Supported formats: WAV,\
+            \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
+            \ clear, uninterrupted speech. Maximum size: 5MB."
+          format: binary
+          type: string
+        gender:
+          description: Gender of the voice clone.
+          enum:
+          - male
+          - female
+          - neutral
+          type: string
+        label:
+          description: Optional custom label describing the voice style.
+          type: string
+        language:
+          description: ISO 639-1 language code from the Ultra language set (40 languages).
+          pattern: ^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$
+          type: string
+        model_id:
+          description: TTS model identifier. Must be `Ultra`.
+          enum:
+          - Ultra
+          type: string
+        name:
+          description: Name for the voice clone.
+          maxLength: 255
+          type: string
+        provider:
+          description: Voice synthesis provider. Must be `telnyx`.
+          enum:
+          - telnyx
+          - Telnyx
+          type: string
+        ref_text:
+          description: Optional transcript of the audio file. Providing this improves
+            clone quality.
+          type: string
+      required:
+      - audio_file
+      - name
+      - language
+      - gender
+      - model_id
+      - provider
+      type: object
     TelnyxVoiceSettings:
       properties:
         type:
@@ -59609,6 +59949,13 @@ components:
           type:
           - string
           - 'null'
+        model_id:
+          description: TTS model identifier for the voice clone.
+          enum:
+          - Qwen3TTS
+          - Ultra
+          - speech-2.8-turbo
+          type: string
         name:
           description: Name of the voice clone.
           type: string
@@ -59627,8 +59974,7 @@ components:
           type: array
         provider_voice_id:
           description: Provider-specific voice identifier used for TTS synthesis.
-            For Telnyx clones this equals the clone ID; for Minimax it is the Minimax-assigned
-            voice ID.
+            May differ from the clone UUID depending on the provider and model.
           type:
           - string
           - 'null'
@@ -59649,6 +59995,16 @@ components:
           type:
           - integer
           - 'null'
+        status:
+          description: Clone status. pending for Ultra clones while on-prem import
+            is in progress, active once ready, failed if verification timed out, expired
+            if not kept alive.
+          enum:
+          - active
+          - pending
+          - failed
+          - expired
+          type: string
         updated_at:
           description: Timestamp when the voice clone was last updated.
           format: date-time
@@ -59668,47 +60024,16 @@ components:
     VoiceCloneRequest:
       description: Request body for creating a voice clone from an existing voice
         design.
-      example:
-        gender: male
-        language: en
-        name: clone-narrator
-        provider: telnyx
-        voice_design_id: 550e8400-e29b-41d4-a716-446655440000
-      properties:
-        gender:
-          description: Gender of the voice clone.
-          enum:
-          - male
-          - female
-          - neutral
-          type: string
-        language:
-          description: ISO 639-1 language code for the clone (e.g. `en`, `fr`, `de`).
-          type: string
-        name:
-          description: Name for the voice clone.
-          maxLength: 255
-          minLength: 1
-          type: string
-        provider:
-          default: telnyx
-          description: Voice synthesis provider. Case-insensitive. Defaults to `telnyx`.
-          enum:
-          - telnyx
-          - minimax
-          - Telnyx
-          - Minimax
-          type: string
-        voice_design_id:
-          description: UUID of the source voice design to clone.
-          format: uuid
-          type: string
-      required:
-      - name
-      - voice_design_id
-      - language
-      - gender
-      type: object
+      discriminator:
+        mapping:
+          Minimax: '#/components/schemas/MinimaxDesignClone'
+          Telnyx: '#/components/schemas/TelnyxDesignClone'
+          minimax: '#/components/schemas/MinimaxDesignClone'
+          telnyx: '#/components/schemas/TelnyxDesignClone'
+        propertyName: provider
+      oneOf:
+      - $ref: '#/components/schemas/TelnyxDesignClone'
+      - $ref: '#/components/schemas/MinimaxDesignClone'
     VoiceCloneResponse:
       description: Response envelope for a single voice clone.
       example:
@@ -59718,6 +60043,7 @@ components:
           id: 660f9511-f3ac-52e5-b827-557766551111
           label: Speak in a warm, friendly tone
           language: en
+          model_id: Qwen3TTS
           name: clone-narrator
           provider: Telnyx
           provider_supported_models:
@@ -59726,6 +60052,7 @@ components:
           record_type: voice_clone
           source_voice_design_id: 550e8400-e29b-41d4-a716-446655440000
           source_voice_design_version: 1
+          status: active
           updated_at: '2024-01-01T00:00:00Z'
       properties:
         data:
@@ -59755,54 +60082,12 @@ components:
       - name
       type: object
     VoiceCloneUploadRequest:
-      description: Multipart form data for creating a voice clone from a direct audio
-        upload.
-      properties:
-        audio_file:
-          description: "Audio file to clone the voice from. Supported formats: WAV,\
-            \ MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of\
-            \ clear, uninterrupted speech. Maximum size: 5MB for Telnyx, 20MB for\
-            \ Minimax."
-          format: binary
-          type: string
-        gender:
-          description: Gender of the voice clone.
-          enum:
-          - male
-          - female
-          - neutral
-          type: string
-        label:
-          description: Optional custom label describing the voice style. If omitted,
-            falls back to the source design's prompt text.
-          type: string
-        language:
-          description: ISO 639-1 language code (e.g. `en`, `fr`) or `auto` for automatic
-            detection.
-          pattern: ^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$
-          type: string
-        name:
-          description: Name for the voice clone.
-          maxLength: 255
-          type: string
-        provider:
-          default: telnyx
-          description: Voice synthesis provider. Case-insensitive. Defaults to `telnyx`.
-          enum:
-          - telnyx
-          - minimax
-          - Telnyx
-          - Minimax
-          type: string
-        ref_text:
-          description: Optional transcript of the audio file. Providing this improves
-            clone quality.
-          type: string
-      required:
-      - audio_file
-      - language
-      - name
-      type: object
+      description: 'Multipart form data for creating a voice clone from a direct audio
+        upload. Maximum file size: 5MB for Telnyx, 20MB for Minimax.'
+      oneOf:
+      - $ref: '#/components/schemas/TelnyxQwen3TTSClone'
+      - $ref: '#/components/schemas/TelnyxUltraClone'
+      - $ref: '#/components/schemas/MinimaxClone'
     VoiceConfig:
       default: Telnyx.KokoroTTS.af
       description: "The voice to be used by the voice assistant. Currently we support\
@@ -98354,7 +98639,7 @@ paths:
     post:
       description: "Creates a new voice clone by uploading an audio file directly.\
         \ Supported formats: WAV, MP3, FLAC, OGG, M4A. For best results, provide 5\u2013\
-        10 seconds of clear speech. Maximum file size: 2MB."
+        10 seconds of clear speech. Maximum file size: 5MB for Telnyx, 20MB for Minimax."
       operationId: createVoiceCloneFromUpload
       requestBody:
         content:
@@ -98369,6 +98654,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/VoiceCloneResponse'
           description: Voice clone created successfully from the uploaded audio.
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceCloneResponse'
+          description: "Voice clone accepted \u2014 on-prem import in progress (Ultra\
+            \ model). Poll GET /voice_clones/{id} to check status."
         '400':
           content:
             application/json:
