@@ -16058,8 +16058,18 @@ components:
         time_limit_secs: 60
         timeout_secs: 60
         to: +18005550100 or sip:username@sip.telnyx.com
+        webhook_retries_policies:
+          call.hangup:
+            retries_ms:
+            - 1000
+            - 2000
+            - 5000
         webhook_url: https://www.example.com/server-b/
         webhook_url_method: POST
+        webhook_urls:
+          call.bridge: https://www.example.com/webhooks/bridge
+          call.hangup: https://www.example.com/webhooks/hangup
+        webhook_urls_method: POST
       properties:
         answering_machine_detection:
           default: disabled
@@ -16589,6 +16599,27 @@ components:
           type: boolean
         transcription_config:
           $ref: '#/components/schemas/TranscriptionStartRequest'
+        webhook_retries_policies:
+          additionalProperties:
+            properties:
+              retries_ms:
+                description: Array of delays in milliseconds between retry attempts.
+                  Total sum cannot exceed 60000ms.
+                items:
+                  type: integer
+                maxItems: 5
+                type: array
+            type: object
+          description: A map of event types to retry policies. Each retry policy contains
+            an array of `retries_ms` specifying the delays between retry attempts
+            in milliseconds. Maximum 5 retries, total delay cannot exceed 60 seconds.
+          example:
+            call.hangup:
+              retries_ms:
+              - 1000
+              - 2000
+              - 5000
+          type: object
         webhook_url:
           description: Use this field to override the URL for which Telnyx will send
             subsequent webhooks to for this call.
@@ -16601,6 +16632,26 @@ components:
           - POST
           - GET
           example: GET
+          type: string
+        webhook_urls:
+          additionalProperties:
+            format: uri
+            type: string
+          description: A map of event types to webhook URLs. When an event of the
+            specified type occurs, the webhook URL associated with that event type
+            will be called instead of the default webhook URL. Events not mapped here
+            will use the default webhook URL.
+          example:
+            call.bridge: https://www.example.com/webhooks/bridge
+            call.hangup: https://www.example.com/webhooks/hangup
+          type: object
+        webhook_urls_method:
+          default: POST
+          description: HTTP request method to invoke `webhook_urls`.
+          enum:
+          - POST
+          - GET
+          example: POST
           type: string
       required:
       - connection_id
@@ -48456,18 +48507,8 @@ components:
       type: object
     SessionAnalysisResponse:
       properties:
-        completed_at:
-          description: When the session completed.
-          format: date-time
-          type:
-          - string
-          - 'null'
         cost:
           $ref: '#/components/schemas/CostSummary'
-        created_at:
-          description: When the session started.
-          format: date-time
-          type: string
         meta:
           $ref: '#/components/schemas/ResponseMeta'
         root:
@@ -48475,13 +48516,8 @@ components:
         session_id:
           description: Identifier for the analyzed session.
           type: string
-        status:
-          description: Analysis status (e.g. "completed").
-          type: string
       required:
       - session_id
-      - status
-      - created_at
       - cost
       - root
       - meta
@@ -61709,6 +61745,24 @@ components:
           type: string
         website:
           type: string
+      type: object
+    WhatsappProfilePhotoData:
+      properties:
+        phone_number_id:
+          description: Meta phone number ID
+          type: string
+        profile_photo_url:
+          description: URL of the business profile photo (served by Meta's CDN). May
+            be empty if no photo is set.
+          type: string
+        record_type:
+          example: whatsapp_phone_number_profile_photos
+          type: string
+      type: object
+    WhatsappProfilePhotoResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/WhatsappProfilePhotoData'
       type: object
     WhatsappReaction:
       properties:
@@ -92853,7 +92907,9 @@ paths:
           - record
           - none
           type: string
-      - description: ISO 8601 timestamp to narrow index selection for faster lookups.
+      - description: ISO 8601 timestamp or date to narrow index selection for faster
+          lookups. Accepts full datetime (e.g., 2026-03-17T10:00:00Z) or date-only
+          format (e.g., 2026-03-17).
         in: query
         name: date_time
         required: false
@@ -92865,11 +92921,9 @@ paths:
           content:
             application/json:
               example:
-                completed_at: '2025-01-12T10:05:00Z'
                 cost:
                   currency: USD
                   total: '0.056800'
-                created_at: '2025-01-12T10:00:00Z'
                 meta:
                   event_count: 3
                   products:
@@ -92891,7 +92945,6 @@ paths:
                   record: {}
                   relationship: null
                 session_id: call-123
-                status: completed
               schema:
                 $ref: '#/components/schemas/SessionAnalysisResponse'
           description: Session analysis result
@@ -97307,6 +97360,23 @@ paths:
         4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Delete Whatsapp profile photo
+      tags:
+      - Whatsapp Phone Numbers
+      x-latency-category: responsive
+    get:
+      operationId: GetWhatsappProfilePhoto
+      parameters:
+      - $ref: '#/components/parameters/WhatsappPhoneNumber'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsappProfilePhotoResponse'
+          description: Profile photo
+        4XX:
+          $ref: '#/components/responses/messaging_GenericErrorResponse'
+      summary: Get Whatsapp profile photo
       tags:
       - Whatsapp Phone Numbers
       x-latency-category: responsive
