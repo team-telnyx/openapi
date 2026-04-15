@@ -10049,6 +10049,10 @@ components:
             type: hangup
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
         command_id: 891510ac-f3e4-11e8-af5b-de00688a4901
+        deepfake_detection:
+          enabled: true
+          rtp_timeout: 30
+          timeout: 15
         send_silence_when_idle: true
         webhook_url: https://www.example.com/server-b/
         webhook_url_method: POST
@@ -10081,6 +10085,36 @@ components:
           items:
             $ref: '#/components/schemas/CustomSipHeader'
           type: array
+        deepfake_detection:
+          description: Enables deepfake detection on the call. When enabled, audio
+            from the remote party is streamed to a detection service that analyzes
+            whether the voice is AI-generated. Results are delivered via the `call.deepfake_detection.result`
+            webhook.
+          properties:
+            enabled:
+              default: false
+              description: Whether deepfake detection is enabled.
+              type: boolean
+            rtp_timeout:
+              default: 30
+              description: Maximum time in seconds to wait for RTP audio before timing
+                out. If no audio is received within this window, detection stops with
+                an error.
+              format: int32
+              maximum: 120
+              minimum: 5
+              type: integer
+            timeout:
+              default: 15
+              description: Maximum time in seconds to wait for a detection result
+                before timing out.
+              format: int32
+              maximum: 60
+              minimum: 5
+              type: integer
+          required:
+          - enabled
+          type: object
         preferred_codecs:
           description: The list of comma-separated codecs in a preferred order for
             the forked media to be received.
@@ -14071,6 +14105,197 @@ components:
           type: string
       title: Call Cost Part
       type: object
+    CallDeepfakeDetectionError:
+      example:
+        event_type: call.deepfake_detection.error
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          error_message: detection_timeout
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.deepfake_detection.error
+          example: call.deepfake_detection.error
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              format: uuid
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              format: uuid
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type:
+              - string
+              - 'null'
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            error_message:
+              description: The error that occurred. 'detection_timeout' = no DFD response
+                received, 'rtp_timeout' = no RTP audio received, 'dfd_connection_error'/'dfd_stream_error'
+                = service connectivity issues.
+              enum:
+              - detection_timeout
+              - rtp_timeout
+              - dfd_connection_error
+              - dfd_stream_error
+              type: string
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call Deepfake Detection Error
+      type: object
+    CallDeepfakeDetectionErrorEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallDeepfakeDetectionError'
+      title: Call Deepfake Detection Error Event
+      type: object
+    CallDeepfakeDetectionResult:
+      example:
+        event_type: call.deepfake_detection.result
+        id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+        occurred_at: '2018-02-02T22:25:27.521992Z'
+        payload:
+          call_control_id: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+          call_leg_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          call_session_id: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+          client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
+          connection_id: 7267xxxxxxxxxxxxxx
+          consistency: 94.5
+          result: fake
+          score: 0.87
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered.
+          enum:
+          - call.deepfake_detection.result
+          example: call.deepfake_detection.result
+          type: string
+        id:
+          description: Identifies the type of resource.
+          example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 datetime of when the event occurred.
+          example: '2018-02-02T22:25:27.521992Z'
+          format: date-time
+          type: string
+        payload:
+          properties:
+            call_control_id:
+              description: Call ID used to issue commands via Call Control API.
+              example: v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg
+              type: string
+            call_leg_id:
+              description: ID that is unique to the call and can be used to correlate
+                webhook events.
+              example: 428c31b6-7af4-4bcb-b7f5-5013ef9657c1
+              format: uuid
+              type: string
+            call_session_id:
+              description: ID that is unique to the call session and can be used to
+                correlate webhook events. Call session is a group of related call
+                legs that logically belong to the same phone call, e.g. an inbound
+                and outbound leg of a transferred call.
+              example: 428c31b6-abf3-3bc1-b7f4-5013ef9657c1
+              format: uuid
+              type: string
+            client_state:
+              description: State received from a command.
+              example: aGF2ZSBhIG5pY2UgZGF5ID1d
+              type:
+              - string
+              - 'null'
+            connection_id:
+              description: Call Control App ID (formerly Telnyx connection ID) used
+                in the call.
+              example: 7267xxxxxxxxxxxxxx
+              type: string
+            consistency:
+              description: Percentage (0-100) indicating how consistently the model
+                classified the audio across frames. High consistency (>90%) means
+                confident classification throughout; low consistency suggests mixed
+                signals. Null for silence_timeout.
+              format: float
+              maximum: 100
+              minimum: 0
+              type:
+              - number
+              - 'null'
+            result:
+              description: Detection outcome. 'real' = human voice, 'fake' = AI-generated
+                voice, 'silence_timeout' = no analyzable speech detected before timeout.
+              enum:
+              - real
+              - fake
+              - silence_timeout
+              type: string
+            score:
+              description: Probability that the audio is AI-generated, from 0.0 (likely
+                real) to 1.0 (likely deepfake). Based on the model's aggregated confidence
+                across analyzed audio frames. Null for silence_timeout.
+              format: float
+              type:
+              - number
+              - 'null'
+          type: object
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      title: Call Deepfake Detection Result
+      type: object
+    CallDeepfakeDetectionResultEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/CallDeepfakeDetectionResult'
+      title: Call Deepfake Detection Result Event
+      type: object
     CallDtmfReceived:
       example:
         event_type: call.dtmf.received
@@ -16038,6 +16263,10 @@ components:
           value: val_1
         - name: head_2
           value: val_2
+        deepfake_detection:
+          enabled: true
+          rtp_timeout: 30
+          timeout: 15
         dialogflow_config:
           analyze_sentiment: false
           partial_automated_agent_reply: false
@@ -16327,6 +16556,36 @@ components:
           items:
             $ref: '#/components/schemas/CustomSipHeader'
           type: array
+        deepfake_detection:
+          description: Enables deepfake detection on the call. When enabled, audio
+            from the remote party is streamed to a detection service that analyzes
+            whether the voice is AI-generated. Results are delivered via the `call.deepfake_detection.result`
+            webhook.
+          properties:
+            enabled:
+              default: false
+              description: Whether deepfake detection is enabled.
+              type: boolean
+            rtp_timeout:
+              default: 30
+              description: Maximum time in seconds to wait for RTP audio before timing
+                out. If no audio is received within this window, detection stops with
+                an error.
+              format: int32
+              maximum: 120
+              minimum: 5
+              type: integer
+            timeout:
+              default: 15
+              description: Maximum time in seconds to wait for a detection result
+                before timing out.
+              format: int32
+              maximum: 60
+              minimum: 5
+              type: integer
+          required:
+          - enabled
+          type: object
         dialogflow_config:
           $ref: '#/components/schemas/DialogflowConfig'
         enable_dialogflow:
@@ -73950,6 +74209,11 @@ paths:
         - `call.machine.premium.greeting.ended` if `answering_machine_detection=premium`
         was requested and a beep was detected
 
+        - `call.deepfake_detection.result` if `deepfake_detection` was enabled
+
+        - `call.deepfake_detection.error` if `deepfake_detection` was enabled and
+        an error occurred
+
         - `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url`
         was set
 
@@ -74119,6 +74383,11 @@ paths:
 
 
         - `call.answered`
+
+        - `call.deepfake_detection.result` if `deepfake_detection` was enabled
+
+        - `call.deepfake_detection.error` if `deepfake_detection` was enabled and
+        an error occurred
 
         - `streaming.started`, `streaming.stopped` or `streaming.failed` if `stream_url`
         was set
@@ -100515,6 +100784,94 @@ webhooks:
           description: The server must return an HTTP 200, otherwise we will reattempt
             delivery at the failover webhook URL.
       summary: Call Cost
+      tags:
+      - Callbacks
+  callDeepfakeDetectionError:
+    post:
+      description: '
+
+
+        This webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519)
+        that are compatible with Standard Webhooks specification for SDK generation.
+        Custom validation logic can map these to standard webhook-timestamp and webhook-signature
+        equivalents. See https://github.com/standard-webhooks/standard-webhooks for
+        details.'
+      operationId: CallDeepfakeDetectionError
+      parameters:
+      - description: Unix timestamp (seconds since epoch) of when the webhook was
+          sent - compatible with webhook-timestamp
+        in: header
+        name: telnyx-timestamp
+        required: true
+        schema:
+          description: Unix timestamp for replay attack prevention
+          format: int64
+          type: integer
+        x-webhook-equivalent: webhook-timestamp
+      - description: Base64 encoded Ed25519 signature for webhook verification - compatible
+          with webhook-signature
+        in: header
+        name: telnyx-signature-ed25519
+        required: true
+        schema:
+          description: Ed25519 signature of timestamp|payload for verification
+          type: string
+        x-webhook-equivalent: webhook-signature
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallDeepfakeDetectionErrorEvent'
+        required: true
+      responses:
+        '200':
+          description: The server must return an HTTP 200, otherwise we will reattempt
+            delivery at the failover webhook URL.
+      summary: Call Deepfake Detection Error
+      tags:
+      - Callbacks
+  callDeepfakeDetectionResult:
+    post:
+      description: '
+
+
+        This webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519)
+        that are compatible with Standard Webhooks specification for SDK generation.
+        Custom validation logic can map these to standard webhook-timestamp and webhook-signature
+        equivalents. See https://github.com/standard-webhooks/standard-webhooks for
+        details.'
+      operationId: CallDeepfakeDetectionResult
+      parameters:
+      - description: Unix timestamp (seconds since epoch) of when the webhook was
+          sent - compatible with webhook-timestamp
+        in: header
+        name: telnyx-timestamp
+        required: true
+        schema:
+          description: Unix timestamp for replay attack prevention
+          format: int64
+          type: integer
+        x-webhook-equivalent: webhook-timestamp
+      - description: Base64 encoded Ed25519 signature for webhook verification - compatible
+          with webhook-signature
+        in: header
+        name: telnyx-signature-ed25519
+        required: true
+        schema:
+          description: Ed25519 signature of timestamp|payload for verification
+          type: string
+        x-webhook-equivalent: webhook-signature
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallDeepfakeDetectionResultEvent'
+        required: true
+      responses:
+        '200':
+          description: The server must return an HTTP 200, otherwise we will reattempt
+            delivery at the failover webhook URL.
+      summary: Call Deepfake Detection Result
       tags:
       - Callbacks
   callDtmfReceived:
