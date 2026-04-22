@@ -31494,6 +31494,135 @@ components:
           - successful
           type: string
       type: object
+    HostedNumberOrder:
+      example:
+        event_type: messaging_hosted_numbers_orders.internal_transfer_approval_requested
+        id: bf6307bd-884d-4c1f-b6ea-c62b8c495d3c
+        occurred_at: '2026-04-20T18:10:02.574Z'
+        payload:
+          approval_deadline: 1714521600
+          decision: pending
+          numbers:
+          - status: pending
+            value: '+13125550001'
+          order_id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          order_status: pending
+          profile_id: d0b1dabe-efdb-4bc8-9dd3-11f0d8b5f5b3
+          user_id: b448f9cc-a842-4784-98e9-03c1a5872950
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered. Internal transfer events
+            are only emitted for orders where the numbers are already active on another
+            Telnyx account.
+          enum:
+          - messaging_hosted_numbers_orders.created
+          - messaging_hosted_numbers_orders.updated
+          - messaging_hosted_numbers_orders.deleted
+          - messaging_hosted_numbers_orders.internal_transfer_detected
+          - messaging_hosted_numbers_orders.internal_transfer_approval_requested
+          - messaging_hosted_numbers_orders.internal_transfer_approved
+          - messaging_hosted_numbers_orders.internal_transfer_rejected
+          - messaging_hosted_numbers_orders.internal_transfer_auto_approved
+          example: messaging_hosted_numbers_orders.created
+          type: string
+        id:
+          description: Unique identifier for the event.
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 formatted date indicating when the event was generated.
+          format: date-time
+          type: string
+        payload:
+          $ref: '#/components/schemas/HostedNumberOrderEventPayload'
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    HostedNumberOrderEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/HostedNumberOrder'
+      type: object
+    HostedNumberOrderEventPayload:
+      description: Payload delivered with every messaging_hosted_numbers_orders.*
+        event. `approval_deadline` and `decision` are meaningful only for `internal_transfer_*`
+        events.
+      properties:
+        approval_deadline:
+          description: Unix timestamp (seconds) by which the losing organization must
+            respond before auto-approval. Populated on internal-transfer events once
+            an approval window has been issued.
+          format: int64
+          type:
+          - integer
+          - 'null'
+        decision:
+          description: Approval decision for the internal transfer. Defaults to `pending`
+            for non-internal-transfer events.
+          enum:
+          - pending
+          - approved
+          - rejected
+          type: string
+        numbers:
+          items:
+            properties:
+              status:
+                description: Current status of this phone number within the order.
+                enum:
+                - deleted
+                - failed
+                - failed_activation
+                - failed_carrier_rejected
+                - failed_ineligible_carrier
+                - failed_number_already_hosted
+                - failed_number_not_found
+                - failed_ownership_verification
+                - failed_timeout
+                - ownership_successful
+                - pending
+                - provisioning
+                - successful
+                type: string
+              value:
+                description: Phone number in +E.164 format.
+                type: string
+                x-format: +E.164
+            type: object
+          type: array
+        order_id:
+          description: The ID of the hosted number order.
+          format: uuid
+          type: string
+        order_status:
+          description: Current status of the order.
+          enum:
+          - pending
+          - provisioning
+          - successful
+          - failed
+          - deleted
+          - carrier_rejected
+          - compliance_review_failed
+          - incomplete_documentation
+          - incorrect_billing_information
+          - ineligible_carrier
+          - loa_file_invalid
+          - loa_file_successful
+          type: string
+        profile_id:
+          description: The messaging profile associated with the order.
+          format: uuid
+          type: string
+        user_id:
+          description: The organization that owns the order.
+          type: string
+      type: object
     Id:
       description: Identifies the type of resource.
       example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
@@ -103284,6 +103413,53 @@ webhooks:
           description: The server must return an HTTP 200, otherwise we will reattempt
             delivery at the failover webhook URL.
       summary: Fax Sending Started
+      tags:
+      - Callbacks
+  hostedNumberOrderEvent:
+    post:
+      description: 'Webhook fired when a messaging hosted number order is created,
+        updated, deleted, or progresses through the internal-transfer lifecycle (detected,
+        approval requested, approved, rejected, auto-approved). Inspect `event_type`
+        to distinguish events.
+
+
+        This webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519)
+        that are compatible with Standard Webhooks specification for SDK generation.
+        Custom validation logic can map these to standard webhook-timestamp and webhook-signature
+        equivalents. See https://github.com/standard-webhooks/standard-webhooks for
+        details.'
+      operationId: HostedNumberOrderEvent
+      parameters:
+      - description: Unix timestamp (seconds since epoch) of when the webhook was
+          sent - compatible with webhook-timestamp
+        in: header
+        name: telnyx-timestamp
+        required: true
+        schema:
+          description: Unix timestamp for replay attack prevention
+          format: int64
+          type: integer
+        x-webhook-equivalent: webhook-timestamp
+      - description: Base64 encoded Ed25519 signature for webhook verification - compatible
+          with webhook-signature
+        in: header
+        name: telnyx-signature-ed25519
+        required: true
+        schema:
+          description: Ed25519 signature of timestamp|payload for verification
+          type: string
+        x-webhook-equivalent: webhook-signature
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostedNumberOrderEvent'
+        required: true
+      responses:
+        '200':
+          description: The server must return an HTTP 200, otherwise we will reattempt
+            delivery at the failover webhook URL.
+      summary: Hosted Number Order Event
       tags:
       - Callbacks
   inboundMessage:
