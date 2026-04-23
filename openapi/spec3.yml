@@ -2137,7 +2137,8 @@ components:
     endpointing:
       description: Silence duration (in milliseconds) that triggers end-of-speech
         detection. When set, the engine uses this value to determine when a speaker
-        has stopped talking. Not all engines support this parameter.
+        has stopped talking. Supported by `xAI`, `Deepgram`, and `Google`. Other engines
+        may not support this parameter.
       example: 500
       in: query
       name: endpointing
@@ -2307,6 +2308,7 @@ components:
         - $ref: '#/components/schemas/deepgram_models'
         - $ref: '#/components/schemas/google_models'
         - $ref: '#/components/schemas/telnyx_models'
+        - $ref: '#/components/schemas/xai_models'
     model_id:
       description: 'Model identifier for the chosen provider. Examples: `Natural`,
         `NaturalHD`, `Ultra` (Telnyx); `Polly.Generative` (AWS).'
@@ -2635,6 +2637,7 @@ components:
         - murfai
         - rime
         - resemble
+        - xai
         type: string
     push-notifications_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
@@ -2750,6 +2753,7 @@ components:
         - Deepgram
         - Google
         - Telnyx
+        - xAI
         type: string
     user-addresses_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -30695,6 +30699,7 @@ components:
           - minimax
           - rime
           - resemble
+          - xai
           type: string
         resemble:
           $ref: '#/components/schemas/ResembleProviderParams'
@@ -30724,6 +30729,8 @@ components:
           description: "Provider-specific voice settings. Contents vary by provider\
             \ \u2014 see provider-specific parameter objects below."
           type: object
+        xai:
+          $ref: '#/components/schemas/XAIProviderParams'
       type: object
     GenericError:
       properties:
@@ -31492,6 +31499,135 @@ components:
           - pending
           - provisioning
           - successful
+          type: string
+      type: object
+    HostedNumberOrder:
+      example:
+        event_type: messaging_hosted_numbers_orders.internal_transfer_approval_requested
+        id: bf6307bd-884d-4c1f-b6ea-c62b8c495d3c
+        occurred_at: '2026-04-20T18:10:02.574Z'
+        payload:
+          approval_deadline: 1714521600
+          decision: pending
+          numbers:
+          - status: pending
+            value: '+13125550001'
+          order_id: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
+          order_status: pending
+          profile_id: d0b1dabe-efdb-4bc8-9dd3-11f0d8b5f5b3
+          user_id: b448f9cc-a842-4784-98e9-03c1a5872950
+        record_type: event
+      properties:
+        event_type:
+          description: The type of event being delivered. Internal transfer events
+            are only emitted for orders where the numbers are already active on another
+            Telnyx account.
+          enum:
+          - messaging_hosted_numbers_orders.created
+          - messaging_hosted_numbers_orders.updated
+          - messaging_hosted_numbers_orders.deleted
+          - messaging_hosted_numbers_orders.internal_transfer_detected
+          - messaging_hosted_numbers_orders.internal_transfer_approval_requested
+          - messaging_hosted_numbers_orders.internal_transfer_approved
+          - messaging_hosted_numbers_orders.internal_transfer_rejected
+          - messaging_hosted_numbers_orders.internal_transfer_auto_approved
+          example: messaging_hosted_numbers_orders.created
+          type: string
+        id:
+          description: Unique identifier for the event.
+          format: uuid
+          type: string
+        occurred_at:
+          description: ISO 8601 formatted date indicating when the event was generated.
+          format: date-time
+          type: string
+        payload:
+          $ref: '#/components/schemas/HostedNumberOrderEventPayload'
+        record_type:
+          description: Identifies the type of the resource.
+          enum:
+          - event
+          example: event
+          type: string
+      type: object
+    HostedNumberOrderEvent:
+      properties:
+        data:
+          $ref: '#/components/schemas/HostedNumberOrder'
+      type: object
+    HostedNumberOrderEventPayload:
+      description: Payload delivered with every messaging_hosted_numbers_orders.*
+        event. `approval_deadline` and `decision` are meaningful only for `internal_transfer_*`
+        events.
+      properties:
+        approval_deadline:
+          description: Unix timestamp (seconds) by which the losing organization must
+            respond before auto-approval. Populated on internal-transfer events once
+            an approval window has been issued.
+          format: int64
+          type:
+          - integer
+          - 'null'
+        decision:
+          description: Approval decision for the internal transfer. Defaults to `pending`
+            for non-internal-transfer events.
+          enum:
+          - pending
+          - approved
+          - rejected
+          type: string
+        numbers:
+          items:
+            properties:
+              status:
+                description: Current status of this phone number within the order.
+                enum:
+                - deleted
+                - failed
+                - failed_activation
+                - failed_carrier_rejected
+                - failed_ineligible_carrier
+                - failed_number_already_hosted
+                - failed_number_not_found
+                - failed_ownership_verification
+                - failed_timeout
+                - ownership_successful
+                - pending
+                - provisioning
+                - successful
+                type: string
+              value:
+                description: Phone number in +E.164 format.
+                type: string
+                x-format: +E.164
+            type: object
+          type: array
+        order_id:
+          description: The ID of the hosted number order.
+          format: uuid
+          type: string
+        order_status:
+          description: Current status of the order.
+          enum:
+          - pending
+          - provisioning
+          - successful
+          - failed
+          - deleted
+          - carrier_rejected
+          - compliance_review_failed
+          - incomplete_documentation
+          - incorrect_billing_information
+          - ineligible_carrier
+          - loa_file_invalid
+          - loa_file_successful
+          type: string
+        profile_id:
+          description: The messaging profile associated with the order.
+          format: uuid
+          type: string
+        user_id:
+          description: The organization that owns the order.
           type: string
       type: object
     Id:
@@ -63184,6 +63320,46 @@ components:
               type: string
           type: object
       type: object
+    XAIProviderParams:
+      description: xAI provider-specific parameters.
+      properties:
+        language:
+          default: auto
+          description: Language code, or `auto` to detect.
+          type: string
+        output_format:
+          default: mp3
+          description: Audio output format.
+          enum:
+          - mp3
+          - wav
+          - pcm
+          - mulaw
+          - alaw
+          type: string
+        sample_rate:
+          default: 24000
+          description: Audio sample rate in Hz.
+          enum:
+          - 8000
+          - 16000
+          - 22050
+          - 24000
+          - 44100
+          - 48000
+          type: integer
+        voice_id:
+          description: xAI voice identifier.
+          enum:
+          - eve
+          - ara
+          - rex
+          - sal
+          - leo
+          type: string
+      required:
+      - voice_id
+      type: object
     active:
       default: true
       description: The active status of the authentication provider
@@ -65923,6 +66099,10 @@ components:
             type: object
           type: array
       type: object
+    xai_models:
+      enum:
+      - xai/grok-stt
+      type: string
   securitySchemes:
     bearerAuth:
       scheme: bearer
@@ -94654,7 +94834,7 @@ paths:
         Bearer <API_KEY>` header.
 
 
-        Supported engines: `Azure`, `Deepgram`, `Google`, `Telnyx`.
+        Supported engines: `Azure`, `Deepgram`, `Google`, `Telnyx`, `xAI`.
 
 
         **Connection flow:**
@@ -96523,16 +96703,16 @@ paths:
         \ audio in real time. Authentication is provided via the standard `Authorization:\
         \ Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive\
         \ JSON frames containing base64-encoded audio chunks.\n\nSupported providers:\
-        \ `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`.\n\
-        \n**Connection flow:**\n1. Open WebSocket with query parameters specifying\
-        \ provider, voice, and model.\n2. Send an initial handshake message `{\"text\"\
-        : \" \"}` (single space) with optional `voice_settings` to initialize the\
-        \ session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive\
-        \ audio chunks as JSON frames with base64-encoded audio.\n5. A final frame\
-        \ with `isFinal: true` indicates the end of audio for the current text.\n\n\
-        To interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014\
-        \ the current worker is stopped and a new one is started.\n\n**Note:** The\
-        \ Telnyx `Ultra` model is not available over WebSocket. Use the HTTP POST\
+        \ `aws`, `telnyx`, `azure`, `murfai`, `minimax`, `rime`, `resemble`, `elevenlabs`,\
+        \ `xai`.\n\n**Connection flow:**\n1. Open WebSocket with query parameters\
+        \ specifying provider, voice, and model.\n2. Send an initial handshake message\
+        \ `{\"text\": \" \"}` (single space) with optional `voice_settings` to initialize\
+        \ the session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n\
+        4. Receive audio chunks as JSON frames with base64-encoded audio.\n5. A final\
+        \ frame with `isFinal: true` indicates the end of audio for the current text.\n\
+        \nTo interrupt and restart synthesis mid-stream, send `{\"force\": true}`\
+        \ \u2014 the current worker is stopped and a new one is started.\n\n**Note:**\
+        \ The Telnyx `Ultra` model is not available over WebSocket. Use the HTTP POST\
         \ `/text-to-speech/speech` endpoint instead."
       operationId: TextToSpeechOverWs
       parameters:
@@ -96585,7 +96765,7 @@ paths:
 
 
         Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `rime`,
-        `resemble`.
+        `resemble`, `xai`.
 
 
         The Telnyx `Ultra` model supports 44 languages with emotion control, speed
@@ -96659,6 +96839,7 @@ paths:
           - minimax
           - rime
           - resemble
+          - xai
           type: string
       - description: API key for providers that require one to list voices (e.g. ElevenLabs).
         in: query
@@ -103284,6 +103465,53 @@ webhooks:
           description: The server must return an HTTP 200, otherwise we will reattempt
             delivery at the failover webhook URL.
       summary: Fax Sending Started
+      tags:
+      - Callbacks
+  hostedNumberOrderEvent:
+    post:
+      description: 'Webhook fired when a messaging hosted number order is created,
+        updated, deleted, or progresses through the internal-transfer lifecycle (detected,
+        approval requested, approved, rejected, auto-approved). Inspect `event_type`
+        to distinguish events.
+
+
+        This webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519)
+        that are compatible with Standard Webhooks specification for SDK generation.
+        Custom validation logic can map these to standard webhook-timestamp and webhook-signature
+        equivalents. See https://github.com/standard-webhooks/standard-webhooks for
+        details.'
+      operationId: HostedNumberOrderEvent
+      parameters:
+      - description: Unix timestamp (seconds since epoch) of when the webhook was
+          sent - compatible with webhook-timestamp
+        in: header
+        name: telnyx-timestamp
+        required: true
+        schema:
+          description: Unix timestamp for replay attack prevention
+          format: int64
+          type: integer
+        x-webhook-equivalent: webhook-timestamp
+      - description: Base64 encoded Ed25519 signature for webhook verification - compatible
+          with webhook-signature
+        in: header
+        name: telnyx-signature-ed25519
+        required: true
+        schema:
+          description: Ed25519 signature of timestamp|payload for verification
+          type: string
+        x-webhook-equivalent: webhook-signature
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HostedNumberOrderEvent'
+        required: true
+      responses:
+        '200':
+          description: The server must return an HTTP 200, otherwise we will reattempt
+            delivery at the failover webhook URL.
+      summary: Hosted Number Order Event
       tags:
       - Callbacks
   inboundMessage:
