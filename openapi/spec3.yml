@@ -10959,6 +10959,15 @@ components:
             $ref: '#/components/schemas/audit-logs_Error'
           type: array
       type: object
+    AuthenticationMethod:
+      default: token
+      description: Authentication method used when connecting to the external LLM
+        endpoint.
+      enum:
+      - token
+      - certificate
+      title: AuthenticationMethod
+      type: string
     AuthenticationProvider:
       properties:
         activated_at:
@@ -13349,12 +13358,90 @@ components:
           type: object
         external_llm:
           description: External LLM configuration for bringing your own LLM endpoint.
-          properties: {}
+          properties:
+            authentication_method:
+              default: token
+              description: Authentication method used when connecting to the external
+                LLM endpoint.
+              enum:
+              - token
+              - certificate
+              type: string
+            base_url:
+              description: Base URL for the external LLM endpoint.
+              type: string
+            certificate_ref:
+              description: Integration secret identifier for the client certificate
+                used with certificate authentication.
+              type: string
+            forward_metadata:
+              default: false
+              description: 'When enabled, Telnyx forwards the assistant''s dynamic
+                variables to the external LLM endpoint. Defaults to false. The chat
+                completion request includes a top-level `extra_metadata` object when
+                dynamic variables are available. For example: `{"extra_metadata":{"customer_name":"Jane","account_id":"acct_789","telnyx_agent_target":"+13125550100","telnyx_end_user_target":"+13125550123"}}`.'
+              type: boolean
+            llm_api_key_ref:
+              description: Integration secret identifier for the external LLM API
+                key.
+              type: string
+            model:
+              description: Model identifier to use with the external LLM endpoint.
+              type: string
+            token_retrieval_url:
+              description: URL used to retrieve an access token when certificate authentication
+                is enabled.
+              type: string
           type: object
         fallback_config:
           description: Fallback LLM configuration used when the primary LLM provider
             is unavailable.
-          properties: {}
+          properties:
+            external_llm:
+              description: External LLM fallback configuration.
+              properties:
+                authentication_method:
+                  default: token
+                  description: Authentication method used when connecting to the external
+                    LLM endpoint.
+                  enum:
+                  - token
+                  - certificate
+                  type: string
+                base_url:
+                  description: Base URL for the external LLM endpoint.
+                  type: string
+                certificate_ref:
+                  description: Integration secret identifier for the client certificate
+                    used with certificate authentication.
+                  type: string
+                forward_metadata:
+                  default: false
+                  description: 'When enabled, Telnyx forwards the assistant''s dynamic
+                    variables to the external LLM endpoint. Defaults to false. The
+                    chat completion request includes a top-level `extra_metadata`
+                    object when dynamic variables are available. For example: `{"extra_metadata":{"customer_name":"Jane","account_id":"acct_789","telnyx_agent_target":"+13125550100","telnyx_end_user_target":"+13125550123"}}`.'
+                  type: boolean
+                llm_api_key_ref:
+                  description: Integration secret identifier for the external LLM
+                    API key.
+                  type: string
+                model:
+                  description: Model identifier to use with the external LLM endpoint.
+                  type: string
+                token_retrieval_url:
+                  description: URL used to retrieve an access token when certificate
+                    authentication is enabled.
+                  type: string
+              type: object
+            llm_api_key_ref:
+              description: Integration secret identifier for the fallback model API
+                key.
+              type: string
+            model:
+              description: Fallback Telnyx-hosted model to use when the primary LLM
+                provider is unavailable.
+              type: string
           type: object
         greeting:
           description: Initial greeting text spoken when the assistant starts. Can
@@ -22206,6 +22293,10 @@ components:
           items:
             $ref: '#/components/schemas/EnabledFeatures'
           type: array
+        external_llm:
+          $ref: '#/components/schemas/ExternalLLMReq'
+        fallback_config:
+          $ref: '#/components/schemas/FallbackConfigReq'
         greeting:
           description: Text that the assistant will use to start the conversation.
             This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
@@ -28983,6 +29074,72 @@ components:
           $ref: '#/components/schemas/UUID'
       title: Phone number details with relation to an external connection
       type: object
+    ExternalLLM:
+      properties:
+        authentication_method:
+          $ref: '#/components/schemas/AuthenticationMethod'
+        base_url:
+          description: Base URL for the external LLM endpoint.
+          type: string
+        certificate_ref:
+          description: Integration secret identifier for the client certificate used
+            with certificate authentication.
+          type: string
+        forward_metadata:
+          default: false
+          description: 'When enabled, Telnyx forwards the assistant''s dynamic variables
+            to the external LLM endpoint. Defaults to false. The chat completion request
+            includes a top-level `extra_metadata` object when dynamic variables are
+            available. For example: `{"extra_metadata":{"customer_name":"Jane","account_id":"acct_789","telnyx_agent_target":"+13125550100","telnyx_end_user_target":"+13125550123"}}`.'
+          type: boolean
+        llm_api_key_ref:
+          description: Integration secret identifier for the external LLM API key.
+          type: string
+        model:
+          description: Model identifier to use with the external LLM endpoint.
+          type: string
+        token_retrieval_url:
+          description: URL used to retrieve an access token when certificate authentication
+            is enabled.
+          type: string
+      required:
+      - model
+      - base_url
+      title: ExternalLLM
+      type: object
+    ExternalLLMReq:
+      properties:
+        authentication_method:
+          $ref: '#/components/schemas/AuthenticationMethod'
+        base_url:
+          description: Base URL for the external LLM endpoint.
+          type: string
+        certificate_ref:
+          description: Integration secret identifier for the client certificate used
+            with certificate authentication.
+          type: string
+        forward_metadata:
+          default: false
+          description: 'When enabled, Telnyx forwards the assistant''s dynamic variables
+            to the external LLM endpoint. Defaults to false. The chat completion request
+            includes a top-level `extra_metadata` object when dynamic variables are
+            available. For example: `{"extra_metadata":{"customer_name":"Jane","account_id":"acct_789","telnyx_agent_target":"+13125550100","telnyx_end_user_target":"+13125550123"}}`.'
+          type: boolean
+        llm_api_key_ref:
+          description: Integration secret identifier for the external LLM API key.
+          type: string
+        model:
+          description: Model identifier to use with the external LLM endpoint.
+          type: string
+        token_retrieval_url:
+          description: URL used to retrieve an access token when certificate authentication
+            is enabled.
+          type: string
+      required:
+      - model
+      - base_url
+      title: ExternalLLMReq
+      type: object
     ExternalSipConnection:
       default: zoom
       description: The service that will be consuming this connection.
@@ -29106,6 +29263,32 @@ components:
           type: array
         meta:
           $ref: '#/components/schemas/wireless-public_PaginationMeta'
+      type: object
+    FallbackConfig:
+      properties:
+        external_llm:
+          $ref: '#/components/schemas/ExternalLLM'
+        llm_api_key_ref:
+          description: Integration secret identifier for the fallback model API key.
+          type: string
+        model:
+          description: Fallback Telnyx-hosted model to use when the primary LLM provider
+            is unavailable.
+          type: string
+      title: FallbackConfig
+      type: object
+    FallbackConfigReq:
+      properties:
+        external_llm:
+          $ref: '#/components/schemas/ExternalLLMReq'
+        llm_api_key_ref:
+          description: Integration secret identifier for the fallback model API key.
+          type: string
+        model:
+          description: Fallback Telnyx-hosted model to use when the primary LLM provider
+            is unavailable.
+          type: string
+      title: FallbackConfigReq
       type: object
     Fax:
       example:
@@ -56175,6 +56358,10 @@ components:
             $ref: '#/components/schemas/EnabledFeatures'
           type: array
           uniqueItems: true
+        external_llm:
+          $ref: '#/components/schemas/ExternalLLMReq'
+        fallback_config:
+          $ref: '#/components/schemas/FallbackConfigReq'
         greeting:
           description: Text that the assistant will use to start the conversation.
             This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
@@ -62218,6 +62405,11 @@ components:
           description: Phone number in +E.164 format associated with Whatsapp account
           example: '+13125551234'
           type: string
+        messaging_profile_id:
+          description: Messaging profile ID - required if the 'from' number is not
+            SMS-enabled
+          format: uuid
+          type: string
         to:
           description: Phone number in +E.164 format
           example: '+13125551234'
@@ -62440,6 +62632,8 @@ components:
           type: string
         phone_number_id:
           description: Whatsapp phone number ID
+          type: string
+        profile_id:
           type: string
         profile_photo_url:
           type: string
@@ -62804,6 +62998,10 @@ components:
         display_name:
           type: string
         email:
+          type: string
+        profile_id:
+          description: Messaging profile ID for inbound messages
+          format: uuid
           type: string
         website:
           type: string
@@ -64662,6 +64860,10 @@ components:
           title: Enabled Features
           type: array
           uniqueItems: true
+        external_llm:
+          $ref: '#/components/schemas/ExternalLLM'
+        fallback_config:
+          $ref: '#/components/schemas/FallbackConfig'
         greeting:
           description: Text that the assistant will use to start the conversation.
             This may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables).
