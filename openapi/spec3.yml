@@ -53616,7 +53616,7 @@ components:
           type: string
         created_at:
           description: Timestamp when the test run was created and queued.
-          example: '2024-01-18T10:30:00Z'
+          example: '2024-01-19T10:30:00Z'
           format: date-time
           title: Created At
           type: string
@@ -55368,30 +55368,46 @@ components:
       type: string
     TranscriptionSettings:
       properties:
+        api_key_ref:
+          description: Integration secret identifier for the transcription provider
+            API key. Currently used for Azure transcription regions that require a
+            customer-provided API key.
+          title: Api Key Ref
+          type: string
         language:
-          description: The language of the audio to be transcribed. If not set, of
+          description: The language of the audio to be transcribed. If not set, or
             if set to `auto`, the model will automatically detect the language.
           type: string
         model:
           description: 'The speech to text model to be used by the voice assistant.
-            All the deepgram models are run on-premise.
+            All Deepgram models are run on-premise.
 
 
             - `deepgram/flux` is optimized for turn-taking but is English-only.
 
-            - `deepgram/nova-3` is multi-lingual with automatic language detection
-            but slightly higher latency.'
+            - `deepgram/nova-3` is multilingual with automatic language detection.
+
+            - `deepgram/nova-2` is Deepgram''s previous-generation multilingual model.
+
+            - `azure/fast` is a multilingual Azure transcription model.
+
+            - `assemblyai/universal-streaming` is a multilingual streaming model with
+            configurable turn detection.
+
+            - `xai/grok-stt` is a multilingual Grok STT model.'
           enum:
           - deepgram/flux
           - deepgram/nova-3
           - deepgram/nova-2
           - azure/fast
+          - assemblyai/universal-streaming
+          - xai/grok-stt
           - distil-whisper/distil-large-v2
           - openai/whisper-large-v3-turbo
           type: string
         region:
           description: Region on third party cloud providers (currently Azure) if
-            using one of their models
+            using one of their models. Some regions require `api_key_ref`.
           title: Region
           type: string
         settings:
@@ -55400,7 +55416,7 @@ components:
     TranscriptionSettingsConfig:
       properties:
         eager_eot_threshold:
-          default: 0.3
+          default: 0.4
           description: Available only for deepgram/flux. Confidence threshold for
             eager end of turn detection. Must be lower than or equal to eot_threshold.
             Setting this equal to eot_threshold effectively disables eager end of
@@ -55409,15 +55425,30 @@ components:
           minimum: 0.3
           title: Eager Eot Threshold
           type: number
+        end_of_turn_confidence_threshold:
+          default: 0.4
+          description: Available only for assemblyai/universal-streaming. Confidence
+            level required to trigger an end of turn. Higher values require more certainty
+            before ending a turn.
+          maximum: 1
+          minimum: 0
+          title: End Of Turn Confidence Threshold
+          type: number
         eot_threshold:
+          default: 0.8
           description: Available only for deepgram/flux. Confidence required to trigger
             an end of turn. Higher values = more reliable turn detection but slightly
             increased latency.
+          maximum: 0.9
+          minimum: 0.5
           title: Eot Threshold
           type: number
         eot_timeout_ms:
+          default: 5000
           description: Available only for deepgram/flux. Maximum milliseconds of silence
             before forcing an end of turn, regardless of confidence.
+          maximum: 10000
+          minimum: 500
           title: Eot Timeout Ms
           type: integer
         keyterm:
@@ -55427,6 +55458,23 @@ components:
             words.
           title: Keyterm
           type: string
+        max_turn_silence:
+          default: 1280
+          description: Available only for assemblyai/universal-streaming. Maximum
+            duration of silence in milliseconds before forcing an end of turn.
+          maximum: 5000
+          minimum: 100
+          title: Max Turn Silence
+          type: integer
+        min_turn_silence:
+          default: 400
+          description: Available only for assemblyai/universal-streaming. Minimum
+            duration of silence in milliseconds before a turn can end. Must be less
+            than or equal to max_turn_silence.
+          maximum: 5000
+          minimum: 100
+          title: Min Turn Silence
+          type: integer
         numerals:
           title: Numerals
           type: boolean
