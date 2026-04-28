@@ -25591,53 +25591,6 @@ components:
           type: array
       title: CreateVerifyProfileCallRequest
       type: object
-    CreateVerifyProfileRCSRequest:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        code_length:
-          default: 5
-          description: The length of the verify code to generate.
-          example: 6
-          type: integer
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        messaging_template_id:
-          description: The message template identifier selected from /verify_profiles/templates
-          example: 0abb5b4f-459f-445a-bfcd-488998b7572d
-          format: uuid
-          type: string
-        sms_fallback:
-          default: true
-          description: Enable SMS fallback when RCS delivery fails.
-          example: true
-          type: boolean
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed. **Conditionally required:**
-            this field must be provided when your organization is configured to require
-            explicit whitelisted destinations; otherwise it is optional.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: CreateVerifyProfileRCSRequest
-      type: object
     CreateVerifyProfileSMSRequest:
       properties:
         alpha_sender:
@@ -53616,7 +53569,7 @@ components:
           type: string
         created_at:
           description: Timestamp when the test run was created and queued.
-          example: '2024-01-18T10:30:00Z'
+          example: '2024-01-19T10:30:00Z'
           format: date-time
           title: Created At
           type: string
@@ -55368,30 +55321,46 @@ components:
       type: string
     TranscriptionSettings:
       properties:
+        api_key_ref:
+          description: Integration secret identifier for the transcription provider
+            API key. Currently used for Azure transcription regions that require a
+            customer-provided API key.
+          title: Api Key Ref
+          type: string
         language:
-          description: The language of the audio to be transcribed. If not set, of
+          description: The language of the audio to be transcribed. If not set, or
             if set to `auto`, the model will automatically detect the language.
           type: string
         model:
           description: 'The speech to text model to be used by the voice assistant.
-            All the deepgram models are run on-premise.
+            All Deepgram models are run on-premise.
 
 
             - `deepgram/flux` is optimized for turn-taking but is English-only.
 
-            - `deepgram/nova-3` is multi-lingual with automatic language detection
-            but slightly higher latency.'
+            - `deepgram/nova-3` is multilingual with automatic language detection.
+
+            - `deepgram/nova-2` is Deepgram''s previous-generation multilingual model.
+
+            - `azure/fast` is a multilingual Azure transcription model.
+
+            - `assemblyai/universal-streaming` is a multilingual streaming model with
+            configurable turn detection.
+
+            - `xai/grok-stt` is a multilingual Grok STT model.'
           enum:
           - deepgram/flux
           - deepgram/nova-3
           - deepgram/nova-2
           - azure/fast
+          - assemblyai/universal-streaming
+          - xai/grok-stt
           - distil-whisper/distil-large-v2
           - openai/whisper-large-v3-turbo
           type: string
         region:
           description: Region on third party cloud providers (currently Azure) if
-            using one of their models
+            using one of their models. Some regions require `api_key_ref`.
           title: Region
           type: string
         settings:
@@ -55400,7 +55369,7 @@ components:
     TranscriptionSettingsConfig:
       properties:
         eager_eot_threshold:
-          default: 0.3
+          default: 0.4
           description: Available only for deepgram/flux. Confidence threshold for
             eager end of turn detection. Must be lower than or equal to eot_threshold.
             Setting this equal to eot_threshold effectively disables eager end of
@@ -55409,15 +55378,30 @@ components:
           minimum: 0.3
           title: Eager Eot Threshold
           type: number
+        end_of_turn_confidence_threshold:
+          default: 0.4
+          description: Available only for assemblyai/universal-streaming. Confidence
+            level required to trigger an end of turn. Higher values require more certainty
+            before ending a turn.
+          maximum: 1
+          minimum: 0
+          title: End Of Turn Confidence Threshold
+          type: number
         eot_threshold:
+          default: 0.8
           description: Available only for deepgram/flux. Confidence required to trigger
             an end of turn. Higher values = more reliable turn detection but slightly
             increased latency.
+          maximum: 0.9
+          minimum: 0.5
           title: Eot Threshold
           type: number
         eot_timeout_ms:
+          default: 5000
           description: Available only for deepgram/flux. Maximum milliseconds of silence
             before forcing an end of turn, regardless of confidence.
+          maximum: 10000
+          minimum: 500
           title: Eot Timeout Ms
           type: integer
         keyterm:
@@ -55427,6 +55411,23 @@ components:
             words.
           title: Keyterm
           type: string
+        max_turn_silence:
+          default: 1280
+          description: Available only for assemblyai/universal-streaming. Maximum
+            duration of silence in milliseconds before forcing an end of turn.
+          maximum: 5000
+          minimum: 100
+          title: Max Turn Silence
+          type: integer
+        min_turn_silence:
+          default: 400
+          description: Available only for assemblyai/universal-streaming. Minimum
+            duration of silence in milliseconds before a turn can end. Must be less
+            than or equal to max_turn_silence.
+          maximum: 5000
+          minimum: 100
+          title: Min Turn Silence
+          type: integer
         numerals:
           title: Numerals
           type: boolean
@@ -58412,53 +58413,6 @@ components:
           type: array
       title: UpdateVerifyProfileCallRequest
       type: object
-    UpdateVerifyProfileRCSRequest:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        code_length:
-          default: 5
-          description: The length of the verify code to generate.
-          example: 6
-          type: integer
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        messaging_template_id:
-          description: The message template identifier selected from /verify_profiles/templates
-          example: 0abb5b4f-459f-445a-bfcd-488998b7572d
-          format: uuid
-          type: string
-        sms_fallback:
-          default: true
-          description: Enable SMS fallback when RCS delivery fails.
-          example: true
-          type: boolean
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed. **Conditionally required:**
-            this field must be provided when your organization is configured to require
-            explicit whitelisted destinations; otherwise it is optional.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: UpdateVerifyProfileRCSRequest
-      type: object
     UpdateVerifyProfileSMSRequest:
       properties:
         alpha_sender:
@@ -58508,38 +58462,6 @@ components:
             type: string
           type: array
       title: UpdateVerifyProfileSMSRequest
-      type: object
-    UpdateVerifyProfileSettingsRequest:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed. **Conditionally required:**
-            this field must be provided when your organization is configured to require
-            explicit whitelisted destinations; otherwise it is optional.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: UpdateVerifyProfileSettingsRequest
       type: object
     UpdateVerifyProfileSettingsWhatsAppRequest:
       properties:
@@ -60163,53 +60085,6 @@ components:
           type: string
       title: VerifyProfileResponse
       type: object
-    VerifyProfileRCSResponse:
-      properties:
-        app_name:
-          description: The name that identifies the application requesting 2fa in
-            the verification message.
-          example: Example Secure App
-          pattern: ^[A-Za-z0-9 -]{1,30}$
-          type: string
-        code_length:
-          default: 5
-          description: The length of the verify code to generate.
-          example: 6
-          type: integer
-        default_verification_timeout_secs:
-          default: 300
-          description: For every request that is initiated via this Verify profile,
-            this sets the number of seconds before a verification request code expires.
-            Once the verification request expires, the user cannot use the code to
-            verify their identity.
-          example: 300
-          type: integer
-        messaging_template_id:
-          description: The message template identifier selected from /verify_profiles/templates
-          example: 0abb5b4f-459f-445a-bfcd-488998b7572d
-          format: uuid
-          type: string
-        sms_fallback:
-          default: true
-          description: Enable SMS fallback when RCS delivery fails.
-          example: true
-          type: boolean
-        whitelisted_destinations:
-          description: Enabled country destinations to send verification codes. The
-            elements in the list must be valid ISO 3166-1 alpha-2 country codes. If
-            set to `["*"]`, all destinations will be allowed. **Conditionally required:**
-            this field must be provided when your organization is configured to require
-            explicit whitelisted destinations; otherwise it is optional.
-          example:
-          - US
-          - CA
-          items:
-            description: ISO 3166-1 alpha-2 country code
-            pattern: ^[A-Z]{2}$
-            type: string
-          type: array
-      title: VerifyProfileRCSResponse
-      type: object
     VerifyProfileResponse:
       properties:
         call:
@@ -60219,6 +60094,17 @@ components:
         created_at:
           example: '2020-09-14T17:03:32.965812'
           type: string
+        daily_spend_limit:
+          description: The maximum daily spend allowed on this verify profile, in
+            USD.
+          example: 100.0
+          minimum: 0
+          type: number
+        daily_spend_limit_enabled:
+          default: false
+          description: Whether the daily spend limit is enforced for this verify profile.
+          example: true
+          type: boolean
         flashcall:
           $ref: '#/components/schemas/VerifyProfileFlashcallResponse'
           additionalProperties: true
@@ -60233,10 +60119,6 @@ components:
         name:
           example: Test Profile
           type: string
-        rcs:
-          $ref: '#/components/schemas/VerifyProfileRCSResponse'
-          additionalProperties: true
-          type: object
         record_type:
           $ref: '#/components/schemas/VerificationProfileRecordType'
         sms:
@@ -99078,6 +98960,18 @@ paths:
                   $ref: '#/components/schemas/CreateVerifyProfileCallRequest'
                   additionalProperties: true
                   type: object
+                daily_spend_limit:
+                  description: The maximum daily spend allowed on this verify profile,
+                    in USD.
+                  example: 100.0
+                  minimum: 0
+                  type: number
+                daily_spend_limit_enabled:
+                  default: false
+                  description: Whether the daily spend limit is enforced for this
+                    verify profile.
+                  example: true
+                  type: boolean
                 flashcall:
                   $ref: '#/components/schemas/CreateVerifyProfileSettingsRequest'
                   additionalProperties: true
@@ -99088,10 +98982,6 @@ paths:
                 name:
                   example: Test Profile
                   type: string
-                rcs:
-                  $ref: '#/components/schemas/CreateVerifyProfileRCSRequest'
-                  additionalProperties: true
-                  type: object
                 sms:
                   $ref: '#/components/schemas/CreateVerifyProfileSMSRequest'
                   additionalProperties: true
@@ -99268,20 +99158,23 @@ paths:
                   $ref: '#/components/schemas/UpdateVerifyProfileCallRequest'
                   additionalProperties: true
                   type: object
-                flashcall:
-                  $ref: '#/components/schemas/UpdateVerifyProfileSettingsRequest'
-                  additionalProperties: true
-                  type: object
+                daily_spend_limit:
+                  description: The maximum daily spend allowed on this verify profile,
+                    in USD.
+                  example: 100.0
+                  minimum: 0
+                  type: number
+                daily_spend_limit_enabled:
+                  description: Whether the daily spend limit is enforced for this
+                    verify profile.
+                  example: true
+                  type: boolean
                 language:
                   example: en-US
                   type: string
                 name:
                   example: Test Profile
                   type: string
-                rcs:
-                  $ref: '#/components/schemas/UpdateVerifyProfileRCSRequest'
-                  additionalProperties: true
-                  type: object
                 sms:
                   $ref: '#/components/schemas/UpdateVerifyProfileSMSRequest'
                   additionalProperties: true
