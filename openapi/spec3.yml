@@ -18444,20 +18444,21 @@ components:
       title: Campaign Status Update Event
       type: object
     CanaryDeployRequest:
-      description: Request model for creating or updating canary deploys.
+      description: "Create/update request body. Accepts:\n- ``rules`` \u2014 canonical\
+        \ ordered list of routing rules"
       properties:
-        versions:
-          description: List of version configurations
+        rules:
           items:
-            $ref: '#/components/schemas/VersionConfig'
-          title: Versions
+            $ref: '#/components/schemas/Rule-Input'
+          title: Rules
           type: array
-      required:
-      - versions
       title: CanaryDeployRequest
       type: object
     CanaryDeployResponse:
-      description: Response model for canary deploy operations.
+      description: 'Response shape.
+
+
+        Always carries ``rules`` (canonical).'
       properties:
         assistant_id:
           title: Assistant Id
@@ -18466,18 +18467,18 @@ components:
           format: date-time
           title: Created At
           type: string
+        rules:
+          items:
+            $ref: '#/components/schemas/Rule-Output'
+          title: Rules
+          type: array
         updated_at:
           format: date-time
           title: Updated At
           type: string
-        versions:
-          items:
-            $ref: '#/components/schemas/VersionConfig'
-          title: Versions
-          type: array
       required:
       - assistant_id
-      - versions
+      - rules
       - created_at
       - updated_at
       title: CanaryDeployResponse
@@ -19260,6 +19261,33 @@ components:
           example: St
           type: string
       title: Civic Address
+      type: object
+    Clause:
+      description: 'A single attribute/operator/values check.
+
+
+        A clause matches when the routing context''s value for ``attribute``
+
+        satisfies ``operator`` against any of ``values``.'
+      properties:
+        attribute:
+          description: Attribute name from the routing context
+          title: Attribute
+          type: string
+        operator:
+          $ref: '#/components/schemas/Operator'
+          description: Match operator
+        values:
+          items:
+            type: string
+          minItems: 1
+          title: Values
+          type: array
+      required:
+      - attribute
+      - operator
+      - values
+      title: Clause
       type: object
     ClientStateUpdateRequest:
       example:
@@ -39707,6 +39735,13 @@ components:
       - total_tokens
       title: OpenAIEmbeddingUsage
       type: object
+    Operator:
+      enum:
+      - in
+      - not_in
+      - starts_with
+      title: Operator
+      type: string
     OptOutItem:
       properties:
         created_at:
@@ -47821,6 +47856,22 @@ components:
       - type
       title: Rime Voice Settings
       type: object
+    RolloutSlot:
+      description: One slot in a percentage rollout.
+      properties:
+        version_id:
+          title: Version Id
+          type: string
+        weight:
+          maximum: 100.0
+          minimum: 0.0
+          title: Weight
+          type: number
+      required:
+      - version_id
+      - weight
+      title: RolloutSlot
+      type: object
     Room:
       example:
         active_session_id: 7b61621f-62e0-4aad-ab11-9fd19e272e74
@@ -48234,6 +48285,40 @@ components:
           example: '2021-03-26T17:51:59.588408Z'
           format: date-time
           type: string
+      type: object
+    Rule-Input:
+      description: 'A targeting rule: ``match`` clauses (AND) gate ``serve``.
+
+
+        An empty ``match`` is a catch-all (always fires).'
+      properties:
+        match:
+          items:
+            $ref: '#/components/schemas/Clause'
+          title: Match
+          type: array
+        serve:
+          $ref: '#/components/schemas/Serve'
+      required:
+      - serve
+      title: Rule
+      type: object
+    Rule-Output:
+      description: 'A targeting rule: ``match`` clauses (AND) gate ``serve``.
+
+
+        An empty ``match`` is a catch-all (always fires).'
+      properties:
+        match:
+          items:
+            $ref: '#/components/schemas/Clause'
+          title: Match
+          type: array
+        serve:
+          $ref: '#/components/schemas/Serve'
+      required:
+      - serve
+      title: Rule
       type: object
     RunStatus:
       enum:
@@ -49677,6 +49762,22 @@ components:
       - content_type
       - body
       title: Send SIP Info Request
+      type: object
+    Serve:
+      description: "What a rule serves when matched.\n\nExactly one of:\n- ``version_id``\
+        \ \u2014 serve a specific version\n- ``rollout`` \u2014 weighted random across\
+        \ versions; weights must sum to\n  less than 100, with the leftover routing\
+        \ to the main version"
+      properties:
+        rollout:
+          items:
+            $ref: '#/components/schemas/RolloutSlot'
+          title: Rollout
+          type: array
+        version_id:
+          title: Version Id
+          type: string
+      title: Serve
       type: object
     ServiceDetail:
       properties:
@@ -61953,24 +62054,6 @@ components:
       required:
       - data
       title: VerifyVerificationCodeResponse
-      type: object
-    VersionConfig:
-      description: Configuration for a single version in canary deploy.
-      properties:
-        percentage:
-          description: Percentage of traffic for this version [1-99]
-          exclusiveMaximum: 100.0
-          exclusiveMinimum: 0.0
-          title: Percentage
-          type: number
-        version_id:
-          description: Version ID string that references assistant_versions.version_id
-          title: Version Id
-          type: string
-      required:
-      - version_id
-      - percentage
-      title: VersionConfig
       type: object
     Vertical:
       description: Vertical or industry segment of the brand or campaign.
