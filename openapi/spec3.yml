@@ -19022,6 +19022,20 @@ components:
           $ref: '#/components/schemas/ChatCompletionResponseFormatParam'
           description: Use this is you want to guarantee a JSON output without defining
             a schema. For control over the schema, use `guided_json`.
+        seed:
+          description: If specified, the system will make a best effort to sample
+            deterministically, such that repeated requests with the same `seed` and
+            parameters should return the same result.
+          type: integer
+        stop:
+          description: Up to 4 sequences where the API will stop generating further
+            tokens. The returned text will not contain the stop sequence.
+          oneOf:
+          - type: string
+          - items:
+              type: string
+            maxItems: 4
+            type: array
         stream:
           default: false
           description: Whether or not to stream data-only server-sent events as they
@@ -72020,9 +72034,11 @@ paths:
       x-latency-category: responsive
   /ai/chat/completions:
     post:
-      description: Chat with a language model. This endpoint is consistent with the
-        [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
-        and may be used with the OpenAI JS or Python SDK.
+      deprecated: true
+      description: '**Deprecated**: Use `POST /v2/ai/openai/chat/completions` instead.
+        Chat with a language model. This endpoint is consistent with the [OpenAI Chat
+        Completions API](https://platform.openai.com/docs/api-reference/chat) and
+        may be used with the OpenAI JS or Python SDK.'
       operationId: chat_public_chat_completions_post
       requestBody:
         content:
@@ -72053,6 +72069,7 @@ paths:
       summary: Create a chat completion
       tags:
       - Chat
+      x-hidden: true
       x-latency-category: responsive
   /ai/clusters:
     get:
@@ -75084,10 +75101,12 @@ paths:
       x-latency-category: responsive
   /ai/models:
     get:
-      description: 'This endpoint returns a list of Open Source and OpenAI models
-        that are available for use. <br /><br /> **Note**: Model `id`''s will be in
-        the form `{source}/{model_name}`. For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1`
-        consistent with HuggingFace naming conventions.'
+      deprecated: true
+      description: '**Deprecated**: Use `GET /v2/ai/openai/models` instead. This endpoint
+        returns a list of Open Source and OpenAI models that are available for use.
+        <br /><br /> **Note**: Model `id`''s will be in the form `{source}/{model_name}`.
+        For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1` consistent
+        with HuggingFace naming conventions.'
       operationId: get_models_public_models_get
       responses:
         '200':
@@ -75105,6 +75124,44 @@ paths:
       summary: Get available models
       tags:
       - Chat
+      x-hidden: true
+      x-latency-category: responsive
+  /ai/openai/chat/completions:
+    post:
+      description: Chat with a language model. This endpoint is consistent with the
+        [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
+        and may be used with the OpenAI JS or Python SDK by setting the base URL to
+        `https://api.telnyx.com/v2/ai/openai`.
+      operationId: create_openai_chat_completion
+      requestBody:
+        content:
+          application/json:
+            example:
+              messages:
+              - content: You are a friendly chatbot.
+                role: system
+              - content: Hello, world!
+                role: user
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create a chat completion (OpenAI-compatible)
+      tags:
+      - OpenAI Chat
       x-latency-category: responsive
   /ai/openai/embeddings:
     post:
@@ -75160,6 +75217,30 @@ paths:
       summary: List embedding models
       tags:
       - OpenAI Embeddings
+      x-latency-category: responsive
+  /ai/openai/models:
+    get:
+      description: 'This endpoint returns a list of Open Source and OpenAI models
+        that are available for use. <br /><br /> **Note**: Model `id`''s will be in
+        the form `{source}/{model_name}`. For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1`
+        consistent with HuggingFace naming conventions.'
+      operationId: list_openai_models
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Get available models (OpenAI-compatible)
+      tags:
+      - OpenAI Chat
       x-latency-category: responsive
   /ai/summarize:
     post:
