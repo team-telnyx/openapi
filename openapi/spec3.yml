@@ -37988,24 +37988,158 @@ components:
       required: []
       type: object
     ModelMetadata:
+      description: Metadata for a model available on Telnyx Inference. Returned by
+        `GET /v2/ai/openai/models` (and the deprecated `GET /v2/ai/models`). Open-source
+        models live under their Hugging Face organization (e.g. `moonshotai/Kimi-K2.6`,
+        `zai-org/GLM-5.1-FP8`, `MiniMaxAI/MiniMax-M2.7`); fine-tuned models are owned
+        by the Telnyx organization that trained them.
       properties:
-        created:
-          title: Created
+        base_model:
+          description: Base model the fine-tuned model was trained from. Only set
+            for fine-tuned models.
+          title: Base Model
+          type:
+          - string
+          - 'null'
+        context_length:
+          description: Maximum total tokens (prompt + completion) supported by the
+            model in a single request.
+          example: 262144
+          title: Context Length
           type: integer
+        created:
+          description: Timestamp at which the model was registered on Telnyx Inference
+            (ISO 8601).
+          format: date-time
+          title: Created
+          type: string
+        description:
+          description: Short, human-readable summary of what the model is best suited
+            for.
+          title: Description
+          type:
+          - string
+          - 'null'
         id:
+          description: Model identifier. For open-source models, follows the `{organization}/{model_name}`
+            convention from Hugging Face (e.g. `moonshotai/Kimi-K2.6`).
+          example: moonshotai/Kimi-K2.6
           title: Id
           type: string
+        is_fine_tunable:
+          default: false
+          description: Whether the model can be used as a base for a fine-tuning job
+            via `POST /v2/ai/fine_tuning/jobs`.
+          title: Is Fine Tunable
+          type: boolean
+        is_vision_supported:
+          default: false
+          description: Whether the model accepts image inputs in chat completions
+            (multimodal vision support).
+          title: Is Vision Supported
+          type: boolean
+        languages:
+          description: ISO language codes the model supports (e.g. `en`, `es`).
+          items:
+            type: string
+          title: Languages
+          type: array
+        license:
+          description: License the model is distributed under, e.g. `Apache 2.0`,
+            `MIT`, `Llama 3 Community License`.
+          title: License
+          type: string
+        max_completion_tokens:
+          description: Maximum number of completion (output) tokens the model will
+            generate per request. `null` if unconstrained beyond `context_length`.
+          title: Max Completion Tokens
+          type:
+          - integer
+          - 'null'
         object:
           default: model
+          description: Object type. Always `model`.
           title: Object
           type: string
+        organization:
+          description: Organization that originally published the model, matching
+            the prefix of `id` for open-source models.
+          example: moonshotai
+          title: Organization
+          type: string
         owned_by:
+          description: Owner of the model. `Telnyx` for Telnyx-hosted open-source
+            models, the upstream provider name for proxied models, or the Telnyx organization
+            id for fine-tuned models.
+          example: Telnyx
           title: Owned By
+          type: string
+        parameters:
+          description: Total parameter count of the model.
+          example: 1000000000000
+          title: Parameters
+          type: integer
+        parameters_str:
+          description: Human-readable parameter count, e.g. `1.0T`, `753.9B`, `8B`.
+          example: 1.0T
+          title: Parameters (human readable)
+          type:
+          - string
+          - 'null'
+        pricing:
+          additionalProperties:
+            type: string
+          description: Mapping of token kind to price in USD per 1M tokens, as a string.
+            Typical keys are `input` and `output`; embedding models expose `embedding`.
+            Empty object when pricing is not yet published for the model.
+          example:
+            input: '0.60'
+            output: '2.50'
+          title: Pricing
+          type: object
+        recommended_for_assistants:
+          default: false
+          description: Whether Telnyx currently recommends this model as the LLM powering
+            a Telnyx AI Assistant.
+          title: Recommended For Assistants
+          type: boolean
+        regions:
+          description: Public region names where the model is currently deployed (e.g.
+            `us-central-1`, `eu-central-1`).
+          example:
+          - us-central-1
+          - us-east-1
+          items:
+            type: string
+          title: Regions
+          type: array
+        task:
+          default: text-generation
+          description: Primary task the model is intended for, e.g. `text-generation`,
+            `audio-text-to-text`, `feature-extraction` (embeddings).
+          example: text-generation
+          title: Task
+          type: string
+        tier:
+          description: Billing tier the model belongs to. Used together with `pricing`
+            to determine cost per 1M tokens.
+          enum:
+          - small
+          - medium
+          - large
+          - unlisted
+          title: Tier
           type: string
       required:
       - id
       - created
       - owned_by
+      - organization
+      - context_length
+      - languages
+      - parameters
+      - tier
+      - license
       title: ModelMetadata
       type: object
     ModelsResponse:
@@ -75242,11 +75376,13 @@ paths:
   /ai/models:
     get:
       deprecated: true
-      description: '**Deprecated**: Use `GET /v2/ai/openai/models` instead. This endpoint
-        returns a list of Open Source and OpenAI models that are available for use.
-        <br /><br /> **Note**: Model `id`''s will be in the form `{source}/{model_name}`.
-        For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1` consistent
-        with HuggingFace naming conventions.'
+      description: "**Deprecated**: Use `GET /v2/ai/openai/models` instead.\n\nReturns\
+        \ the same `ModelsResponse` payload as the OpenAI-compatible endpoint \u2014\
+        \ open-source LLMs hosted on Telnyx (e.g. `moonshotai/Kimi-K2.6`, `zai-org/GLM-5.1-FP8`,\
+        \ `MiniMaxAI/MiniMax-M2.7`), embedding models, and fine-tuned models \u2014\
+        \ kept around for backwards compatibility. New integrations should use `/v2/ai/openai/models`.\n\
+        \nModel ids follow the `{organization}/{model_name}` convention from Hugging\
+        \ Face."
       operationId: get_models_public_models_get
       responses:
         '200':
@@ -75360,10 +75496,22 @@ paths:
       x-latency-category: responsive
   /ai/openai/models:
     get:
-      description: 'This endpoint returns a list of Open Source and OpenAI models
-        that are available for use. <br /><br /> **Note**: Model `id`''s will be in
-        the form `{source}/{model_name}`. For example `openai/gpt-4` or `mistralai/Mistral-7B-Instruct-v0.1`
-        consistent with HuggingFace naming conventions.'
+      description: 'Lists every model currently available to your account on Telnyx
+        Inference, including SOTA open-source LLMs hosted on Telnyx GPUs (for example
+        `moonshotai/Kimi-K2.6`, `zai-org/GLM-5.1-FP8`, and `MiniMaxAI/MiniMax-M2.7`),
+        embedding models, and any fine-tuned models you have created.
+
+
+        Each entry is a `ModelMetadata` object describing the model id, owner, task,
+        context length, supported languages, billing tier, pricing per 1M tokens,
+        deployment regions, and whether the model supports vision or fine-tuning.
+        Use this endpoint to discover model ids you can pass to `POST /v2/ai/openai/chat/completions`.
+
+
+        Model ids follow the `{organization}/{model_name}` convention from Hugging
+        Face (for example `moonshotai/Kimi-K2.6`). This endpoint is OpenAI-compatible:
+        clients pointed at `https://api.telnyx.com/v2/ai/openai` can call `client.models.list()`
+        to retrieve the same payload.'
       operationId: list_openai_models
       responses:
         '200':
