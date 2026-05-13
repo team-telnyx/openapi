@@ -33566,20 +33566,21 @@ components:
           example: Info
           type: string
         ConversationCallback:
-          description: URL destination for Telnyx to send conversation callback events
-            to.
+          description: URL destination for Telnyx to send AI conversation callback
+            events for this call. Events include `conversation_created` and `conversation_ended`.
           example: https://www.example.com/conversation-callback
           type: string
         ConversationCallbackMethod:
           default: POST
-          description: HTTP request type used for `ConversationCallback`.
+          description: HTTP request type used for `ConversationCallback` and `ConversationCallbacks`.
           enum:
           - GET
           - POST
           example: GET
           type: string
         ConversationCallbacks:
-          description: An array of URL destinations for conversation callback events.
+          description: Array of URL destinations for AI conversation callback events
+            for this call. Events include `conversation_created` and `conversation_ended`.
           example:
           - https://www.example.com/conversation-callback1
           - https://www.example.com/conversation-callback2
@@ -33727,28 +33728,34 @@ components:
           example: Canada
           type: string
         StatusCallback:
-          description: URL destination for Telnyx to send status callback events to
-            for the call.
+          description: URL destination for Telnyx to send status callback events for
+            this AI call. When provided, this per-call value overrides the status
+            callback URL configured on the TeXML application/connection.
           example: https://www.example.com/callback
           type: string
         StatusCallbackEvent:
           default: completed
-          description: 'The call events for which Telnyx should send a webhook. Multiple
-            events can be defined when separated by a space. Valid values: initiated,
-            ringing, answered, completed.'
+          description: 'The status callback events for which Telnyx should send a
+            webhook for this AI call. Multiple events can be defined when separated
+            by a space. Valid values: initiated, ringing, answered, completed, no-answer,
+            busy, canceled, failed, analyzed. When provided, this per-call value overrides
+            the status callback events configured on the TeXML application/connection.'
           example: initiated answered
           type: string
         StatusCallbackMethod:
           default: POST
-          description: HTTP request type used for `StatusCallback`.
+          description: HTTP request type used for `StatusCallback` and `StatusCallbacks`
+            for this AI call. When provided, this per-call value overrides the status
+            callback method configured on the TeXML application/connection.
           enum:
           - GET
           - POST
           example: GET
           type: string
         StatusCallbacks:
-          description: An array of URL destinations for Telnyx to send status callback
-            events to for the call.
+          description: Array of URL destinations for Telnyx to send status callback
+            events for this AI call. When provided, these per-call values override
+            the status callback URL configured on the TeXML application/connection.
           example:
           - https://www.example.com/callback1
           - https://www.example.com/callback2
@@ -98958,10 +98965,27 @@ paths:
       x-latency-category: responsive
   /texml/ai_calls/{connection_id}:
     post:
-      description: Initiate an outbound AI call with warm-up support. Validates parameters,
+      description: 'Initiate an outbound AI call with warm-up support. Validates parameters,
         builds an internal TeXML with an AI Assistant configuration, encodes instructions
         into client state, and calls the dial API. The Twiml, Texml, and Url parameters
         are not allowed and will result in a 422 error.
+
+
+        **Expected callback events:**
+
+
+        Status callbacks: `initiated`, `ringing`, `answered`, one terminal status
+        (`completed`, `no-answer`, `busy`, `canceled`, or `failed`), then `analyzed`
+        after post-call processing completes.
+
+
+        Conversation callbacks: `conversation_created` and `conversation_ended`.
+
+
+        Recording, AMD, transcription, and deepfake detection callbacks are only sent
+        when those features are enabled.
+
+        '
       operationId: InitiateTexmlAICall
       parameters:
       - description: The ID of the TeXML connection to use for the call.
