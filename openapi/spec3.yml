@@ -3748,6 +3748,16 @@ components:
             type: object
       description: Successful response upon making a call control command that includes
         conversation_id.
+    CallControlCommandResponseWithConversationRelayId:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/CallControlCommandResultWithConversationRelayId'
+            title: Call Control Command Response With Conversation Relay ID
+            type: object
+      description: Successful response upon starting Conversation Relay.
     CallControlCommandResponseWithRecordingId:
       content:
         application/json:
@@ -13941,6 +13951,20 @@ components:
           type: string
       title: Call Control Command Result With Conversation ID
       type: object
+    CallControlCommandResultWithConversationRelayId:
+      example:
+        conversation_relay_id: d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a
+        result: ok
+      properties:
+        conversation_relay_id:
+          description: The ID of the Conversation Relay session created by the command.
+          example: d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a
+          type: string
+        result:
+          example: ok
+          type: string
+      title: Call Control Command Result With Conversation Relay ID
+      type: object
     CallControlCommandResultWithRecordingId:
       example:
         recording_id: d7e9c1d4-8b2a-4b8f-b3a7-9a671c9e9b0a
@@ -22192,6 +22216,213 @@ components:
       - data
       - meta
       title: ConversationMessageListData
+      type: object
+    ConversationRelayAssistant:
+      additionalProperties: true
+      description: Custom parameters for the Conversation Relay session. Pass key-value
+        data as `assistant.dynamic_variables` to make it available to the relay session.
+      properties:
+        dynamic_variables:
+          additionalProperties:
+            type: string
+          description: Custom key-value parameters forwarded to the Conversation Relay
+            session.
+          example:
+            customer_id: '12345'
+            tier: premium
+          type: object
+      title: Conversation Relay Custom Parameters
+      type: object
+    ConversationRelayInterruptible:
+      default: any
+      description: Controls when caller input can interrupt assistant speech. `any`
+        allows speech or DTMF interruptions; `none` disables interruptions; `speech`
+        allows speech only; `dtmf` allows DTMF only.
+      enum:
+      - none
+      - any
+      - speech
+      - dtmf
+      example: speech
+      type: string
+    ConversationRelayInterruptionSettings:
+      description: Settings for handling caller interruptions during Conversation
+        Relay speech.
+      properties:
+        enable:
+          description: Legacy boolean form. `true` is equivalent to `interruptible=any`;
+            `false` is equivalent to `interruptible=none`.
+          type: boolean
+        interruptible:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        interruptible_greeting:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        welcome_greeting_interruptible:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+      title: Conversation Relay Interruption Settings
+      type: object
+    ConversationRelayLanguage:
+      description: Language-specific speech and transcription settings for Conversation
+        Relay.
+      properties:
+        code:
+          description: BCP 47 language code.
+          example: en-US
+          type: string
+        speech_model:
+          description: Speech recognition model for this language.
+          example: nova-2
+          type: string
+        transcription_provider:
+          description: Speech-to-text provider for this language.
+          example: Deepgram
+          type: string
+        tts_provider:
+          description: Text-to-speech provider for this language.
+          example: ElevenLabs
+          type: string
+        voice:
+          description: Voice identifier for this language.
+          example: alice
+          type: string
+      title: Conversation Relay Language
+      type: object
+    ConversationRelayStartRequest:
+      example:
+        conversation_relay_dtmf_detection: true
+        conversation_relay_url: wss://example.com/conversation-relay
+        greeting: Hi! Ask me anything!
+        interruption_settings:
+          interruptible: speech
+        language: en-US
+        voice: Telnyx.KokoroTTS.af
+      properties:
+        assistant:
+          $ref: '#/components/schemas/ConversationRelayAssistant'
+        client_state:
+          description: Use this field to add state to subsequent webhooks. It must
+            be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+        conversation_relay_dtmf_detection:
+          default: false
+          description: Enable DTMF detection for the relay session.
+          example: true
+          type: boolean
+        conversation_relay_url:
+          description: WebSocket URL for your Conversation Relay server. Must start
+            with `ws://` or `wss://`.
+          example: wss://example.com/conversation-relay
+          type: string
+        greeting:
+          description: Text played when the relay session starts.
+          example: Hi! Ask me anything!
+          type: string
+        interruption_settings:
+          $ref: '#/components/schemas/ConversationRelayInterruptionSettings'
+        language:
+          default: en
+          description: Default language for the relay session. This value is used
+            for both text-to-speech and speech recognition unless `tts_language` or
+            `transcription_language` are provided.
+          example: en-US
+          type: string
+        languages:
+          description: Language-specific TTS and transcription settings. Use this
+            when the relay session needs per-language provider, voice, or speech model
+            configuration.
+          items:
+            $ref: '#/components/schemas/ConversationRelayLanguage'
+          type: array
+        participants:
+          default: []
+          description: Participants to add to the conversation.
+          items:
+            $ref: '#/components/schemas/AIAssistantJoinParticipant'
+          type: array
+        send_message_history_updates:
+          default: false
+          description: When true, sends message history update webhooks.
+          type: boolean
+        transcription:
+          $ref: '#/components/schemas/ConversationRelayTranscriptionSettings'
+        transcription_language:
+          description: Language to use for speech recognition. Overrides `language`
+            for transcription when provided.
+          example: en-US
+          type: string
+        tts_language:
+          description: Language to use for text-to-speech. Overrides `language` for
+            TTS when provided.
+          example: es
+          type: string
+        user_response_timeout_ms:
+          default: 10000
+          description: Time in milliseconds to wait for caller input before timing
+            out.
+          example: 10000
+          type: integer
+        voice:
+          $ref: '#/components/schemas/VoiceConfig'
+        voice_settings:
+          description: The settings associated with the voice selected
+          discriminator:
+            mapping:
+              aws: '#/components/schemas/AWSVoiceSettings'
+              azure: '#/components/schemas/AzureVoiceSettings'
+              elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              resemble: '#/components/schemas/ResembleVoiceSettings'
+              rime: '#/components/schemas/RimeVoiceSettings'
+              telnyx: '#/components/schemas/TelnyxVoiceSettings'
+              xai: '#/components/schemas/XAIVoiceSettings'
+            propertyName: type
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/AzureVoiceSettings'
+          - $ref: '#/components/schemas/RimeVoiceSettings'
+          - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/XAIVoiceSettings'
+      required:
+      - conversation_relay_url
+      title: Conversation Relay Start Request
+      type: object
+    ConversationRelayStopRequest:
+      properties:
+        client_state:
+          description: Use this field to add state to subsequent webhooks. It must
+            be a valid Base-64 encoded string.
+          example: aGF2ZSBhIG5pY2UgZGF5ID1d
+          type: string
+        command_id:
+          description: Use this field to avoid duplicate commands. Telnyx will ignore
+            any command with the same `command_id` for the same `call_control_id`.
+          example: 891510ac-f3e4-11e8-af5b-de00688a4901
+          type: string
+      title: Conversation Relay Stop Request
+      type: object
+    ConversationRelayTranscriptionSettings:
+      description: Speech-to-text settings for Conversation Relay.
+      properties:
+        language:
+          description: Transcription language.
+          example: en-US
+          type: string
+        model:
+          description: Transcription model to use.
+          example: nova-2
+          type: string
+        provider:
+          description: Transcription provider to use.
+          example: deepgram
+          type: string
+      title: Conversation Relay Transcription Settings
       type: object
     ConversationsListData:
       properties:
@@ -77350,6 +77581,66 @@ paths:
         default:
           $ref: '#/components/responses/call-control_GenericErrorResponse'
       summary: Update client state
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/conversation_relay_start:
+    post:
+      description: 'Start a Conversation Relay session on an active call. Conversation
+        Relay connects the call audio to your WebSocket so your application can exchange
+        realtime messages with the caller while Telnyx handles speech recognition
+        and text-to-speech. Only one AI Assistant or Conversation Relay session can
+        be active on a call at a time.
+
+
+        **Expected Webhooks:**
+
+
+        - `conversation_relay.disconnected`
+
+        '
+      operationId: CallStartConversationRelay
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationRelayStartRequest'
+        description: Conversation Relay start request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponseWithConversationRelayId'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+        default:
+          $ref: '#/components/responses/call-control_GenericErrorResponse'
+      summary: Start Conversation Relay
+      tags:
+      - Call Commands
+      x-latency-category: interactive
+  /calls/{call_control_id}/actions/conversation_relay_stop:
+    post:
+      description: Stop the active Conversation Relay session on a call.
+      operationId: CallStopConversationRelay
+      parameters:
+      - $ref: '#/components/parameters/CallControlId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationRelayStopRequest'
+        description: Conversation Relay stop request
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/CallControlCommandResponse'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityResponse'
+        default:
+          $ref: '#/components/responses/call-control_GenericErrorResponse'
+      summary: Stop Conversation Relay
       tags:
       - Call Commands
       x-latency-category: interactive
