@@ -22287,14 +22287,65 @@ components:
           type: string
       title: Conversation Relay Language
       type: object
+    ConversationRelaySettings:
+      description: Conversation Relay connection settings. This object is used by
+        TeXML Call Scripting's `<ConversationRelay>` verb. The `interruptible` and
+        `interruptible_greeting` fields are shorthand for `interruption_settings.interruptible`
+        and `interruption_settings.interruptible_greeting`; use top-level `interruption_settings`
+        for the full interruption settings shape.
+      properties:
+        dtmf_detection:
+          default: false
+          description: Whether to enable DTMF detection during the relay session.
+          example: true
+          type: boolean
+        interruptible:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        interruptible_greeting:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        languages:
+          description: Language-specific TTS and transcription settings.
+          items:
+            $ref: '#/components/schemas/ConversationRelayLanguage'
+          type: array
+        url:
+          description: WebSocket URL for your Conversation Relay server. Must start
+            with `ws://` or `wss://`.
+          example: wss://example.com/conversation-relay
+          pattern: ^wss?://
+          type: string
+      required:
+      - url
+      title: Conversation Relay Settings
+      type: object
     ConversationRelayStartRequest:
+      anyOf:
+      - required:
+        - conversation_relay_url
+      - required:
+        - conversation_relay_settings
+      description: Start a Conversation Relay session. Provide either `conversation_relay_url`
+        or `conversation_relay_settings.url`; when both nested and top-level equivalents
+        are provided, top-level values take precedence as described on `conversation_relay_settings`.
       example:
-        conversation_relay_dtmf_detection: true
-        conversation_relay_url: wss://example.com/conversation-relay
-        greeting: Hi! Ask me anything!
-        interruption_settings:
+        assistant:
+          dynamic_variables:
+            customer_id: '12345'
+        conversation_relay_settings:
+          dtmf_detection: true
           interruptible: speech
+          interruptible_greeting: any
+          languages:
+          - code: en-US
+            speech_model: nova-2
+            transcription_provider: Deepgram
+            tts_provider: ElevenLabs
+            voice: alice
+          url: wss://example.com/conversation-relay
+        greeting: Hi! Ask me anything!
         language: en-US
+        transcription:
+          provider: deepgram
         voice: Telnyx.KokoroTTS.af
       properties:
         assistant:
@@ -22314,10 +22365,13 @@ components:
           description: Enable DTMF detection for the relay session.
           example: true
           type: boolean
+        conversation_relay_settings:
+          $ref: '#/components/schemas/ConversationRelaySettings'
         conversation_relay_url:
           description: WebSocket URL for your Conversation Relay server. Must start
             with `ws://` or `wss://`.
           example: wss://example.com/conversation-relay
+          pattern: ^wss?://
           type: string
         greeting:
           description: Text played when the relay session starts.
@@ -22339,16 +22393,6 @@ components:
           items:
             $ref: '#/components/schemas/ConversationRelayLanguage'
           type: array
-        participants:
-          default: []
-          description: Participants to add to the conversation.
-          items:
-            $ref: '#/components/schemas/AIAssistantJoinParticipant'
-          type: array
-        send_message_history_updates:
-          default: false
-          description: When true, sends message history update webhooks.
-          type: boolean
         transcription:
           $ref: '#/components/schemas/ConversationRelayTranscriptionSettings'
         transcription_language:
@@ -22361,12 +22405,6 @@ components:
             TTS when provided.
           example: es
           type: string
-        user_response_timeout_ms:
-          default: 10000
-          description: Time in milliseconds to wait for caller input before timing
-            out.
-          example: 10000
-          type: integer
         voice:
           $ref: '#/components/schemas/VoiceConfig'
         voice_settings:
@@ -22389,8 +22427,6 @@ components:
           - $ref: '#/components/schemas/RimeVoiceSettings'
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
-      required:
-      - conversation_relay_url
       title: Conversation Relay Start Request
       type: object
     ConversationRelayStopRequest:
