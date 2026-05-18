@@ -56116,7 +56116,10 @@ components:
             Supported and meaningful values depend on the selected transcription `model`.
             For `deepgram/flux`, supported values are: `auto` (Telnyx language detection
             controls the language hint), `multi` (no language hint), and language-specific
-            hints `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`, `it`, and `nl`.'
+            hints `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`, `it`, and `nl`.
+            For `soniox/stt-rt-v4`, `auto` omits the language hint and lets Soniox
+            auto-detect; ISO 639-1 codes (e.g. `en`, `es`) bias detection toward that
+            language.'
           example: auto
           type: string
         model:
@@ -56135,6 +56138,9 @@ components:
             - `assemblyai/universal-streaming` for live streaming transcription.
 
             - `xai/grok-stt` for live streaming transcription.
+
+            - `soniox/stt-rt-v4` for live streaming multilingual transcription with
+            automatic language detection.
 
             - `azure/fast` and `azure/realtime`; Azure models require `region`, and
             unsupported regions require `api_key_ref`.
@@ -56155,6 +56161,7 @@ components:
           - speechmatics/enhanced
           - assemblyai/universal-streaming
           - xai/grok-stt
+          - soniox/stt-rt-v4
           - azure/fast
           - azure/realtime
           - google/latest_long
@@ -56422,6 +56429,49 @@ components:
           example: true
           type: boolean
       title: Transcription engine Google config
+      type: object
+    TranscriptionEngineSonioxConfig:
+      properties:
+        enable_endpoint_detection:
+          default: false
+          description: When true, Soniox emits end-of-utterance events at the cadence
+            configured by `max_endpoint_delay_ms`.
+          example: false
+          type: boolean
+        interim_results:
+          default: false
+          description: Whether to send also interim results. If set to false, only
+            final results will be sent.
+          example: true
+          type: boolean
+        language:
+          default: auto
+          description: ISO 639-1 language hint (e.g. `en`, `es`), or `auto` to omit
+            the hint and let Soniox auto-detect supported languages multilingually.
+          example: auto
+          type: string
+        max_endpoint_delay_ms:
+          description: 'Maximum silence (in milliseconds) before Soniox emits an end-of-utterance
+            event. Only honored when `enable_endpoint_detection` is true. Range: 500-3000
+            ms.'
+          example: 1000
+          maximum: 3000
+          minimum: 500
+          type: integer
+        transcription_engine:
+          description: Engine identifier for Soniox transcription service
+          enum:
+          - Soniox
+          type: string
+        transcription_model:
+          default: soniox/stt-rt-v4
+          description: The model to use for transcription.
+          enum:
+          - soniox/stt-rt-v4
+          type: string
+      required:
+      - transcription_engine
+      title: Transcription engine Soniox config
       type: object
     TranscriptionEngineSpeechmaticsConfig:
       properties:
@@ -56760,7 +56810,10 @@ components:
             if set to `auto`, supported models will automatically detect the language.
             For `deepgram/flux`, supported values are: `auto` (Telnyx language detection
             controls the language hint), `multi` (no language hint), and language-specific
-            hints `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`, `it`, and `nl`.'
+            hints `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`, `it`, and `nl`.
+            For `soniox/stt-rt-v4`, `auto` omits the language hint and lets Soniox
+            auto-detect; ISO 639-1 codes (e.g. `en`, `es`) bias detection toward that
+            language.'
           type: string
         model:
           description: 'The speech to text model to be used by the voice assistant.
@@ -56779,7 +56832,10 @@ components:
             - `assemblyai/universal-streaming` is a multilingual streaming model with
             configurable turn detection.
 
-            - `xai/grok-stt` is a multilingual Grok STT model.'
+            - `xai/grok-stt` is a multilingual Grok STT model.
+
+            - `soniox/stt-rt-v4` is a multilingual streaming model with automatic
+            language detection and configurable endpointing.'
           enum:
           - deepgram/flux
           - deepgram/nova-3
@@ -56787,6 +56843,7 @@ components:
           - azure/fast
           - assemblyai/universal-streaming
           - xai/grok-stt
+          - soniox/stt-rt-v4
           - distil-whisper/distil-large-v2
           - openai/whisper-large-v3-turbo
           type: string
@@ -56810,6 +56867,12 @@ components:
           minimum: 0.3
           title: Eager Eot Threshold
           type: number
+        enable_endpoint_detection:
+          default: false
+          description: Available only for soniox/stt-rt-v4. When true, Soniox emits
+            end-of-utterance events at the cadence configured by `max_endpoint_delay_ms`.
+          title: Enable Endpoint Detection
+          type: boolean
         end_of_turn_confidence_threshold:
           default: 0.4
           description: Available only for assemblyai/universal-streaming. Confidence
@@ -56836,6 +56899,12 @@ components:
           minimum: 500
           title: Eot Timeout Ms
           type: integer
+        interim_results:
+          default: false
+          description: Available only for soniox/stt-rt-v4. When true, Soniox streams
+            interim (non-final) results in addition to finalized transcripts.
+          title: Interim Results
+          type: boolean
         keyterm:
           description: Available only for deepgram/nova-3 and deepgram/flux. A comma-separated
             list of key terms to boost for recognition during transcription. Helps
@@ -56846,6 +56915,14 @@ components:
             engine.
           title: Keyterm
           type: string
+        max_endpoint_delay_ms:
+          description: Available only for soniox/stt-rt-v4. Maximum silence (in milliseconds)
+            before Soniox emits an end-of-utterance event. Only honored when `enable_endpoint_detection`
+            is true.
+          maximum: 3000
+          minimum: 500
+          title: Max Endpoint Delay Ms
+          type: integer
         max_turn_silence:
           default: 1280
           description: Available only for assemblyai/universal-streaming. Maximum
@@ -56902,6 +56979,7 @@ components:
           - xAI
           - AssemblyAI
           - Speechmatics
+          - Soniox
           - A
           - B
           example: Google
@@ -56915,6 +56993,7 @@ components:
               B: '#/components/schemas/TranscriptionEngineBConfig'
               Deepgram: '#/components/schemas/TranscriptionEngineDeepgramConfig'
               Google: '#/components/schemas/TranscriptionEngineGoogleConfig'
+              Soniox: '#/components/schemas/TranscriptionEngineSonioxConfig'
               Speechmatics: '#/components/schemas/TranscriptionEngineSpeechmaticsConfig'
               Telnyx: '#/components/schemas/TranscriptionEngineTelnyxConfig'
               xAI: '#/components/schemas/TranscriptionEngineXaiConfig'
@@ -56927,6 +57006,7 @@ components:
           - $ref: '#/components/schemas/TranscriptionEngineXaiConfig'
           - $ref: '#/components/schemas/TranscriptionEngineAssemblyaiConfig'
           - $ref: '#/components/schemas/TranscriptionEngineSpeechmaticsConfig'
+          - $ref: '#/components/schemas/TranscriptionEngineSonioxConfig'
           - $ref: '#/components/schemas/TranscriptionEngineAConfig'
           - $ref: '#/components/schemas/TranscriptionEngineBConfig'
         transcription_tracks:
