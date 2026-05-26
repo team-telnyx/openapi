@@ -134,6 +134,15 @@ components:
       required: true
       schema:
         type: string
+    CallId:
+      description: Call identifier used to retrieve reports owned by the authenticated
+        user.
+      in: path
+      name: call_id
+      required: true
+      schema:
+        format: uuid
+        type: string
     CallSid:
       description: The CallSid that identifies the call to update.
       in: path
@@ -1577,6 +1586,22 @@ components:
         format: uuid
         title: User Bundle Id
         type: string
+    VoiceSdkCallReportSort:
+      description: Set the order of the results by creation date. `asc` and `created_at`
+        sort oldest reports first; `desc` and `-created_at` sort newest reports first.
+        If not given, results are sorted by creation date in descending order.
+      in: query
+      name: sort
+      required: false
+      schema:
+        default: desc
+        enum:
+        - asc
+        - desc
+        - created_at
+        - -created_at
+        example: -created_at
+        type: string
     WabaId:
       description: Whatsapp Business Account ID
       in: path
@@ -2936,6 +2961,28 @@ components:
         - created_at
         - -created_at
         type: string
+    voice-sdk-debug_PageConsolidated:
+      description: Consolidated page parameter (deepObject style).
+      explode: true
+      in: query
+      name: page
+      required: false
+      schema:
+        properties:
+          number:
+            default: 1
+            example: 1
+            minimum: 1
+            type: integer
+          size:
+            default: 20
+            description: Number of reports per page. Maximum 100.
+            example: 20
+            maximum: 100
+            minimum: 1
+            type: integer
+        type: object
+      style: deepObject
     voice_id:
       description: Voice identifier for the chosen provider.
       in: query
@@ -63571,6 +63618,240 @@ components:
         data:
           $ref: '#/components/schemas/VoiceDesignSummaryData'
       type: object
+    VoiceSdkCallReport:
+      additionalProperties: true
+      description: A raw call report stats JSON payload. The schema is intentionally
+        permissive because Voice SDK clients can add fields over time.
+      properties:
+        call_id:
+          description: Unique call identifier.
+          format: uuid
+          type: string
+        call_report_id:
+          description: User-scoped storage grouping identifier derived from the authenticated
+            user. This is not a unique per-call report identifier and may be shared
+            by multiple calls for the same user.
+          type: string
+        created_at:
+          description: Creation timestamp when present.
+          format: date-time
+          type: string
+        flushReason:
+          additionalProperties: true
+          description: Reason the SDK flushed this stats report segment, for example
+            an intermediate socket-close flush.
+          type: object
+        logs:
+          $ref: '#/components/schemas/VoiceSdkCallReportLogs'
+        organization_id:
+          description: Organization associated with the stored call report when provided
+            by the Voice SDK reporting path.
+          format: uuid
+          type: string
+        segment:
+          description: Zero-based stats segment index when the SDK sends segmented
+            or intermediate reports.
+          type: integer
+        stats:
+          $ref: '#/components/schemas/VoiceSdkCallReportStats'
+        stored_at:
+          description: Time when the call report was stored.
+          format: date-time
+          type: string
+        summary:
+          additionalProperties: true
+          description: High-level call metadata.
+          type: object
+        telnyx_leg_id:
+          description: Telnyx call leg identifier for correlating the report with
+            call-control, SIP, and media troubleshooting data.
+          type: string
+        telnyx_session_id:
+          description: Telnyx RTC session identifier for correlating the report with
+            Voice SDK signaling and media-session logs.
+          type: string
+        user_agent:
+          description: Voice SDK user agent string reported by the client. This is
+            the preferred SDK/platform/version dimension when present.
+          type: string
+        user_id:
+          description: Authenticated user that owns the call report.
+          format: uuid
+          type: string
+        version:
+          description: Legacy SDK version value when the client reports one separately
+            from the user agent.
+          type: string
+        voice_sdk_id:
+          description: Voice SDK instance identifier.
+          type: string
+        voice_sdk_id_decoded:
+          additionalProperties: true
+          description: Decoded Voice SDK identifier metadata emitted by voice-sdk-proxy
+            when available.
+          type: object
+        voice_sdk_session_id:
+          description: Voice SDK session correlation identifier used to group stats
+            segments for the same SDK session.
+          type: string
+      type: object
+    VoiceSdkCallReportListResponse:
+      description: Paginated raw Voice SDK call report stats payloads as stored by
+        voice-sdk-debug.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/VoiceSdkCallReport'
+          type: array
+        meta:
+          $ref: '#/components/schemas/voice-sdk-debug_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    VoiceSdkCallReportLogEntry:
+      additionalProperties: true
+      description: A raw Voice SDK log entry. Additional SDK-specific fields may be
+        present.
+      properties:
+        context:
+          additionalProperties: true
+          description: Raw structured context attached to the log entry.
+          type: object
+        level:
+          description: Log level emitted by the SDK.
+          enum:
+          - debug
+          - info
+          - warn
+          - error
+          type: string
+        message:
+          description: Log message.
+          type: string
+        timestamp:
+          description: Time when the log entry was emitted.
+          format: date-time
+          type: string
+      type: object
+    VoiceSdkCallReportLogs:
+      description: Raw logs payload emitted by the Voice SDK and stored without normalization.
+        Live responses commonly return an array of log entries, but object-shaped
+        log payloads are also allowed for compatibility.
+      oneOf:
+      - description: Raw log entries emitted by the Voice SDK.
+        items:
+          $ref: '#/components/schemas/VoiceSdkCallReportLogEntry'
+        type: array
+      - additionalProperties: true
+        description: Raw logs object emitted by the Voice SDK when logs are grouped
+          under an entries field.
+        properties:
+          entries:
+            description: Raw log entries when the SDK groups logs under an entries
+              field.
+            items:
+              $ref: '#/components/schemas/VoiceSdkCallReportLogEntry'
+            type: array
+        type: object
+    VoiceSdkCallReportStats:
+      description: Raw stats payload emitted by the Voice SDK and stored without normalization.
+        The exact shape can vary by SDK platform and version. Live responses commonly
+        return an array of interval snapshots, but object-shaped stats payloads are
+        also allowed for compatibility.
+      oneOf:
+      - description: Raw interval stats snapshots emitted by the Voice SDK.
+        items:
+          additionalProperties: true
+          description: Raw stats snapshot. It may include WebRTC RTCStatsReport-style
+            entries and audio, connection, ICE, or transport metrics.
+          type: object
+        type: array
+      - additionalProperties: true
+        description: Raw stats object emitted by the Voice SDK.
+        properties:
+          audio:
+            additionalProperties: true
+            description: Raw audio stats such as inbound/outbound packet, byte, jitter,
+              packet-loss, bitrate, and audio-level metrics.
+            type: object
+          connection:
+            additionalProperties: true
+            description: Raw connection stats such as round-trip time, packets, and
+              bytes sent or received.
+            type: object
+          ice:
+            additionalProperties: true
+            description: Raw ICE candidate-pair information, including selected pair,
+              local/remote candidates, state, and nomination data when provided by
+              the SDK.
+            type: object
+          transport:
+            additionalProperties: true
+            description: Raw transport stats such as ICE state, DTLS state, SRTP cipher,
+              TLS version, and selected-candidate-pair changes.
+            type: object
+        type: object
+    VoiceSdkCallReportV2Error:
+      additionalProperties: true
+      description: Standard Telnyx API v2 error object.
+      properties:
+        code:
+          description: Telnyx error code.
+          example: '10015'
+          type: string
+        detail:
+          description: Human-readable details about the error.
+          example: 'Missing required query parameter: call_id.'
+          type: string
+        meta:
+          additionalProperties: true
+          description: Additional error metadata.
+          properties:
+            url:
+              description: Link to error documentation.
+              example: https://developers.telnyx.com/docs/overview/errors/10015
+              format: uri
+              type: string
+          type: object
+        source:
+          additionalProperties: true
+          description: Reference to the request field that caused the error.
+          properties:
+            parameter:
+              description: Query parameter that caused the error.
+              example: call_id
+              type: string
+            pointer:
+              description: JSON pointer to the request body field that caused the
+                error.
+              type: string
+          type: object
+        title:
+          description: Short, human-readable error title.
+          example: Bad Request
+          type: string
+      required:
+      - code
+      - title
+      - detail
+      type: object
+    VoiceSdkCallReportV2ErrorResponse:
+      additionalProperties: true
+      description: Standard Telnyx API v2 error response envelope.
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/VoiceSdkCallReportV2Error'
+          type: array
+      required:
+      - errors
+      type: object
+    VoiceSdkCallReportsResponse:
+      description: Raw Voice SDK call report stats payloads as stored by voice-sdk-debug.
+      items:
+        $ref: '#/components/schemas/VoiceSdkCallReport'
+      type: array
     VoiceSettings:
       properties:
         api_key_ref:
@@ -68602,6 +68883,22 @@ components:
         total_results:
           description: Total number of results across all pages.
           type: integer
+      type: object
+    voice-sdk-debug_PaginationMeta:
+      properties:
+        page_number:
+          example: 1
+          type: integer
+        page_size:
+          example: 20
+          type: integer
+        total_pages:
+          example: 1
+          type: integer
+        total_results:
+          example: 1
+          type: integer
+      title: Pagination Meta
       type: object
     webhook_delivery:
       description: Record of all attempts to deliver a webhook.
@@ -103166,6 +103463,210 @@ paths:
       tags:
       - Voice Designs
       x-latency-category: interactive
+  /voice_sdk_call_reports:
+    get:
+      description: Returns paginated raw call report stats JSON payloads stored for
+        the authenticated user. The user is derived from Telnyx authentication, not
+        from request parameters.
+      operationId: ListVoiceSdkCallReports
+      parameters:
+      - $ref: '#/components/parameters/voice-sdk-debug_PageConsolidated'
+      - $ref: '#/components/parameters/VoiceSdkCallReportSort'
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                reports:
+                  summary: Call report list
+                  value:
+                    data:
+                    - call_id: 6d6fb6f1-2b82-4d75-9eb5-3c8e995f1ed1
+                      flushReason:
+                        type: call-end
+                      logs:
+                      - context:
+                          candidateType: host
+                          protocol: udp
+                        level: debug
+                        message: rtcpeer candidate selected
+                        timestamp: '2026-05-06T20:00:00Z'
+                      organization_id: 06a3dfbd-4988-4fb1-8d28-9b5d85ca624b
+                      segment: 0
+                      stats:
+                      - audio:
+                          inbound:
+                            jitterAvg: 0.003
+                            packetsLost: 0
+                            packetsReceived: 1840
+                          outbound:
+                            bytesSent: 293920
+                            packetsSent: 1837
+                        connection:
+                          bytesReceived: 312880
+                          bytesSent: 293920
+                          roundTripTimeAvg: 0.041
+                        ice:
+                          local:
+                            candidateType: host
+                            protocol: udp
+                          nominated: true
+                          remote:
+                            candidateType: srflx
+                            protocol: udp
+                          state: succeeded
+                        intervalEndUtc: '2026-05-06T20:00:05Z'
+                        intervalStartUtc: '2026-05-06T20:00:00Z'
+                        transport:
+                          dtlsState: connected
+                          iceState: connected
+                          srtpCipher: AES_CM_128_HMAC_SHA1_80
+                      stored_at: '2026-05-06T20:00:05Z'
+                      summary:
+                        callId: 6d6fb6f1-2b82-4d75-9eb5-3c8e995f1ed1
+                      telnyx_leg_id: 2d0dd8f1-7d90-4f1f-b8e8-67f9fbdfe2bd
+                      telnyx_session_id: 9a0f6b0e-fb1f-44c9-9b53-7f81442b4c5f
+                      user_agent: TelnyxRTC/2.24.0 (iOS 17.5)
+                      user_id: 3307ca65-df56-4f15-8ba7-589d584d215b
+                      version: 2.24.0
+                      voice_sdk_id: VSDK1Cu-AUDpaCkbs5LKcSUK9jLZFcgqLdg
+                      voice_sdk_id_decoded:
+                        region: us-central-1
+                      voice_sdk_session_id: 0a52a677-9784-4841-ad31-9596c6e5b970
+                    meta:
+                      page_number: 1
+                      page_size: 20
+                      total_pages: 1
+                      total_results: 1
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportListResponse'
+          description: Paginated raw call report stats payloads.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: "Bad request \u2014 invalid pagination or sort parameter."
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: Authentication failed.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: Unexpected server error while listing reports.
+      security:
+      - bearerAuth: []
+      summary: List Voice SDK call reports
+      tags:
+      - Voice SDK Stats
+      x-latency-category: responsive
+  /voice_sdk_call_reports/{call_id}:
+    get:
+      description: Returns raw call report stats JSON payloads stored for the authenticated
+        user and `call_id`. The user is derived from Telnyx authentication, not from
+        request parameters.
+      operationId: GetVoiceSdkCallReport
+      parameters:
+      - $ref: '#/components/parameters/CallId'
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                reports:
+                  summary: Call reports
+                  value:
+                  - call_id: 6d6fb6f1-2b82-4d75-9eb5-3c8e995f1ed1
+                    flushReason:
+                      type: call-end
+                    logs:
+                    - context:
+                        candidateType: host
+                        protocol: udp
+                      level: debug
+                      message: rtcpeer candidate selected
+                      timestamp: '2026-05-06T20:00:00Z'
+                    organization_id: 06a3dfbd-4988-4fb1-8d28-9b5d85ca624b
+                    segment: 0
+                    stats:
+                    - audio:
+                        inbound:
+                          jitterAvg: 0.003
+                          packetsLost: 0
+                          packetsReceived: 1840
+                        outbound:
+                          bytesSent: 293920
+                          packetsSent: 1837
+                      connection:
+                        bytesReceived: 312880
+                        bytesSent: 293920
+                        roundTripTimeAvg: 0.041
+                      ice:
+                        local:
+                          candidateType: host
+                          protocol: udp
+                        nominated: true
+                        remote:
+                          candidateType: srflx
+                          protocol: udp
+                        state: succeeded
+                      intervalEndUtc: '2026-05-06T20:00:05Z'
+                      intervalStartUtc: '2026-05-06T20:00:00Z'
+                      transport:
+                        dtlsState: connected
+                        iceState: connected
+                        srtpCipher: AES_CM_128_HMAC_SHA1_80
+                    stored_at: '2026-05-06T20:00:05Z'
+                    summary:
+                      callId: 6d6fb6f1-2b82-4d75-9eb5-3c8e995f1ed1
+                    telnyx_leg_id: 2d0dd8f1-7d90-4f1f-b8e8-67f9fbdfe2bd
+                    telnyx_session_id: 9a0f6b0e-fb1f-44c9-9b53-7f81442b4c5f
+                    user_agent: TelnyxRTC/2.24.0 (iOS 17.5)
+                    user_id: 3307ca65-df56-4f15-8ba7-589d584d215b
+                    version: 2.24.0
+                    voice_sdk_id: VSDK1Cu-AUDpaCkbs5LKcSUK9jLZFcgqLdg
+                    voice_sdk_id_decoded:
+                      region: us-central-1
+                    voice_sdk_session_id: 0a52a677-9784-4841-ad31-9596c6e5b970
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportsResponse'
+          description: Raw call report stats payloads.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: "Bad request \u2014 invalid path parameter."
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: Authentication failed.
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: No call report was found for the authenticated user and call
+            ID.
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSdkCallReportV2ErrorResponse'
+          description: Unexpected server error while looking up the report.
+      security:
+      - bearerAuth: []
+      summary: Retrieve Voice SDK call reports by call ID
+      tags:
+      - Voice SDK Stats
+      x-latency-category: responsive
   /webhook_deliveries:
     get:
       description: Lists webhook_deliveries for the authenticated user
@@ -104142,6 +104643,8 @@ tags:
 - description: Create and manage AI-generated voice designs using natural language
     prompts.
   name: Voice Designs
+- description: Retrieve raw Voice SDK call report stats payloads for WebRTC call troubleshooting.
+  name: Voice SDK Stats
 - description: Voicemail API
   name: Voicemail
 - description: Webhooks operations
