@@ -10176,6 +10176,8 @@ components:
             any command with the same `command_id` for the same `call_control_id`.
           example: 891510ac-f3e4-11e8-af5b-de00688a4901
           type: string
+        conversation_relay_config:
+          $ref: '#/components/schemas/ConversationRelayEmbeddedConfig'
         custom_headers:
           description: Custom headers to be added to the SIP INVITE response.
           example:
@@ -16623,6 +16625,17 @@ components:
           conference_name: telnyx-conference
           start_conference_on_enter: true
         connection_id: 7267xxxxxxxxxxxxxx
+        conversation_relay_config:
+          custom_parameters:
+            customer_id: '12345'
+          dtmf_detection: true
+          greeting: Hi! Ask me anything!
+          interruptible: speech
+          interruptible_greeting: dtmf
+          language: en-US
+          tts_provider: telnyx
+          url: wss://example.com/conversation-relay
+          voice: Telnyx.KokoroTTS.af
         custom_headers:
         - name: head_1
           value: val_1
@@ -16913,6 +16926,8 @@ components:
           description: The ID of the Call Control App (formerly ID of the connection)
             to be used when dialing the destination.
           type: string
+        conversation_relay_config:
+          $ref: '#/components/schemas/ConversationRelayEmbeddedConfig'
         custom_headers:
           description: Custom headers to be added to the SIP INVITE.
           example:
@@ -22306,6 +22321,135 @@ components:
           type: object
       title: Conversation Relay Custom Parameters
       type: object
+    ConversationRelayEmbeddedConfig:
+      description: Starts a Conversation Relay session automatically when the answered/dialed
+        call is answered. This embedded shape is supported on `answer` and `dial`.
+        It uses public field names (`url`, `dtmf_detection`, `greeting`, `voice`,
+        `language`, etc.) and maps them to the underlying Conversation Relay action.
+        `client_state`, `tts_language`, and `transcription_language` inside this object
+        are ignored; use the parent command's `client_state` and `command_id` fields
+        instead.
+      example:
+        custom_parameters:
+          customer_id: '12345'
+        dtmf_detection: true
+        greeting: Hi! Ask me anything!
+        interruptible: speech
+        interruptible_greeting: dtmf
+        language: en-US
+        languages:
+        - language: en-US
+          transcription_engine: Deepgram
+          transcription_engine_config:
+            transcription_model: deepgram/nova-3
+          tts_provider: telnyx
+          voice: Telnyx.Ultra.alloy
+        tts_provider: telnyx
+        url: wss://example.com/conversation-relay
+        voice: Telnyx.KokoroTTS.af
+        voice_settings:
+          type: telnyx
+      properties:
+        custom_parameters:
+          additionalProperties: true
+          description: Custom key-value parameters forwarded to the relay session
+            as assistant dynamic variables.
+          example:
+            customer_id: '12345'
+          type: object
+        dtmf_detection:
+          default: false
+          description: Enable DTMF detection for the relay session.
+          example: true
+          type: boolean
+        greeting:
+          description: Text played when the relay session starts.
+          example: Hi! Ask me anything!
+          type: string
+        interruptible:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        interruptible_greeting:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        interruption_settings:
+          $ref: '#/components/schemas/ConversationRelayInterruptionSettings'
+        language:
+          default: en
+          description: Default language for both text-to-speech and speech recognition.
+          example: en-US
+          type: string
+        languages:
+          description: Per-language TTS and transcription settings.
+          items:
+            $ref: '#/components/schemas/ConversationRelayLanguage'
+          type: array
+        provider:
+          description: Structured voice provider. Must be supplied together with `structured_provider`.
+          example: elevenlabs
+          type: string
+        structured_provider:
+          $ref: '#/components/schemas/ConversationRelayStructuredProvider'
+        transcription_engine:
+          default: Google
+          description: Engine to use for speech recognition. Legacy values `A` - `Google`,
+            `B` - `Telnyx` are supported for backward compatibility. For Conversation
+            Relay, use this field with `transcription_engine_config`; the `transcription`
+            object is not supported.
+          enum:
+          - Google
+          - Telnyx
+          - Deepgram
+          - Azure
+          - xAI
+          - AssemblyAI
+          - Speechmatics
+          - Soniox
+          - A
+          - B
+          example: Google
+          type: string
+        transcription_engine_config:
+          $ref: '#/components/schemas/ConversationRelayTranscriptionEngineConfig'
+        tts_provider:
+          description: Text-to-speech provider. If omitted, Telnyx derives it from
+            `voice` or `provider`.
+          example: telnyx
+          type: string
+        url:
+          description: WebSocket URL for your Conversation Relay server. Must start
+            with `ws://` or `wss://`.
+          example: wss://example.com/conversation-relay
+          pattern: ^wss?://
+          type: string
+        voice:
+          $ref: '#/components/schemas/VoiceConfig'
+        voice_settings:
+          description: The settings associated with the voice selected
+          discriminator:
+            mapping:
+              aws: '#/components/schemas/AWSVoiceSettings'
+              azure: '#/components/schemas/AzureVoiceSettings'
+              elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              inworld: '#/components/schemas/InworldVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
+              resemble: '#/components/schemas/ResembleVoiceSettings'
+              rime: '#/components/schemas/RimeVoiceSettings'
+              telnyx: '#/components/schemas/TelnyxVoiceSettings'
+              xai: '#/components/schemas/XAIVoiceSettings'
+            propertyName: type
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
+          - $ref: '#/components/schemas/AzureVoiceSettings'
+          - $ref: '#/components/schemas/RimeVoiceSettings'
+          - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/InworldVoiceSettings'
+          - $ref: '#/components/schemas/XAIVoiceSettings'
+      required:
+      - url
+      title: Conversation Relay Embedded Config
+      type: object
     ConversationRelayInterruptible:
       default: any
       description: Controls when caller input can interrupt assistant speech. `any`
@@ -22335,37 +22479,97 @@ components:
       title: Conversation Relay Interruption Settings
       type: object
     ConversationRelayLanguage:
-      description: Language-specific speech and transcription settings for Conversation
+      description: Language-specific TTS and transcription settings for Conversation
         Relay.
       properties:
-        code:
-          description: BCP 47 language code.
+        language:
+          description: BCP 47 language tag for this language configuration.
           example: en-US
           type: string
         speech_model:
-          description: Speech recognition model for this language.
-          example: nova-2
+          description: Conversation Relay speech model. Prefer `transcription_engine_config.transcription_model`
+            when configuring speech-to-text.
+          example: nova-3
           type: string
+        transcription_engine:
+          default: Google
+          description: Engine to use for speech recognition. Legacy values `A` - `Google`,
+            `B` - `Telnyx` are supported for backward compatibility. When provided
+            in a Conversation Relay language entry, Telnyx derives `transcription_provider`
+            and `speech_model` for that language.
+          enum:
+          - Google
+          - Telnyx
+          - Deepgram
+          - Azure
+          - xAI
+          - AssemblyAI
+          - Speechmatics
+          - Soniox
+          - A
+          - B
+          example: Google
+          type: string
+        transcription_engine_config:
+          $ref: '#/components/schemas/ConversationRelayTranscriptionEngineConfig'
         transcription_provider:
-          description: Speech-to-text provider for this language.
+          description: Conversation Relay transcription provider name. Prefer `transcription_engine`
+            when configuring speech-to-text.
           example: Deepgram
           type: string
         tts_provider:
-          description: Text-to-speech provider for this language.
-          example: ElevenLabs
+          description: Text-to-speech provider for this language. If omitted and `voice`
+            is provided, Telnyx derives the provider from the voice identifier.
+          example: telnyx
           type: string
         voice:
           description: Voice identifier for this language.
-          example: alice
+          example: Telnyx.KokoroTTS.af
           type: string
+        voice_settings:
+          description: The settings associated with the voice selected
+          discriminator:
+            mapping:
+              aws: '#/components/schemas/AWSVoiceSettings'
+              azure: '#/components/schemas/AzureVoiceSettings'
+              elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              inworld: '#/components/schemas/InworldVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
+              resemble: '#/components/schemas/ResembleVoiceSettings'
+              rime: '#/components/schemas/RimeVoiceSettings'
+              telnyx: '#/components/schemas/TelnyxVoiceSettings'
+              xai: '#/components/schemas/XAIVoiceSettings'
+            propertyName: type
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
+          - $ref: '#/components/schemas/AzureVoiceSettings'
+          - $ref: '#/components/schemas/RimeVoiceSettings'
+          - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/InworldVoiceSettings'
+          - $ref: '#/components/schemas/XAIVoiceSettings'
+      required:
+      - language
       title: Conversation Relay Language
       type: object
     ConversationRelaySettings:
-      description: Conversation Relay connection settings. This object is used by
-        TeXML Call Scripting's `<ConversationRelay>` verb. The `interruptible` and
-        `interruptible_greeting` fields are shorthand for `interruption_settings.interruptible`
-        and `interruption_settings.interruptible_greeting`; use top-level `interruption_settings`
-        for the full interruption settings shape.
+      description: Conversation Relay connection settings. This object can provide
+        `url`, `dtmf_detection`, `interruptible`, `interruptible_greeting`, and `languages`.
+        Top-level aliases override nested values when both are present.
+      example:
+        dtmf_detection: true
+        interruptible: speech
+        interruptible_greeting: dtmf
+        languages:
+        - language: en-US
+          transcription_engine: Deepgram
+          transcription_engine_config:
+            transcription_model: deepgram/nova-3
+          tts_provider: telnyx
+          voice: Telnyx.KokoroTTS.af
+        url: wss://example.com/conversation-relay
       properties:
         dtmf_detection:
           default: false
@@ -22394,32 +22598,36 @@ components:
     ConversationRelayStartRequest:
       anyOf:
       - required:
+        - url
+      - required:
         - conversation_relay_url
       - required:
         - conversation_relay_settings
-      description: Start a Conversation Relay session. Provide either `conversation_relay_url`
-        or `conversation_relay_settings.url`; when both nested and top-level equivalents
-        are provided, top-level values take precedence as described on `conversation_relay_settings`.
+      description: Start a Conversation Relay session. You may provide the WebSocket
+        URL as `url`, `conversation_relay_url`, or `conversation_relay_settings.url`;
+        top-level values take precedence over nested settings. Use `transcription_engine`
+        and `transcription_engine_config` for speech-to-text configuration; the `transcription`
+        object is not supported.
       example:
-        assistant:
-          dynamic_variables:
-            customer_id: '12345'
-        conversation_relay_settings:
-          dtmf_detection: true
-          interruptible: speech
-          interruptible_greeting: any
-          languages:
-          - code: en-US
-            speech_model: nova-2
-            transcription_provider: Deepgram
-            tts_provider: ElevenLabs
-            voice: alice
-          url: wss://example.com/conversation-relay
+        custom_parameters:
+          customer_id: '12345'
+        dtmf_detection: true
         greeting: Hi! Ask me anything!
+        interruptible: speech
+        interruptible_greeting: dtmf
         language: en-US
-        transcription:
-          provider: deepgram
+        languages:
+        - language: en-US
+          transcription_engine: Deepgram
+          transcription_engine_config:
+            transcription_model: deepgram/nova-3
+          tts_provider: telnyx
+          voice: Telnyx.KokoroTTS.af
+        tts_provider: telnyx
+        url: wss://example.com/conversation-relay
         voice: Telnyx.KokoroTTS.af
+        voice_settings:
+          type: telnyx
       properties:
         assistant:
           $ref: '#/components/schemas/ConversationRelayAssistant'
@@ -22446,37 +22654,84 @@ components:
           example: wss://example.com/conversation-relay
           pattern: ^wss?://
           type: string
+        custom_parameters:
+          additionalProperties: true
+          description: Custom key-value parameters forwarded to the relay session
+            as `assistant.dynamic_variables`. If `assistant.dynamic_variables` is
+            also present, these values are merged in.
+          example:
+            customer_id: '12345'
+          type: object
+        dtmf_detection:
+          default: false
+          description: Public alias for `conversation_relay_dtmf_detection`. If both
+            are present, this value wins.
+          example: true
+          type: boolean
         greeting:
           description: Text played when the relay session starts.
           example: Hi! Ask me anything!
           type: string
+        interruptible:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
+        interruptible_greeting:
+          $ref: '#/components/schemas/ConversationRelayInterruptible'
         interruption_settings:
           $ref: '#/components/schemas/ConversationRelayInterruptionSettings'
         language:
           default: en
           description: Default language for the relay session. This value is used
-            for both text-to-speech and speech recognition unless `tts_language` or
-            `transcription_language` are provided.
+            for both text-to-speech and speech recognition.
           example: en-US
           type: string
         languages:
-          description: Language-specific TTS and transcription settings. Use this
-            when the relay session needs per-language provider, voice, or speech model
-            configuration.
+          description: Per-language TTS and transcription settings.
           items:
             $ref: '#/components/schemas/ConversationRelayLanguage'
           type: array
-        transcription:
-          $ref: '#/components/schemas/ConversationRelayTranscriptionSettings'
-        transcription_language:
-          description: Language to use for speech recognition. Overrides `language`
-            for transcription when provided.
-          example: en-US
+        provider:
+          description: Structured voice provider. Must be supplied together with `structured_provider`.
+          example: elevenlabs
           type: string
-        tts_language:
-          description: Language to use for text-to-speech. Overrides `language` for
-            TTS when provided.
-          example: es
+        structured_provider:
+          $ref: '#/components/schemas/ConversationRelayStructuredProvider'
+        transcription:
+          additionalProperties: true
+          deprecated: true
+          description: Not supported for Conversation Relay start requests. Use `transcription_engine`
+            and `transcription_engine_config` instead.
+          type: object
+        transcription_engine:
+          default: Google
+          description: Engine to use for speech recognition. Legacy values `A` - `Google`,
+            `B` - `Telnyx` are supported for backward compatibility. For Conversation
+            Relay, use this field with `transcription_engine_config`; the `transcription`
+            object is not supported.
+          enum:
+          - Google
+          - Telnyx
+          - Deepgram
+          - Azure
+          - xAI
+          - AssemblyAI
+          - Speechmatics
+          - Soniox
+          - A
+          - B
+          example: Google
+          type: string
+        transcription_engine_config:
+          $ref: '#/components/schemas/ConversationRelayTranscriptionEngineConfig'
+        tts_provider:
+          description: Text-to-speech provider. If omitted, Telnyx derives it from
+            `voice` or `provider`.
+          example: telnyx
+          type: string
+        url:
+          description: Public alias for `conversation_relay_url`. Must start with
+            `ws://` or `wss://`. If both are present, this value wins.
+          example: wss://example.com/conversation-relay
+          pattern: ^wss?://
           type: string
         voice:
           $ref: '#/components/schemas/VoiceConfig'
@@ -22487,6 +22742,8 @@ components:
               aws: '#/components/schemas/AWSVoiceSettings'
               azure: '#/components/schemas/AzureVoiceSettings'
               elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              inworld: '#/components/schemas/InworldVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
               resemble: '#/components/schemas/ResembleVoiceSettings'
               rime: '#/components/schemas/RimeVoiceSettings'
               telnyx: '#/components/schemas/TelnyxVoiceSettings'
@@ -22496,9 +22753,11 @@ components:
           - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
           - $ref: '#/components/schemas/TelnyxVoiceSettings'
           - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
           - $ref: '#/components/schemas/AzureVoiceSettings'
           - $ref: '#/components/schemas/RimeVoiceSettings'
           - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
       title: Conversation Relay Start Request
       type: object
@@ -22516,22 +22775,28 @@ components:
           type: string
       title: Conversation Relay Stop Request
       type: object
-    ConversationRelayTranscriptionSettings:
-      description: Speech-to-text settings for Conversation Relay.
-      properties:
-        language:
-          description: Transcription language.
-          example: en-US
-          type: string
-        model:
-          description: Transcription model to use.
-          example: nova-2
-          type: string
-        provider:
-          description: Transcription provider to use.
-          example: deepgram
-          type: string
-      title: Conversation Relay Transcription Settings
+    ConversationRelayStructuredProvider:
+      additionalProperties: true
+      description: Provider-specific structured voice settings. Must be supplied together
+        with `provider`; Telnyx sends the value as the nested provider configuration
+        for Conversation Relay.
+      example:
+        model_id: Default
+        voice_id: voice-id
+      title: Conversation Relay Structured Provider
+      type: object
+    ConversationRelayTranscriptionEngineConfig:
+      additionalProperties: true
+      description: Engine-specific transcription settings for Conversation Relay.
+        This accepts the same provider-specific options used by the Call Transcription
+        Start command, such as `transcription_model`, without requiring the engine
+        discriminator to be repeated inside this object.
+      example:
+        interim_results: true
+        keywords_boosting:
+          telnyx: 2.0
+        transcription_model: deepgram/nova-3
+      title: Conversation Relay Transcription Engine Config
       type: object
     ConversationsListData:
       properties:
