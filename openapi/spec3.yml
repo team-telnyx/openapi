@@ -50223,6 +50223,68 @@ components:
           format: date-time
           type: string
       type: object
+    STTProvider:
+      description: A (provider, model) tuple along with its supported service types
+        and languages.
+      properties:
+        languages:
+          description: Languages this (provider, model) accepts, in the provider's
+            native code format. `auto` indicates the provider performs language detection.
+          example:
+          - en
+          - es
+          - fr
+          items:
+            type: string
+          type: array
+        model:
+          description: Provider-scoped model name.
+          example: nova-3
+          type: string
+        provider:
+          description: STT provider name.
+          example: deepgram
+          type: string
+        service_types:
+          description: Service surfaces this (provider, model) supports.
+          items:
+            $ref: '#/components/schemas/STTServiceType'
+          type: array
+      required:
+      - provider
+      - model
+      - service_types
+      - languages
+      type: object
+    STTProvidersMeta:
+      properties:
+        total:
+          description: Total number of entries returned.
+          example: 12
+          type: integer
+      required:
+      - total
+      type: object
+    STTProvidersResponse:
+      description: List of supported STT providers and models.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/STTProvider'
+          type: array
+        meta:
+          $ref: '#/components/schemas/STTProvidersMeta'
+      required:
+      - data
+      - meta
+      type: object
+    STTServiceType:
+      description: Service surface a model is available on.
+      enum:
+      - streaming
+      - file_transcription
+      - in_call_transcription
+      type: string
     ScheduledEventResponse:
       anyOf:
       - $ref: '#/components/schemas/ScheduledPhoneCallEventResponse'
@@ -98458,6 +98520,69 @@ paths:
       tags:
       - SIPREC Connectors
       x-latency-category: responsive
+  /speech-to-text/providers:
+    get:
+      description: "Retrieve the canonical list of supported speech-to-text providers,\
+        \ models, accepted language codes, and the service types each model supports.\n\
+        \nService types:\n  * `streaming` \u2014 standalone WebSocket transcription\
+        \ via `/speech-to-text/transcription`.\n  * `file_transcription` \u2014 file-based\
+        \ transcription via `/ai/audio/transcriptions`.\n  * `in_call_transcription`\
+        \ \u2014 live call transcription via Call Control `transcription_start`.\n\
+        \nUse this endpoint to discover which (provider, model) combinations are available\
+        \ for the surface you need, and which language codes each accepts. `auto`\
+        \ in a `languages` array indicates the provider performs language detection."
+      operationId: listSttProviders
+      parameters:
+      - description: Filter to entries that support the given service type.
+        in: query
+        name: service_type
+        required: false
+        schema:
+          $ref: '#/components/schemas/STTServiceType'
+      - description: Filter to entries for a specific STT provider. The enum mirrors
+          the providers advertised across the speech-to-text spec (including `google`
+          and `telnyx`, which are accepted as WebSocket transcription engines). A
+          provider that has no models currently registered for any service type will
+          return an empty `data` array rather than an error.
+        in: query
+        name: provider
+        required: false
+        schema:
+          enum:
+          - deepgram
+          - speechmatics
+          - assemblyai
+          - xai
+          - soniox
+          - azure
+          - openai
+          - google
+          - telnyx
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/STTProvidersResponse'
+          description: List of supported STT providers and models.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/speech-to-text_Errors'
+          description: "Bad request \u2014 invalid filter value."
+        '401':
+          description: "Authentication failed \u2014 missing or invalid API key."
+        '422':
+          $ref: '#/components/responses/speech-to-text_UnprocessableEntityResponse'
+      servers:
+      - description: Telnyx API v2
+        url: https://api.telnyx.com/v2
+      summary: List supported STT providers
+      tags:
+      - Speech To Text Capabilities
+      x-latency-category: responsive
   /speech-to-text/transcription:
     get:
       description: 'Open a WebSocket connection to stream audio and receive transcriptions
@@ -98519,6 +98644,9 @@ paths:
             \ header."
         '422':
           $ref: '#/components/responses/speech-to-text_UnprocessableEntityResponse'
+      servers:
+      - description: Telnyx API v2 (WebSocket)
+        url: wss://api.telnyx.com/v2
       summary: Speech to text over WebSocket
       tags:
       - Speech To Text over WebSockets
@@ -104858,6 +104986,9 @@ tags:
   name: Session Analysis
 - description: Short codes
   name: Short Codes
+- description: Discover available speech-to-text providers, models, and supported
+    languages.
+  name: Speech To Text Capabilities
 - description: Speech to text command operations
   name: Speech To Text over WebSockets
 - description: Speech to text batch detail records
