@@ -30188,6 +30188,32 @@ components:
       example: zoom
       title: External SIP Connection
       type: string
+    ExternalUacSettings:
+      description: Outward-facing SIP settings used for registration. Password is
+        redacted.
+      properties:
+        auth_username:
+          type: string
+        expiration_sec:
+          type: integer
+        from_user:
+          type: string
+        outbound_proxy:
+          type: string
+        password:
+          example: '***'
+          type: string
+        proxy:
+          type: string
+        transport:
+          enum:
+          - TCP
+          - UDP
+          - TLS
+          type: string
+        username:
+          type: string
+      type: object
     ExternalVetting:
       properties:
         createDate:
@@ -35141,6 +35167,13 @@ components:
       example: provisioned
       readOnly: true
       type: string
+    InternalUacSettings:
+      description: Internal routing target the connection delivers calls to.
+      properties:
+        destination_uri:
+          example: 1006@assistant-abc123.sip.telnyx.com
+          type: string
+      type: object
     InterruptionSettings:
       description: Settings for handling user interruptions during assistant speech
       properties:
@@ -51415,6 +51448,36 @@ components:
       - name
       - value
       title: SIP Header
+      type: object
+    SipRegistrationStatus:
+      properties:
+        connection_id:
+          description: Identifier of the resource.
+          type: string
+        connection_name:
+          description: Human-readable connection name.
+          type: string
+        external_uac_settings:
+          $ref: '#/components/schemas/ExternalUacSettings'
+        internal_uac_settings:
+          $ref: '#/components/schemas/InternalUacSettings'
+        last_registration_response:
+          description: SIP response from the last registration attempt.
+          example: 200 OK
+          type: string
+        pair_state:
+          description: Internal pairing state, e.g. ACTIVE or INACTIVE.
+          example: ACTIVE
+          type: string
+        registered:
+          description: True if the endpoint is currently registered.
+          type: boolean
+        user_id:
+          description: Owner of the resource.
+          type: string
+        username:
+          description: SIP username used for the registration.
+          type: string
       type: object
     SiprecConnector:
       example:
@@ -98450,6 +98513,54 @@ paths:
       tags:
       - SIM Cards
       x-latency-category: responsive
+  /sip_registration_status:
+    get:
+      description: Returns the live SIP registration state of a connection or credential.
+        Supports UAC third-party credentials, telephony credentials, and SIP credential
+        connections.
+      operationId: GetSipRegistrationStatus
+      parameters:
+      - description: The kind of credential to look up.
+        in: query
+        name: credential_type
+        required: true
+        schema:
+          enum:
+          - uac_external_credential
+          - telephony_credential
+          - sip_credential_connection
+          type: string
+      - description: Identifier of the connection or credential to look up.
+        in: query
+        name: connection_id
+        required: true
+        schema:
+          type: string
+      - description: Owner of the connection. Used to authorize the lookup.
+        in: query
+        name: user_id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SipRegistrationStatus'
+          description: Registration status payload
+        '400':
+          description: Missing or invalid query parameters
+        '401':
+          description: Missing or invalid API key
+        '403':
+          description: Connection exists but is not owned by user_id
+        '404':
+          description: No connection or credential matches connection_id
+      summary: Check SIP registration status
+      tags:
+      - SIP Registration Status
+      x-latency-category: responsive
   /siprec_connectors:
     post:
       description: Creates a new SIPREC connector configuration.
@@ -104979,6 +105090,8 @@ tags:
   name: SIM Card Orders
 - description: SIM Cards operations
   name: SIM Cards
+- description: Look up SIP registration status across credential types
+  name: SIP Registration Status
 - description: SIPREC connectors configuration.
   name: SIPREC Connectors
 - description: Analyze voice AI sessions, costs, and event hierarchies across Telnyx
