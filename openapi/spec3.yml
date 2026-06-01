@@ -30229,6 +30229,7 @@ components:
         outbound_proxy:
           type: string
         password:
+          description: Always redacted.
           example: '***'
           type: string
         proxy:
@@ -35199,7 +35200,6 @@ components:
       description: Internal routing target the connection delivers calls to.
       properties:
         destination_uri:
-          example: 1006@assistant-abc123.sip.telnyx.com
           type: string
       type: object
     InterruptionSettings:
@@ -51479,11 +51479,28 @@ components:
       type: object
     SipRegistrationStatus:
       properties:
+        b2bua_external:
+          additionalProperties: true
+          description: Raw external-side registration block reported by the registrar.
+          type: object
+        b2bua_internal:
+          additionalProperties: true
+          description: Raw internal-side block reported by the registrar.
+          type: object
         connection_id:
-          description: Identifier of the resource.
+          description: Identifier of the UAC connection.
           type: string
         connection_name:
           description: Human-readable connection name.
+          type: string
+        credential_type:
+          description: The credential type that was looked up.
+          enum:
+          - uac_external_credential
+          type: string
+        external_state:
+          description: Registration state on the external (UAC / PBX) side, e.g. REGED.
+          example: REGED
           type: string
         external_uac_settings:
           $ref: '#/components/schemas/ExternalUacSettings'
@@ -51501,7 +51518,7 @@ components:
           description: True if the endpoint is currently registered.
           type: boolean
         user_id:
-          description: Owner of the resource.
+          description: Owner of the connection.
           type: string
         username:
           description: SIP username used for the registration.
@@ -98543,28 +98560,30 @@ paths:
       x-latency-category: responsive
   /sip_registration_status:
     get:
-      description: Returns the live SIP registration state of a connection or credential.
-        Supports UAC third-party credentials, telephony credentials, and SIP credential
-        connections.
+      description: 'Returns the live SIP registration state of a UAC connection: whether
+        it is currently registered, when it last registered, and the last response
+        Telnyx received from the registrar. Only `uac_external_credential` is supported
+        today.'
       operationId: GetSipRegistrationStatus
       parameters:
-      - description: The kind of credential to look up.
+      - description: The kind of credential to look up. Only `uac_external_credential`
+          is supported today.
         in: query
         name: credential_type
         required: true
         schema:
           enum:
           - uac_external_credential
-          - telephony_credential
-          - sip_credential_connection
           type: string
-      - description: Identifier of the connection or credential to look up.
+      - description: Identifier of the UAC connection to look up.
+        example: '1234567890'
         in: query
         name: connection_id
         required: true
         schema:
           type: string
       - description: Owner of the connection. Used to authorize the lookup.
+        example: '100'
         in: query
         name: user_id
         required: true
@@ -98584,7 +98603,7 @@ paths:
         '403':
           description: Connection exists but is not owned by user_id
         '404':
-          description: No connection or credential matches connection_id
+          description: No connection matches connection_id
       summary: Check SIP registration status
       tags:
       - SIP Registration Status
@@ -105152,7 +105171,7 @@ tags:
   name: SIM Card Orders
 - description: SIM Cards operations
   name: SIM Cards
-- description: Look up SIP registration status across credential types
+- description: Look up the live SIP registration status of a UAC connection.
   name: SIP Registration Status
 - description: SIPREC connectors configuration.
   name: SIPREC Connectors
