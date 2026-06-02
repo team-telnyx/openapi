@@ -30216,33 +30216,6 @@ components:
       example: zoom
       title: External SIP Connection
       type: string
-    ExternalUacSettings:
-      description: Outward-facing SIP settings used for registration. Password is
-        redacted.
-      properties:
-        auth_username:
-          type: string
-        expiration_sec:
-          type: integer
-        from_user:
-          type: string
-        outbound_proxy:
-          type: string
-        password:
-          description: Always redacted.
-          example: '***'
-          type: string
-        proxy:
-          type: string
-        transport:
-          enum:
-          - TCP
-          - UDP
-          - TLS
-          type: string
-        username:
-          type: string
-      type: object
     ExternalVetting:
       properties:
         createDate:
@@ -35196,12 +35169,6 @@ components:
       example: provisioned
       readOnly: true
       type: string
-    InternalUacSettings:
-      description: Internal routing target the connection delivers calls to.
-      properties:
-        destination_uri:
-          type: string
-      type: object
     InterruptionSettings:
       description: Settings for handling user interruptions during assistant speech
       properties:
@@ -51479,14 +51446,6 @@ components:
       type: object
     SipRegistrationStatus:
       properties:
-        b2bua_external:
-          additionalProperties: true
-          description: Raw external-side registration block reported by the registrar.
-          type: object
-        b2bua_internal:
-          additionalProperties: true
-          description: Raw internal-side block reported by the registrar.
-          type: object
         connection_id:
           description: Identifier of the UAC connection.
           type: string
@@ -51498,30 +51457,49 @@ components:
           enum:
           - uac_external_credential
           type: string
-        external_state:
-          description: Registration state on the external (UAC / PBX) side, e.g. REGED.
-          example: REGED
+        credential_username:
+          description: SIP username used for the registration.
           type: string
-        external_uac_settings:
-          $ref: '#/components/schemas/ExternalUacSettings'
-        internal_uac_settings:
-          $ref: '#/components/schemas/InternalUacSettings'
         last_registration_response:
           description: SIP response from the last registration attempt.
           example: 200 OK
           type: string
-        pair_state:
-          description: Internal pairing state, e.g. ACTIVE or INACTIVE.
-          example: ACTIVE
-          type: string
         registered:
           description: True if the endpoint is currently registered.
           type: boolean
-        user_id:
-          description: Owner of the connection.
-          type: string
-        username:
-          description: SIP username used for the registration.
+        sip_registration_details:
+          description: Detailed registration information reported by the registrar.
+          properties:
+            auth_retries:
+              description: Number of authentication retries on the last attempt.
+              type: integer
+            expires:
+              description: Unix timestamp when the current registration expires.
+              type: integer
+            failures:
+              description: Count of consecutive registration failures.
+              type: integer
+            next_action_at:
+              description: Unix timestamp of the next scheduled registration action.
+              type: integer
+            sipUriUserHost:
+              description: SIP URI user@host of the registered contact.
+              type: string
+            uptime:
+              description: Registration uptime reported by the registrar.
+              type: integer
+          type: object
+        sip_registration_status:
+          description: Human-readable registration status derived from the registrar
+            state.
+          enum:
+          - unregistering
+          - connection_disabled
+          - standby
+          - failed
+          - trying
+          - registered
+          - unknown
           type: string
       type: object
     SiprecConnector:
@@ -98586,6 +98564,21 @@ paths:
         '200':
           content:
             application/json:
+              example:
+                connection_id: '1234567890'
+                connection_name: FreePBX UAC 1002
+                credential_type: uac_external_credential
+                credential_username: useralice12345
+                last_registration_response: 200 OK
+                registered: true
+                sip_registration_details:
+                  auth_retries: 0
+                  expires: 1780404431
+                  failures: 0
+                  next_action_at: 1780414482
+                  sipUriUserHost: 1002@192.0.2.10
+                  uptime: 1780401551699908
+                sip_registration_status: registered
               schema:
                 $ref: '#/components/schemas/SipRegistrationStatus'
           description: Registration status payload
