@@ -22443,11 +22443,13 @@ components:
             discriminator:
               mapping:
                 prompt: '#/components/schemas/FlowNode'
+                speak: '#/components/schemas/SpeakNode'
                 tool: '#/components/schemas/ToolNode'
               propertyName: type
             oneOf:
             - $ref: '#/components/schemas/FlowNode'
             - $ref: '#/components/schemas/ToolNode'
+            - $ref: '#/components/schemas/SpeakNode'
           title: Nodes
           type: array
         start_node_id:
@@ -22529,11 +22531,13 @@ components:
             discriminator:
               mapping:
                 prompt: '#/components/schemas/FlowNodeReq'
+                speak: '#/components/schemas/SpeakNodeReq'
                 tool: '#/components/schemas/ToolNodeReq'
               propertyName: type
             oneOf:
             - $ref: '#/components/schemas/FlowNodeReq'
             - $ref: '#/components/schemas/ToolNodeReq'
+            - $ref: '#/components/schemas/SpeakNodeReq'
           title: Nodes
           type: array
         start_node_id:
@@ -28205,6 +28209,35 @@ components:
       example: en
       title: Deepgram nova-3 transcription engine list of languages
       type: string
+    DefaultCondition:
+      description: 'Fallback edge condition: fires only when no other edge''s condition
+        is true.
+
+
+        Evaluated after every conditioned (`llm` / `expression`) edge regardless
+
+        of declaration order, so it routes the flow whenever none of the node''s
+
+        other outgoing edges match. Valid **only** on edges leaving a `tool` or
+
+        `speak` node, where the deterministic step auto-advances and must always
+
+        have somewhere to go. A tool/speak node with any outgoing edge is required
+
+        to carry exactly one `default` edge so it never dead-ends; a tool/speak
+
+        node with no outgoing edges is a valid terminal step. Carries no parameters.'
+      example:
+        type: default
+      properties:
+        type:
+          const: default
+          title: Type
+          type: string
+      required:
+      - type
+      title: DefaultCondition
+      type: object
     DefaultGateway:
       allOf:
       - $ref: '#/components/schemas/Record'
@@ -31619,12 +31652,14 @@ components:
             `llm`, `expression`.'
           discriminator:
             mapping:
+              default: '#/components/schemas/DefaultCondition'
               expression: '#/components/schemas/ExpressionCondition'
               llm: '#/components/schemas/LLMCondition'
             propertyName: type
           oneOf:
           - $ref: '#/components/schemas/LLMCondition'
           - $ref: '#/components/schemas/ExpressionCondition'
+          - $ref: '#/components/schemas/DefaultCondition'
           title: Condition
         id:
           description: Caller-supplied unique identifier for this edge within the
@@ -52642,6 +52677,99 @@ components:
             document
           example: /title
           type: string
+      type: object
+    SpeakNode:
+      description: A standalone scripted-message step in a flow, as returned by the
+        API.
+      properties:
+        id:
+          description: Caller-supplied unique identifier for this node within the
+            flow.
+          title: Id
+          type: string
+        message:
+          description: "Message delivered to the user verbatim when the flow reaches\
+            \ this node. No LLM turn \u2014 the text is spoken/sent exactly as written.\
+            \ `{{variable}}` placeholders are interpolated from the conversation's\
+            \ dynamic variables; an unresolved placeholder renders as an empty string.\
+            \ After delivering, the flow routes via the node's outgoing `llm` / `expression`\
+            \ edges (commonly a single unconditional edge)."
+          title: Message
+          type: string
+        name:
+          description: Optional human-readable label, displayed in authoring UIs.
+          title: Name
+          type: string
+        position:
+          $ref: '#/components/schemas/NodePosition'
+          description: Optional canvas coordinates used by authoring UIs to lay out
+            the graph. Ignored by the runtime; round-trips so frontends can persist
+            graph layout across reloads.
+        type:
+          const: speak
+          default: speak
+          description: Node kind discriminator. Always `speak` for a speak node.
+          title: Type
+          type: string
+      required:
+      - id
+      - message
+      title: SpeakNode
+      type: object
+    SpeakNodeReq:
+      description: "A standalone scripted-message step in a flow, as supplied by clients.\n\
+        \nUnlike a prompt node, a speak node has no instructions or model \u2014 it\
+        \ isn't\nan LLM turn. Reaching it delivers `message` to the user verbatim\
+        \ (with\n`{{variable}}` interpolation), then routes via outgoing `llm` /\n\
+        `expression` edges."
+      example:
+        id: n_greeting
+        message: Thanks for calling, {{caller_name}}. Connecting you now.
+        name: Greeting
+        position:
+          x: 60
+          y: 80
+        type: speak
+      properties:
+        id:
+          description: Caller-supplied unique identifier for this node within the
+            flow.
+          example: n_greeting
+          title: Id
+          type: string
+        message:
+          description: "Message delivered to the user verbatim when the flow reaches\
+            \ this node. No LLM turn \u2014 the text is spoken/sent exactly as written.\
+            \ `{{variable}}` placeholders are interpolated from the conversation's\
+            \ dynamic variables; an unresolved placeholder renders as an empty string.\
+            \ After delivering, the flow routes via the node's outgoing `llm` / `expression`\
+            \ edges (commonly a single unconditional edge)."
+          example: Thanks for calling, {{caller_name}}. Connecting you now.
+          title: Message
+          type: string
+        name:
+          description: Optional human-readable label, displayed in authoring UIs.
+          example: Greeting
+          title: Name
+          type: string
+        position:
+          $ref: '#/components/schemas/NodePosition'
+          description: Optional canvas coordinates used by authoring UIs to lay out
+            the graph. Ignored by the runtime; round-trips so frontends can persist
+            graph layout across reloads.
+          example:
+            x: 60
+            y: 80
+        type:
+          const: speak
+          default: speak
+          description: Node kind discriminator. Always `speak` for a speak node.
+          title: Type
+          type: string
+      required:
+      - id
+      - message
+      title: SpeakNodeReq
       type: object
     SpeakRequest:
       example:
