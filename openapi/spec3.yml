@@ -116,6 +116,28 @@ components:
       schema:
         description: Authenticates the request with your Telnyx API V2 KEY
         type: string
+    BcPageNumber:
+      description: 1-based page number. Out-of-range values return an empty page with
+        correct meta.
+      in: query
+      name: page[number]
+      required: false
+      schema:
+        default: 1
+        example: 1
+        minimum: 1
+        type: integer
+    BcPageSize:
+      description: Items per page. Maximum 250; values above are clamped to 250.
+      in: query
+      name: page[size]
+      required: false
+      schema:
+        default: 20
+        example: 20
+        maximum: 250
+        minimum: 1
+        type: integer
     BundleId:
       in: path
       name: bundle_id
@@ -214,6 +236,15 @@ components:
       required: false
       schema:
         type: string
+    DirId:
+      description: The DIR id. Lowercase UUID.
+      in: path
+      name: dir_id
+      required: true
+      schema:
+        example: 16635d38-75a6-4481-82e8-69af60e05011
+        format: uuid
+        type: string
     DocReqsRequirementId:
       description: Uniquely identifies the requirement_type record
       example: a9dad8d5-fdbd-49d7-aa23-39bb08a5ebaa
@@ -257,12 +288,12 @@ components:
       schema:
         type: string
     EnterpriseId:
-      description: Unique identifier of the enterprise (UUID)
+      description: The enterprise id. Lowercase UUID.
       in: path
       name: enterprise_id
       required: true
       schema:
-        example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+        example: 4a6192a4-573d-446d-b3ce-aff9117272a6
         format: uuid
         type: string
     FilterBasicStatusLifecycle:
@@ -1197,12 +1228,21 @@ components:
         format: uuid
         type: string
     PhoneNumber:
-      description: Phone number in E.164 format
+      description: The phone number to be looked up
       in: path
       name: phone_number
       required: true
       schema:
-        example: '+16035551234'
+        example: '+18665552368'
+        type: string
+    PhoneNumberPath:
+      description: Phone number in E.164 format (`+1NPANXXXXXX` for US/CA). The leading
+        `+` MUST be URL-encoded as `%2B` (e.g. `%2B19493253498`).
+      in: path
+      name: phone_number
+      required: true
+      schema:
+        example: '+19493253498'
         type: string
     PrivateWirelessGatewayId:
       description: Identifies the private wireless gateway.
@@ -2425,14 +2465,6 @@ components:
       schema:
         format: uuid
         type: string
-    number-lookup_PhoneNumber:
-      description: The phone number to be looked up
-      in: path
-      name: phone_number
-      required: true
-      schema:
-        example: '+18665552368'
-        type: string
     numbers_PageConsolidated:
       description: 'Consolidated page parameter (deepObject style). Originally: page[size],
         page[number]'
@@ -3639,12 +3671,6 @@ components:
                 $ref: '#/components/schemas/AutoRechargePref'
             type: object
       description: Successful response
-    BadRequest:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/branded-calling_ErrorResponse'
-      description: "Bad request \u2014 invalid input or validation error"
     BadRequestErrorResponse:
       content:
         application/json:
@@ -3690,12 +3716,6 @@ components:
       description: 'Bad request. The request was invalid or cannot be served. Common
         causes include: audio file download failures, attempting to delete non-empty
         queues, invalid characters in the request, or character encoding errors.'
-    BadRequestTelnyx:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/branded-calling_ErrorResponse'
-      description: Bad request
     BlackBoxTestResultsResponse:
       content:
         application/json:
@@ -6687,12 +6707,6 @@ components:
                 $ref: '#/components/schemas/Network'
             type: object
       description: Successful response
-    NotFound:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/branded-calling_ErrorResponse'
-      description: Resource not found
     NotFoundErrorResponse:
       content:
         application/json:
@@ -7683,12 +7697,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
       description: Unauthorized
-    Unauthorized:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/branded-calling_ErrorResponse'
-      description: "Unauthorized \u2014 missing or invalid API key"
     UnauthorizedErrorResponse:
       content:
         application/json:
@@ -7742,9 +7750,9 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/branded-calling_ErrorResponse'
-      description: "Unprocessable entity \u2014 request structure is valid but contains\
-        \ semantic errors"
+            $ref: '#/components/schemas/documents_Errors'
+      description: Unprocessable entity. Check the 'detail' field in response for
+        details.
     UnprocessableEntityErrorResponse:
       content:
         application/json:
@@ -8384,6 +8392,57 @@ components:
           schema:
             $ref: '#/components/schemas/billing_Errors'
       description: Invalid or missing account information
+    branded-calling_GenericErrorResponse:
+      content:
+        application/json:
+          examples:
+            bad_request:
+              description: Returned when the request itself is well-formed but the
+                resource is in a state that disallows this action (e.g. updating a
+                DIR while it is being vetted, or deleting an enterprise that still
+                has DIRs in vetting).
+              summary: "400 \u2014 request rejected by a state guard"
+              value:
+                errors:
+                - code: '10015'
+                  detail: Cannot update DIR in 'verified' status
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  title: Bad Request
+            conflict:
+              summary: "409 \u2014 request conflicts with current resource state"
+              value:
+                errors:
+                - code: '10021'
+                  detail: DIR has 1 active infringement claim(s). Resolve the claim
+                    before making this change.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10021
+                  title: Resource in use
+            not_found:
+              summary: "404 \u2014 resource does not exist or is not yours"
+              value:
+                errors:
+                - code: '10009'
+                  detail: Enterprise not found.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10009
+                  title: Resource not found
+            validation_error:
+              summary: "422 \u2014 request body failed validation"
+              value:
+                errors:
+                - code: '10005'
+                  detail: field required
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+                  source:
+                    pointer: /body/legal_name
+                  title: Invalid parameters
+          schema:
+            $ref: '#/components/schemas/branded-calling_Errors'
+      description: An error occurred. The response carries the standard Telnyx error
+        envelope.
     bundle-pricing_BadRequestErrorResponse:
       content:
         application/json:
@@ -8735,13 +8794,6 @@ components:
           schema:
             $ref: '#/components/schemas/documents_Errors'
       description: Unexpected error
-    documents_UnprocessableEntity:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/documents_Errors'
-      description: Unprocessable entity. Check the 'detail' field in response for
-        details.
     emergency_BadRequestResponse:
       content:
         application/json:
@@ -8994,6 +9046,57 @@ components:
             $ref: '#/components/schemas/number-lookup_Errors'
       description: Unprocessable entity. Check the 'detail' field in response for
         details.
+    number-reputation_GenericErrorResponse:
+      content:
+        application/json:
+          examples:
+            bad_request:
+              description: Returned when the request itself is well-formed but the
+                resource is in a state that disallows this action (e.g. updating a
+                DIR while it is being vetted, or deleting an enterprise that still
+                has DIRs in vetting).
+              summary: "400 \u2014 request rejected by a state guard"
+              value:
+                errors:
+                - code: '10015'
+                  detail: Cannot update DIR in 'verified' status
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10015
+                  title: Bad Request
+            conflict:
+              summary: "409 \u2014 request conflicts with current resource state"
+              value:
+                errors:
+                - code: '10021'
+                  detail: DIR has 1 active infringement claim(s). Resolve the claim
+                    before making this change.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10021
+                  title: Resource in use
+            not_found:
+              summary: "404 \u2014 resource does not exist or is not yours"
+              value:
+                errors:
+                - code: '10009'
+                  detail: Enterprise not found.
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10009
+                  title: Resource not found
+            validation_error:
+              summary: "422 \u2014 request body failed validation"
+              value:
+                errors:
+                - code: '10005'
+                  detail: field required
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+                  source:
+                    pointer: /body/legal_name
+                  title: Invalid parameters
+          schema:
+            $ref: '#/components/schemas/number-reputation_Errors'
+      description: An error occurred. The response carries the standard Telnyx error
+        envelope.
     numbers_BadRequestResponse:
       content:
         application/json:
@@ -10008,6 +10111,63 @@ components:
           title: Requirement Group ID
           type: string
       title: AdvancedOrderRequest
+      type: object
+    AgentInput:
+      description: Third-party reseller / partner managing the enterprise's phone
+        numbers. Omit when the enterprise works directly with Telnyx.
+      properties:
+        administrative_area:
+          maxLength: 120
+          type: string
+        city:
+          maxLength: 120
+          type: string
+        contact_email:
+          format: email
+          type: string
+        contact_name:
+          maxLength: 200
+          type: string
+        contact_phone:
+          example: '+13125550000'
+          maxLength: 30
+          type: string
+        contact_title:
+          maxLength: 200
+          type: string
+        country:
+          example: US
+          maxLength: 2
+          minLength: 2
+          type: string
+        dba:
+          maxLength: 200
+          nullable: true
+          type: string
+        extended_address:
+          maxLength: 255
+          nullable: true
+          type: string
+        legal_name:
+          maxLength: 200
+          type: string
+        postal_code:
+          maxLength: 30
+          type: string
+        street_address:
+          maxLength: 255
+          type: string
+      required:
+      - legal_name
+      - street_address
+      - city
+      - administrative_area
+      - postal_code
+      - country
+      - contact_name
+      - contact_title
+      - contact_email
+      - contact_phone
       type: object
     AlphanumericSenderId:
       properties:
@@ -11978,45 +12138,7 @@ components:
           type: string
       type: object
     BillingAddress:
-      properties:
-        administrative_area:
-          description: State or province
-          example: Illinois
-          maxLength: 100
-          type: string
-        city:
-          description: City name
-          example: Chicago
-          maxLength: 100
-          type: string
-        country:
-          description: Country name (e.g., United States)
-          example: United States
-          maxLength: 100
-          type: string
-        extended_address:
-          description: Additional address line (suite, apt, etc.)
-          example: Suite 400
-          maxLength: 255
-          nullable: true
-          type: string
-        postal_code:
-          description: ZIP or postal code
-          example: '60601'
-          maxLength: 20
-          type: string
-        street_address:
-          description: Street address
-          example: 123 Main St
-          maxLength: 255
-          type: string
-      required:
-      - country
-      - administrative_area
-      - city
-      - postal_code
-      - street_address
-      type: object
+      $ref: '#/components/schemas/PhysicalAddress'
     BillingBundleResponse:
       properties:
         data:
@@ -12141,25 +12263,20 @@ components:
     BillingContact:
       properties:
         email:
-          description: Contact's email address
-          example: billing@acme.com
+          example: billing@acmeplumbing.example.com
           format: email
-          maxLength: 255
           type: string
         first_name:
-          description: Contact's first name
-          example: John
+          example: Alex
           maxLength: 255
           type: string
         last_name:
-          description: Contact's last name
-          example: Doe
+          example: Bill
           maxLength: 255
           type: string
         phone_number:
-          description: Contact's phone number (10-15 digits)
-          example: '15551234568'
-          maxLength: 20
+          description: E.164 format with leading `+`.
+          example: '+13125550001'
           type: string
       required:
       - first_name
@@ -12906,6 +13023,46 @@ components:
           example: '2020-01-01T00:00:00Z'
           format: date-time
           type: string
+      type: object
+    BulkAddPhoneNumbersRequest:
+      additionalProperties: false
+      properties:
+        documents:
+          description: "Supporting documents covering this batch. At least one entry\
+            \ with `document_type: letter_of_authorization` is required \u2014 the\
+            \ LOA authorises Telnyx to register these numbers under the DIR. Each\
+            \ `document_id` must come from the Telnyx Documents API. Additional document\
+            \ types (e.g. business registration) may be included alongside the LOA."
+          items:
+            $ref: '#/components/schemas/Document'
+          maxItems: 20
+          minItems: 1
+          type: array
+        phone_numbers:
+          description: "1\u201315 phone numbers in E.164 format. 10-digit US numbers\
+            \ are auto-prefixed with `1`."
+          items:
+            example: '+19493253498'
+            type: string
+          maxItems: 15
+          minItems: 1
+          type: array
+      required:
+      - phone_numbers
+      - documents
+      type: object
+    BulkDeletePhoneNumbersRequest:
+      additionalProperties: false
+      properties:
+        phone_numbers:
+          items:
+            example: '+19493253498'
+            type: string
+          maxItems: 15
+          minItems: 1
+          type: array
+      required:
+      - phone_numbers
       type: object
     BulkMessagingSettingsUpdatePhoneNumbers:
       example:
@@ -16345,6 +16502,45 @@ components:
         data:
           $ref: '#/components/schemas/CallPlaybackStarted'
       title: Call Playback Started Event
+      type: object
+    CallReason:
+      properties:
+        created_at:
+          example: '2026-04-26T18:06:51.940749Z'
+          format: date-time
+          readOnly: true
+          type: string
+        reason:
+          example: Appointment reminders
+          maxLength: 64
+          type: string
+      type: object
+    CallReasonReference:
+      description: Pre-vetted call-reason library entry.
+      properties:
+        description:
+          example: Alert about account status or changes
+          type: string
+        id:
+          example: d29914a4-3c93-440c-af72-03778f442522
+          format: uuid
+          readOnly: true
+          type: string
+        reason:
+          example: Account Alert
+          type: string
+      type: object
+    CallReasonReferenceList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/CallReasonReference'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
       type: object
     CallRecording:
       description: The call recording settings for a phone number.
@@ -19809,6 +20005,38 @@ components:
           readOnly: true
           type: string
       type: object
+    CommentList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/DirComment'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    CommentType:
+      description: Comment categorisation. Customers post `customer_inquiry`. The
+        Telnyx team posts `vetting_comment`, `rejection_reason`, `notification`, `status_update`,
+        or `admin_response`. `internal_note` is filtered out of customer-visible responses.
+      enum:
+      - vetting_comment
+      - rejection_reason
+      - internal_note
+      - notification
+      - status_update
+      - customer_inquiry
+      - admin_response
+      type: string
+    CommentWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/DirComment'
+      required:
+      - data
+      type: object
     ComparativeLine:
       properties:
         alias:
@@ -22333,6 +22561,26 @@ components:
           example: MB
           type: string
       title: ConsumedData
+      type: object
+    ContestSubmission:
+      description: One round of customer contest evidence on an infringement claim.
+        The aggregated documents across rounds live on the parent claim's `contest_documents`;
+        this submission record carries only the per-round notes and document count.
+      properties:
+        document_count:
+          example: 1
+          minimum: 0
+          readOnly: true
+          type: integer
+        notes:
+          example: We own the trademark outright; our registration precedes the claimant
+            by three years.
+          type: string
+        submitted_at:
+          example: '2026-04-22T02:13:06.629473Z'
+          format: date-time
+          readOnly: true
+          type: string
       type: object
     Conversation:
       properties:
@@ -28727,6 +28975,441 @@ components:
       - data
       title: Dialogflow Connection Response
       type: object
+    Dir:
+      properties:
+        authorizer_email:
+          example: sam@acmeplumbing.example.com
+          format: email
+          nullable: true
+          type: string
+        authorizer_name:
+          example: Sam Owner
+          nullable: true
+          type: string
+        call_reasons:
+          items:
+            $ref: '#/components/schemas/CallReason'
+          type: array
+        certify_brand_is_accurate:
+          example: true
+          type: boolean
+        certify_ip_ownership:
+          example: true
+          type: boolean
+        certify_no_shaft_content:
+          example: true
+          type: boolean
+        created_at:
+          example: '2026-04-26T18:06:51.940749Z'
+          format: date-time
+          readOnly: true
+          type: string
+        display_name:
+          example: Acme Plumbing
+          type: string
+        documents:
+          items:
+            $ref: '#/components/schemas/Document'
+          nullable: true
+          type: array
+        enterprise_id:
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+          format: uuid
+          type: string
+        expiring_at:
+          example: '2027-04-26T18:07:29.537981Z'
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+        id:
+          example: 16635d38-75a6-4481-82e8-69af60e05011
+          format: uuid
+          readOnly: true
+          type: string
+        logo_url:
+          example: https://acmeplumbing.example.com/logo-256.bmp
+          format: uri
+          nullable: true
+          type: string
+        rejected_at:
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+        rejection_reasons:
+          description: Populated when `status` is `rejected`; cleared on `/submit`
+            or successful approval.
+          items:
+            $ref: '#/components/schemas/RejectionReason'
+          nullable: true
+          type: array
+        reselling:
+          example: false
+          type: boolean
+        status:
+          $ref: '#/components/schemas/DirStatus'
+        submitted_at:
+          example: '2026-04-26T18:07:03.716411Z'
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+        updated_at:
+          example: '2026-04-26T18:09:24.785211Z'
+          format: date-time
+          readOnly: true
+          type: string
+        verified_at:
+          example: '2026-04-26T18:07:29.537926Z'
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+      type: object
+    DirComment:
+      properties:
+        author_name:
+          description: Display name of the author. May be `null`.
+          example: null
+          nullable: true
+          readOnly: true
+          type: string
+        author_role:
+          description: Who wrote the comment. `admin` covers the Telnyx vetting team.
+          enum:
+          - customer
+          - admin
+          example: customer
+          readOnly: true
+          type: string
+        comment_type:
+          $ref: '#/components/schemas/CommentType'
+        content:
+          example: Please re-upload a clearer scan of the certificate.
+          type: string
+        created_at:
+          example: '2026-04-27T00:42:44.305835Z'
+          format: date-time
+          readOnly: true
+          type: string
+        entity_type:
+          description: Resource the comment is attached to. Always `dir` on this endpoint.
+          enum:
+          - dir
+          example: dir
+          readOnly: true
+          type: string
+        id:
+          example: 30bbd13c-1f3a-47c0-8fa6-718835917b2f
+          format: uuid
+          readOnly: true
+          type: string
+        visibility:
+          description: "Always `customer` on this endpoint \u2014 internal-only comments\
+            \ are filtered out."
+          enum:
+          - customer
+          example: customer
+          readOnly: true
+          type: string
+      type: object
+    DirCommentCreateRequest:
+      description: Customer-facing comment body. The server forces `comment_type=customer_inquiry`,
+        `visibility=customer`, and `author_role=customer`; clients cannot override
+        these. `author_name` is dropped to prevent admin-impersonation.
+      properties:
+        content:
+          description: "Comment body. 1\u20135000 characters."
+          example: "Re-uploaded the logo as a 256\xD7256 BMP. Please re-review."
+          maxLength: 5000
+          minLength: 1
+          type: string
+        parent_comment_id:
+          description: Optional parent comment id to thread this reply under.
+          format: uuid
+          type: string
+      required:
+      - content
+      type: object
+    DirCreateRequest:
+      properties:
+        authorizer_email:
+          description: Contact email of the authorizer. Telnyx may send verification
+            or infringement-notice email here; use a monitored mailbox.
+          example: sam@acmeplumbing.example.com
+          format: email
+          type: string
+        authorizer_name:
+          description: Name of the person at your enterprise who is authorizing this
+            DIR registration. Must be a real individual (used for audit and trademark-claim
+            contests).
+          example: Sam Owner
+          maxLength: 255
+          type: string
+        call_reasons:
+          description: "1\u201310 reasons your business calls customers. Validate\
+            \ phrasing against `POST /call_reasons/validate`."
+          example:
+          - Appointment reminders
+          - Billing inquiries
+          items:
+            maxLength: 64
+            type: string
+          maxItems: 10
+          minItems: 1
+          type: array
+        certify_brand_is_accurate:
+          description: Must be `true`.
+          enum:
+          - true
+          example: true
+          type: boolean
+        certify_ip_ownership:
+          description: Must be `true`. Confirms ownership of any logos/trademarks
+            shown.
+          enum:
+          - true
+          example: true
+          type: boolean
+        certify_no_shaft_content:
+          description: Must be `true`. Confirms this DIR is not used for SHAFT content
+            (Sex, Hate, Alcohol, Firearms, Tobacco) where prohibited.
+          enum:
+          - true
+          example: true
+          type: boolean
+        display_name:
+          description: Name shown to call recipients. No emoji; not whitespace-only.
+          example: Acme Plumbing
+          maxLength: 35
+          minLength: 1
+          type: string
+        documents:
+          description: Supporting documents. Each `document_id` may appear at most
+            once on a DIR.
+          items:
+            $ref: '#/components/schemas/Document'
+          maxItems: 20
+          type: array
+        logo_url:
+          description: Publicly accessible HTTPS URL (max 128 chars) to a 256x256
+            BMP logo (max 1 MB).
+          example: https://acmeplumbing.example.com/logo-256.bmp
+          format: uri
+          maxLength: 128
+          type: string
+        reselling:
+          default: false
+          description: Set to true if your organization places calls on behalf of
+            other enterprises (BPO/reseller).
+          example: false
+          type: boolean
+      required:
+      - display_name
+      - certify_brand_is_accurate
+      - certify_no_shaft_content
+      - certify_ip_ownership
+      - authorizer_name
+      - authorizer_email
+      type: object
+    DirInfringementUpdateRequest:
+      properties:
+        call_reasons:
+          items:
+            type: string
+          maxItems: 10
+          minItems: 1
+          nullable: true
+          type: array
+        certify_brand_is_accurate:
+          description: Must be `true`.
+          enum:
+          - true
+          type: boolean
+        certify_ip_ownership:
+          description: Must be `true`.
+          enum:
+          - true
+          type: boolean
+        certify_no_infringement:
+          description: Must be `true`.
+          enum:
+          - true
+          type: boolean
+        certify_no_shaft_content:
+          description: Must be `true`.
+          enum:
+          - true
+          type: boolean
+        display_name:
+          maxLength: 35
+          minLength: 1
+          nullable: true
+          type: string
+        documents:
+          description: Append-only supporting documents.
+          items:
+            $ref: '#/components/schemas/Document'
+          maxItems: 20
+          nullable: true
+          type: array
+        infringement_resolution_notes:
+          description: Explanation of how the infringement concern was addressed.
+          maxLength: 500
+          minLength: 10
+          type: string
+        logo_url:
+          description: Publicly accessible HTTPS URL (max 128 chars) to a 256x256
+            BMP logo (max 1 MB).
+          maxLength: 128
+          nullable: true
+          type: string
+      required:
+      - certify_no_infringement
+      - certify_brand_is_accurate
+      - certify_no_shaft_content
+      - certify_ip_ownership
+      - infringement_resolution_notes
+      type: object
+    DirList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Dir'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    DirPhoneNumber:
+      properties:
+        batch_id:
+          description: Id of the batch this number was vetted as part of.
+          example: 0a4b1f5e-2f12-4c0c-9a98-9b3a7d8b8e62
+          format: uuid
+          nullable: true
+          type: string
+        created_at:
+          example: '2026-04-26T18:11:42.850928Z'
+          format: date-time
+          readOnly: true
+          type: string
+        dir_id:
+          example: 16635d38-75a6-4481-82e8-69af60e05011
+          format: uuid
+          type: string
+        enterprise_id:
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+          format: uuid
+          type: string
+        id:
+          example: 1f56eb76-4078-4af7-ad4d-564b027256ee
+          format: uuid
+          readOnly: true
+          type: string
+        loa_document_id:
+          description: Id of the Letter of Authorization document attached to this
+            number's batch.
+          example: null
+          format: uuid
+          nullable: true
+          type: string
+        phone_number:
+          description: E.164 with leading `+`.
+          example: '+19493253498'
+          type: string
+        rejection_reason:
+          $ref: '#/components/schemas/RejectionReason'
+          description: Populated when `status` is `unsuccessful` or `permanently_rejected`.
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+        updated_at:
+          example: '2026-04-26T18:12:11.123456Z'
+          format: date-time
+          readOnly: true
+          type: string
+        verified_at:
+          example: '2026-04-26T18:12:11.123456Z'
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+      type: object
+    DirStatus:
+      description: "DIR lifecycle status.\n- `draft` \u2014 newly created; editable;\
+        \ not yet submitted.\n- `submitted` / `in_review` \u2014 Telnyx is reviewing.\n\
+        - `verified` \u2014 approved; phone numbers may be attached.\n- `rejected`\
+        \ \u2014 Telnyx rejected this submission; `rejection_reasons` is populated;\
+        \ customer can edit and resubmit.\n- `unsuccessful` \u2014 system-side error\
+        \ during processing; customer can edit and resubmit.\n- `suspended` \u2014\
+        \ temporarily disabled (e.g. by an active infringement claim).\n- `expired`\
+        \ \u2014 verification expired; customer must resubmit.\n- `infringement_claimed`\
+        \ \u2014 a trademark/impersonation claim is open against this DIR.\n- `permanently_rejected`\
+        \ \u2014 terminal; cannot be resubmitted."
+      enum:
+      - draft
+      - submitted
+      - in_review
+      - verified
+      - rejected
+      - unsuccessful
+      - suspended
+      - expired
+      - infringement_claimed
+      - permanently_rejected
+      type: string
+    DirUpdateRequest:
+      description: All fields are optional; only those supplied are updated. Same
+        per-field rules as `DirCreateRequest`.
+      properties:
+        authorizer_email:
+          description: Contact email of the authorizer. Telnyx may send verification
+            or infringement notices here.
+          format: email
+          type: string
+        authorizer_name:
+          description: Name of the person at your enterprise authorizing this DIR.
+            Must be a real individual.
+          maxLength: 255
+          type: string
+        call_reasons:
+          description: "1\u201310 reasons your business calls customers. Validate\
+            \ phrasing against `POST /call_reasons/validate`."
+          items:
+            maxLength: 64
+            type: string
+          maxItems: 10
+          minItems: 1
+          type: array
+        display_name:
+          description: "Name shown to call recipients. 1\u201335 characters, no emoji,\
+            \ not whitespace-only."
+          maxLength: 35
+          minLength: 1
+          type: string
+        logo_url:
+          description: Publicly accessible HTTPS URL (max 128 chars) to a 256x256
+            BMP logo (max 1 MB).
+          format: uri
+          maxLength: 128
+          type: string
+        reselling:
+          description: Set to true if your organization places calls on behalf of
+            other enterprises (BPO/reseller). Updating this triggers re-vetting on
+            next submit.
+          type: boolean
+      type: object
+    DirWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/Dir'
+      required:
+      - data
+      type: object
     Direction:
       description: The direction of the fax.
       enum:
@@ -29008,6 +29691,66 @@ components:
           example: '2018-02-02T22:25:27.521Z'
           readOnly: true
           type: string
+      type: object
+    Document:
+      properties:
+        description:
+          example: Certificate of incorporation.
+          maxLength: 255
+          type: string
+        document_id:
+          description: Id returned by the Telnyx Documents API after you upload the
+            file (upload via `POST /v2/documents`; see https://developers.telnyx.com/api/documents).
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+          format: uuid
+          type: string
+        document_type:
+          description: Type of supporting document. Pick the closest match to what
+            the file actually contains; `other` triggers manual vetting and may slow
+            approval. The matching short_name reference list is at `GET /v2/dir/document_types`.
+          enum:
+          - letter_of_authorization
+          - business_registration
+          - articles_of_incorporation
+          - tax_document
+          - ein_letter
+          - trademark_registration
+          - website_ownership
+          - business_license
+          - professional_license
+          - government_id
+          - utility_bill
+          - bank_statement
+          - other
+          example: business_registration
+          type: string
+      required:
+      - document_id
+      - document_type
+      type: object
+    DocumentTypeReference:
+      description: Single supported document type.
+      properties:
+        description:
+          example: Signed authorization from the DIR owner permitting Telnyx to register
+            the DIR and its associated numbers on their behalf
+          type: string
+        short_name:
+          description: Stable identifier passed to `Document.document_type`.
+          example: letter_of_authorization
+          type: string
+      type: object
+    DocumentTypeReferenceList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/DocumentTypeReference'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
       type: object
     DownlinkData:
       properties:
@@ -29610,53 +30353,94 @@ components:
         billing_contact:
           $ref: '#/components/schemas/BillingContact'
         corporate_registration_number:
-          description: Corporate registration number (optional)
-          maxLength: 100
+          description: Optional corporate-registration / company-number identifier.
+          nullable: true
           type: string
         country_code:
-          description: Country code. Currently only 'US' is accepted.
+          description: ISO 3166-1 alpha-2 country code. Currently `US` and `CA` are
+            supported.
           example: US
-          maxLength: 2
-          minLength: 2
           type: string
         customer_reference:
-          description: Optional customer reference identifier for your own tracking
+          description: Optional free-form string the caller can attach for their own
+            bookkeeping. Telnyx does not interpret it.
+          example: internal-id-12345
           maxLength: 255
           type: string
         doing_business_as:
-          description: Primary business name / DBA name
-          example: Acme
+          example: Acme Plumbing
           maxLength: 255
           type: string
         dun_bradstreet_number:
-          description: D-U-N-S Number (optional)
-          maxLength: 20
+          description: Optional D-U-N-S Number.
+          nullable: true
           type: string
         fein:
-          description: 'Federal Employer Identification Number. Format: XX-XXXXXXX
-            or 9-digit number (minimum 9 digits).'
+          description: US Federal Employer Identification Number (`NN-NNNNNNN`) or
+            Canadian equivalent.
           example: 12-3456789
-          maxLength: 20
           type: string
         industry:
-          description: 'Industry classification. Case-insensitive. Accepted values:
-            accounting, finance, billing, collections, business, charity, nonprofit,
-            communications, telecom, customer service, support, delivery, shipping,
-            logistics, education, financial, banking, government, public, healthcare,
-            health, pharmacy, medical, insurance, legal, law, notifications, scheduling,
-            real estate, property, retail, ecommerce, sales, marketing, software,
-            technology, tech, media, surveys, market research, travel, hospitality,
-            hotel'
+          description: Industry classification.
+          enum:
+          - accounting
+          - finance
+          - billing
+          - collections
+          - business
+          - charity
+          - nonprofit
+          - communications
+          - telecom
+          - customer service
+          - support
+          - delivery
+          - shipping
+          - logistics
+          - education
+          - financial
+          - banking
+          - government
+          - public
+          - healthcare
+          - health
+          - pharmacy
+          - medical
+          - insurance
+          - legal
+          - law
+          - notifications
+          - scheduling
+          - real estate
+          - property
+          - retail
+          - ecommerce
+          - sales
+          - marketing
+          - software
+          - technology
+          - tech
+          - media
+          - surveys
+          - market research
+          - travel
+          - hospitality
+          - hotel
           example: technology
           type: string
+        jurisdiction_of_incorporation:
+          example: Delaware
+          maxLength: 255
+          type: string
         legal_name:
-          description: Legal name of the enterprise
-          example: Acme Corp Inc.
+          description: Legal name of the enterprise.
+          example: Acme Plumbing LLC
           maxLength: 64
           minLength: 3
           type: string
         number_of_employees:
-          description: Employee count range
+          description: Approximate headcount range. Used for vetting heuristics; pick
+            the bucket that contains your current employee count.
           enum:
           - 1-10
           - 11-50
@@ -29670,19 +30454,28 @@ components:
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
         organization_legal_type:
-          description: Legal structure type
+          description: "Legal-entity form. Pick the form that matches your incorporation\
+            \ documents:\n- `corporation` \u2014 C-corp or S-corp.\n- `llc` \u2014\
+            \ limited liability company.\n- `partnership` \u2014 general/limited partnership.\n\
+            - `nonprofit` \u2014 non-profit corporation, charitable trust, or 501(c)(3)/equivalent.\n\
+            - `other` \u2014 anything else (sole proprietorships, government bodies,\
+            \ DBAs, etc.). You may be asked for additional documents during vetting."
           enum:
           - corporation
           - llc
           - partnership
           - nonprofit
           - other
-          example: corporation
+          example: llc
           type: string
         organization_physical_address:
           $ref: '#/components/schemas/PhysicalAddress'
         organization_type:
-          description: Type of organization
+          description: "Organization category for vetting purposes:\n- `commercial`\
+            \ \u2014 for-profit business entities (LLC, corp, partnership, sole proprietorship).\
+            \ Most callers fall here.\n- `government` \u2014 federal/state/local government\
+            \ bodies.\n- `non_profit` \u2014 registered 501(c)(3)/equivalent (incl.\
+            \ educational institutions, charities, religious organisations)."
           enum:
           - commercial
           - government
@@ -29690,30 +30483,30 @@ components:
           example: commercial
           type: string
         primary_business_domain_sic_code:
-          description: SIC Code (optional)
-          example: '7372'
-          maxLength: 10
+          description: Optional SIC code for the primary line of business.
+          nullable: true
           type: string
         professional_license_number:
-          description: Professional license number (optional)
-          maxLength: 100
+          description: Optional professional-license number for regulated industries.
+          nullable: true
           type: string
         role_type:
           default: enterprise
-          description: Role type in Branded Calling / Number Reputation services
+          description: '`enterprise` for an organization registering its own DIRs;
+            `bpo` for a Business Process Outsourcer placing calls on behalf of one
+            or more enterprises.'
           enum:
           - enterprise
           - bpo
+          example: enterprise
           type: string
         website:
-          description: "Enterprise website URL. Accepts any string \u2014 no URL format\
-            \ validation enforced."
-          example: https://acme.com
+          example: https://acmeplumbing.example.com
+          format: uri
           maxLength: 255
           type: string
       required:
       - legal_name
-      - doing_business_as
       - organization_type
       - country_code
       - website
@@ -29721,6 +30514,8 @@ components:
       - industry
       - number_of_employees
       - organization_legal_type
+      - doing_business_as
+      - jurisdiction_of_incorporation
       - organization_contact
       - billing_contact
       - organization_physical_address
@@ -29733,7 +30528,10 @@ components:
             $ref: '#/components/schemas/EnterprisePublic'
           type: array
         meta:
-          $ref: '#/components/schemas/MetaInfo'
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
       type: object
     EnterprisePublic:
       properties:
@@ -29741,125 +30539,132 @@ components:
           $ref: '#/components/schemas/BillingAddress'
         billing_contact:
           $ref: '#/components/schemas/BillingContact'
+        branded_calling_enabled:
+          description: True once Branded Calling has been activated on this enterprise
+            (see `POST /enterprises/{id}/branded_calling`).
+          type: boolean
         corporate_registration_number:
-          description: Corporate registration number
+          description: Optional corporate-registration / company-number identifier.
+          example: null
           nullable: true
           type: string
         country_code:
-          description: ISO 3166-1 alpha-2 country code
           example: US
           type: string
         created_at:
-          description: When the enterprise was created
+          example: '2026-04-26T18:06:51.940749Z'
           format: date-time
+          readOnly: true
           type: string
         customer_reference:
-          description: Customer reference identifier
-          nullable: true
+          example: internal-id-12345
           type: string
         doing_business_as:
-          description: DBA name
-          example: Acme
+          example: Acme Plumbing
           type: string
         dun_bradstreet_number:
-          description: D-U-N-S Number
+          description: Optional D-U-N-S Number issued by Dun & Bradstreet.
+          example: null
           nullable: true
           type: string
         fein:
-          description: Federal Employer Identification Number
-          nullable: true
+          example: 12-3456789
           type: string
         id:
-          description: Unique identifier of the enterprise
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
           format: uuid
+          readOnly: true
           type: string
         industry:
-          description: Industry classification
-          nullable: true
+          example: technology
+          type: string
+        jurisdiction_of_incorporation:
+          example: Delaware
           type: string
         legal_name:
-          description: Legal name of the enterprise
-          example: Acme Corp Inc.
+          example: Acme Plumbing LLC
           type: string
         number_of_employees:
-          description: Employee count range
-          enum:
-          - 1-10
-          - 11-50
-          - 51-200
-          - 201-500
-          - 501-2000
-          - 2001-10000
-          - 10001+
-          nullable: true
+          example: 51-200
           type: string
+        number_reputation_enabled:
+          description: True once Phone Number Reputation has been enabled on this
+            enterprise (see `POST /enterprises/{id}/reputation`).
+          type: boolean
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
         organization_legal_type:
-          description: Legal structure type
-          enum:
-          - corporation
-          - llc
-          - partnership
-          - nonprofit
-          - other
-          nullable: true
+          example: llc
           type: string
         organization_physical_address:
           $ref: '#/components/schemas/PhysicalAddress'
         organization_type:
-          description: Type of organization
-          enum:
-          - commercial
-          - government
-          - non_profit
+          example: commercial
           type: string
         primary_business_domain_sic_code:
-          description: SIC Code
+          description: Optional SIC code for the primary line of business.
+          example: null
           nullable: true
           type: string
         professional_license_number:
-          description: Professional license number
+          description: Optional professional-license number for regulated industries.
+          example: null
           nullable: true
           type: string
         role_type:
-          description: Role type in Branded Calling / Number Reputation services
-          enum:
-          - enterprise
-          - bpo
+          example: enterprise
           type: string
         updated_at:
-          description: When the enterprise was last updated
+          example: '2026-04-26T18:09:24.785211Z'
           format: date-time
+          readOnly: true
           type: string
         website:
-          description: Company website URL
-          nullable: true
+          example: https://acmeplumbing.example.com
           type: string
       type: object
     EnterprisePublicWrapped:
       properties:
         data:
           $ref: '#/components/schemas/EnterprisePublic'
+      required:
+      - data
       type: object
     EnterpriseReputationCreate:
+      additionalProperties: false
       properties:
         check_frequency:
+          allOf:
+          - $ref: '#/components/schemas/ReputationCheckFrequency'
           default: business_daily
-          description: Frequency for automatically refreshing reputation data
-          enum:
-          - business_daily
-          - daily
-          - weekly
-          - biweekly
-          - monthly
-          - never
-          type: string
+          description: Refresh cadence. Defaults to `business_daily` if omitted.
         loa_document_id:
-          description: ID of the signed Letter of Authorization (LOA) document uploaded
-            to the document service
-          example: doc_01HXYZ1234ABCDEF
+          description: Id of the signed Letter of Authorization document, returned
+            by the Telnyx Documents API after upload (upload via `POST /v2/documents`;
+            see https://developers.telnyx.com/api/documents).
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+          maxLength: 255
+          minLength: 1
+          type: string
+      required:
+      - loa_document_id
+      type: object
+    EnterpriseReputationLoaRender:
+      description: All fields optional. The enterprise identity, address, and authorized-representative
+        contact are read from the enterprise record keyed by the path parameter.
+      properties:
+        agent:
+          $ref: '#/components/schemas/AgentInput'
+        signature:
+          $ref: '#/components/schemas/LoaSignaturePayload'
+      type: object
+    EnterpriseReputationLoaUpdate:
+      properties:
+        loa_document_id:
+          description: Id of the new signed LOA document (from the Telnyx Documents
+            API). Changing it resets LOA approval; the new document must be approved
+            before more numbers can be added.
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
           maxLength: 255
           minLength: 1
           type: string
@@ -29869,137 +30674,147 @@ components:
     EnterpriseReputationPublic:
       properties:
         check_frequency:
-          description: Frequency for refreshing reputation data
-          enum:
-          - business_daily
-          - daily
-          - weekly
-          - biweekly
-          - monthly
-          - never
-          type: string
+          $ref: '#/components/schemas/ReputationCheckFrequency'
         created_at:
-          description: When the reputation settings were created
+          example: '2026-04-26T18:06:51.940749Z'
           format: date-time
+          readOnly: true
           type: string
         enterprise_id:
-          description: ID of the associated enterprise
-          example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
           format: uuid
           type: string
         loa_document_id:
-          description: ID of the signed LOA document
+          description: Id of the signed LOA document.
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
           nullable: true
           type: string
+        loa_status:
+          $ref: '#/components/schemas/ReputationLoaStatusPublic'
         rejection_reasons:
-          description: Reasons for rejection (present when status is rejected)
+          description: Populated when `status` is `rejected`.
           items:
             type: string
           nullable: true
           type: array
         status:
-          description: Current enrollment status
-          enum:
-          - pending
-          - approved
-          - rejected
-          - deleted
-          type: string
+          $ref: '#/components/schemas/ReputationStatus'
         updated_at:
-          description: When the reputation settings were last updated
+          example: '2026-04-26T18:09:24.785211Z'
           format: date-time
+          readOnly: true
           type: string
       type: object
     EnterpriseReputationPublicWrapped:
       properties:
         data:
           $ref: '#/components/schemas/EnterpriseReputationPublic'
+      required:
+      - data
       type: object
     EnterpriseReputationUpdateFrequency:
+      additionalProperties: false
       properties:
         check_frequency:
-          description: New frequency for refreshing reputation data
-          enum:
-          - business_daily
-          - daily
-          - weekly
-          - biweekly
-          - monthly
-          - never
-          type: string
+          $ref: '#/components/schemas/ReputationCheckFrequency'
       required:
       - check_frequency
       type: object
     EnterpriseUpdate:
-      description: All fields are optional. Only provided fields will be updated.
+      description: All fields are optional; only the ones supplied are updated. The
+        same field-level rules from `EnterpriseCreateRequest` apply.
       properties:
         billing_address:
           $ref: '#/components/schemas/BillingAddress'
         billing_contact:
           $ref: '#/components/schemas/BillingContact'
         corporate_registration_number:
-          description: Corporate registration number
-          maxLength: 100
+          nullable: true
           type: string
         customer_reference:
-          description: Customer reference identifier
           maxLength: 255
           type: string
         doing_business_as:
-          description: DBA name
           maxLength: 255
           type: string
         dun_bradstreet_number:
-          description: D-U-N-S Number
-          maxLength: 20
+          nullable: true
           type: string
         fein:
-          description: 'Federal Employer Identification Number. Format: XX-XXXXXXX
-            or XXXXXXXXX'
-          maxLength: 20
           type: string
         industry:
-          description: Industry classification
+          enum:
+          - accounting
+          - finance
+          - billing
+          - collections
+          - business
+          - charity
+          - nonprofit
+          - communications
+          - telecom
+          - customer service
+          - support
+          - delivery
+          - shipping
+          - logistics
+          - education
+          - financial
+          - banking
+          - government
+          - public
+          - healthcare
+          - health
+          - pharmacy
+          - medical
+          - insurance
+          - legal
+          - law
+          - notifications
+          - scheduling
+          - real estate
+          - property
+          - retail
+          - ecommerce
+          - sales
+          - marketing
+          - software
+          - technology
+          - tech
+          - media
+          - surveys
+          - market research
+          - travel
+          - hospitality
+          - hotel
+          type: string
+        jurisdiction_of_incorporation:
+          description: Updated state/province/country of incorporation. Optional on
+            update.
+          example: Delaware
+          maxLength: 255
           type: string
         legal_name:
-          description: Legal name of the enterprise
+          description: Legal name of the enterprise.
           maxLength: 64
           minLength: 3
           type: string
         number_of_employees:
-          description: Employee count range
-          enum:
-          - 1-10
-          - 11-50
-          - 51-200
-          - 201-500
-          - 501-2000
-          - 2001-10000
-          - 10001+
           type: string
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
         organization_legal_type:
-          description: Legal structure type
-          enum:
-          - corporation
-          - llc
-          - partnership
-          - nonprofit
-          - other
           type: string
         organization_physical_address:
           $ref: '#/components/schemas/PhysicalAddress'
         primary_business_domain_sic_code:
-          description: SIC Code
-          maxLength: 10
+          nullable: true
           type: string
         professional_license_number:
-          description: Professional license number
-          maxLength: 100
+          nullable: true
           type: string
         website:
-          description: Company website URL
+          format: uri
           maxLength: 255
           type: string
       type: object
@@ -34914,6 +35729,165 @@ components:
       - from
       title: TransferToolParams
       type: object
+    InfringementClaim:
+      properties:
+        claim_date:
+          description: When the claim was filed (set by the claimant's representative
+            at file time).
+          example: '2026-04-22T02:12:54Z'
+          format: date-time
+          readOnly: true
+          type: string
+        claim_description:
+          example: Alleged infringement on trademark XYZ.
+          maxLength: 2000
+          minLength: 10
+          type: string
+        claim_type:
+          $ref: '#/components/schemas/InfringementClaimType'
+        claimant_contact:
+          example: legal@testclaimant.example.com
+          maxLength: 255
+          minLength: 1
+          type: string
+        claimant_name:
+          example: Test Claimant LLC
+          maxLength: 255
+          minLength: 1
+          type: string
+        contest_documents:
+          description: Aggregated across all customer contest submissions on this
+            claim.
+          items:
+            $ref: '#/components/schemas/Document'
+          type: array
+        contest_history:
+          description: Per-round submission audit trail. Each entry records one `POST
+            /infringement_claims/{id}/contest` call (notes, timestamp, document count).
+            Aggregated documents live on `contest_documents`.
+          items:
+            $ref: '#/components/schemas/ContestSubmission'
+          readOnly: true
+          type: array
+        created_at:
+          example: '2026-04-22T02:12:55.908411Z'
+          format: date-time
+          readOnly: true
+          type: string
+        dir:
+          $ref: '#/components/schemas/InfringementClaimDirRef'
+        dir_id:
+          example: 42a3f554-7ce3-44c2-bfe9-6e1afe0d7991
+          format: uuid
+          type: string
+        enterprise_id:
+          example: 7eca8226-8081-4e11-abdc-437b5f53a81f
+          format: uuid
+          type: string
+        id:
+          example: e379fbc8-cd83-4bef-a280-a0ac9d00dcf8
+          format: uuid
+          readOnly: true
+          type: string
+        resolution:
+          description: Set only when `status` is `resolved`.
+          enum:
+          - upheld
+          - rejected
+          - modified
+          nullable: true
+          type: string
+        resolution_date:
+          format: date-time
+          nullable: true
+          readOnly: true
+          type: string
+        resolution_notes:
+          maxLength: 2000
+          nullable: true
+          readOnly: true
+          type: string
+        status:
+          $ref: '#/components/schemas/InfringementClaimStatus'
+        updated_at:
+          example: '2026-04-22T02:12:55.908417Z'
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
+    InfringementClaimContest:
+      additionalProperties: false
+      properties:
+        contest_notes:
+          description: "Customer's response to the claim. 10\u20132000 characters."
+          example: We own the trademark outright; our registration precedes the claimant
+            by three years.
+          maxLength: 2000
+          minLength: 10
+          type: string
+        documents:
+          description: Up to 20 supporting documents per submission. `document_id`
+            must be unique within this submission. Documents are aggregated into the
+            claim's `contest_documents` across all submissions.
+          items:
+            $ref: '#/components/schemas/Document'
+          maxItems: 20
+          type: array
+      required:
+      - contest_notes
+      type: object
+    InfringementClaimDirRef:
+      description: Snapshot of the DIR the claim is filed against, embedded for convenience.
+      properties:
+        display_name:
+          example: Acme Plumbing
+          type: string
+        enterprise_id:
+          example: 7eca8226-8081-4e11-abdc-437b5f53a81f
+          format: uuid
+          type: string
+        id:
+          example: 42a3f554-7ce3-44c2-bfe9-6e1afe0d7991
+          format: uuid
+          readOnly: true
+          type: string
+        status:
+          $ref: '#/components/schemas/DirStatus'
+      type: object
+    InfringementClaimList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/InfringementClaim'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    InfringementClaimStatus:
+      description: "Lifecycle status. `pending` \u2014 newly filed; the DIR is auto-suspended.\
+        \ `contested` \u2014 you have submitted contest evidence; awaiting Telnyx\
+        \ review. `resolved` \u2014 final."
+      enum:
+      - pending
+      - contested
+      - resolved
+      type: string
+    InfringementClaimType:
+      description: Category of infringement being claimed.
+      enum:
+      - trademark
+      - copyright
+      type: string
+    InfringementClaimWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/InfringementClaim'
+      required:
+      - data
+      type: object
     InitiateAICallRequest:
       example:
         AIAssistantId: ai-assistant-id-123
@@ -36773,6 +37747,19 @@ components:
       - meta
       title: ListVerifyProfilesResponse
       type: object
+    LoaSignaturePayload:
+      description: Optional signature embedded in the rendered PDF. When omitted the
+        PDF is returned unsigned for the customer to sign and upload.
+      properties:
+        image_base64:
+          description: Base64-encoded signature image.
+          type: string
+        signer_name:
+          nullable: true
+          type: string
+      required:
+      - image_base64
+      type: object
     Location:
       properties:
         additional_info:
@@ -38299,21 +39286,6 @@ components:
       - page_number
       - page_size
       title: Meta
-      type: object
-    MetaInfo:
-      properties:
-        page_number:
-          description: Current page number
-          type: integer
-        page_size:
-          description: Items per page
-          type: integer
-        total_pages:
-          description: Total number of pages
-          type: integer
-        total_results:
-          description: Total number of results
-          type: integer
       type: object
     MetaResponse:
       properties:
@@ -41523,41 +42495,33 @@ components:
       title: OrderExternalVetting
       type: object
     OrganizationContact:
-      description: 'Organization contact information. Note: the response returns this
-        object with the phone field as ''phone'' (not ''phone_number'').'
       properties:
         email:
-          description: Contact's email address
-          example: jane.smith@acme.com
+          example: sam@acmeplumbing.example.com
           format: email
-          maxLength: 255
           type: string
         first_name:
-          description: Contact's first name
-          example: Jane
+          example: Sam
           maxLength: 255
           type: string
         job_title:
-          description: Contact's job title (required)
-          example: VP of Engineering
+          example: Compliance Lead
           maxLength: 255
           type: string
         last_name:
-          description: Contact's last name
-          example: Smith
+          example: Org
           maxLength: 255
           type: string
-        phone:
-          description: Contact's phone number in E.164 format
-          example: '+16035551234'
-          maxLength: 20
+        phone_number:
+          description: E.164 format with leading `+`.
+          example: '+13125550000'
           type: string
       required:
       - first_name
       - last_name
       - email
       - job_title
-      - phone
+      - phone_number
       type: object
     OrganizationUser:
       example:
@@ -43547,6 +44511,77 @@ components:
           readOnly: true
           type: string
       type: object
+    PhoneNumberBatch:
+      description: A phone-number batch groups all numbers added in a single bulk-add
+        request. Telnyx vets the batch as a unit. The response embeds the full `phone_numbers`
+        array so you can read per-number status without a separate call, plus a batch-level
+        `status` summarising the unit's progress.
+      properties:
+        batch_id:
+          example: ba74cfc6-d32b-467a-9b08-86fd154c23f7
+          format: uuid
+          readOnly: true
+          type: string
+        dir_display_name:
+          description: The DIR's display name at the time the batch was read.
+          example: Acme Plumbing
+          readOnly: true
+          type: string
+        dir_id:
+          example: 74e1d8ed-fbdb-45a7-bbb0-a09c1184eb3d
+          format: uuid
+          type: string
+        documents:
+          description: Documents attached to this batch (e.g. a Letter of Authorization).
+            Empty when none were supplied at add time.
+          items:
+            $ref: '#/components/schemas/Document'
+          type: array
+        enterprise_id:
+          example: 5c987b82-2e3b-442a-afbc-0ba3c515f561
+          format: uuid
+          type: string
+        phone_numbers:
+          description: All phone numbers in this batch, with per-number status.
+          items:
+            $ref: '#/components/schemas/DirPhoneNumber'
+          type: array
+        status:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+          description: Aggregate batch status. Mirrors the values used on individual
+            phone numbers (`submitted`, `in_review`, `verified`, `unsuccessful`, `permanently_rejected`,
+            etc.).
+        submitted_at:
+          description: When the batch was created (and implicitly submitted for vetting).
+          example: '2026-04-26T18:14:37.065870Z'
+          format: date-time
+          readOnly: true
+          type: string
+        total_count:
+          description: Number of phone numbers in this batch (length of `phone_numbers`).
+          example: 1
+          readOnly: true
+          type: integer
+      type: object
+    PhoneNumberBatchList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PhoneNumberBatch'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    PhoneNumberBatchWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/PhoneNumberBatch'
+      required:
+      - data
+      type: object
     PhoneNumberBlocksJob:
       example:
         created_at: '2020-10-23T18:10:00.000Z'
@@ -43644,6 +44679,54 @@ components:
         phone_number:
           description: The phone number in e164 format.
           type: string
+      type: object
+    PhoneNumberBulkDeleteResponse:
+      description: Bulk-delete partial-success response. `data` is the list of phone
+        numbers that were soft-deleted. `meta.errors` holds per-number failures (e.g.
+        number not associated with this DIR). When EVERY number in the request fails,
+        the endpoint instead returns 400 with the canonical Telnyx error envelope
+        and `data`/`meta` are absent.
+      properties:
+        data:
+          description: Phone numbers that were successfully soft-deleted. Bare E.164
+            strings.
+          items:
+            example: '+19493253498'
+            type: string
+          type: array
+        meta:
+          properties:
+            errors:
+              description: Per-number failures that did not block the call. Each entry
+                has `phone_number`, `code`, `title`, `detail`.
+              items:
+                $ref: '#/components/schemas/PhoneNumberItemError'
+              type: array
+          required:
+          - errors
+          type: object
+      required:
+      - data
+      - meta
+      type: object
+    PhoneNumberBulkResponse:
+      description: "Bulk-add success response (HTTP 201). All numbers in the request\
+        \ were accepted into a single new batch. Every entry in `data` shares the\
+        \ same `batch_id` \u2014 read it from any element to obtain the batch id for\
+        \ subsequent `GET .../phone_number_batches/{batch_id}` calls. If any number\
+        \ in the request fails (schema-invalid, not in inventory, already attached\
+        \ to another DIR, etc.) the entire request is rejected with HTTP 400 and the\
+        \ canonical Telnyx error envelope; the success body described here is therefore\
+        \ an all-or-nothing payload."
+      properties:
+        data:
+          description: Phone numbers accepted into the new batch. List order mirrors
+            the request order. Each element shares the same `batch_id`.
+          items:
+            $ref: '#/components/schemas/DirPhoneNumber'
+          type: array
+      required:
+      - data
       type: object
     PhoneNumberBundleStatusChangeRequest:
       example:
@@ -44171,6 +45254,63 @@ components:
       - emergency_enabled
       - emergency_address_id
       type: object
+    PhoneNumberItemError:
+      description: "Per-number error returned by the bulk-delete endpoint. Bulk-add\
+        \ does not use this shape \u2014 it returns a 400 with the canonical envelope\
+        \ grouping numbers by failure category."
+      properties:
+        code:
+          description: Stable per-number error code. Currently only `not_associated`
+            is emitted, when the number is not attached to this DIR.
+          enum:
+          - not_associated
+          example: not_associated
+          type: string
+        detail:
+          example: Phone number not associated with this DIR.
+          type: string
+        phone_number:
+          example: '+19493253498'
+          type: string
+        title:
+          example: Phone number not associated
+          type: string
+      required:
+      - phone_number
+      - code
+      - title
+      - detail
+      type: object
+    PhoneNumberList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/DirPhoneNumber'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    PhoneNumberStatus:
+      description: "Phone-number lifecycle status.\n- `submitted` / `in_review` \u2014\
+        \ Telnyx is reviewing the batch this number belongs to.\n- `verified` \u2014\
+        \ approved; the DIR's display identity will be shown on outbound calls from\
+        \ this number.\n- `unsuccessful` \u2014 Telnyx rejected this submission; the\
+        \ customer may re-add to retry.\n- `suspended` \u2014 temporarily disabled\
+        \ (e.g. by an active infringement claim on the DIR).\n- `expired` \u2014 verification\
+        \ expired; re-add to renew.\n- `permanently_rejected` \u2014 terminal; cannot\
+        \ be re-added on this or any other DIR you own."
+      enum:
+      - submitted
+      - in_review
+      - verified
+      - unsuccessful
+      - suspended
+      - expired
+      - permanently_rejected
+      type: string
     PhoneNumberStatusResponsePaginated:
       properties:
         records:
@@ -44689,34 +45829,28 @@ components:
     PhysicalAddress:
       properties:
         administrative_area:
-          description: State or province
-          example: Illinois
-          maxLength: 100
+          description: State or province code (e.g. `IL`, `ON`).
+          example: IL
           type: string
         city:
-          description: City name
           example: Chicago
           maxLength: 100
           type: string
         country:
-          description: Country name (e.g., United States)
-          example: United States
-          maxLength: 100
+          description: ISO 3166-1 alpha-2 code (currently `US` or `CA`).
+          example: US
           type: string
         extended_address:
-          description: Additional address line (suite, apt, etc.)
-          example: Suite 400
+          example: Suite 504
           maxLength: 255
           nullable: true
           type: string
         postal_code:
-          description: ZIP or postal code
           example: '60601'
           maxLength: 20
           type: string
         street_address:
-          description: Street address
-          example: 123 Main St
+          example: 100 Main St
           maxLength: 255
           type: string
       required:
@@ -48849,6 +49983,65 @@ components:
       - sip_address
       title: Refer request
       type: object
+    RefreshReputationRequest:
+      additionalProperties: false
+      properties:
+        phone_numbers:
+          description: "Phone numbers to refresh reputation data for. 1\u2013100 numbers\
+            \ per request, each in E.164 format. Reputation refreshes are subject\
+            \ to per-enterprise rate limits."
+          items:
+            example: '+19493253498'
+            type: string
+          maxItems: 100
+          minItems: 1
+          type: array
+      required:
+      - phone_numbers
+      type: object
+    RefreshReputationResponse:
+      properties:
+        data:
+          properties:
+            results:
+              description: Per-number outcome of the refresh.
+              items:
+                properties:
+                  error:
+                    description: '`null` when `success` is `true`; carries an error
+                      message otherwise.'
+                    example: null
+                    nullable: true
+                    type: string
+                  phone_number:
+                    example: '+19493253498'
+                    type: string
+                  success:
+                    example: true
+                    type: boolean
+                required:
+                - phone_number
+                - success
+                type: object
+              type: array
+            total_failed:
+              example: 0
+              type: integer
+            total_requested:
+              example: 1
+              type: integer
+            total_successful:
+              example: 1
+              type: integer
+          required:
+          - results
+          - total_requested
+          - total_successful
+          - total_failed
+          type: object
+      required:
+      - data
+      type: object
     RefreshRoomClientTokenRequest:
       properties:
         refresh_token:
@@ -49088,6 +50281,25 @@ components:
       - cause
       title: Reject Request
       type: object
+    RejectionReason:
+      properties:
+        code:
+          example: documentation_incomplete
+          type: string
+        detail:
+          example: Provided documents do not establish business identity.
+          type: string
+        message:
+          description: Customer-visible free-text comment from the Telnyx vetting
+            team. Only the first entry of `rejection_reasons` carries this; the rest
+            are `null`.
+          example: Please re-upload a clearer scan of the certificate.
+          nullable: true
+          type: string
+        title:
+          example: Documentation incomplete
+          type: string
+      type: object
     RelationshipInfo:
       properties:
         parent_id:
@@ -49189,59 +50401,114 @@ components:
         data:
           $ref: '#/components/schemas/ReplacedLinkClick'
       type: object
+    ReputationCheckFrequency:
+      description: How often Telnyx refreshes the stored reputation data for this
+        enterprise's registered numbers.
+      enum:
+      - business_daily
+      - daily
+      - weekly
+      - biweekly
+      - monthly
+      - never
+      type: string
     ReputationData:
-      description: Reputation metrics
+      description: "Reputation snapshot for a phone number. Each metric is a 0\u2013\
+        100 score; `spam_risk` is a coarse bucket. Field set may grow over time \u2014\
+        \ read by key."
       properties:
         connection_score:
-          description: "Connection quality metric (0\u2013100)"
+          example: 80
           maximum: 100
           minimum: 0
           nullable: true
           type: integer
         engagement_score:
-          description: "Engagement metric (0\u2013100). Higher = more positive engagement"
+          example: 64
           maximum: 100
           minimum: 0
           nullable: true
           type: integer
         last_refreshed_at:
-          description: Timestamp of the last reputation data refresh
+          example: '2026-04-26T18:09:24.785211Z'
           format: date-time
           nullable: true
           type: string
         maturity_score:
-          description: "Maturity metric (0\u2013100). Higher = more established number"
+          example: 72
           maximum: 100
           minimum: 0
           nullable: true
           type: integer
         sentiment_score:
-          description: "Sentiment metric (0\u2013100). Higher = more positive sentiment"
+          example: 75
           maximum: 100
           minimum: 0
           nullable: true
           type: integer
         spam_category:
-          description: Spam category classification (e.g., Telemarketing, Debt Collector)
+          description: Category label from the reputation feed when the number is
+            flagged.
+          example: null
           nullable: true
           type: string
         spam_risk:
-          description: Overall spam risk level
+          description: Overall spam-risk classification.
           enum:
           - low
           - medium
           - high
+          example: low
           nullable: true
           type: string
       type: object
+    ReputationLoaStatusPublic:
+      description: Customer-facing Letter-of-Authorization verification state. `approved`
+        is required (alongside reputation status) before phone numbers can be added.
+      enum:
+      - pending
+      - approved
+      - rejected
+      example: pending
+      type: string
+    ReputationPhoneNumber:
+      properties:
+        created_at:
+          example: '2026-04-26T18:06:51.940749Z'
+          format: date-time
+          readOnly: true
+          type: string
+        enterprise_id:
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+          format: uuid
+          type: string
+        id:
+          example: 8a4b1f5e-2f12-4c0c-9a98-9b3a7d8b8e62
+          format: uuid
+          readOnly: true
+          type: string
+        phone_number:
+          description: E.164 with leading `+`.
+          example: '+19493253498'
+          type: string
+        reputation_data:
+          $ref: '#/components/schemas/ReputationData'
+          description: '`null` until the first refresh has been collected for this
+            number.'
+          nullable: true
+        updated_at:
+          example: '2026-04-26T18:09:24.785211Z'
+          format: date-time
+          readOnly: true
+          type: string
+      type: object
     ReputationPhoneNumberCreate:
+      additionalProperties: false
       properties:
         phone_numbers:
-          description: List of phone numbers to associate for reputation monitoring
-            (max 100)
+          description: "1\u2013100 phone numbers in E.164 format with a leading `+`."
           items:
-            description: Phone number in E.164 format
-            example: '+16035551234'
+            example: '+19493253498'
             type: string
           maxItems: 100
           minItems: 1
@@ -49253,59 +50520,34 @@ components:
       properties:
         data:
           items:
-            $ref: '#/components/schemas/ReputationPhoneNumberPublic'
+            $ref: '#/components/schemas/ReputationPhoneNumber'
           type: array
         meta:
-          $ref: '#/components/schemas/MetaInfo'
+          $ref: '#/components/schemas/number-reputation_PaginationMeta'
+      required:
+      - data
+      - meta
       type: object
     ReputationPhoneNumberListWithReputation:
-      properties:
-        data:
-          items:
-            $ref: '#/components/schemas/ReputationPhoneNumberWithReputationData'
-          type: array
-        meta:
-          $ref: '#/components/schemas/MetaInfo'
-      type: object
-    ReputationPhoneNumberPublic:
-      properties:
-        created_at:
-          description: When the number was associated
-          format: date-time
-          type: string
-        enterprise_id:
-          description: ID of the associated enterprise
-          format: uuid
-          type: string
-        id:
-          description: Unique identifier
-          format: uuid
-          type: string
-        phone_number:
-          description: Phone number in E.164 format
-          example: '+16035551234'
-          type: string
-        updated_at:
-          description: When the record was last updated
-          format: date-time
-          type: string
-      type: object
+      allOf:
+      - $ref: '#/components/schemas/ReputationPhoneNumberList'
+      description: List of reputation-monitored phone numbers, each carrying its current
+        reputation data.
     ReputationPhoneNumberWithReputation:
       properties:
         data:
-          $ref: '#/components/schemas/ReputationPhoneNumberWithReputationData'
+          $ref: '#/components/schemas/ReputationPhoneNumber'
+      required:
+      - data
       type: object
-    ReputationPhoneNumberWithReputationData:
-      allOf:
-      - $ref: '#/components/schemas/ReputationPhoneNumberPublic'
-      - properties:
-          reputation_data:
-            description: Reputation metrics (null if not yet fetched)
-            oneOf:
-            - $ref: '#/components/schemas/ReputationData'
-            - nullable: true
-              type: object
-        type: object
+    ReputationStatus:
+      description: Lifecycle status of the enterprise's Phone Number Reputation activation.
+      enum:
+      - pending
+      - approved
+      - deleted
+      - rejected
+      type: string
     RequirementGroup:
       properties:
         action:
@@ -56019,39 +57261,6 @@ components:
           type: integer
       title: TelnyxDownstreamCampaignRecordSet
       type: object
-    TelnyxError:
-      properties:
-        code:
-          description: Telnyx error code
-          example: '10015'
-          type: string
-        detail:
-          description: Human-readable error detail
-          example: User has already agreed to Terms of Service version v1.0.0
-          type: string
-        meta:
-          properties:
-            url:
-              description: Link to error documentation
-              format: uri
-              type: string
-          type: object
-        source:
-          description: Reference to the field that caused the error
-          properties:
-            pointer:
-              description: JSON pointer (RFC6901) to the field that caused the error
-              example: /body/organization_type
-              type: string
-          type: object
-        title:
-          description: Short error title
-          example: Bad Request
-          type: string
-      required:
-      - code
-      - title
-      type: object
     TelnyxProviderParams:
       description: Telnyx provider-specific parameters. Use `voice_speed` and `temperature`
         for `Natural` and `NaturalHD` models. For the `Ultra` model, use `voice_speed`,
@@ -57480,6 +58689,108 @@ components:
       - id
       - shared_tool_id
       title: ToolNodeReq
+      type: object
+    TosAgreement:
+      description: "A recorded user agreement to a product's Terms of Service. The\
+        \ `user_id` is intentionally NOT echoed back on this public surface \u2014\
+        \ the caller already knows their own identity."
+      properties:
+        agreed_at:
+          example: '2025-07-10T10:30:00Z'
+          format: date-time
+          readOnly: true
+          type: string
+        created_at:
+          example: '2025-07-10T10:30:00Z'
+          format: date-time
+          readOnly: true
+          type: string
+        id:
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          readOnly: true
+          type: string
+        product_type:
+          $ref: '#/components/schemas/TosProductType'
+        terms_version:
+          example: v1.0.0
+          type: string
+        version:
+          description: Convenience alias of `terms_version`. Both keys are present
+            on every response.
+          example: v1.0.0
+          readOnly: true
+          type: string
+      type: object
+    TosAgreementList:
+      description: Paginated list of Terms of Service agreements for the calling user.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/TosAgreement'
+          type: array
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    TosAgreementWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/TosAgreement'
+      required:
+      - data
+      type: object
+    TosProductType:
+      description: Telnyx product the Terms of Service apply to.
+      enum:
+      - branded_calling
+      - number_reputation
+      example: branded_calling
+      type: string
+    TosStatus:
+      description: Whether the calling user has agreed to a product's current Terms
+        of Service. The `user_id` is intentionally omitted on this public surface.
+      properties:
+        agreed_at:
+          example: '2025-07-10T10:30:00Z'
+          format: date-time
+          nullable: true
+          type: string
+        agreed_version:
+          description: Version the user previously agreed to (may be older than `current_terms_version`).
+            `null` if the user has never agreed.
+          example: v1.0.0
+          nullable: true
+          type: string
+        agreement_required:
+          description: '`true` when the user must agree to the latest version before
+            using the product. Equivalent to `!has_agreed`.'
+          example: true
+          type: boolean
+        current_terms_version:
+          description: Latest published version of the ToS for this product.
+          example: v1.1.0
+          type: string
+        has_agreed:
+          description: '`true` if the user has agreed to the latest version.'
+          example: false
+          type: boolean
+        product_type:
+          $ref: '#/components/schemas/TosProductType'
+      required:
+      - product_type
+      - current_terms_version
+      - has_agreed
+      - agreement_required
+      type: object
+    TosStatusWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/TosStatus'
+      required:
+      - data
       type: object
     TotalSummary:
       properties:
@@ -63380,6 +64691,53 @@ components:
       - suggested
       title: Validate address action result
       type: object
+    ValidateCallReasonsRequest:
+      description: "**Bare JSON array** of candidate call-reason strings (NOT an object\
+        \ \u2014 there is no top-level `call_reasons` key on this endpoint). 1\u2013\
+        10 strings, each \u226464 characters."
+      example:
+      - Appointment reminders
+      - Billing inquiries
+      items:
+        maxLength: 64
+        type: string
+      maxItems: 10
+      minItems: 1
+      type: array
+    ValidateCallReasonsResponse:
+      properties:
+        data:
+          properties:
+            all_pre_approved:
+              description: '`true` when every supplied reason matches a pre-vetted
+                entry in the call-reason library. When `true`, the DIR will sail through
+                the call-reasons portion of vetting.'
+              example: false
+              type: boolean
+            non_approved_reasons:
+              description: "Subset of the input that does NOT match the pre-vetted\
+                \ library. The DIR can still be submitted with these \u2014 they will\
+                \ go through manual review."
+              example:
+              - Appointment reminders
+              - Billing inquiries
+              items:
+                type: string
+              type: array
+            requires_manual_vetting:
+              description: '`true` when at least one supplied reason is in `non_approved_reasons`.
+                Equivalent to `non_approved_reasons.length > 0` and the inverse of
+                `all_pre_approved`.'
+              example: true
+              type: boolean
+          required:
+          - all_pre_approved
+          - non_approved_reasons
+          - requires_manual_vetting
+          type: object
+      required:
+      - data
+      type: object
     ValidationCodes:
       properties:
         order_id:
@@ -67994,12 +69352,118 @@ components:
         in the US but is used for some international addresses.
       example: Guadalajara
       type: string
-    branded-calling_ErrorResponse:
+    branded-calling_Error:
+      description: A single entry in the canonical Telnyx error envelope. `code` is
+        the stable Telnyx error catalog id; the human-readable explanation lives at
+        `meta.url`. `detail` is a context-specific message; `source.pointer` (when
+        present) names the offending field of the request.
+      properties:
+        code:
+          description: Stable numeric Telnyx error catalog id. See `meta.url` for
+            the full catalog entry.
+          example: '10005'
+          type: string
+        detail:
+          description: "Context-specific message describing what went wrong on this\
+            \ particular request. May embed offending values; do not rely on it for\
+            \ programmatic matching \u2014 branch on `code`."
+          example: field required
+          type: string
+        meta:
+          description: Carries `url` linking to the Telnyx error catalog entry for
+            this `code`. Useful for forwarding the user to documentation.
+          properties:
+            pending_check_codes:
+              description: Codes of the pending vetting checks (e.g. `loa_signature_valid`).
+              items:
+                type: string
+              type: array
+            pending_check_ids:
+              description: Set on `422 vetting_checks_incomplete` responses from `/admin/dir/{id}/approve`
+                and `/admin/phone-number-batches/approve`. Lists the still-pending
+                vetting check ids.
+              items:
+                format: uuid
+                type: string
+              type: array
+            pending_check_labels:
+              description: Human-readable labels of the pending vetting checks.
+              items:
+                type: string
+              type: array
+            url:
+              example: https://developers.telnyx.com/docs/overview/errors/10005
+              format: uri
+              type: string
+          required:
+          - url
+          type: object
+        source:
+          description: Optional pointer at the offending field of the request.
+          properties:
+            parameter:
+              example: page[size]
+              type: string
+            pointer:
+              example: /body/legal_name
+              type: string
+          type: object
+        title:
+          description: "Short human-readable category, e.g. `Bad Request`, `Duplicate\
+            \ resource`, `Not Found`, `Forbidden`. Treat as advisory only \u2014 the\
+            \ stable identifier is `code`."
+          example: Invalid parameters
+          type: string
+      required:
+      - code
+      - title
+      - detail
+      - meta
+      type: object
+    branded-calling_Errors:
+      description: Canonical Telnyx error envelope. Returned on every 4xx and 5xx
+        response from this service. `errors` is non-empty; multiple entries indicate
+        multiple distinct problems with the same request (e.g. one entry per invalid
+        phone number on a bulk operation).
       properties:
         errors:
+          description: List of one or more error entries. Order is not significant.
           items:
-            $ref: '#/components/schemas/TelnyxError'
+            $ref: '#/components/schemas/branded-calling_Error'
           type: array
+      required:
+      - errors
+      type: object
+    branded-calling_PaginationMeta:
+      description: JSON:API pagination metadata returned with every paginated list
+        response. Page numbering is 1-based. `page_size` reports the number of items
+        actually returned in `data` for this page; the requested size is taken from
+        the `page[size]` query parameter.
+      properties:
+        page_number:
+          description: 1-based index of this page. Echoes the `page[number]` query
+            parameter (default `1`).
+          example: 1
+          type: integer
+        page_size:
+          description: Number of items returned in this page's `data` array. Capped
+            at 250.
+          example: 20
+          type: integer
+        total_pages:
+          description: Total number of pages available given the current `page_size`.
+          example: 3
+          type: integer
+        total_results:
+          description: Total number of items across all pages (excludes soft-deleted
+            rows).
+          example: 42
+          type: integer
+      required:
+      - total_pages
+      - total_results
+      - page_number
+      - page_size
       type: object
     business_name:
       description: The business name associated with the address. An address must
@@ -69583,6 +71047,144 @@ components:
             $ref: '#/components/schemas/number-lookup_Error'
           type: array
       type: object
+    number-reputation_EnterpriseListPublic:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/EnterprisePublic'
+          type: array
+        meta:
+          $ref: '#/components/schemas/number-reputation_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    number-reputation_Error:
+      description: A single entry in the canonical Telnyx error envelope. `code` is
+        the stable Telnyx error catalog id; the human-readable explanation lives at
+        `meta.url`. `detail` is a context-specific message; `source.pointer` (when
+        present) names the offending field of the request.
+      properties:
+        code:
+          description: Stable numeric Telnyx error catalog id. See `meta.url` for
+            the full catalog entry.
+          example: '10005'
+          type: string
+        detail:
+          description: "Context-specific message describing what went wrong on this\
+            \ particular request. May embed offending values; do not rely on it for\
+            \ programmatic matching \u2014 branch on `code`."
+          example: field required
+          type: string
+        meta:
+          description: Carries `url` linking to the Telnyx error catalog entry for
+            this `code`. Useful for forwarding the user to documentation.
+          properties:
+            pending_check_codes:
+              description: Codes of the pending vetting checks (e.g. `loa_signature_valid`).
+              items:
+                type: string
+              type: array
+            pending_check_ids:
+              description: Set on `422 vetting_checks_incomplete` responses from `/admin/dir/{id}/approve`
+                and `/admin/phone-number-batches/approve`. Lists the still-pending
+                vetting check ids.
+              items:
+                format: uuid
+                type: string
+              type: array
+            pending_check_labels:
+              description: Human-readable labels of the pending vetting checks.
+              items:
+                type: string
+              type: array
+            url:
+              example: https://developers.telnyx.com/docs/overview/errors/10005
+              format: uri
+              type: string
+          required:
+          - url
+          type: object
+        source:
+          description: Optional pointer at the offending field of the request.
+          properties:
+            parameter:
+              example: page[size]
+              type: string
+            pointer:
+              example: /body/legal_name
+              type: string
+          type: object
+        title:
+          description: "Short human-readable category, e.g. `Bad Request`, `Duplicate\
+            \ resource`, `Not Found`, `Forbidden`. Treat as advisory only \u2014 the\
+            \ stable identifier is `code`."
+          example: Invalid parameters
+          type: string
+      required:
+      - code
+      - title
+      - detail
+      - meta
+      type: object
+    number-reputation_Errors:
+      description: Canonical Telnyx error envelope. Returned on every 4xx and 5xx
+        response from this service. `errors` is non-empty; multiple entries indicate
+        multiple distinct problems with the same request (e.g. one entry per invalid
+        phone number on a bulk operation).
+      properties:
+        errors:
+          description: List of one or more error entries. Order is not significant.
+          items:
+            $ref: '#/components/schemas/number-reputation_Error'
+          type: array
+      required:
+      - errors
+      type: object
+    number-reputation_PaginationMeta:
+      description: JSON:API pagination metadata returned with every paginated list
+        response. Page numbering is 1-based. `page_size` reports the number of items
+        actually returned in `data` for this page; the requested size is taken from
+        the `page[size]` query parameter.
+      properties:
+        page_number:
+          description: 1-based index of this page. Echoes the `page[number]` query
+            parameter (default `1`).
+          example: 1
+          type: integer
+        page_size:
+          description: Number of items returned in this page's `data` array. Capped
+            at 250.
+          example: 20
+          type: integer
+        total_pages:
+          description: Total number of pages available given the current `page_size`.
+          example: 3
+          type: integer
+        total_results:
+          description: Total number of items across all pages (excludes soft-deleted
+            rows).
+          example: 42
+          type: integer
+      required:
+      - total_pages
+      - total_results
+      - page_number
+      - page_size
+      type: object
+    number-reputation_TosAgreementList:
+      description: Paginated list of Terms of Service agreements for the calling user.
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/TosAgreement'
+          type: array
+        meta:
+          $ref: '#/components/schemas/number-reputation_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
     numbers_Error:
       properties:
         code:
@@ -70660,7 +72262,11 @@ components:
       scheme: bearer
       type: http
     branded-calling_bearerAuth:
-      description: API key passed as a Bearer token in the Authorization header
+      description: Telnyx API key. Generate one at https://portal.telnyx.com/#/app/api-keys.
+      scheme: bearer
+      type: http
+    number-reputation_bearerAuth:
+      description: Telnyx API key. Generate one at https://portal.telnyx.com/#/app/api-keys.
       scheme: bearer
       type: http
     oauthClientAuth:
@@ -79396,6 +81002,87 @@ paths:
       - Debugging
       x-group-parameters: 'true'
       x-latency-category: responsive
+  /call_reasons:
+    get:
+      description: Telnyx maintains a library of pre-vetted call-reason phrases (e.g.
+        "Appointment reminders", "Billing inquiries") that carry through DIR vetting
+        smoothly. You can use any string that fits your use case in `DirCreateRequest.call_reasons`,
+        but matching one of these reduces the chance the vetting team flags the phrasing
+        for clarification.
+      operationId: listCallReasons
+      parameters:
+      - $ref: '#/components/parameters/BcPageNumber'
+      - description: Items per page. Default `100` for this endpoint (the call-reason
+          library is small and most callers want the whole list in one call). Maximum
+          250; values above are clamped to 250.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 100
+          example: 100
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - description: Alert about account status or changes
+                  id: d29914a4-3c93-440c-af72-03778f442522
+                  reason: Account Alert
+                - description: General account notifications
+                  id: 4cabcae2-6c61-415b-ac5b-753469458a56
+                  reason: Account Notification
+                meta:
+                  page_number: 1
+                  page_size: 2
+                  total_pages: 23
+                  total_results: 45
+              schema:
+                $ref: '#/components/schemas/CallReasonReferenceList'
+          description: Paginated list of standard call reasons.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List standard call reasons
+      tags:
+      - Reference Data
+      x-latency-category: responsive
+  /call_reasons/validate:
+    post:
+      description: Check up to 10 candidate `call_reasons` strings against Telnyx's
+        vetting heuristics before sending them on a DIR create or update. The endpoint
+        flags strings that are likely to be rejected during vetting (too generic,
+        banned phrases, length issues, etc.) so you can fix them up front.
+      operationId: validateCallReasons
+      requestBody:
+        content:
+          application/json:
+            example:
+            - Appointment reminders
+            - Billing inquiries
+            schema:
+              $ref: '#/components/schemas/ValidateCallReasonsRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCallReasonsResponse'
+          description: Per-string validation result.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Validate a list of call reasons
+      tags:
+      - Reference Data
+      x-latency-category: responsive
   /calls:
     post:
       description: 'Dial a number or SIP URI from a given connection. A successful
@@ -82517,6 +84204,519 @@ paths:
       tags:
       - Dialogflow Integration
       x-latency-category: responsive
+  /dir:
+    get:
+      description: Convenience endpoint that returns every DIR you own without scoping
+        to a specific enterprise. Equivalent to calling `GET /v2/enterprises/{enterprise_id}/dir`
+        for each enterprise and concatenating the results, but server-side and paginated
+        as a single list.
+      operationId: listAllDirs
+      parameters:
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Restrict results to a single enterprise.
+        in: query
+        name: enterprise_id
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Filter by DIR status.
+        in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/DirStatus'
+      - description: Case-insensitive partial match on `display_name` or call reason.
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+      - description: 'Sort field. Allowed values: `created_at`, `updated_at`, `display_name`,
+          `status`. Prefix with `-` for descending. Default `-created_at`.'
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -created_at
+          enum:
+          - created_at
+          - -created_at
+          - updated_at
+          - -updated_at
+          - display_name
+          - -display_name
+          - status
+          - -status
+          type: string
+      - description: Return only DIRs whose `expiring_at` is at or after this ISO-8601
+          timestamp. Pairs with the `[lte]` variant to build renewal-window dashboards.
+        in: query
+        name: filter[expiring_at][gte]
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: Return only DIRs whose `expiring_at` is at or before this ISO-8601
+          timestamp.
+        in: query
+        name: filter[expiring_at][lte]
+        required: false
+        schema:
+          format: date-time
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirList'
+          description: Paginated list of DIRs across all your enterprises.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List all DIRs across your enterprises
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
+  /dir/document_types:
+    get:
+      description: Reference list of `document_type` values accepted by `DirCreateRequest.documents[].document_type`
+        and the infringement-contest endpoint. Each entry has a stable `short_name`
+        (used in API calls) and a customer-facing description.
+      operationId: listDocumentTypes
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - description: Signed authorization from the DIR owner permitting
+                    Telnyx to register the DIR and its associated numbers on their
+                    behalf
+                  short_name: letter_of_authorization
+                - description: Official Secretary of State (or equivalent) registration
+                    showing the legal entity exists and is in good standing
+                  short_name: business_registration
+                meta:
+                  page_number: 1
+                  page_size: 20
+                  total_pages: 1
+                  total_results: 2
+              schema:
+                $ref: '#/components/schemas/DocumentTypeReferenceList'
+          description: List of supported document types.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List supported DIR document types
+      tags:
+      - Reference Data
+      x-latency-category: responsive
+  /dir/{dir_id}:
+    delete:
+      description: 'Delete a DIR. Failure modes: `400` if a child phone number is
+        in a non-deletable status, `409` if the DIR has an unresolved infringement
+        claim, `404` if the DIR is not yours.'
+      operationId: deleteDirSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '204':
+          description: DIR deleted.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Delete a DIR (no enterprise_id required)
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
+    get:
+      description: Returns a single DIR by id. The enterprise is resolved server-side
+        from the DIR id. Returns `404` if the DIR does not exist or is not yours.
+      operationId: getDirByIdSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirWrapped'
+          description: DIR.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Get a DIR by id (no enterprise_id required)
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
+    patch:
+      description: "Edit a DIR. Only DIRs in `draft`, `rejected`, `unsuccessful`,\
+        \ or `suspended` are editable. PATCH is a pure edit \u2014 `status` is never\
+        \ changed by this endpoint. To re-vet after editing, call `POST /v2/dir/{dir_id}/submit`\
+        \ explicitly."
+      operationId: updateDirSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              call_reasons:
+              - Appointment reminders
+              - Billing inquiries
+              - Lab results
+              display_name: Acme Plumbing & Wellness
+              logo_url: https://acmeplumbing.example.com/logo-v2-256.bmp
+            schema:
+              $ref: '#/components/schemas/DirUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirWrapped'
+          description: DIR updated.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Update a DIR (no enterprise_id required)
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
+  /dir/{dir_id}/comments:
+    get:
+      description: List the comments on a DIR. The enterprise is resolved server-side
+        from the DIR id.
+      operationId: listCommentsSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: 'Restrict to comments of this category. Customer-visible categories
+          only: internal-only comments are filtered out regardless of this filter.'
+        in: query
+        name: comment_type
+        required: false
+        schema:
+          $ref: '#/components/schemas/CommentType'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentList'
+          description: Paginated list of comments.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List comments on a DIR (no enterprise_id required)
+      tags:
+      - Comments
+      x-latency-category: responsive
+    post:
+      description: "Post a customer comment on a DIR (for example, to respond to reviewer\
+        \ notes). Send only `content` (1\u20135000 chars) and an optional `parent_comment_id`;\
+        \ the server sets the comment type, visibility, and author automatically.\
+        \ The enterprise is resolved server-side from the DIR id."
+      operationId: createCommentSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              content: 'Re-uploaded the certificate. New document_id: 89450109-ee35-411c-b5bb-14f1d806fca2.'
+            schema:
+              $ref: '#/components/schemas/DirCommentCreateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentWrapped'
+          description: Comment created.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Post a comment on a DIR (no enterprise_id required)
+      tags:
+      - Comments
+      x-latency-category: responsive
+  /dir/{dir_id}/infringement_claims:
+    get:
+      description: 'Return the trademark or copyright claims filed against this DIR.
+        Each claim''s `status` is `pending` (newly filed; DIR auto-suspended), `contested`
+        (you have submitted contest evidence; awaiting resolution), or `resolved`
+        (final). Resolution outcomes: `upheld` (claim accepted; DIR stays suspended/permanently_rejected),
+        `rejected` (claim dismissed; DIR restored to `verified`), `modified` (partial
+        outcome).'
+      operationId: listInfringementClaimsForDir
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfringementClaimList'
+          description: Paginated list of claims for this DIR.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List infringement claims for a DIR
+      tags:
+      - Infringement Claims
+      x-latency-category: responsive
+  /dir/{dir_id}/infringement_update:
+    put:
+      description: Push a fix for a DIR that is `suspended` with an open infringement
+        claim back into vetting. `POST /dir/{dir_id}/submit` is blocked while a claim
+        is open, so this is the customer-callable path to update the DIR's content
+        and re-certify before Telnyx adjudicates the claim. All four certification
+        booleans must be `true`. Optional content fields (`display_name`, `logo_url`,
+        `call_reasons`, `documents`) update the DIR; documents are append-only.
+      operationId: updateDirInfringement
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              certify_brand_is_accurate: true
+              certify_ip_ownership: true
+              certify_no_infringement: true
+              certify_no_shaft_content: true
+              infringement_resolution_notes: Updated the display name to remove the
+                disputed mark and re-uploaded the authorization.
+            schema:
+              $ref: '#/components/schemas/DirInfringementUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirWrapped'
+          description: DIR updated and re-submitted for vetting.
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '409':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '422':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Update a DIR to resolve an infringement concern
+      tags:
+      - Infringement Claims
+      x-latency-category: responsive
+  /dir/{dir_id}/phone_number_batches:
+    get:
+      description: List the phone-number batches submitted under a DIR. The enterprise
+        is resolved server-side from the DIR id.
+      operationId: listDirPhoneNumberBatchesSimplified
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Restrict to batches whose aggregate status equals this value.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBatchList'
+          description: Paginated list of batches.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List phone-number batches for a DIR (simplified)
+      tags:
+      - Phone Number Batches
+      x-latency-category: responsive
+  /dir/{dir_id}/phone_number_batches/{batch_id}:
+    get:
+      description: Get a single phone-number batch by id. The enterprise is resolved
+        server-side from the DIR id.
+      operationId: getDirPhoneNumberBatchSimplified
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - description: The batch id (lowercase UUID).
+        in: path
+        name: batch_id
+        required: true
+        schema:
+          example: 0a4b1f5e-2f12-4c0c-9a98-9b3a7d8b8e62
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBatchWrapped'
+          description: Batch.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Get a phone-number batch (simplified)
+      tags:
+      - Phone Number Batches
+      x-latency-category: responsive
+  /dir/{dir_id}/phone_numbers:
+    delete:
+      description: Deregister phone numbers from a DIR. The enterprise is resolved
+        server-side from the DIR id. Returns a partial-success envelope.
+      operationId: deleteDirPhoneNumbersSimplified
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              phone_numbers:
+              - '+19493253498'
+            schema:
+              $ref: '#/components/schemas/BulkDeletePhoneNumbersRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBulkDeleteResponse'
+          description: Bulk-delete response. Inspect both `deleted` and `errors`.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Remove phone numbers from a DIR (simplified)
+      tags:
+      - Phone Numbers
+      x-latency-category: responsive
+    get:
+      description: List the phone numbers registered under a DIR. The enterprise is
+        resolved server-side from the DIR id.
+      operationId: listDirPhoneNumbersSimplified
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Filter by phone-number status.
+        in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberList'
+          description: Paginated list of phone numbers.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List phone numbers attached to a DIR (simplified)
+      tags:
+      - Phone Numbers
+      x-latency-category: responsive
+    post:
+      description: 'Register phone numbers under a DIR. The enterprise is resolved
+        server-side from the DIR id. Same body, failure modes, and batch semantics
+        whichever path form you use.
+
+
+        **Pricing:** This is a billable action. See https://telnyx.com/pricing/numbers
+        for current pricing.'
+      operationId: addDirPhoneNumbersSimplified
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              documents:
+              - description: LOA authorising Telnyx to register these numbers under
+                  the DIR.
+                document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+                document_type: letter_of_authorization
+              phone_numbers:
+              - '+19493253498'
+              - '+12134445566'
+            schema:
+              $ref: '#/components/schemas/BulkAddPhoneNumbersRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBulkResponse'
+          description: Bulk-add response. Inspect both `added` and `errors`.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Add phone numbers to a DIR (simplified)
+      tags:
+      - Phone Numbers
+      x-latency-category: responsive
+  /dir/{dir_id}/submit:
+    post:
+      description: 'Submit a DIR for vetting. Sends the DIR back through the vetting
+        cycle from any non-terminal status. When re-submitting from `suspended` or
+        `expired`, the DIR''s previous Branded Calling registration is torn down transactionally
+        and its phone numbers flip back to `submitted`. When re-submitting from `verified`,
+        the existing registration stays live throughout the new vetting cycle.
+
+
+        Returns `400` from `submitted`/`in_review`/`permanently_rejected`. Returns
+        `409` if the DIR has an unresolved infringement claim.'
+      operationId: submitDirSimple
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirWrapped'
+          description: DIR submitted.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Submit a DIR for vetting (no enterprise_id required)
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
   /document_links:
     get:
       description: List all documents links ordered by created_at descending.
@@ -82581,7 +84781,7 @@ paths:
         '200':
           $ref: '#/components/responses/DocServiceDocumentResponse'
         '422':
-          $ref: '#/components/responses/documents_UnprocessableEntity'
+          $ref: '#/components/responses/UnprocessableEntity'
         default:
           $ref: '#/components/responses/documents_GenericErrorResponse'
       summary: Upload a document
@@ -82720,7 +84920,7 @@ paths:
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '422':
-          $ref: '#/components/responses/documents_UnprocessableEntity'
+          $ref: '#/components/responses/UnprocessableEntity'
         default:
           $ref: '#/components/responses/documents_GenericErrorResponse'
       summary: Generate a temporary download link for a document
@@ -82979,27 +85179,26 @@ paths:
       x-latency-category: responsive
   /enterprises:
     get:
-      description: Retrieve a paginated list of enterprises associated with your account.
-      operationId: ListEnterprises
+      description: Return the enterprises you own, paginated. The default page size
+        is 20; the maximum is 250.
+      operationId: listEnterprises
       parameters:
-      - description: Page number (1-indexed)
-        in: query
-        name: page[number]
-        schema:
-          default: 1
-          minimum: 1
-          type: integer
-      - description: Number of items per page
+      - $ref: '#/components/parameters/BcPageNumber'
+      - description: Items per page. Default 10. Maximum 250; values above are clamped
+          to 250.
         in: query
         name: page[size]
+        required: false
         schema:
           default: 10
-          maximum: 100
+          example: 10
+          maximum: 250
           minimum: 1
           type: integer
-      - description: Filter by legal name (partial match)
+      - description: Filter by legal name (partial match).
         in: query
         name: legal_name
+        required: false
         schema:
           example: Acme
           type: string
@@ -83008,32 +85207,66 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnterpriseListPublic'
-          description: List of enterprises
+                $ref: '#/components/schemas/number-reputation_EnterpriseListPublic'
+          description: Paginated list of enterprises.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
       summary: List enterprises
       tags:
       - Enterprises
+      x-group-parameters: 'true'
       x-latency-category: responsive
     post:
-      description: 'Create a new enterprise for Branded Calling / Number Reputation
-        services.
+      description: 'Create the legal entity that owns your Number Reputation registrations.
 
 
-        Registers the enterprise in the Branded Calling / Number Reputation services,
-        enabling it to create Display Identity Records (DIRs) or enroll in Number
-        Reputation monitoring.
+        The response carries a server-assigned `id` you will use for every subsequent
+        call. After creating an enterprise and agreeing to the Number Reputation Terms
+        of Service (`POST /terms_of_service/number_reputation/agree`), enable reputation
+        monitoring via `POST /enterprises/{enterprise_id}/reputation`.
 
 
-        **Required Fields:** `legal_name`, `doing_business_as`, `organization_type`,
-        `country_code`, `website`, `fein`, `industry`, `number_of_employees`, `organization_legal_type`,
-        `organization_contact`, `billing_contact`, `organization_physical_address`,
-        `billing_address`'
-      operationId: CreateEnterprise
+        An enterprise is shared across Telnyx products; if you also use Branded Calling,
+        the same enterprise is reused.'
+      operationId: createEnterprise
       requestBody:
         content:
           application/json:
+            example:
+              billing_address:
+                administrative_area: IL
+                city: Chicago
+                country: US
+                postal_code: '60601'
+                street_address: 100 Main St
+              billing_contact:
+                email: billing@run065.example.com
+                first_name: Alex
+                last_name: Bill
+                phone_number: '+13125550001'
+              country_code: US
+              doing_business_as: Run 065 Debug
+              fein: 12-3456789
+              industry: technology
+              jurisdiction_of_incorporation: Delaware
+              legal_name: Run 065 Debug Co
+              number_of_employees: 51-200
+              organization_contact:
+                email: org@run065.example.com
+                first_name: Sam
+                job_title: Compliance Lead
+                last_name: Org
+                phone_number: '+13125550000'
+              organization_legal_type: llc
+              organization_physical_address:
+                administrative_area: IL
+                city: Chicago
+                country: US
+                postal_code: '60601'
+                street_address: 100 Main St
+              organization_type: commercial
+              role_type: enterprise
+              website: https://run065.example.com
             schema:
               $ref: '#/components/schemas/EnterpriseCreate'
         required: true
@@ -83043,40 +85276,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterprisePublicWrapped'
-          description: Enterprise created successfully
+          description: Enterprise created.
         '400':
-          $ref: '#/components/responses/BadRequest'
-          description: "Bad request \u2014 invalid input, validation error, or duplicate\
-            \ legal_name"
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
       summary: Create an enterprise
       tags:
       - Enterprises
       x-latency-category: responsive
   /enterprises/{enterprise_id}:
     delete:
-      description: Delete an enterprise and all associated resources. This action
-        is irreversible.
-      operationId: DeleteEnterprise
+      description: Delete an enterprise. Fails with `400` if the enterprise still
+        has dependent resources (e.g. active reputation settings or registered numbers);
+        remove those first. Returns `404` if the enterprise does not exist or does
+        not belong to your account.
+      operationId: deleteEnterprise
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       responses:
         '204':
-          description: Enterprise deleted successfully
+          description: 204 (no body)
+        '400':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
       summary: Delete an enterprise
       tags:
       - Enterprises
       x-latency-category: responsive
     get:
-      description: Retrieve details of a specific enterprise by ID.
-      operationId: GetEnterprise
+      description: Retrieve a single enterprise by id. Returns `404` if the id does
+        not exist or does not belong to your account.
+      operationId: getEnterprise
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       responses:
@@ -83085,24 +85321,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterprisePublicWrapped'
-          description: Enterprise details
+          description: Enterprise.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
       summary: Get an enterprise
       tags:
       - Enterprises
       x-latency-category: responsive
     put:
-      description: "Update enterprise information. All fields are optional \u2014\
-        \ only the provided fields will be updated."
-      operationId: UpdateEnterprise
+      description: 'Replace the enterprise''s mutable fields. Only mutable fields
+        may be sent. Server-assigned and immutable fields (`id`, `record_type`, `created_at`,
+        `updated_at`, status fields, `organization_type`, `country_code`, `role_type`)
+        cannot be changed: including any of them in the body is rejected with `400
+        Bad Request` (`Field ''X'' is not allowed in this request`).'
+      operationId: updateEnterprise
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       requestBody:
         content:
           application/json:
+            example:
+              billing_address:
+                administrative_area: IL
+                city: Chicago
+                country: US
+                postal_code: '60601'
+                street_address: 100 Main St
+              billing_contact:
+                email: billing@acmeplumbing.example.com
+                first_name: Alex
+                last_name: Bill
+                phone_number: '+13125550001'
+              customer_reference: internal-ref-2026Q2
+              doing_business_as: Acme Plumbing
+              fein: 12-3456789
+              industry: business
+              jurisdiction_of_incorporation: Delaware
+              legal_name: Acme Plumbing LLC
+              number_of_employees: 51-200
+              organization_contact:
+                email: sam@acmeplumbing.example.com
+                first_name: Sam
+                job_title: Compliance Lead
+                last_name: Owner
+                phone_number: '+13125550000'
+              organization_legal_type: llc
+              organization_physical_address:
+                administrative_area: IL
+                city: Chicago
+                country: US
+                postal_code: '60601'
+                street_address: 100 Main St
+              website: https://acmeplumbing.example.com
             schema:
               $ref: '#/components/schemas/EnterpriseUpdate'
         required: true
@@ -83112,58 +85384,256 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterprisePublicWrapped'
-          description: Enterprise updated successfully
+          description: Enterprise updated.
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Update an enterprise
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Replace an enterprise
       tags:
       - Enterprises
       x-latency-category: responsive
+  /enterprises/{enterprise_id}/branded_calling:
+    post:
+      description: "Branded Calling is a paid product that must be activated on each\
+        \ enterprise. Activation is idempotent:\n- First call: marks the enterprise\
+        \ as activated and begins onboarding it with the Branded Calling platform\
+        \ asynchronously. Returns `200` with `branded_calling_enabled: true`.\n- Re-call\
+        \ after success: no-op, returns the same enterprise body.\n- Re-call after\
+        \ a prior failure: re-queues onboarding, returns `200`.\n\nPrerequisite: the\
+        \ calling user must have agreed to the Branded Calling Terms of Service (`POST\
+        \ /terms_of_service/branded_calling/agree`). Without that, this endpoint returns\
+        \ `403 terms_of_service_not_accepted`.\n\nFailure modes:\n- `403` \u2014 Branded\
+        \ Calling Terms of Service not accepted.\n- `404` \u2014 enterprise does not\
+        \ exist or does not belong to your account.\n\n**Pricing:** This is a billable\
+        \ action. See https://telnyx.com/pricing/numbers for current pricing."
+      operationId: activateBrandedCalling
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterprisePublicWrapped'
+          description: Branded Calling activated.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Activate Branded Calling on an enterprise
+      tags:
+      - Enterprises
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/dir:
+    get:
+      description: Return the DIRs (Display Identity Records) belonging to a single
+        enterprise. Pagination is JSON:API style (`page[number]`, `page[size]`, max
+        250). Filterable by `status`. Searchable by case-insensitive partial match
+        on `display_name` (`search=`). Sortable by any of `created_at`, `updated_at`,
+        `display_name`, `status`, `submitted_at`, `verified_at`, `expiring_at` (prefix
+        `-` for descending; default `-created_at`). Supports the renewal-window filters
+        `filter[expiring_at][gte]` / `filter[expiring_at][lte]` and the convenience
+        `filter[expiring_within_days]` (mutually exclusive with the explicit gte/lte
+        form).
+      operationId: listDirsForEnterprise
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Filter by DIR status.
+        in: query
+        name: status
+        required: false
+        schema:
+          $ref: '#/components/schemas/DirStatus'
+      - description: Case-insensitive partial match on `display_name`.
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+      - description: 'Sort field. Allowed: `created_at`, `updated_at`, `display_name`,
+          `status`, `submitted_at`, `verified_at`, `expiring_at`. Prefix with `-`
+          for descending. Default `-created_at`.'
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: -created_at
+          enum:
+          - created_at
+          - -created_at
+          - updated_at
+          - -updated_at
+          - display_name
+          - -display_name
+          - status
+          - -status
+          - submitted_at
+          - -submitted_at
+          - verified_at
+          - -verified_at
+          - expiring_at
+          - -expiring_at
+          type: string
+      - description: Return only DIRs whose `expiring_at` is at or after this ISO-8601
+          timestamp.
+        in: query
+        name: filter[expiring_at][gte]
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: Return only DIRs whose `expiring_at` is at or before this ISO-8601
+          timestamp.
+        in: query
+        name: filter[expiring_at][lte]
+        required: false
+        schema:
+          format: date-time
+          type: string
+      - description: "Convenience: returns DIRs whose `expiring_at` falls within the\
+          \ next N days (1\u2013365). Equivalent to setting `filter[expiring_at][gte]=<now>`\
+          \ + `filter[expiring_at][lte]=<now+N>`. Mutually exclusive with the explicit\
+          \ `[gte]`/`[lte]` filters \u2014 combining returns 400."
+        in: query
+        name: filter[expiring_within_days]
+        required: false
+        schema:
+          maximum: 365
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirList'
+          description: Paginated list of DIRs.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List DIRs in an enterprise
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
+    post:
+      description: "Create a new DIR under the given enterprise. The DIR starts in\
+        \ `draft` status; it must be submitted (`POST .../submit`) and approved by\
+        \ Telnyx before any phone number can be attached.\n\n**Field rules**\n- `display_name`:\
+        \ 1\u201335 characters, no emoji or whitespace-only strings; this is the name\
+        \ shown to recipients.\n- `call_reasons`: 1\u201310 strings, each \u226464\
+        \ characters; describe why your business calls customers (e.g. 'Appointment\
+        \ reminders', 'Billing inquiries'). Validate the wording against `POST /call_reasons/validate`.\n\
+        - `logo_url`: HTTPS URL (max 128 chars) to a 256\xD7256 BMP (max 1 MB). The\
+        \ image is downloaded and hashed at submission time.\n- `documents`: up to\
+        \ 20 entries; each `document_id` must be obtained by uploading the file via\
+        \ the Telnyx Documents API first. Within one DIR a `document_id` may only\
+        \ appear once.\n- `certify_brand_is_accurate`, `certify_no_shaft_content`,\
+        \ `certify_ip_ownership` MUST all be `true`.\n\n**Failure modes**\n- `422`\
+        \ \u2014 validation error; `errors[].source.pointer` names the offending field.\n\
+        - `403` \u2014 Branded Calling not activated on this enterprise (see `POST\
+        \ /enterprises/{id}/branded_calling`).\n- `404` \u2014 enterprise does not\
+        \ exist or does not belong to your account."
+      operationId: createDir
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            examples:
+              full:
+                description: "Replace `logo_url` with a publicly-reachable HTTPS URL\
+                  \ to your own 256\xD7256 BMP. Replace `document_id` with the id\
+                  \ returned by the Telnyx Documents API after you upload your supporting\
+                  \ document."
+                summary: Full payload with logo and supporting document
+                value:
+                  authorizer_email: sam@acmeplumbing.example.com
+                  authorizer_name: Sam Owner
+                  call_reasons:
+                  - Appointment reminders
+                  - Billing inquiries
+                  certify_brand_is_accurate: true
+                  certify_ip_ownership: true
+                  certify_no_shaft_content: true
+                  display_name: Acme Plumbing
+                  documents:
+                  - description: Certificate of incorporation.
+                    document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+                    document_type: business_registration
+                  logo_url: https://acmeplumbing.example.com/logo-256.bmp
+                  reselling: false
+              minimal:
+                description: The smallest payload that creates a DIR. You can attach
+                  the logo and supporting documents later via PATCH; the DIR can also
+                  be submitted without a logo, but a verified DIR with no logo will
+                  not display caller artwork.
+                summary: Minimal payload (no logo, no documents)
+                value:
+                  authorizer_email: sam@acmeplumbing.example.com
+                  authorizer_name: Sam Owner
+                  call_reasons:
+                  - Appointment reminders
+                  - Billing inquiries
+                  certify_brand_is_accurate: true
+                  certify_ip_ownership: true
+                  certify_no_shaft_content: true
+                  display_name: Acme Plumbing
+                  reselling: false
+            schema:
+              $ref: '#/components/schemas/DirCreateRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirWrapped'
+          description: DIR created in `draft` status.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Create a Display Identity Record (DIR)
+      tags:
+      - Display Identity Records
+      x-latency-category: responsive
   /enterprises/{enterprise_id}/reputation:
     delete:
-      description: 'Disable Number Reputation for an enterprise.
-
-
-        This will:
-
-        - Delete the reputation settings record
-
-        - Log the deletion for audit purposes
-
-        - Stop all future automated reputation checks
-
-
-        **Note:** Can only be performed on `approved` reputation settings.'
-      operationId: DisableReputationSettings
+      description: Disable Phone Number Reputation. All registered numbers are de-registered
+        as a cascade. The enterprise itself is unaffected. Returns `204` on success,
+        `404` if reputation is not enabled for this enterprise.
+      operationId: disableReputationSettings
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       responses:
         '204':
-          description: Reputation settings disabled successfully
+          description: 204 (no body)
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Disable Number Reputation
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Disable phone-number reputation for an enterprise
       tags:
-      - Number Reputation Settings
+      - Reputation
       x-latency-category: responsive
     get:
-      description: 'Retrieve the current Number Reputation settings for an enterprise.
+      description: 'Phone Number Reputation tracks how your outbound caller-IDs are
+        perceived (spam risk, engagement, etc.) across the call-screening ecosystem.
+        This endpoint reads the enterprise-level settings: whether the product is
+        enabled, the refresh cadence, and the stored Letter of Authorization document
+        id.
 
 
-        Returns the enrollment status (`pending`, `approved`, `rejected`, `deleted`),
-        check frequency, and any rejection reasons.
-
-
-        Returns `404` if reputation has not been enabled for this enterprise.'
-      operationId: GetReputationSettings
+        Returns `404` if reputation has never been enabled for this enterprise.'
+      operationId: getReputationSettings
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       responses:
@@ -83172,37 +85642,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
-          description: Reputation settings
+          description: Reputation settings.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/branded-calling_ErrorResponse'
-          description: Reputation settings not found for this enterprise
-      summary: Get reputation settings
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get phone-number reputation settings for an enterprise
       tags:
-      - Number Reputation Settings
+      - Reputation
       x-latency-category: responsive
     post:
-      description: "Enable Number Reputation service for an enterprise.\n\n**Requirements:**\n\
-        - Signed LOA (Letter of Authorization) document ID\n- Reputation check frequency\
-        \ (defaults to `business_daily`)\n- Number Reputation Terms of Service must\
-        \ be accepted\n\n**Flow:**\n1. Registers the enterprise for reputation monitoring\n\
-        2. Creates reputation settings with `pending` status\n3. Awaits admin approval\
-        \ before monitoring begins\n\n**Resubmission After Rejection:**\nIf a previously\
-        \ rejected record exists, this endpoint will delete it and create a new `pending`\
-        \ record.\n\n**Available Frequencies:**\n- `business_daily` \u2014 Monday\u2013\
-        Friday\n- `daily` \u2014 Every day\n- `weekly` \u2014 Once per week\n- `biweekly`\
-        \ \u2014 Once every two weeks\n- `monthly` \u2014 Once per month\n- `never`\
-        \ \u2014 Manual refresh only"
-      operationId: EnableReputationSettings
+      description: "Activate Phone Number Reputation for the given enterprise. Requires\
+        \ an uploaded Letter of Authorization document (the `loa_document_id` references\
+        \ the Telnyx Documents API) and a refresh-frequency selection. After activation,\
+        \ individual phone numbers can be registered via `POST .../reputation/numbers`.\n\
+        \n**Prerequisite**: the calling user must have agreed to the Phone Number\
+        \ Reputation Terms of Service (`POST /terms_of_service/number_reputation/agree`).\n\
+        \nFailure modes:\n- `403` \u2014 Phone Number Reputation Terms of Service\
+        \ not accepted.\n- `404` \u2014 enterprise does not exist or does not belong\
+        \ to your account.\n- `400` \u2014 reputation already enabled for this enterprise.\n\
+        - `422` \u2014 `loa_document_id` missing or `check_frequency` invalid.\n\n\
+        **Pricing:** This is a billable action. See https://telnyx.com/pricing/numbers\
+        \ for current pricing."
+      operationId: enableReputationSettings
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       requestBody:
         content:
           application/json:
+            example:
+              check_frequency: business_daily
+              loa_document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
             schema:
               $ref: '#/components/schemas/EnterpriseReputationCreate'
         required: true
@@ -83212,38 +85682,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
-          description: Reputation settings created (pending admin approval)
+          description: Reputation enabled.
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/branded-calling_ErrorResponse'
-          description: Reputation settings already exist for this enterprise
-      summary: Enable Number Reputation
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Enable phone-number reputation for an enterprise
       tags:
-      - Number Reputation Settings
+      - Reputation
       x-latency-category: responsive
   /enterprises/{enterprise_id}/reputation/frequency:
     patch:
-      description: "Update how often reputation data is automatically refreshed.\n\
-        \n**Note:** The enterprise must have `approved` reputation settings. Updating\
-        \ frequency on `pending` or `rejected` settings will return an error.\n\n\
-        **Available Frequencies:**\n- `business_daily` \u2014 Monday\u2013Friday\n\
-        - `daily` \u2014 Every day including weekends\n- `weekly` \u2014 Once per\
-        \ week\n- `biweekly` \u2014 Once every two weeks\n- `monthly` \u2014 Once\
-        \ per month\n- `never` \u2014 Manual refresh only (no automatic checks)"
-      operationId: UpdateReputationFrequency
+      description: 'Update how often Telnyx refreshes the reputation data for this
+        enterprise''s registered numbers. The new frequency takes effect on the next
+        scheduled refresh.
+
+
+        The enterprise''s reputation must be in `approved` status. A request made
+        while the status is `pending` is rejected with `400 Bad Request`.'
+      operationId: updateReputationFrequency
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       requestBody:
         content:
           application/json:
+            example:
+              check_frequency: weekly
             schema:
               $ref: '#/components/schemas/EnterpriseReputationUpdateFrequency'
         required: true
@@ -83253,46 +85719,112 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
-          description: Reputation frequency updated
+          description: Frequency updated.
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Update reputation check frequency
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Change the reputation refresh frequency
       tags:
-      - Number Reputation Settings
+      - Reputation
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/loa:
+    patch:
+      description: Point the enterprise's reputation settings at a new signed LOA
+        document. This resets LOA approval to `pending`; the new document must be
+        approved before additional phone numbers can be added.
+      operationId: replaceReputationLoa
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              loa_document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+            schema:
+              $ref: '#/components/schemas/EnterpriseReputationLoaUpdate'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseReputationPublicWrapped'
+          description: Updated reputation settings.
+        '400':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Replace the reputation Letter of Authorization document
+      tags:
+      - Reputation
+      x-latency-category: responsive
+    post:
+      description: Render the LOA for this enterprise as a PDF. The enterprise identity,
+        address, and authorized-representative contact are taken from the enterprise
+        record; the optional `agent` block is supplied only when a third-party partner
+        manages the numbers. The response is the PDF itself (unsigned unless a `signature`
+        is provided). Sign it and upload it to the Telnyx Documents API (`POST /v2/documents`,
+        see https://developers.telnyx.com/api/documents) to obtain the `loa_document_id`
+        required by `POST .../reputation`.
+      operationId: generateReputationLoa
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            example: {}
+            schema:
+              $ref: '#/components/schemas/EnterpriseReputationLoaRender'
+        required: false
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                format: binary
+                type: string
+          description: Rendered LOA PDF.
+        '400':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '403':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Render a phone-number reputation Letter of Authorization
+      tags:
+      - Reputation
       x-latency-category: responsive
   /enterprises/{enterprise_id}/reputation/numbers:
     get:
-      description: 'List all phone numbers associated with an enterprise for Number
-        Reputation monitoring.
-
-
-        Returns phone numbers with their cached reputation data (if available). Supports
-        pagination and filtering by phone number.'
-      operationId: ListReputationNumbers
+      description: Paginated list of phone numbers registered for reputation monitoring
+        under this enterprise. The response includes the latest reputation snapshot
+        per number where one has been collected.
+      operationId: listReputationNumbers
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
-      - description: Page number (1-indexed)
-        in: query
-        name: page[number]
-        schema:
-          default: 1
-          minimum: 1
-          type: integer
-      - description: Number of items per page
+      - $ref: '#/components/parameters/BcPageNumber'
+      - description: Items per page. Default 10. Maximum 250; values above are clamped
+          to 250.
         in: query
         name: page[size]
+        required: false
         schema:
           default: 10
-          maximum: 100
+          example: 10
+          maximum: 250
           minimum: 1
           type: integer
-      - description: Filter by specific phone number (E.164 format)
+      - description: Filter by specific phone number (E.164 format).
         in: query
         name: phone_number
+        required: false
         schema:
           example: '+16035551234'
           type: string
@@ -83302,29 +85834,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationPhoneNumberListWithReputation'
-          description: List of phone numbers with reputation data
+          description: Paginated list of numbers with reputation data.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: List reputation phone numbers
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: List reputation-monitored phone numbers for an enterprise
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
     post:
-      description: "Associate one or more phone numbers with an enterprise for Number\
-        \ Reputation monitoring.\n\n**Validations:**\n- Phone numbers must be in E.164\
-        \ format (e.g., `+16035551234`)\n- Phone numbers must be in-service and belong\
-        \ to your account (verified via Warehouse)\n- Phone numbers must be US local\
-        \ numbers\n- Phone numbers cannot already be associated with any enterprise\n\
-        \n**Note:** This operation is atomic \u2014 if any number fails validation,\
-        \ the entire request fails.\n\n**Maximum:** 100 phone numbers per request."
-      operationId: AssociateReputationNumbers
+      description: 'Add up to 100 phone numbers to reputation monitoring on this enterprise.
+        Each must be in E.164 format (`+1NPANXXXXXX` for US/CA) and belong to your
+        Telnyx phone-number inventory.
+
+
+        **Prerequisite**: reputation must already be enabled on this enterprise (see
+        `POST .../reputation`).
+
+
+        **Pricing:** This is a billable action. See https://telnyx.com/pricing/numbers
+        for current pricing.'
+      operationId: associateReputationNumbers
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
       requestBody:
         content:
           application/json:
+            example:
+              phone_numbers:
+              - '+19493253498'
+              - '+12134445566'
             schema:
               $ref: '#/components/schemas/ReputationPhoneNumberCreate'
         required: true
@@ -83334,59 +85874,87 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationPhoneNumberList'
-          description: Phone numbers associated successfully
+          description: Numbers registered.
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Associate phone numbers for reputation
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Register phone numbers for reputation monitoring
       tags:
-      - Reputation Phone Numbers
+      - Reputation
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/numbers/refresh:
+    post:
+      description: 'Immediately refresh the stored reputation data for the listed
+        numbers. This is in addition to the periodic refresh determined by `check_frequency`.
+        Up to 100 numbers per call. The response carries the kicked-off jobs; the
+        actual refresh runs asynchronously.
+
+
+        **Pricing:** Forcing a refresh performs live reputation lookups, which are
+        billable. See https://telnyx.com/pricing/numbers for current pricing.'
+      operationId: refreshReputationNumbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              phone_numbers:
+              - '+19493253498'
+            schema:
+              $ref: '#/components/schemas/RefreshReputationRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshReputationResponse'
+          description: "Refresh completed (the call is synchronous from the customer's\
+            \ POV \u2014 Telnyx fans out to the reputation feed before responding)."
+        4XX:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Force a reputation refresh
+      tags:
+      - Reputation
       x-latency-category: responsive
   /enterprises/{enterprise_id}/reputation/numbers/{phone_number}:
     delete:
-      description: 'Remove a phone number from Number Reputation monitoring for an
-        enterprise.
-
-
-        The number will no longer be tracked and reputation data will no longer be
-        refreshed.'
-      operationId: DisassociateReputationNumber
+      description: Stop tracking the reputation of this phone number. The number itself
+        remains in your inventory; only the reputation registration is removed.
+      operationId: disassociateReputationNumber
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
-      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/PhoneNumberPath'
       responses:
         '204':
-          description: Phone number disassociated successfully
+          description: 204 (no body)
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Disassociate a phone number
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Remove a phone number from reputation monitoring
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
     get:
-      description: "Get detailed reputation data for a specific phone number associated\
-        \ with an enterprise.\n\n**Query Parameters:**\n- `fresh` (default: `false`):\
-        \ When `true`, fetches fresh reputation data (incurs API cost). When `false`,\
-        \ returns cached data. If no cached data exists, fresh data is automatically\
-        \ fetched.\n\n**Returns:**\n- `spam_risk`: Overall spam risk level (`low`,\
-        \ `medium`, `high`)\n- `spam_category`: Spam category classification\n- `maturity_score`:\
-        \ Maturity metric (0\u2013100)\n- `connection_score`: Connection quality metric\
-        \ (0\u2013100)\n- `engagement_score`: Engagement metric (0\u2013100)\n- `sentiment_score`:\
-        \ Sentiment metric (0\u2013100)\n- `last_refreshed_at`: Timestamp of last\
-        \ data refresh"
-      operationId: GetPhoneNumberReputation
+      description: Retrieve one registered number with its latest reputation snapshot.
+        The `phone_number` path parameter is in E.164 format and must be URL-encoded
+        (e.g. `%2B19493253498`).
+      operationId: getPhoneNumberReputation
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
-      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/PhoneNumberPath'
       - description: When true, fetches fresh reputation data (incurs API cost). When
-          false, returns cached data.
+          false (default), returns cached data.
         in: query
         name: fresh
+        required: false
         schema:
           default: false
           type: boolean
@@ -83396,24 +85964,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationPhoneNumberWithReputation'
-          description: Phone number reputation data
+          description: Phone number with reputation data.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '403':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/branded-calling_ErrorResponse'
-          description: Enterprise is not approved for reputation tracking
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/branded-calling_ErrorResponse'
-          description: Phone number is not associated with this enterprise
-      summary: Get reputation data for a phone number
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get a single reputation-monitored phone number
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
   /external_connections:
     get:
@@ -85255,6 +87815,84 @@ paths:
       summary: Retrieve an inexplicit number order
       tags:
       - Inexplicit Number Orders
+      x-latency-category: responsive
+  /infringement_claims/{claim_id}:
+    get:
+      description: Retrieve a single claim by id. Returns `404` if the claim does
+        not exist or is not against a DIR you own.
+      operationId: getInfringementClaim
+      parameters:
+      - description: Claim id (lowercase UUID).
+        in: path
+        name: claim_id
+        required: true
+        schema:
+          example: e379fbc8-cd83-4bef-a280-a0ac9d00dcf8
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfringementClaimWrapped'
+          description: Claim.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Get an infringement claim
+      tags:
+      - Infringement Claims
+      x-latency-category: responsive
+  /infringement_claims/{claim_id}/contest:
+    post:
+      description: "Submit a written response and supporting documents disputing the\
+        \ claim. The first call moves the claim from `pending` to `contested`; subsequent\
+        \ calls append supplementary evidence without changing status. The `documents[]`\
+        \ you attach are aggregated across rounds in the claim's `contest_documents`\
+        \ field.\n\nOnly `pending` and `contested` claims accept new evidence. A `resolved`\
+        \ claim returns `400`.\n\nFailure modes:\n- `400` \u2014 the claim is `resolved`\
+        \ (terminal); cannot be contested further.\n- `404` \u2014 the claim does\
+        \ not exist or is not against a DIR you own.\n- `422` \u2014 `contest_notes`\
+        \ is too short (< 10 chars), too long (> 2000 chars), `documents` is > 20\
+        \ entries, or a `document_id` is duplicated within the same submission."
+      operationId: contestInfringementClaim
+      parameters:
+      - in: path
+        name: claim_id
+        required: true
+        schema:
+          example: e379fbc8-cd83-4bef-a280-a0ac9d00dcf8
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              contest_notes: We own the trademark outright; our registration precedes
+                the claimant by three years. See attached certificate.
+              documents:
+              - description: USPTO trademark certificate.
+                document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+                document_type: trademark_registration
+            schema:
+              $ref: '#/components/schemas/InfringementClaimContest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfringementClaimWrapped'
+          description: Updated claim, status `contested`.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Contest an infringement claim
+      tags:
+      - Infringement Claims
       x-latency-category: responsive
   /integration_secrets:
     get:
@@ -89972,7 +92610,7 @@ paths:
       description: Returns information about the provided phone number.
       operationId: LookupNumber
       parameters:
-      - $ref: '#/components/parameters/number-lookup_PhoneNumber'
+      - $ref: '#/components/parameters/PhoneNumber'
       - $ref: '#/components/parameters/NumberLookupType'
       responses:
         '200':
@@ -96722,30 +99360,17 @@ paths:
       x-latency-category: interactive
   /reputation/numbers:
     get:
-      description: "List all phone numbers enrolled in Number Reputation monitoring\
-        \ for your account. This is a simplified endpoint that does not require an\
-        \ `enterprise_id` \u2014 it returns numbers across all your enterprises.\n\
-        \nSupports pagination and filtering by phone number."
-      operationId: ListReputationNumbersSimplified
+      description: Convenience alias for `GET /v2/enterprises/{enterprise_id}/reputation/numbers`
+        that returns numbers across every enterprise you own. Useful when you don't
+        want to look up the enterprise id first.
+      operationId: listReputationNumbersSimplified
       parameters:
-      - description: Page number (1-indexed)
-        in: query
-        name: page[number]
-        schema:
-          default: 1
-          minimum: 1
-          type: integer
-      - description: Number of items per page
-        in: query
-        name: page[size]
-        schema:
-          default: 10
-          maximum: 100
-          minimum: 1
-          type: integer
-      - description: Filter by specific phone number (E.164 format)
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Filter by specific phone number (E.164 format).
         in: query
         name: phone_number
+        required: false
         schema:
           example: '+16035551234'
           type: string
@@ -96755,44 +99380,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationPhoneNumberListWithReputation'
-          description: List of phone numbers with reputation data
+          description: Paginated list.
         '401':
-          $ref: '#/components/responses/Unauthorized'
-      summary: List reputation phone numbers (simplified)
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: List reputation-monitored phone numbers across all enterprises
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
   /reputation/numbers/{phone_number}:
     delete:
-      description: Remove a phone number from Number Reputation monitoring without
-        requiring an `enterprise_id`.
-      operationId: DisassociateReputationNumberSimplified
+      description: Convenience alias for `DELETE /v2/enterprises/{enterprise_id}/reputation/numbers/{phone_number}`.
+      operationId: disassociateReputationNumberSimplified
       parameters:
-      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/PhoneNumberPath'
       responses:
         '204':
-          description: Phone number disassociated successfully
+          description: 204 (no body)
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Disassociate a phone number (simplified)
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Remove a phone number from reputation monitoring (no enterprise_id
+        required)
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
     get:
-      description: 'Get reputation data for a specific phone number without requiring
-        an `enterprise_id`.
-
-
-        Same response as the enterprise-scoped endpoint. Uses cached data by default.'
-      operationId: GetPhoneNumberReputationSimplified
+      description: Convenience alias for `GET /v2/enterprises/{enterprise_id}/reputation/numbers/{phone_number}`.
+      operationId: getPhoneNumberReputationSimplified
       parameters:
-      - $ref: '#/components/parameters/PhoneNumber'
+      - $ref: '#/components/parameters/PhoneNumberPath'
       - description: When true, fetches fresh reputation data (incurs API cost). When
-          false, returns cached data.
+          false (default), returns cached data.
         in: query
         name: fresh
+        required: false
         schema:
           default: false
           type: boolean
@@ -96802,14 +99424,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationPhoneNumberWithReputation'
-          description: Phone number reputation data
+          description: Phone number with reputation data.
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
-          $ref: '#/components/responses/NotFound'
-      summary: Get reputation data for a phone number (simplified)
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get a reputation-monitored number (no enterprise_id required)
       tags:
-      - Reputation Phone Numbers
+      - Reputation
       x-latency-category: responsive
   /requirement_groups:
     get:
@@ -100888,27 +103510,155 @@ paths:
       tags:
       - Access Tokens
       x-latency-category: responsive
-  /terms_of_service/number_reputation/agree:
-    post:
-      description: 'Accept the Terms of Service for the Number Reputation product.
-        Must be called before using Number Reputation endpoints.
+  /terms_of_service/agreements:
+    get:
+      description: 'Returns the Terms of Service agreements the authenticated user
+        has on file. Each entry records the version agreed to and when. Most users
+        only have one agreement per product, but if the ToS is updated and the user
+        re-agrees a new entry is added.
 
 
-        Returns `400` with error code `10015` if the user has already agreed to the
-        current ToS version.'
-      operationId: AgreeNumberReputationTermsOfService
+        Results are paginated with the standard `page[number]` / `page[size]` parameters;
+        the response uses the standard `{data, meta}` JSON:API envelope.
+
+
+        By default this returns agreements for **all** products the user has agreed
+        to (including Branded Calling). Pass the `product_type` query parameter to
+        scope the result to a single product.'
+      operationId: listTermsOfServiceAgreements
+      parameters:
+      - description: Optional filter. Omit to list the user's agreements for **every**
+          product (branded_calling and number_reputation); pass a value to return
+          only that product's agreements.
+        example: number_reputation
+        in: query
+        name: product_type
+        required: false
+        schema:
+          $ref: '#/components/schemas/TosProductType'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
       responses:
         '200':
-          description: Terms of Service accepted successfully
-        '400':
-          $ref: '#/components/responses/BadRequestTelnyx'
-          description: "Bad request \u2014 e.g. user has already agreed to this Terms\
-            \ of Service version (error code 10015)"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-      summary: Agree to Number Reputation Terms of Service
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/number-reputation_TosAgreementList'
+          description: Paginated list of agreements.
+        4XX:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: List the calling user's Terms of Service agreements
+      tags:
+      - Terms of Service
+      x-latency-category: responsive
+  /terms_of_service/agreements/{agreement_id}:
+    get:
+      description: Retrieve a single ToS agreement record. Returns `404` if the agreement
+        does not exist or does not belong to the authenticated user.
+      operationId: getTermsOfServiceAgreement
+      parameters:
+      - in: path
+        name: agreement_id
+        required: true
+        schema:
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TosAgreementWrapped'
+          description: Agreement.
+        4XX:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get a Terms of Service agreement by id
+      tags:
+      - Terms of Service
+      x-latency-category: responsive
+  /terms_of_service/branded_calling/agree:
+    post:
+      description: "Records the authenticated user's agreement to the current Branded\
+        \ Calling ToS. No body required. Idempotent \u2014 re-calling after agreement\
+        \ is a no-op and returns the existing agreement.\n\nThis is a prerequisite\
+        \ for activating Branded Calling on any enterprise (`POST /enterprises/{id}/branded_calling`);\
+        \ without an agreement, activation returns `403`."
+      operationId: agreeToBrandedCallingTos
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TosAgreementWrapped'
+          description: Agreement recorded.
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Agree to the Branded Calling Terms of Service
+      tags:
+      - Terms of Service
+      x-latency-category: responsive
+  /terms_of_service/number_reputation/agree:
+    post:
+      description: 'Records the authenticated user''s agreement to the current Phone
+        Number Reputation ToS. No body required. Idempotent.
+
+
+        Prerequisite for using any of the `/v2/.../reputation/*` endpoints.'
+      operationId: agreeNumberReputationTermsOfService
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TosAgreementWrapped'
+          description: Agreement recorded.
+        4XX:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Agree to the Phone Number Reputation Terms of Service
+      tags:
+      - Terms of Service
+      x-latency-category: responsive
+  /terms_of_service/status:
+    get:
+      description: 'Returns whether the authenticated user has agreed to the current
+        Number Reputation Terms of Service. Used during onboarding to decide whether
+        to prompt the user with the ToS dialog before continuing.
+
+
+        The `agreement_required: true` value means the user has not yet agreed (or
+        has agreed to an outdated version) and must call `POST /terms_of_service/number_reputation/agree`
+        before they can use the Number Reputation endpoints on an enterprise.'
+      operationId: getTermsOfServiceStatus
+      parameters:
+      - description: Which product's ToS to check. Defaults to `branded_calling`;
+          pass `number_reputation` to check the Number Reputation Terms of Service.
+        example: number_reputation
+        in: query
+        name: product_type
+        required: false
+        schema:
+          $ref: '#/components/schemas/TosProductType'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TosStatusWrapped'
+          description: Status.
+        4XX:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        default:
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get the calling user's Terms of Service status
       tags:
       - Terms of Service
       x-latency-category: responsive
@@ -106069,6 +108819,9 @@ tags:
   name: Chat
 - description: Identify common themes and patterns in your embedded documents
   name: Clusters
+- description: Read messages from the Telnyx vetting team and reply with clarifying
+    information.
+  name: Comments
 - description: Conference command operations
   name: Conference Commands
 - description: Connections operations
@@ -106091,6 +108844,9 @@ tags:
   name: Detail Records
 - description: Dialogflow Connection Operations.
   name: Dialogflow Integration
+- description: A Display Identity Record (DIR) is the verified calling identity (display
+    name, logo, call reasons) shown to recipients on outbound calls.
+  name: Display Identity Records
 - description: Documents
   name: Documents
 - description: Dynamic emergency address operations
@@ -106099,7 +108855,7 @@ tags:
   name: Dynamic Emergency Endpoints
 - description: Embed documents and perform text searches
   name: Embeddings
-- description: Enterprise management for Branded Calling and Number Reputation services
+- description: Manage the legal-entity record that owns your DIRs and phone numbers.
   name: Enterprises
 - description: External Connections operations
   name: External Connections
@@ -106126,6 +108882,9 @@ tags:
 - description: Inexplicit number orders for bulk purchasing without specifying exact
     numbers
   name: Inexplicit Number Orders
+- description: Trademark or impersonation claims filed against your DIR. Customers
+    may contest a claim with supporting evidence.
+  name: Infringement Claims
 - description: Store and retrieve integration secrets
   name: Integration Secrets
 - description: Inventory Level
@@ -106160,9 +108919,6 @@ tags:
   name: Number Lookup
 - description: Number portout operations
   name: Number Portout
-- description: Manage Number Reputation enrollment and check frequency settings for
-    an enterprise
-  name: Number Reputation Settings
 - description: Configure your phone numbers
   name: Number Settings
 - description: OTA updates operations
@@ -106176,6 +108932,9 @@ tags:
   name: Organization Users
 - description: Outbound voice profiles operations
   name: Outbound Voice Profiles
+- description: Phone numbers are submitted to Telnyx for vetting in batches. Batches
+    group all numbers added in a single request under the same Letter of Authorization.
+  name: Phone Number Batches
 - description: Background jobs performed over a phone-numbers block's phone numbers
   name: Phone Number Blocks Background Jobs
 - description: Phone number campaign assignment
@@ -106192,6 +108951,9 @@ tags:
   name: Phone Number Reservations
 - description: Number search
   name: Phone Number Search
+- description: Associate phone numbers with a verified DIR so calls from those numbers
+    carry the DIR's display identity.
+  name: Phone Numbers
 - description: Endpoints related to porting orders management.
   name: Porting Orders
 - description: Presigned object URL operations
@@ -106216,6 +108978,9 @@ tags:
   name: Queue Commands
 - description: Send RCS messages
   name: RCS
+- description: 'Static reference values the API accepts: call reasons, document types,
+    rejection types.'
+  name: Reference Data
 - description: Regions
   name: Regions
 - description: Regulatory Requirements
@@ -106224,9 +108989,8 @@ tags:
   name: Reporting
 - description: Ledger billing reports
   name: Reports
-- description: Associate phone numbers with an enterprise for reputation monitoring
-    and retrieve reputation scores
-  name: Reputation Phone Numbers
+- description: Phone-number reputation monitoring (spam-score lookup and tracking).
+  name: Reputation
 - description: Requirement Groups
   name: Requirement Groups
 - description: Types of requirements for international numbers and porting orders
@@ -106282,7 +109046,8 @@ tags:
   name: TeXML REST Commands
 - description: Number lookup usage reports
   name: Telco Data Usage Reports
-- description: Terms of Service agreement endpoints
+- description: Accept and review the Branded Calling and Phone Number Reputation terms
+    of service.
   name: Terms of Service
 - description: Text to speech streaming command operations
   name: Text To Speech Commands
