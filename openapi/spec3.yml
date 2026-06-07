@@ -84206,10 +84206,13 @@ paths:
       x-latency-category: responsive
   /dir:
     get:
-      description: Convenience endpoint that returns every DIR you own without scoping
-        to a specific enterprise. Equivalent to calling `GET /v2/enterprises/{enterprise_id}/dir`
-        for each enterprise and concatenating the results, but server-side and paginated
-        as a single list.
+      description: 'Returns every DIR (Display Identity Record) you own, across all
+        of your enterprises, as a single list. Pagination is JSON:API style (`page[number]`,
+        `page[size]`, max 250). Supports `filter[]` query params: `filter[enterprise_id]`,
+        `filter[status]`, `filter[display_name][contains]`, `filter[call_reason][contains]`,
+        plus the renewal-window filters `filter[expiring_at][gte]` / `filter[expiring_at][lte]`.
+        Sortable by `created_at`, `updated_at`, `display_name`, `status` (prefix `-`
+        for descending; default `-created_at`).'
       operationId: listAllDirs
       parameters:
       - $ref: '#/components/parameters/BcPageNumber'
@@ -84265,6 +84268,31 @@ paths:
         required: false
         schema:
           format: date-time
+          type: string
+      - description: Filter by enterprise ID.
+        in: query
+        name: filter[enterprise_id]
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Filter by DIR status.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          $ref: '#/components/schemas/DirStatus'
+      - description: Case-insensitive partial match on display name.
+        in: query
+        name: filter[display_name][contains]
+        required: false
+        schema:
+          type: string
+      - description: Case-insensitive partial match on call reason.
+        in: query
+        name: filter[call_reason][contains]
+        required: false
+        schema:
           type: string
       responses:
         '200':
@@ -84331,7 +84359,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Delete a DIR (no enterprise_id required)
+      summary: Delete a DIR
       tags:
       - Display Identity Records
       x-latency-category: responsive
@@ -84352,7 +84380,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Get a DIR by id (no enterprise_id required)
+      summary: Get a DIR by id
       tags:
       - Display Identity Records
       x-latency-category: responsive
@@ -84388,7 +84416,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Update a DIR (no enterprise_id required)
+      summary: Update a DIR
       tags:
       - Display Identity Records
       x-latency-category: responsive
@@ -84419,7 +84447,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: List comments on a DIR (no enterprise_id required)
+      summary: List comments on a DIR
       tags:
       - Comments
       x-latency-category: responsive
@@ -84450,7 +84478,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Post a comment on a DIR (no enterprise_id required)
+      summary: Post a comment on a DIR
       tags:
       - Comments
       x-latency-category: responsive
@@ -84553,7 +84581,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: List phone-number batches for a DIR (simplified)
+      summary: List phone-number batches for a DIR
       tags:
       - Phone Number Batches
       x-latency-category: responsive
@@ -84583,7 +84611,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Get a phone-number batch (simplified)
+      summary: Get a phone-number batch
       tags:
       - Phone Number Batches
       x-latency-category: responsive
@@ -84614,7 +84642,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Remove phone numbers from a DIR (simplified)
+      summary: Remove phone numbers from a DIR
       tags:
       - Phone Numbers
       x-latency-category: responsive
@@ -84643,7 +84671,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: List phone numbers attached to a DIR (simplified)
+      summary: List phone numbers attached to a DIR
       tags:
       - Phone Numbers
       x-latency-category: responsive
@@ -84684,7 +84712,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Add phone numbers to a DIR (simplified)
+      summary: Add phone numbers to a DIR
       tags:
       - Phone Numbers
       x-latency-category: responsive
@@ -84713,7 +84741,7 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
-      summary: Submit a DIR for vetting (no enterprise_id required)
+      summary: Submit a DIR for vetting
       tags:
       - Display Identity Records
       x-latency-category: responsive
@@ -85202,6 +85230,13 @@ paths:
         schema:
           example: Acme
           type: string
+      - description: Case-insensitive partial match on legal name.
+        in: query
+        name: filter[legal_name][contains]
+        required: false
+        schema:
+          example: Acme
+          type: string
       responses:
         '200':
           content:
@@ -85427,15 +85462,14 @@ paths:
       x-latency-category: responsive
   /enterprises/{enterprise_id}/dir:
     get:
-      description: Return the DIRs (Display Identity Records) belonging to a single
+      description: 'Return the DIRs (Display Identity Records) belonging to a single
         enterprise. Pagination is JSON:API style (`page[number]`, `page[size]`, max
-        250). Filterable by `status`. Searchable by case-insensitive partial match
-        on `display_name` (`search=`). Sortable by any of `created_at`, `updated_at`,
-        `display_name`, `status`, `submitted_at`, `verified_at`, `expiring_at` (prefix
-        `-` for descending; default `-created_at`). Supports the renewal-window filters
-        `filter[expiring_at][gte]` / `filter[expiring_at][lte]` and the convenience
-        `filter[expiring_within_days]` (mutually exclusive with the explicit gte/lte
-        form).
+        250). Supports `filter[]` query params: `filter[status]`, `filter[display_name][contains]`,
+        `filter[call_reason][contains]`, plus the renewal-window filters `filter[expiring_at][gte]`
+        / `filter[expiring_at][lte]` and the convenience `filter[expiring_within_days]`
+        (mutually exclusive with the explicit gte/lte form). Sortable by `created_at`,
+        `updated_at`, `display_name`, `status`, `submitted_at`, `verified_at`, `expiring_at`
+        (prefix `-` for descending; default `-created_at`).'
       operationId: listDirsForEnterprise
       parameters:
       - $ref: '#/components/parameters/EnterpriseId'
@@ -85504,6 +85538,24 @@ paths:
           maximum: 365
           minimum: 1
           type: integer
+      - description: Filter by DIR status.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          $ref: '#/components/schemas/DirStatus'
+      - description: Case-insensitive partial match on display name.
+        in: query
+        name: filter[display_name][contains]
+        required: false
+        schema:
+          type: string
+      - description: Case-insensitive partial match on call reason.
+        in: query
+        name: filter[call_reason][contains]
+        required: false
+        schema:
+          type: string
       responses:
         '200':
           content:
@@ -85822,6 +85874,20 @@ paths:
       - description: Filter by specific phone number (E.164 format).
         in: query
         name: phone_number
+        required: false
+        schema:
+          example: '+16035551234'
+          type: string
+      - description: Partial match on phone number. Must contain at least 5 digits.
+        in: query
+        name: filter[phone_number][contains]
+        required: false
+        schema:
+          example: '+16035551234'
+          type: string
+      - description: Exact phone-number match (E.164).
+        in: query
+        name: filter[phone_number][eq]
         required: false
         schema:
           example: '+16035551234'
@@ -99368,6 +99434,27 @@ paths:
       - description: Filter by specific phone number (E.164 format).
         in: query
         name: phone_number
+        required: false
+        schema:
+          example: '+16035551234'
+          type: string
+      - description: Partial match on phone number. Must contain at least 5 digits.
+        in: query
+        name: filter[phone_number][contains]
+        required: false
+        schema:
+          example: '+16035551234'
+          type: string
+      - description: Filter by enterprise ID.
+        in: query
+        name: filter[enterprise_id]
+        required: false
+        schema:
+          format: uuid
+          type: string
+      - description: Exact phone-number match (E.164).
+        in: query
+        name: filter[phone_number][eq]
         required: false
         schema:
           example: '+16035551234'
