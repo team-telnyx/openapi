@@ -50426,6 +50426,207 @@ components:
           $ref: '#/components/schemas/UUID'
       title: Phone Number Release
       type: object
+    RemediationPerNumberResults:
+      description: Per-category buckets of phone numbers, populated once results are
+        available. Empty lists are kept (not omitted) so consumers can iterate without
+        null-checking each key.
+      properties:
+        ineligible:
+          items:
+            type: string
+          type: array
+        not_flagged:
+          items:
+            type: string
+          type: array
+        refused:
+          items:
+            type: string
+          type: array
+        remediated:
+          items:
+            example: '+19493253498'
+            type: string
+          type: array
+        requires_review:
+          items:
+            type: string
+          type: array
+      type: object
+    RemediationRequest:
+      description: Full detail of a remediation request, returned on submit and GET
+        by id.
+      properties:
+        call_purpose:
+          example: Appointment reminders for our dental clinic.
+          type: string
+        contact_email:
+          example: ops@example.com
+          format: email
+          type: string
+        created_at:
+          example: '2026-06-01T12:00:00Z'
+          format: date-time
+          type: string
+        id:
+          example: b7c1f1c0-7a9d-4f0a-9d3e-2f6a1c4b8e21
+          format: uuid
+          type: string
+        phone_numbers_count:
+          description: Total phone numbers in this batch, including any later cancelled.
+            May exceed the sum of the per-category result buckets, which omit cancelled
+            numbers.
+          example: 2
+          type: integer
+        phone_numbers_ineligible:
+          description: Numbers rejected before submission (e.g. cooldown).
+          example: 0
+          type: integer
+        phone_numbers_submitted:
+          description: Numbers accepted for remediation, i.e. not rejected as ineligible.
+            Counts numbers still queued (pending) as well as processed ones.
+          example: 2
+          type: integer
+        results:
+          $ref: '#/components/schemas/RemediationPerNumberResults'
+          description: Per-category buckets. Populated once results are available.
+            Null while the request is still pending.
+          nullable: true
+        status:
+          $ref: '#/components/schemas/RemediationStatus'
+        tier1_completed_at:
+          format: date-time
+          nullable: true
+          type: string
+        tier2_completed_at:
+          format: date-time
+          nullable: true
+          type: string
+        updated_at:
+          example: '2026-06-01T12:05:00Z'
+          format: date-time
+          type: string
+        webhook_url:
+          example: https://example.com/webhooks/remediation
+          format: uri
+          nullable: true
+          type: string
+      required:
+      - id
+      - status
+      - phone_numbers_count
+      - phone_numbers_submitted
+      - phone_numbers_ineligible
+      - call_purpose
+      - contact_email
+      - created_at
+      - updated_at
+      type: object
+    RemediationRequestCreate:
+      additionalProperties: false
+      properties:
+        call_purpose:
+          description: How the numbers are used (free text).
+          example: Appointment reminders for our dental clinic.
+          maxLength: 2000
+          minLength: 1
+          type: string
+        contact_email:
+          description: Contact email for tracking this request.
+          example: ops@example.com
+          format: email
+          maxLength: 255
+          type: string
+        phone_numbers:
+          description: Phone numbers in E.164 format. Each must belong to this enterprise.
+            Maximum 2,000 per request.
+          items:
+            example: '+19493253498'
+            pattern: ^\+[1-9][0-9]{9,14}$
+            type: string
+          maxItems: 2000
+          minItems: 1
+          type: array
+        webhook_url:
+          description: Optional https:// URL for status notifications.
+          example: https://example.com/webhooks/remediation
+          format: uri
+          maxLength: 2048
+          type: string
+      required:
+      - phone_numbers
+      - call_purpose
+      - contact_email
+      type: object
+    RemediationRequestList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/RemediationRequestListItem'
+          type: array
+        meta:
+          $ref: '#/components/schemas/number-reputation_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    RemediationRequestListItem:
+      description: Slim list-endpoint shape. Omits per-number results and webhook
+        URLs to keep responses small.
+      properties:
+        call_purpose:
+          example: Appointment reminders for our dental clinic.
+          type: string
+        created_at:
+          example: '2026-06-01T12:00:00Z'
+          format: date-time
+          type: string
+        id:
+          example: b7c1f1c0-7a9d-4f0a-9d3e-2f6a1c4b8e21
+          format: uuid
+          type: string
+        phone_numbers_count:
+          example: 2
+          type: integer
+        status:
+          $ref: '#/components/schemas/RemediationStatus'
+        tier1_completed_at:
+          format: date-time
+          nullable: true
+          type: string
+        tier2_completed_at:
+          format: date-time
+          nullable: true
+          type: string
+        updated_at:
+          example: '2026-06-01T12:05:00Z'
+          format: date-time
+          type: string
+      required:
+      - id
+      - status
+      - phone_numbers_count
+      - call_purpose
+      - created_at
+      - updated_at
+      type: object
+    RemediationRequestWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/RemediationRequest'
+      required:
+      - data
+      type: object
+    RemediationStatus:
+      description: Customer-facing status of a remediation request.
+      enum:
+      - pending
+      - in_progress
+      - completed
+      - failed
+      - cancelled
+      example: in_progress
+      type: string
     ReplacedLinkClick:
       example:
         message_id: 7ee4241c-f127-47e5-9c34-3aac291f8058
@@ -86161,6 +86362,131 @@ paths:
         '404':
           $ref: '#/components/responses/number-reputation_GenericErrorResponse'
       summary: Get a single reputation-monitored phone number
+      tags:
+      - Reputation
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/remediation:
+    get:
+      description: Paginated list of remediation requests for this enterprise. List
+        items omit per-number results and webhook URLs to keep the response small;
+        call GET by id for full detail. Supports JSON:API pagination and optional
+        filters on status and created-at range.
+      operationId: listReputationRemediations
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - description: Filter by customer-facing status.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          $ref: '#/components/schemas/RemediationStatus'
+      - description: Only requests created on or after this timestamp (ISO 8601).
+        in: query
+        name: filter[created_at][gte]
+        required: false
+        schema:
+          example: '2026-01-01T00:00:00Z'
+          format: date-time
+          type: string
+      - description: Only requests created on or before this timestamp (ISO 8601).
+        in: query
+        name: filter[created_at][lte]
+        required: false
+        schema:
+          example: '2026-12-31T23:59:59Z'
+          format: date-time
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemediationRequestList'
+          description: Paginated list of remediation requests.
+        '401':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: List reputation remediation requests for an enterprise
+      tags:
+      - Reputation
+      x-latency-category: responsive
+    post:
+      description: 'Submit a batch of phone numbers belonging to this enterprise for
+        reputation remediation. The request is accepted asynchronously: this endpoint
+        returns `202` with the persisted request id, then the request transitions
+        through processing states until completion. Use the GET endpoints to poll
+        status and per-number results.
+
+
+        Each phone number must be in E.164 format and belong to this enterprise. A
+        number that already has an in-flight remediation request is rejected.'
+      operationId: submitReputationRemediation
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              call_purpose: Appointment reminders for our dental clinic.
+              contact_email: ops@example.com
+              phone_numbers:
+              - '+19493253498'
+              - '+12134445566'
+              webhook_url: https://example.com/webhooks/remediation
+            schema:
+              $ref: '#/components/schemas/RemediationRequestCreate'
+        required: true
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemediationRequestWrapped'
+          description: Remediation request accepted and persisted.
+        '400':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '401':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '409':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '422':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Submit phone numbers for reputation remediation
+      tags:
+      - Reputation
+      x-latency-category: responsive
+  /enterprises/{enterprise_id}/reputation/remediation/{remediation_id}:
+    get:
+      description: Retrieve the full detail of a remediation request, including current
+        status, per-number results (once available), and submission metadata.
+      operationId: getReputationRemediation
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - description: The remediation request id. Lowercase UUID.
+        in: path
+        name: remediation_id
+        required: true
+        schema:
+          example: b7c1f1c0-7a9d-4f0a-9d3e-2f6a1c4b8e21
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemediationRequestWrapped'
+          description: The remediation request.
+        '401':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+      summary: Get a reputation remediation request
       tags:
       - Reputation
       x-latency-category: responsive
