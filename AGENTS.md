@@ -22,11 +22,18 @@ npx @stoplight/spectral-cli@latest lint openapi/spec3.json
 npx @redocly/cli@latest preview-docs openapi/spec3.json
 ```
 
+This repo ships a focused, read-only function-calling ruleset in `redocly.yaml`, so the `redocly` command above auto-applies it. A convenience wrapper is also available:
+
+```bash
+# Read-only function-calling compatibility check (uses redocly.yaml)
+./scripts/validate-function-calling.sh
+```
+
 Do not run formatters, codegen, or "fix" commands against the spec files — they will be overwritten on the next sync from the internal source-of-truth.
 
 ## Testing Strategy
 - Validate spec parseability locally before opening a PR (see commands above).
-- Lint operations for unique `operationId`s, typed parameters, error schemas, and pagination consistency.
+- Lint operations for unique `operationId`s, typed parameters, error schemas, and pagination consistency. This is codified in `redocly.yaml`; see [`docs/agent-function-calling.md`](docs/agent-function-calling.md) for the full function-calling contract and current status.
 - If a lint failure points at a generated file, the fix belongs in the internal source repo, not here.
 
 ## PR Expectations

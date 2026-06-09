@@ -1,0 +1,57 @@
+# Redocly configuration for the Telnyx OpenAPI spec.
+#
+# Scope: a focused, read-only ruleset that validates the spec's compatibility
+# with LLM function-calling / tool-use formats (OpenAI tools, Anthropic tools,
+# and similar). Each OpenAPI operation maps to exactly one callable "tool", so
+# the properties below are what agent tool-generators depend on.
+#
+# This config does NOT modify any spec file. The specs under openapi/ are
+# GENERATED from an internal source-of-truth (see AGENTS.md) — when a rule below
+# flags a generated file, the fix belongs in the internal generator, then syncs
+# to this repo. Do not hand-edit openapi/spec*.{json,yml}.
+#
+# Run:  npx @redocly/cli@latest lint openapi/spec3.json
+#   or: ./scripts/validate-function-calling.sh
+#
+# See docs/agent-function-calling.md for the full contract and current status.
+
+apis:
+  telnyx@v2:
+    root: openapi/spec3.json
+
+rules:
+  # --- Core function-calling requirements (operation -> one unique tool) ---
+  # A stable, unique, URL/identifier-safe operationId becomes the tool name.
+  # Duplicate operationIds collide into one function name and silently drop a
+  # tool in most generators — the single most important check here.
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-operationId-url-safe: error
+  # A concise summary is the tool's selectable description.
+  operation-summary: error
+  # Argument names (parameters) must be unique within a tool.
+  operation-parameters-unique: error
+  # A typed success response lets agents parse tool output.
+  operation-2xx-response: error
+  # Avoid ambiguous routing that confuses path/operation mapping.
+  no-identical-paths: error
+  path-declaration-must-exist: error
+
+  # --- Tracked, not yet 100% across all operations (advisory) ---
+  # Long-form descriptions improve tool selection; every operation already has a
+  # summary, so this is an enhancement rather than a blocker.
+  operation-description: warn
+  # A modelled error response improves agent error-recovery.
+  operation-4xx-response: warn
+  # Every parameter should carry a description so agents pick arguments well.
+  rule/parameter-has-description:
+    subject:
+      type: Parameter
+      property: description
+    assertions:
+      defined: true
+      minLength: 1
+    severity: warn
+    message: >-
+      Function-calling: parameter is missing a description. Agents rely on
+      parameter descriptions to choose argument values correctly.
