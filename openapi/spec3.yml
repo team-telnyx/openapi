@@ -49808,7 +49808,7 @@ components:
     SipRegistrationStatus:
       properties:
         connection_id:
-          description: Identifier of the UAC connection.
+          description: Identifier of the connection associated with the credential.
           type: string
         connection_name:
           description: Human-readable connection name.
@@ -49817,6 +49817,7 @@ components:
           description: The credential type that was looked up.
           enum:
           - uac_external_credential
+          - telephony_credential
           type: string
         credential_username:
           description: SIP username used for the registration.
@@ -49830,6 +49831,7 @@ components:
           type: boolean
         sip_registration_details:
           description: Detailed registration information reported by the registrar.
+            The populated fields depend on `credential_type`.
           properties:
             auth_retries:
               description: Number of authentication retries on the last attempt.
@@ -49840,12 +49842,27 @@ components:
             failures:
               description: Count of consecutive registration failures.
               type: integer
+            last_modified:
+              description: Timestamp when the registration row was last modified (telephony_credential).
+              type: string
             next_action_at:
               description: Unix timestamp of the next scheduled registration action.
               type: integer
+            node:
+              description: Registrar node handling the registration (telephony_credential).
+              type: string
             sip_uri_user_host:
               description: SIP URI user@host of the registered contact.
               type: string
+            transport:
+              description: Transport used for the registration, e.g. UDP/TCP/TLS (telephony_credential).
+              type: string
+            ua_ip:
+              description: IP address of the registered user agent (telephony_credential).
+              type: string
+            ua_port:
+              description: Port of the registered user agent (telephony_credential).
+              type: integer
             uptime:
               description: Registration uptime reported by the registrar.
               type: integer
@@ -103956,20 +103973,29 @@ paths:
         today.'
       operationId: GetSipRegistrationStatus
       parameters:
-      - description: The kind of credential to look up. Only `uac_external_credential`
-          is supported today.
+      - description: The kind of credential to look up. `uac_external_credential`
+          is keyed by `connection_id`; `telephony_credential` is keyed by `username`.
         in: query
         name: credential_type
         required: true
         schema:
           enum:
           - uac_external_credential
+          - telephony_credential
           type: string
-      - description: Identifier of the UAC connection to look up.
+      - description: Identifier of the UAC connection to look up. Required when `credential_type`
+          is `uac_external_credential`.
         example: '1234567890'
         in: query
         name: connection_id
-        required: true
+        required: false
+        schema:
+          type: string
+      - description: SIP username of the telephony credential to look up. Required
+          when `credential_type` is `telephony_credential`.
+        in: query
+        name: username
+        required: false
         schema:
           type: string
       responses:
