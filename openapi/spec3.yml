@@ -18601,13 +18601,6 @@ components:
           description: Total number of chunks the parent record was split into.
           example: 3
           type: integer
-        document_id:
-          description: Document identifier. Present only for knowledge_base records;
-            null for all other record types.
-          example: null
-          type:
-          - string
-          - 'null'
         id:
           description: Unique chunk identifier.
           example: rec-001_chunk_0
@@ -18621,8 +18614,7 @@ components:
           additionalProperties: true
           default: {}
           description: Arbitrary metadata attached to the record at ingestion time.
-            Stored as a flat_object in OpenSearch and filterable via filter[field]=value
-            query parameters.
+            Filterable via filter[field]=value query parameters.
           example:
             language: en
             source: call-center
@@ -18640,15 +18632,6 @@ components:
           description: Identifier of the parent record. Multiple chunks from the same
             record share this ID.
           example: rec-001
-          type: string
-        record_type:
-          description: Type of the record.
-          enum:
-          - voice
-          - message
-          - ai_pipeline_storage
-          - knowledge_base
-          example: voice
           type: string
         region:
           description: The region where this record is stored.
@@ -18681,11 +18664,9 @@ components:
       - chunk_total
       - text
       - score
-      - record_type
       - region
       - user_id
       - organization_id
-      - document_id
       - record_created_at
       - ingested_at
       type: object
@@ -67969,12 +67950,11 @@ components:
       description: Pagination metadata following the standard Telnyx V2 API format.
       properties:
         page_number:
-          description: "Current page number (always 1 \u2014 this API does not support\
-            \ pagination, use top_k instead)."
+          description: Current page number (1-based), matching the requested page[number].
           example: 1
           type: integer
         page_size:
-          description: Number of results per page (equals the effective top_k value).
+          description: Number of results per page, matching the requested page[size].
           example: 20
           type: integer
         total_pages:
@@ -67982,8 +67962,7 @@ components:
           example: 1
           type: integer
         total_results:
-          description: Total number of matching results across all queried regions
-            (before top_k truncation).
+          description: Total number of matching results across all queried regions.
           example: 42
           type: integer
       required:
@@ -73050,37 +73029,36 @@ paths:
     get:
       description: "Performs semantic vector search across conversation history records.\n\
         \n**How it works:**\n1. The query text is embedded into a 1024-dimensional\
-        \ vector using the multilingual-e5-large model.\n2. The vector is sent to\
-        \ regional OpenSearch clusters for kNN search using HNSW cosine similarity.\n\
-        3. When no region is specified, all regions are queried in parallel (fan-out)\
-        \ and results are merged by score.\n4. Results are ranked by cosine similarity\
-        \ score (descending) and truncated to `top_k`.\n\n**Authentication:** Requires\
-        \ a Telnyx API key via `Authorization: Bearer <key>`. Results are automatically\
-        \ scoped to the caller's organization \u2014 `organization_id` is injected\
-        \ from the auth token and cannot be overridden.\n\n**Chunking:** Records are\
-        \ split into chunks of up to 480 tokens with 64-token overlap at ingestion\
-        \ time. Each search result represents a single chunk, with `chunk_index` and\
-        \ `chunk_total` indicating its position within the original record.\n\n**Filtering:**\
-        \ Use `filter[field][operator]=value` query parameters to narrow results before\
-        \ vector search.\n\nTop-level filterable fields: `user_id`, `record_type`,\
-        \ `region`, `document_id`, `record_id`, `record_created_at`, `ingested_at`,\
-        \ `retention`\n\nNote: `retention` is filter-only \u2014 it can be used to\
-        \ narrow results but is not returned in the response body.\n\nMetadata fields:\
-        \ any field not in the list above is resolved to `data.metadata.<field>` in\
-        \ OpenSearch (e.g., `filter[language]=en` \u2192 `data.metadata.language`).\n\
-        \nSupported filter operators:\n- `eq` \u2014 exact match (default when no\
-        \ operator specified)\n- `in` \u2014 match any of comma-separated values\n\
-        - `gte`, `gt`, `lte`, `lt` \u2014 range comparisons (useful for date filtering)\n\
-        - `contains` \u2014 wildcard substring match\n\n**Examples:**\n```\nGET /v2/ai/conversation_histories?q=billing+issue&record_type=voice&top_k=10\n\
-        GET /v2/ai/conversation_histories?q=setup+guide&record_type=knowledge_base&region=USA&min_score=0.5\n\
-        GET /v2/ai/conversation_histories?q=refund&record_type=voice&filter[record_created_at][gte]=2026-01-01T00:00:00Z\n\
-        GET /v2/ai/conversation_histories?q=outage&record_type=voice&filter[region][in]=USA,DEU\n\
-        GET /v2/ai/conversation_histories?q=hold+time&record_type=voice&filter[language]=en\n\
-        ```"
+        \ vector using the multilingual-e5-large model.\n2. The vector is compared\
+        \ against indexed record chunks using semantic similarity search.\n3. When\
+        \ no region is specified, all regions are queried in parallel (fan-out) and\
+        \ results are merged by score.\n4. Results are ranked by similarity score\
+        \ (descending) and paginated via `page[number]` / `page[size]`.\n\n**Authentication:**\
+        \ Requires a Telnyx API key via `Authorization: Bearer <key>`. Results are\
+        \ automatically scoped to the caller's organization \u2014 `organization_id`\
+        \ is injected from the auth token and cannot be overridden.\n\n**Chunking:**\
+        \ Records are split into chunks of up to 480 tokens with 64-token overlap\
+        \ at ingestion time. Each search result represents a single chunk, with `chunk_index`\
+        \ and `chunk_total` indicating its position within the original record.\n\n\
+        **Filtering:** Use `filter[field][operator]=value` query parameters to narrow\
+        \ results before vector search.\n\nTop-level filterable fields: `user_id`,\
+        \ `region`, `record_id`, `record_created_at`, `ingested_at`, `retention`\n\
+        \nNote: `retention` is filter-only \u2014 it can be used to narrow results\
+        \ but is not returned in the response body.\n\nMetadata fields: any field\
+        \ not in the list above is resolved to `data.metadata.<field>` (e.g., `filter[language]=en`\
+        \ \u2192 `data.metadata.language`).\n\nSupported filter operators:\n- `eq`\
+        \ \u2014 exact match (default when no operator specified)\n- `in` \u2014 match\
+        \ any of comma-separated values\n- `gte`, `gt`, `lte`, `lt` \u2014 range comparisons\
+        \ (useful for date filtering)\n- `contains` \u2014 wildcard substring match\n\
+        \n**Examples:**\n```\nGET /v2/ai/conversation_histories?q=billing+issue&page[size]=10\n\
+        GET /v2/ai/conversation_histories?q=setup+guide&region=USA&min_score=0.5\n\
+        GET /v2/ai/conversation_histories?q=refund&filter[record_created_at][gte]=2026-01-01T00:00:00Z\n\
+        GET /v2/ai/conversation_histories?q=outage&filter[region][in]=USA,DEU\nGET\
+        \ /v2/ai/conversation_histories?q=hold+time&filter[language]=en\n```"
       operationId: SearchConversationHistories
       parameters:
       - description: Natural language search query. The text is embedded into a 1024-dimensional
-          vector and compared against indexed record chunks using kNN cosine similarity.
+          vector and compared against indexed record chunks using semantic similarity.
         in: query
         name: q
         required: true
@@ -73088,22 +73066,8 @@ paths:
           example: customer called about billing issue
           minLength: 1
           type: string
-      - description: The type of records to search. Each record type is stored in
-          a separate vector index.
-        in: query
-        name: record_type
-        required: true
-        schema:
-          enum:
-          - voice
-          - message
-          - ai_pipeline_storage
-          - knowledge_base
-          example: voice
-          type: string
-      - description: Restrict search to a specific region's OpenSearch cluster. When
-          omitted, all regions are queried in parallel (fan-out) and results are merged
-          by cosine similarity score.
+      - description: Restrict search to a specific region. When omitted, all regions
+          are queried in parallel (fan-out) and results are merged by similarity score.
         in: query
         name: region
         required: false
@@ -73115,10 +73079,18 @@ paths:
           - UAE
           example: USA
           type: string
-      - description: Maximum number of results to return. Defaults to 20, maximum
-          100.
+      - description: Page number to return (1-based). Defaults to 1.
         in: query
-        name: top_k
+        name: page[number]
+        required: false
+        schema:
+          default: 1
+          example: 1
+          minimum: 1
+          type: integer
+      - description: Number of results per page. Defaults to 20, maximum 100.
+        in: query
+        name: page[size]
         required: false
         schema:
           default: 20
@@ -73152,14 +73124,6 @@ paths:
         required: false
         schema:
           example: rec-001
-          type: string
-      - description: Filter by document identifier (exact match). Populated for knowledge_base
-          records.
-        in: query
-        name: filter[document_id]
-        required: false
-        schema:
-          example: doc-789
           type: string
       - description: Filter by the region stored on the record. Comma-separated to
           match multiple regions (USA, DEU, AUS, UAE). Distinct from the `region`
@@ -73221,7 +73185,6 @@ paths:
                 data:
                 - chunk_index: 0
                   chunk_total: 3
-                  document_id: null
                   id: rec-001_chunk_0
                   ingested_at: '2026-05-28T12:01:00Z'
                   metadata:
@@ -73230,7 +73193,6 @@ paths:
                   organization_id: org-456
                   record_created_at: '2026-05-28T12:00:00Z'
                   record_id: rec-001
-                  record_type: voice
                   region: USA
                   score: 0.92
                   text: Customer called regarding a billing discrepancy on their latest
@@ -73252,13 +73214,13 @@ paths:
               example:
                 errors:
                 - code: '400'
-                  detail: 'Invalid record_type: invalid. Must be one of: voice, message,
-                    ai_pipeline_storage, knowledge_base'
+                  detail: 'Invalid region: invalid. Must be one of: USA, DEU, AUS,
+                    UAE'
                   title: Bad Request
               schema:
                 $ref: '#/components/schemas/transcriptions-search_Errors'
-          description: "Invalid request parameters \u2014 unsupported record_type,\
-            \ invalid region, or malformed filter expression."
+          description: "Invalid request parameters \u2014 invalid region or malformed\
+            \ filter expression."
         '401':
           content:
             application/json:
@@ -73290,8 +73252,8 @@ paths:
                   title: Unexpected error
               schema:
                 $ref: '#/components/schemas/transcriptions-search_Errors'
-          description: "Server-side error \u2014 embeddings service unavailable, OpenSearch\
-            \ cluster unreachable, or internal processing failure."
+          description: "Server-side error \u2014 embeddings service unavailable, search\
+            \ backend unreachable, or internal processing failure."
         '503':
           content:
             application/json:
@@ -111323,8 +111285,8 @@ tags:
   name: Conference Commands
 - description: Connections operations
   name: Connections
-- description: Semantic vector search over ingested conversation history records using
-    kNN cosine similarity with multi-region fan-out.
+- description: Semantic vector search over ingested conversation history records with
+    multi-region fan-out.
   name: Conversation Histories
 - description: Manage historical AI assistant conversations
   name: Conversations
