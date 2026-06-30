@@ -25981,6 +25981,53 @@ components:
             $ref: '#/components/schemas/EligibilityNumberResponse'
           type: array
       type: object
+    EmailVerificationConfirmRequest:
+      properties:
+        code:
+          description: The 6-digit code sent to the authorizer email.
+          example: '482915'
+          maxLength: 6
+          minLength: 6
+          pattern: ^\d{6}$
+          type: string
+      required:
+      - code
+      type: object
+    EmailVerificationStatus:
+      description: Verification state for a DIR's authorizer email.
+      properties:
+        email_verified:
+          description: Whether the DIR's authorizer email has been confirmed.
+          example: false
+          type: boolean
+        record_type:
+          description: Always `email_verification`.
+          enum:
+          - email_verification
+          example: email_verification
+          readOnly: true
+          type: string
+        status:
+          description: '`sent` after a code is emailed; `verified` after a successful
+            confirm; `unverified` when no verification is in progress.'
+          enum:
+          - sent
+          - verified
+          - unverified
+          example: sent
+          type: string
+      required:
+      - record_type
+      - email_verified
+      - status
+      type: object
+    EmailVerificationStatusWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/EmailVerificationStatus'
+      required:
+      - data
+      type: object
     EmbeddingBucketRequest:
       properties:
         bucket_name:
@@ -45966,6 +46013,206 @@ components:
       required:
       - sip_address
       title: Refer request
+      type: object
+    Reference:
+      description: A reference (business or financial) on a DIR, in the customer-facing
+        shape. No internal identifiers are exposed.
+      properties:
+        email:
+          description: Reference contact email address.
+          example: dana.reyes@example.com
+          format: email
+          nullable: true
+          type: string
+        full_name:
+          description: Full name of the reference contact.
+          example: Dana Reyes
+          maxLength: 255
+          type: string
+        job_title:
+          description: Job title of the reference contact.
+          example: VP of Operations
+          maxLength: 255
+          nullable: true
+          type: string
+        organization:
+          description: Organization the reference contact belongs to.
+          example: Acme Logistics
+          maxLength: 255
+          nullable: true
+          type: string
+        phone_e164:
+          description: Reference phone number in E.164 format.
+          example: '+14155550123'
+          type: string
+        record_type:
+          description: Always `dir_reference`.
+          enum:
+          - dir_reference
+          example: dir_reference
+          readOnly: true
+          type: string
+        ref_type:
+          description: Whether this is a business reference or the financial reference.
+          enum:
+          - business
+          - financial
+          example: business
+          type: string
+        relationship_to_registrant:
+          description: How the reference contact is related to the registering business.
+          example: Supplier
+          maxLength: 255
+          nullable: true
+          type: string
+        slot:
+          description: Position within the reference type. Business references occupy
+            slots 0 and 1; the financial reference occupies slot 0.
+          example: 0
+          maximum: 1
+          minimum: 0
+          type: integer
+        timezone:
+          description: IANA timezone id for the reference. Calls are only placed within
+            the reference's local 8am-9pm window.
+          example: America/New_York
+          type: string
+      required:
+      - record_type
+      - ref_type
+      - slot
+      - full_name
+      - phone_e164
+      - timezone
+      type: object
+    ReferenceInput:
+      description: One reference supplied at submit. The reference type is implied
+        by the field that carries it (business_references vs financial_reference).
+      properties:
+        email:
+          description: 'Reference contact email address. Required: the reference is
+            emailed scheduling and dial-in notices.'
+          example: dana.reyes@example.com
+          format: email
+          type: string
+        full_name:
+          description: Full name of the reference contact.
+          example: Dana Reyes
+          maxLength: 255
+          minLength: 1
+          type: string
+        job_title:
+          description: Job title of the reference contact.
+          example: VP of Operations
+          maxLength: 255
+          nullable: true
+          type: string
+        organization:
+          description: Organization the reference contact belongs to.
+          example: Acme Logistics
+          maxLength: 255
+          nullable: true
+          type: string
+        phone_e164:
+          description: Reference phone number in E.164 format, e.g. +14155550123.
+          example: '+14155550123'
+          pattern: ^\+[1-9]\d{1,14}$
+          type: string
+        relationship_to_registrant:
+          description: How the reference contact is related to the registering business.
+          example: Supplier
+          maxLength: 255
+          nullable: true
+          type: string
+        timezone:
+          description: 'IANA timezone id for the reference (e.g. America/New_York).
+            Required: calls are only placed within the reference''s local 8am-9pm
+            window.'
+          example: America/New_York
+          type: string
+      required:
+      - full_name
+      - phone_e164
+      - email
+      - timezone
+      type: object
+    ReferenceList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/Reference'
+          type: array
+      required:
+      - data
+      type: object
+    ReferenceSubmissionRequest:
+      description: Exactly two business references plus one financial reference. The
+        DIR's authorizer email must be verified before this is accepted.
+      properties:
+        business_references:
+          description: Exactly two business references.
+          items:
+            $ref: '#/components/schemas/ReferenceInput'
+          maxItems: 2
+          minItems: 2
+          type: array
+        financial_reference:
+          $ref: '#/components/schemas/ReferenceInput'
+      required:
+      - business_references
+      - financial_reference
+      type: object
+    ReferenceUpdateRequest:
+      description: Partial update for a single reference; supply at least one field.
+        Cosmetic fields are always editable. phone_e164 and timezone may only be changed
+        while a scheduled call has not yet been dialed.
+      minProperties: 1
+      properties:
+        email:
+          description: Reference contact email address.
+          example: dana.reyes@example.com
+          format: email
+          type: string
+        full_name:
+          description: Full name of the reference contact.
+          example: Dana Reyes
+          maxLength: 255
+          minLength: 1
+          type: string
+        job_title:
+          description: Job title of the reference contact.
+          example: VP of Operations
+          maxLength: 255
+          nullable: true
+          type: string
+        organization:
+          description: Organization the reference contact belongs to.
+          example: Acme Logistics
+          maxLength: 255
+          nullable: true
+          type: string
+        phone_e164:
+          description: Reference phone number in E.164 format.
+          example: '+14155550123'
+          pattern: ^\+[1-9]\d{1,14}$
+          type: string
+        relationship_to_registrant:
+          description: How the reference contact is related to the registering business.
+          example: Supplier
+          maxLength: 255
+          nullable: true
+          type: string
+        timezone:
+          description: IANA timezone id for the reference.
+          example: America/New_York
+          type: string
+      type: object
+    ReferenceWrapped:
+      properties:
+        data:
+          $ref: '#/components/schemas/Reference'
+      required:
+      - data
       type: object
     RefreshReputationRequest:
       additionalProperties: false
@@ -82610,6 +82857,123 @@ paths:
       tags:
       - Phone Numbers
       x-latency-category: responsive
+  /dir/{dir_id}/references:
+    get:
+      description: 'List the business and financial references submitted for a DIR.
+
+
+        Returns the two business references (slots 0 and 1) followed by the single
+        financial reference. Each entry carries only the customer-supplied details
+        (name, title, organization, relationship, phone, email, timezone). Returns
+        an empty list when no references were submitted.'
+      operationId: listDirReferences
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferenceList'
+          description: The DIR's references.
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: List a DIR's references
+      tags:
+      - DIR References
+      x-latency-category: responsive
+    post:
+      description: 'Submit the two business references and one financial reference
+        for a DIR.
+
+
+        The DIR''s authorizer email must be verified first (see the email-verification
+        endpoint). Until it is, this returns `409` and no references are stored.
+
+
+        The request body carries exactly two business references plus one financial
+        reference. On success the references are stored and the response echoes them
+        in the same shape as the GET. Submitting again converges on the already-stored
+        references rather than erroring.'
+      operationId: submitDirReferences
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReferenceSubmissionRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferenceList'
+          description: The stored references.
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '409':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Submit a DIR's references
+      tags:
+      - DIR References
+      x-latency-category: responsive
+  /dir/{dir_id}/references/{ref_type}/{slot}:
+    patch:
+      description: 'Partially update one reference, addressed by the DIR id plus the
+        reference''s type (business or financial) and slot.
+
+
+        Cosmetic fields (full name, job title, organization, relationship, email)
+        are always editable. The phone number and timezone may only be changed while
+        a scheduled call has not yet been dialed; if a call is in progress or all
+        attempts are complete, those fields are locked. Changing the timezone reschedules
+        any pending call into the new local calling window.'
+      operationId: updateDirReference
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - description: Reference type to address.
+        in: path
+        name: ref_type
+        required: true
+        schema:
+          enum:
+          - business
+          - financial
+          example: business
+          type: string
+      - description: Reference slot. Business references use slots 0 and 1; the financial
+          reference uses slot 0.
+        in: path
+        name: slot
+        required: true
+        schema:
+          example: 0
+          maximum: 1
+          minimum: 0
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReferenceUpdateRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferenceWrapped'
+          description: The updated reference.
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Update a DIR reference
+      tags:
+      - DIR References
+      x-latency-category: responsive
   /dir/{dir_id}/submit:
     post:
       description: 'Submit a DIR for vetting. Sends the DIR back through the vetting
@@ -82638,6 +83002,87 @@ paths:
       summary: Submit a DIR for vetting
       tags:
       - Display Identity Records
+      x-latency-category: responsive
+  /dir/{dir_id}/verify_email:
+    get:
+      description: Whether the DIR's current authorizer email has been verified.
+      operationId: getDirEmailVerificationStatus
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationStatusWrapped'
+          description: The current verification state.
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Get email-ownership verification status
+      tags:
+      - Email Verification
+      x-latency-category: responsive
+    post:
+      description: 'Email a 6-digit code to the DIR''s authorizer email to confirm
+        ownership of that address.
+
+
+        The code expires in 15 minutes. Requesting a new code invalidates any previous
+        one. Resends are rate limited (a short cooldown plus a daily cap). Submit
+        the code to `POST /dir/{dir_id}/verify_email/confirm`.'
+      operationId: requestDirEmailVerification
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationStatusWrapped'
+          description: A code was emailed; the current verification state is returned.
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '429':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '503':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Send an email-ownership verification code
+      tags:
+      - Email Verification
+      x-latency-category: responsive
+  /dir/{dir_id}/verify_email/confirm:
+    post:
+      description: 'Submit the 6-digit code that was emailed to the DIR''s authorizer
+        email. On success the authorizer email is marked verified.
+
+
+        For security, any failure (wrong, expired, already-used, or too many attempts)
+        returns the same generic message.'
+      operationId: confirmDirEmailVerification
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationConfirmRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationStatusWrapped'
+          description: The authorizer email is verified.
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      summary: Confirm an email-ownership verification code
+      tags:
+      - Email Verification
       x-latency-category: responsive
   /document_links:
     get:
@@ -111298,6 +111743,10 @@ tags:
   name: Credentials
 - description: Customer Service Record operations
   name: Customer Service Record
+- description: Submit and manage the two business references and one financial reference
+    that vouch for a DIR. References are contacted to confirm the business identity
+    during vetting.
+  name: DIR References
 - description: Migrate data from an external provider into Telnyx Cloud Storage
   name: Data Migration
 - description: Call Control debugging
@@ -111315,6 +111764,9 @@ tags:
   name: Dynamic Emergency Addresses
 - description: Dynamic Emergency Endpoints
   name: Dynamic Emergency Endpoints
+- description: Verify ownership of a DIR's authorizer email. A short code is emailed
+    and confirmed; the email must be verified before references can be submitted.
+  name: Email Verification
 - description: Embed documents and perform text searches
   name: Embeddings
 - description: Manage the legal-entity record that owns your DIRs and phone numbers.
