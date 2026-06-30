@@ -4150,6 +4150,15 @@ components:
                 $ref: '#/components/schemas/WhatsappCallingSettingsData'
             type: object
       description: Successful response with Whatsapp calling settings
+    WhatsappConversationWindowResponse:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/WhatsappConversationWindowData'
+            type: object
+      description: Successful response with Whatsapp conversation window status
     WhatsappPhonesListResponse:
       content:
         application/json:
@@ -64176,6 +64185,27 @@ components:
             type: object
           type: array
       type: object
+    WhatsappConversationWindowData:
+      properties:
+        last_user_message_at:
+          description: Timestamp of the last inbound message that opened the window
+          example: '2026-06-29T15:53:00Z'
+          format: date-time
+          type: string
+        window_active:
+          description: Whether the 24-hour conversation window is currently open
+          example: true
+          type: boolean
+        window_expires_at:
+          description: When the window closes. Null if no active window.
+          example: '2026-06-30T16:00:00Z'
+          format: date-time
+          type: string
+        window_type:
+          description: Window type. Currently always 24h when present.
+          example: 24h
+          type: string
+      type: object
     WhatsappCreateTemplateRequest:
       properties:
         category:
@@ -108644,6 +108674,30 @@ paths:
         4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse'
       summary: Enable or disable Whatsapp calling for a phone number
+      tags:
+      - Whatsapp Phone Numbers
+      x-latency-category: responsive
+  /v2/whatsapp/phone_numbers/{phone_number}/conversation_window:
+    get:
+      description: Returns whether the 24-hour conversation window is currently open
+        for a given source/destination pair. If window_active is false, only template
+        messages may be sent.
+      operationId: GetWhatsappConversationWindow
+      parameters:
+      - $ref: '#/components/parameters/WhatsappPhoneNumber'
+      - description: Destination phone number in E.164 format
+        in: query
+        name: destination_number
+        required: true
+        schema:
+          example: '+353894650851'
+          type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/WhatsappConversationWindowResponse'
+        4XX:
+          $ref: '#/components/responses/messaging_GenericErrorResponse'
+      summary: Get conversation window status for a phone number
       tags:
       - Whatsapp Phone Numbers
       x-latency-category: responsive
