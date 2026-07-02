@@ -21246,6 +21246,19 @@ components:
       - ip_address
       title: Create Ip Request
       type: object
+    CreateKvNamespaceRequest:
+      properties:
+        name:
+          description: Namespace name. May contain lowercase letters, numbers, and
+            hyphens only.
+          example: my-cache
+          maxLength: 255
+          minLength: 1
+          pattern: ^[a-z0-9-]+$
+          type: string
+      required:
+      - name
+      type: object
     CreateLongCodeMessageRequest:
       example:
         from: '+18445550001'
@@ -27012,6 +27025,12 @@ components:
           description: Frame type identifier.
           type: string
       type: object
+    ErrorMeta:
+      properties:
+        url:
+          example: https://docs.telnyx.com/api/errors/10005
+          type: string
+      type: object
     ErrorObject:
       properties:
         code:
@@ -27082,6 +27101,15 @@ components:
                 type: string
             type: object
           type: array
+      type: object
+    ErrorSource:
+      properties:
+        parameter:
+          example: id
+          type: string
+        pointer:
+          example: /id
+          type: string
       type: object
     Errors:
       properties:
@@ -29749,6 +29777,13 @@ components:
           type: object
         title:
           type: string
+      type: object
+    GenericErrorResponse:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/edge-compute_Error'
+          type: array
       type: object
     GetInsightTemplateGroupsRespData:
       properties:
@@ -33614,6 +33649,90 @@ components:
       required:
       - call_control_id
       title: Join Conference Request
+      type: object
+    KvKey:
+      properties:
+        key:
+          example: user/123
+          type: string
+        size_bytes:
+          description: Size of the stored value in bytes.
+          example: 21
+          type: integer
+        updated_at:
+          example: '2026-06-18T14:48:17Z'
+          format: date-time
+          type: string
+      type: object
+    KvKeyListResponseWrapper:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/KvKey'
+          type: array
+        meta:
+          $ref: '#/components/schemas/KvListMeta'
+        record_type:
+          example: storage_kv_key
+          type: string
+      type: object
+    KvListMeta:
+      properties:
+        cursor:
+          description: Opaque cursor for the next page; pass it back as the `cursor`
+            query parameter. Omitted when there are no further results.
+          type: string
+        has_more:
+          description: Whether more results are available on a following page.
+          example: false
+          type: boolean
+      type: object
+    KvNamespace:
+      properties:
+        created_at:
+          example: '2026-06-18T14:48:17Z'
+          format: date-time
+          type: string
+        id:
+          example: 550e8400-e29b-41d4-a716-446655440000
+          format: uuid
+          type: string
+        name:
+          example: my-cache
+          type: string
+        record_type:
+          example: storage_kv
+          type: string
+        status:
+          description: Provisioning status. A namespace is usable once `status` is
+            `provision_ok`. Once deletion completes, the namespace no longer appears
+            in the API.
+          enum:
+          - pending
+          - provision_ok
+          - provision_failed
+          - deleting
+          - delete_failed
+          example: provision_ok
+          type: string
+        updated_at:
+          example: '2026-06-18T14:48:17Z'
+          format: date-time
+          type: string
+      type: object
+    KvNamespaceListResponseWrapper:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/KvNamespace'
+          type: array
+        meta:
+          $ref: '#/components/schemas/edge-compute_PaginationMeta'
+      type: object
+    KvNamespaceResponseWrapper:
+      properties:
+        data:
+          $ref: '#/components/schemas/KvNamespace'
       type: object
     LLMCondition:
       description: 'Edge condition evaluated by the LLM from a natural-language prompt.
@@ -66979,6 +67098,45 @@ components:
           items:
             $ref: '#/components/schemas/documents_Error'
           type: array
+      type: object
+    edge-compute_Error:
+      properties:
+        code:
+          example: '10005'
+          type: string
+        detail:
+          example: The requested function does not exist or you don't have access
+            to it
+          type: string
+        meta:
+          $ref: '#/components/schemas/ErrorMeta'
+        source:
+          $ref: '#/components/schemas/ErrorSource'
+        title:
+          example: Function not found
+          type: string
+      type: object
+    edge-compute_Errors:
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/edge-compute_Error'
+          type: array
+      type: object
+    edge-compute_PaginationMeta:
+      properties:
+        page_number:
+          example: 1
+          type: integer
+        page_size:
+          example: 20
+          type: integer
+        total_pages:
+          example: 3
+          type: integer
+        total_results:
+          example: 52
+          type: integer
       type: object
     emergency_Error:
       properties:
@@ -105030,6 +105188,520 @@ paths:
       tags:
       - Presigned Object URLs
       x-latency-category: responsive
+  /storage/kvs:
+    get:
+      description: Lists the KV namespaces for the authenticated user's organization.
+        Results use page-based pagination (`page[number]`/`page[size]`).
+      operationId: ListKvNamespaces
+      parameters:
+      - description: The page number to load.
+        in: query
+        name: page[number]
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: The size of the page. Values above 250 are treated as 250.
+        in: query
+        name: page[size]
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KvNamespaceListResponseWrapper'
+          description: KV namespaces retrieved successfully
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: List KV namespaces
+      tags:
+      - kv namespaces
+      x-latency-category: responsive
+    post:
+      description: 'Creates a new KV namespace. Provisioning is asynchronous: the
+        namespace is returned with status `pending` and becomes usable once it reaches
+        `provision_ok`.'
+      operationId: CreateKvNamespace
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKvNamespaceRequest'
+        description: KV namespace creation request
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KvNamespaceResponseWrapper'
+          description: KV namespace created successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 missing or invalid `name`"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 a namespace with this name already exists\
+            \ for your organization"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Create a KV namespace
+      tags:
+      - kv namespaces
+      x-latency-category: responsive
+  /storage/kvs/{id}:
+    delete:
+      description: 'Deletes a KV namespace and all of the keys it contains. Deletion
+        is asynchronous: the namespace is returned with status `deleting`. Deleting
+        a namespace whose deletion is already in progress returns a `409`.'
+      operationId: DeleteKvNamespace
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KvNamespaceResponseWrapper'
+          description: KV namespace deletion initiated
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 `id` is not a valid UUID"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: KV namespace not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the namespace is already being deleted"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Delete a KV namespace
+      tags:
+      - kv namespaces
+      x-latency-category: responsive
+    get:
+      description: Retrieves a KV namespace by its ID, including its provisioning
+        status.
+      operationId: GetKvNamespace
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KvNamespaceResponseWrapper'
+          description: KV namespace retrieved successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 `id` is not a valid UUID"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: KV namespace not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Get a KV namespace
+      tags:
+      - kv namespaces
+      x-latency-category: responsive
+  /storage/kvs/{id}/keys:
+    get:
+      description: Lists the keys in a namespace. Returns key names and metadata only,
+        never values. Results are paginated with `limit` and an opaque `cursor`.
+      operationId: ListKvKeys
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Return only keys that start with this prefix.
+        in: query
+        name: prefix
+        schema:
+          type: string
+      - description: Maximum number of keys to return. Values above 1000 are treated
+          as 1000.
+        in: query
+        name: limit
+        schema:
+          default: 1000
+          maximum: 1000
+          minimum: 1
+          type: integer
+      - description: Opaque pagination cursor from a previous response's `meta.cursor`.
+        in: query
+        name: cursor
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KvKeyListResponseWrapper'
+          description: Keys retrieved successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 `id` is not a valid UUID, or `limit` is\
+            \ not a positive integer"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: KV namespace not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the namespace is not ready (`status` is not\
+            \ `provision_ok`)"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: List keys
+      tags:
+      - kv keys
+      x-latency-category: responsive
+  /storage/kvs/{id}/keys/{key}:
+    delete:
+      description: 'Deletes a key. Idempotent: deleting a key that does not exist
+        still succeeds. The namespace itself must exist and be provisioned.'
+      operationId: DeleteKvKey
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: 'Key name. Allowed characters: `a-z A-Z 0-9 - _ / = .`; maximum
+          256 characters; names starting with `_` are reserved for system use. May
+          contain `/`; URL-encode it so the whole string is treated as one key (for
+          example `user/1` -> `user%2F1`).'
+        in: path
+        name: key
+        required: true
+        schema:
+          maxLength: 256
+          pattern: ^[-/_=.a-zA-Z0-9]+$
+          type: string
+      responses:
+        '200':
+          description: Key deleted (returned even if the key did not exist)
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 invalid `id` or key name"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: KV namespace not found (a missing key is not an error)
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the namespace is not ready (`status` is not\
+            \ `provision_ok`)"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Delete a key
+      tags:
+      - kv keys
+      x-latency-category: responsive
+    get:
+      description: Returns the raw stored value for a key. The response body is the
+        value exactly as it was written; the `Content-Type` header echoes the value's
+        stored content type (defaults to `application/octet-stream`).
+      operationId: GetKvKey
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: 'Key name. Allowed characters: `a-z A-Z 0-9 - _ / = .`; maximum
+          256 characters; names starting with `_` are reserved for system use. May
+          contain `/`; URL-encode it so the whole string is treated as one key (for
+          example `user/1` -> `user%2F1`).'
+        in: path
+        name: key
+        required: true
+        schema:
+          maxLength: 256
+          pattern: ^[-/_=.a-zA-Z0-9]+$
+          type: string
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                format: binary
+                type: string
+          description: Value retrieved successfully. The `Content-Type` header is
+            the value's stored content type (defaults to `application/octet-stream`).
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 invalid `id` or key name"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Key or namespace not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the namespace is not ready (`status` is not\
+            \ `provision_ok`)"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Get a key's value
+      tags:
+      - kv keys
+      x-latency-category: responsive
+    put:
+      description: "Creates or replaces the value for a key. The request body is stored\
+        \ verbatim as the value \u2014 no base64, no JSON envelope \u2014 up to 1\
+        \ MiB. The request's `Content-Type` header is stored with the value and echoed\
+        \ back on retrieval. Returns `201` when the key is created and `200` when\
+        \ an existing key is updated."
+      operationId: PutKvKey
+      parameters:
+      - description: KV namespace ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: 'Key name. Allowed characters: `a-z A-Z 0-9 - _ / = .`; maximum
+          256 characters; names starting with `_` are reserved for system use. May
+          contain `/`; URL-encode it so the whole string is treated as one key (for
+          example `user/1` -> `user%2F1`).'
+        in: path
+        name: key
+        required: true
+        schema:
+          maxLength: 256
+          pattern: ^[-/_=.a-zA-Z0-9]+$
+          type: string
+      - description: Time-to-live in seconds. When set, the key expires and is deleted
+          after this duration. Requires a namespace provisioned with TTL support;
+          namespaces without it return a `409`.
+        in: query
+        name: ttl_secs
+        schema:
+          format: int64
+          maximum: 9223372036
+          minimum: 1
+          type: integer
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              description: Raw value bytes, stored verbatim.
+              format: binary
+              type: string
+        description: 'The value to store, sent as the raw request body. Maximum size:
+          1 MiB (1048576 bytes).'
+        required: true
+      responses:
+        '200':
+          description: Key updated
+        '201':
+          description: Key created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 invalid `id`, key name, or request body"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: KV namespace not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the namespace is not ready (`status` is not\
+            \ `provision_ok`), or `ttl_secs` was set on a namespace without TTL support"
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Payload too large \u2014 the value exceeds 1 MiB"
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 `ttl_secs` is not a positive integer\
+            \ within range, or the unsupported `ttl` parameter was used"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Set a key's value
+      tags:
+      - kv keys
+      x-latency-category: responsive
   /storage/migration_source_coverage:
     get:
       deprecated: false
@@ -112123,6 +112795,10 @@ tags:
   name: Wireless Blocklists
 - description: Regions for wireless services
   name: Wireless Regions
+- description: Read and write keys within a KV namespace
+  name: kv keys
+- description: Manage KV storage namespaces
+  name: kv namespaces
 - description: Operations for x402 cryptocurrency payment transactions. Fund your
     Telnyx account using USDC stablecoin payments via the x402 protocol.
   name: x402 Payment Transactions
