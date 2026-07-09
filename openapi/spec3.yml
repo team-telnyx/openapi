@@ -19313,6 +19313,36 @@ components:
       - created_at
       - conversation_insights
       type: object
+    ConversationInsightAggregateResp:
+      description: Aggregated conversation insight counts grouped by the specified
+        fields. Each item in `data` contains the grouped field values and a `record_count`
+        indicating how many conversation insights match that combination.
+      properties:
+        data:
+          description: Aggregation result rows. Each row contains the grouped field
+            values and a `record_count`.
+          items:
+            additionalProperties: true
+            description: An aggregation row. Contains the grouped field values (keyed
+              by the group_by field names) and a `record_count` integer. For example,
+              when grouping by `score`, each row has a `score` value and a `record_count`
+              of conversations with that score. When also splitting by `metadata.assistant_version_id`,
+              each row includes both `score` and `metadata.assistant_version_id` plus
+              their combined `record_count`.
+            properties:
+              record_count:
+                description: Number of conversation insights that match this combination
+                  of grouped field values.
+                type: integer
+            required:
+            - record_count
+            type: object
+          title: Data
+          type: array
+      required:
+      - data
+      title: ConversationInsightAggregateResp
+      type: object
     ConversationInsightListData:
       properties:
         data:
@@ -76618,6 +76648,115 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
           description: Validation Error
       summary: Create a conversation
+      tags:
+      - Conversations
+      x-latency-category: responsive
+  /ai/conversations/conversation-insights/aggregates:
+    get:
+      description: Aggregate conversation insights by specified fields
+      operationId: aggregate_conversation_insights
+      parameters:
+      - description: "Fields to group by (can be comma-separated or multiple parameters).\
+          \ Prefix a field with 'metadata.' (e.g. 'metadata.assistant_id') to group\
+          \ by the conversation's metadata instead of the insight result.\n\nCommon\
+          \ fields used for over-time charts:\n- `score` \u2014 Group by the insight's\
+          \ score value (e.g. for Agent Instruction Following, User Satisfaction).\n\
+          - `metadata.assistant_id` \u2014 Group by the assistant that handled the\
+          \ conversation.\n- `metadata.assistant_version_id` \u2014 Group by the assistant\
+          \ version, useful for comparing performance across versions in the portal's\
+          \ 'Insights Over Time' chart.\n- `metadata.telnyx_conversation_channel`\
+          \ \u2014 Group by conversation channel (phone_call, web_chat, etc.)."
+        in: query
+        name: group_by
+        required: false
+        schema:
+          description: "Fields to group by (can be comma-separated or multiple parameters).\
+            \ Prefix a field with 'metadata.' (e.g. 'metadata.assistant_id') to group\
+            \ by the conversation's metadata instead of the insight result.\n\nCommon\
+            \ fields used for over-time charts:\n- `score` \u2014 Group by the insight's\
+            \ score value (e.g. for Agent Instruction Following, User Satisfaction).\n\
+            - `metadata.assistant_id` \u2014 Group by the assistant that handled the\
+            \ conversation.\n- `metadata.assistant_version_id` \u2014 Group by the\
+            \ assistant version, useful for comparing performance across versions\
+            \ in the portal's 'Insights Over Time' chart.\n- `metadata.telnyx_conversation_channel`\
+            \ \u2014 Group by conversation channel (phone_call, web_chat, etc.)."
+          items:
+            type: string
+          title: Group By
+          type: array
+      - description: Fields to include in the result (can be comma-separated or multiple
+          parameters). Supports the same 'metadata.<key>' prefix as group_by. Each
+          returned row will contain the grouped field values plus a `record_count`
+          indicating how many conversation insights match that combination.
+        in: query
+        name: show
+        required: false
+        schema:
+          description: Fields to include in the result (can be comma-separated or
+            multiple parameters). Supports the same 'metadata.<key>' prefix as group_by.
+            Each returned row will contain the grouped field values plus a `record_count`
+            indicating how many conversation insights match that combination.
+          items:
+            type: string
+          title: Show
+          type: array
+      - description: Optional insight ID to filter conversation insights. Only insights
+          matching this ID will be included in the aggregation.
+        in: query
+        name: insight_id
+        required: false
+        schema:
+          description: Optional insight ID to filter conversation insights. Only insights
+            matching this ID will be included in the aggregation.
+          format: uuid
+          title: Insight Id
+          type: string
+      - description: Filter by creation datetime to scope the aggregation window.
+          Supports range operators (e.g., `created_at=gte.2025-01-01T00:00:00Z` for
+          the start of the range, `created_at=lt.2025-01-02T00:00:00Z` for the end).
+          To build per-day time series (as the portal does for the 'Insights Over
+          Time' chart), issue one request per day bounded by `created_at=gte.<day_start>`
+          and `created_at=lt.<next_day_start>`.
+        in: query
+        name: created_at
+        required: false
+        schema:
+          description: Filter by creation datetime to scope the aggregation window.
+            Supports range operators (e.g., `created_at=gte.2025-01-01T00:00:00Z`
+            for the start of the range, `created_at=lt.2025-01-02T00:00:00Z` for the
+            end). To build per-day time series (as the portal does for the 'Insights
+            Over Time' chart), issue one request per day bounded by `created_at=gte.<day_start>`
+            and `created_at=lt.<next_day_start>`.
+          title: Created At
+          type: string
+      - description: Filter by assistant ID (e.g., `metadata.assistant_id=eq.<assistant_id>`).
+          When provided, only conversation insights for the specified assistant are
+          aggregated. Used by the portal to scope the 'Insights Over Time' chart to
+          a single assistant.
+        in: query
+        name: metadata.assistant_id
+        required: false
+        schema:
+          description: Filter by assistant ID (e.g., `metadata.assistant_id=eq.<assistant_id>`).
+            When provided, only conversation insights for the specified assistant
+            are aggregated. Used by the portal to scope the 'Insights Over Time' chart
+            to a single assistant.
+          title: Metadata Assistant Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationInsightAggregateResp'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Aggregate Conversation Insights
       tags:
       - Conversations
       x-latency-category: responsive
