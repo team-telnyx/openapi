@@ -6792,6 +6792,114 @@ components:
           type: string
       title: Answer Request
       type: object
+    AnthropicMessageRequest:
+      additionalProperties: true
+      description: Anthropic Messages-compatible request with Telnyx extensions.
+      properties:
+        api_key_ref:
+          description: If you are using an external inference provider, this field
+            allows you to pass along a reference to your API key. After creating an
+            [integration secret](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret)
+            for your API key, pass the secret's `identifier` in this field.
+          type: string
+        billing_group_id:
+          description: The billing group ID to associate with this request.
+          format: uuid
+          type: string
+        fallback_config:
+          additionalProperties: true
+          description: Configuration for model fallback behavior when the primary
+            model is unavailable.
+          type: object
+        max_retries:
+          description: Maximum number of retries for the request.
+          type: integer
+        max_tokens:
+          description: The maximum number of tokens to generate in the response.
+          type: integer
+        mcp_servers:
+          description: List of MCP (Model Context Protocol) servers to make available
+            to the model.
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        messages:
+          description: The messages to send to the model, following the [Anthropic
+            Messages API](https://docs.anthropic.com/en/api/messages) format.
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        metadata:
+          additionalProperties: true
+          description: An object describing metadata about the request.
+          type: object
+        model:
+          description: The model to use for generating the response, for example `zai-org/GLM-5.2`
+            or another model available from the Telnyx models endpoint.
+          type: string
+        service_tier:
+          description: Service tier for the request.
+          type: string
+        stop_sequences:
+          description: Custom sequences that will cause the model to stop generating.
+          items:
+            type: string
+          type: array
+        stream:
+          default: false
+          description: Whether to stream the response as Anthropic-format Server-Sent
+            Events.
+          type: boolean
+        system:
+          description: System prompt. Can be a string or an array of content blocks
+            following the Anthropic API format.
+          oneOf:
+          - type: string
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+        temperature:
+          description: Amount of randomness injected into the response. Ranges from
+            0 to 1.
+          type: number
+        thinking:
+          additionalProperties: true
+          description: Extended thinking configuration for models that support it.
+            Set `type` to `enabled` to turn on extended thinking.
+          type: object
+        timeout:
+          default: 300.0
+          description: Request timeout in seconds.
+          type: number
+        tool_choice:
+          additionalProperties: true
+          description: Controls how the model uses tools, following the Anthropic
+            API format.
+          type: object
+        tools:
+          description: Definitions of tools that the model may use, following the
+            Anthropic API format.
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        top_k:
+          description: Top-k sampling parameter. Only sample from the top K options
+            for each subsequent token.
+          type: integer
+        top_p:
+          description: Nucleus sampling parameter. Use temperature or top_p, but not
+            both.
+          type: number
+      required:
+      - model
+      - messages
+      - max_tokens
+      title: AnthropicMessageRequest
+      type: object
     ApplicationName:
       description: A user-assigned name to help manage the application.
       example: call-router
@@ -74506,6 +74614,58 @@ paths:
       summary: Get Advanced Order
       tags:
       - Advanced Number Orders
+      x-latency-category: responsive
+  /ai/anthropic/v1/messages:
+    post:
+      description: 'Send a message to a language model using the Anthropic Messages
+        API format. This endpoint is compatible with the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages)
+        and may be used with the Anthropic JS or Python SDK by setting the base URL
+        to `https://api.telnyx.com/v2/ai/anthropic`.
+
+
+        The endpoint translates Anthropic-format requests into Telnyx''s inference
+        internals, then translates the response back to the Anthropic message shape.
+        Streaming responses use Anthropic SSE event types (`message_start`, `content_block_start`,
+        `content_block_delta`, `content_block_stop`, `message_delta`, `message_stop`).'
+      operationId: create_anthropic_message
+      requestBody:
+        content:
+          application/json:
+            example:
+              max_tokens: 1024
+              messages:
+              - content: Hello, world!
+                role: user
+              model: zai-org/GLM-5.2
+              system: You are a friendly chatbot.
+            schema:
+              $ref: '#/components/schemas/AnthropicMessageRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                description: 'An Anthropic-format message response with `type: "message"`,
+                  `role`, `content`, `stop_reason`, `stop_sequence`, and `usage`.
+                  When `stream` is true, the response is a text/event-stream of Anthropic
+                  SSE events.'
+                type: object
+            text/event-stream:
+              schema:
+                description: Anthropic-format Server-Sent Events stream.
+                type: string
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+      summary: Create a message (Anthropic-compatible)
+      tags:
+      - Anthropic Messages
       x-latency-category: responsive
   /ai/assistants:
     get:
