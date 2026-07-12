@@ -70,7 +70,16 @@ components:
           source:
             pointer: /phone_numbers
           title: Bad Request
-  headers: {}
+  headers:
+    IdempotentReplayed:
+      description: Present with value `true` when Edge replayed a stored successful
+        response for the supplied Idempotency-Key. Omitted for first-time requests
+        and error responses.
+      schema:
+        enum:
+        - true
+        example: true
+        type: boolean
   links: {}
   parameters:
     10dlc_FilterConsolidated:
@@ -1187,6 +1196,27 @@ components:
       schema:
         example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
+        type: string
+    IdempotencyKey:
+      description: "Optional opaque key for safely retrying the same logical request.\
+        \ Generate a unique UUID v4 for each operation and reuse it only when retrying\
+        \ that operation with the same request. Quoted values follow RFC 9651 String\
+        \ syntax: 1 to 255 printable ASCII characters after decoding; double quote\
+        \ and backslash characters must be escaped. Existing unquoted values remain\
+        \ supported for compatibility and are limited to letters, numbers, hyphens,\
+        \ and underscores. Invalid headers\u2014including duplicate, empty, malformed,\
+        \ or overlong values\u2014return 400 with error code 10015. A request already\
+        \ in progress with the same key returns 409; reusing the key with a different\
+        \ request returns 422. Only successful responses are replayed, for up to 24\
+        \ hours. Do not include sensitive data in the key."
+      example: '"8e03978e-40d5-43e8-bc93-6894a57f9326e"'
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema:
+        maxLength: 512
+        minLength: 1
+        pattern: ^(?:[A-Za-z0-9_-]{1,255}|"(?:[\x20-\x21\x23-\x5B\x5D-\x7E]|\\["\\]){1,255}")$
         type: string
     IncludeCancelledAccounts:
       description: Specifies if cancelled accounts should be included in the results.
@@ -3983,6 +4013,20 @@ components:
                 $ref: '#/components/schemas/PaginationMeta'
             type: object
       description: A list of channel zones
+    IdempotencyConflictResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10036'
+              detail: A request with this Idempotency-Key is already being processed.
+              source:
+                pointer: /header/Idempotency-Key
+              title: Resource is being processed
+          schema:
+            $ref: '#/components/schemas/email_ErrorResponse'
+      description: A request with the same Idempotency-Key is still being processed
+        (10036). Retry later with the same key and request.
     InitiateAICallResponse:
       content:
         application/json:
@@ -4111,6 +4155,12 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
       description: The requested resource doesn't exist.
+    PayloadTooLargeResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/email_ErrorResponse'
+      description: Request body exceeds the 8,000,000-byte limit for this endpoint.
     RenderErrorResponse:
       content:
         application/json:
@@ -5028,7 +5078,8 @@ components:
               title: Service Unavailable
           schema:
             $ref: '#/components/schemas/email_ErrorResponse'
-      description: Service unavailable (10016).
+      description: Service unavailable (10016), including an unavailable upstream
+        dependency or unavailable Edge idempotency protection for a keyed request.
     email_UnauthorizedResponse:
       content:
         application/json:
@@ -21177,9 +21228,6 @@ components:
         html_body:
           description: HTML email body. Write-only; not returned in responses.
           type: string
-        idempotency_key:
-          description: Client-provided key for idempotent create semantics.
-          type: string
         ignore_suppression:
           default: false
           description: When true, bypasses suppression checks for overridable blocks.
@@ -27864,9 +27912,6 @@ components:
         id:
           format: uuid
           type: string
-        idempotency_key:
-          nullable: true
-          type: string
         inline_css:
           description: Present when true in the immediate create response. Not persisted;
             absent on subsequent GET requests.
@@ -27932,7 +27977,6 @@ components:
       - bcc
       - subject
       - reply_to
-      - idempotency_key
       - template_id
       - template_variables
       - attachments
@@ -29296,8 +29340,9 @@ components:
     ErrorObject:
       properties:
         code:
-          description: Telnyx error code. Fallback 404/500 responses from the framework
-            may use string status codes ('404', '500') instead.
+          description: Telnyx error code. Edge idempotency errors use 10027 or 10036.
+            Fallback 404/500 responses from the framework may use string status codes
+            ('404', '500') instead.
           enum:
           - '10001'
           - '10006'
@@ -29305,6 +29350,8 @@ components:
           - '10015'
           - '10016'
           - '10019'
+          - '10027'
+          - '10036'
           - '404'
           - '500'
           type: string
@@ -33016,18 +33063,6 @@ components:
       example: 0ccc7b54-4df3-4bca-a65a-3da1ecc777f0
       format: uuid
       type: string
-    IdempotentEmailMessageResponse:
-      properties:
-        data:
-          $ref: '#/components/schemas/EmailMessage'
-        idempotent:
-          enum:
-          - true
-          type: boolean
-      required:
-      - data
-      - idempotent
-      type: object
     ImportAssistantsRequest:
       properties:
         api_key_ref:
@@ -87802,6 +87837,8 @@ paths:
         Note: template lookup failures (not found, wrong account) return 400, not
         404.'
       operationId: CreateEmailMessage
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -87835,26 +87872,38 @@ paths:
               $ref: '#/components/schemas/CreateEmailRequest'
         required: true
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IdempotentEmailMessageResponse'
-          description: Idempotent replay; matching message already exists.
         '202':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmailMessageResponse'
           description: Message queued, scheduled, or sandbox-created.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
-          $ref: '#/components/responses/email_BadRequestResponse'
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: email is required
+                  title: Bad Request
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Bad Request / Validation Failed (10015). Invalid, duplicate,
+            empty, malformed, or overlong Idempotency-Key headers are rejected by
+            Edge with HTTP 400 and error code 10015.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
         '403':
           $ref: '#/components/responses/email_ForbiddenResponse'
         '404':
           $ref: '#/components/responses/email_NotFoundResponse'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '413':
+          $ref: '#/components/responses/PayloadTooLargeResponse'
         '422':
           content:
             application/json:
@@ -87863,7 +87912,8 @@ paths:
                 - $ref: '#/components/schemas/email_ErrorResponse'
                 - $ref: '#/components/schemas/RecipientSuppressedError'
           description: Validation failed, or all recipients suppressed (code `recipient_suppressed`,
-            includes top-level `suppressed` array).
+            includes top-level `suppressed` array). Reusing an Idempotency-Key with
+            a different request also returns 422 (10027).
         '429':
           content:
             application/json:
@@ -87881,6 +87931,8 @@ paths:
     post:
       description: Creates up to 50 email messages in a single request.
       operationId: CreateEmailMessageBatch
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -87907,22 +87959,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailBatchResponse'
           description: All messages succeeded.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '207':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmailBatchResponse'
           description: Partial success; one or more messages failed.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
-          $ref: '#/components/responses/email_BadRequestResponse'
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: email is required
+                  title: Bad Request
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Bad Request / Validation Failed (10015). Invalid, duplicate,
+            empty, malformed, or overlong Idempotency-Key headers are rejected by
+            Edge with HTTP 400 and error code 10015.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '413':
+          $ref: '#/components/responses/PayloadTooLargeResponse'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The Idempotency-Key was already used for a different request
+            (10027).
         '429':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReputationSuspendedError'
           description: "Sending suspended \u2014 domain reputation band is 'poor'."
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
       summary: Create a batch of email messages
       tags:
       - Email Messages
@@ -88042,6 +88124,8 @@ paths:
       description: Creates a Liquid email template. Variables are auto-extracted when
         omitted.
       operationId: CreateEmailTemplate
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -88060,10 +88144,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailTemplateResponse'
           description: Template created.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+        '400':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: email is required
+                  title: Bad Request
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Bad Request / Validation Failed (10015). Invalid, duplicate,
+            empty, malformed, or overlong Idempotency-Key headers are rejected by
+            Edge with HTTP 400 and error code 10015.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '413':
+          $ref: '#/components/responses/PayloadTooLargeResponse'
         '422':
-          $ref: '#/components/responses/ValidationErrorResponse'
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: subject can't be blank
+                  source:
+                    pointer: /data/attributes/subject
+                  title: Validation Failed
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Validation Failed (10015) or changeset validation error. Reusing
+            an Idempotency-Key with a different request also returns 422 (10027).
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
       summary: Create an email template
       tags:
       - Email Templates
@@ -88448,6 +88566,8 @@ paths:
     post:
       description: Validates a single email address and returns deliverability checks.
       operationId: CreateEmailValidation
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -88463,10 +88583,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailValidationResponse'
           description: Email validation result.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
-          $ref: '#/components/responses/email_BadRequestResponse'
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: email is required
+                  title: Bad Request
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Bad Request / Validation Failed (10015). Invalid, duplicate,
+            empty, malformed, or overlong Idempotency-Key headers are rejected by
+            Edge with HTTP 400 and error code 10015.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '413':
+          $ref: '#/components/responses/PayloadTooLargeResponse'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The Idempotency-Key was already used for a different request
+            (10027).
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
       summary: Validate a single email address
       tags:
       - Email Validations
@@ -88477,6 +88624,8 @@ paths:
       description: Creates an asynchronous batch validation job for up to 1,000 email
         addresses.
       operationId: CreateEmailValidationBatch
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -88495,6 +88644,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmailValidationBatchResponse'
           description: Batch validation job accepted.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
         '400':
           content:
             application/json:
@@ -88507,9 +88659,15 @@ paths:
                       title: Bad Request
               schema:
                 $ref: '#/components/schemas/email_ErrorResponse'
-          description: Missing or invalid email list, or batch size exceeded.
+          description: Missing or invalid email list, or batch size exceeded. Invalid,
+            duplicate, empty, malformed, or overlong Idempotency-Key headers are rejected
+            by Edge with HTTP 400 and error code 10015.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '413':
+          $ref: '#/components/responses/PayloadTooLargeResponse'
         '422':
           content:
             application/json:
@@ -88522,9 +88680,12 @@ paths:
                   title: Validation Failed
               schema:
                 $ref: '#/components/schemas/email_ErrorResponse'
-          description: Changeset validation error (e.g. invalid webhook_url).
+          description: Changeset validation error (e.g. invalid webhook_url). Reusing
+            an Idempotency-Key with a different request also returns 422 (10027).
         '500':
           $ref: '#/components/responses/email_InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
       summary: Create a batch email validation job
       tags:
       - Email Validations
