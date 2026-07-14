@@ -1489,6 +1489,14 @@ components:
         example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
         format: uuid
         type: string
+    RequirementVersion:
+      description: Filter by requirement version number. When omitted, returns the
+        currently-active version.
+      in: query
+      name: version
+      required: false
+      schema:
+        type: integer
     ResourceId:
       description: Identifies the resource.
       in: path
@@ -15468,6 +15476,16 @@ components:
       - updated_at
       title: CanaryDeployResponse
       type: object
+    CancelPendingVersionResponse:
+      properties:
+        data:
+          properties:
+            cancelled:
+              $ref: '#/components/schemas/DocReqsRequirement'
+            restored:
+              $ref: '#/components/schemas/DocReqsRequirement'
+          type: object
+      type: object
     Carrier:
       properties:
         error_code:
@@ -23301,6 +23319,27 @@ components:
       - queue_name
       title: Create Queue Request
       type: object
+    CreateRequirementVersionRequest:
+      properties:
+        effective_start_at:
+          description: ISO 8601 formatted date-time indicating when the new version
+            should become active. Must be a future date-time.
+          example: '2026-08-01T00:00:00.000Z'
+          format: date-time
+          type: string
+        requirement_type_ids:
+          description: List of requirement type UUIDs that apply to the new version.
+            Replaces the existing requirement types for the new version.
+          example:
+          - a38c217a-8019-48f8-bff6-0fdd9939075b
+          items:
+            format: uuid
+            type: string
+          type: array
+      required:
+      - effective_start_at
+      - requirement_type_ids
+      type: object
     CreateRoomClientTokenRequest:
       properties:
         refresh_token_ttl_secs:
@@ -26596,6 +26635,21 @@ components:
           example: '2021-04-09T22:25:27.521Z'
           readOnly: true
           type: string
+        effective_end_at:
+          description: When this version was superseded. NULL means this is the active
+            or pending version.
+          format: date-time
+          readOnly: true
+          type:
+          - string
+          - 'null'
+        effective_start_at:
+          description: When this version became (or will become) active.
+          format: date-time
+          readOnly: true
+          type:
+          - string
+          - 'null'
         id:
           description: Identifies the associated document
           example: 6a09cdc3-8948-47f0-aa62-74ac943d6c58
@@ -26622,7 +26676,7 @@ components:
           example: requirement
           readOnly: true
           type: string
-        requirements_types:
+        requirement_types:
           description: Lists the requirement types necessary to fulfill this requirement
           items:
             $ref: '#/components/schemas/DocReqsRequirementType'
@@ -26634,6 +26688,11 @@ components:
           example: '2021-04-12T20:20:20.020Z'
           readOnly: true
           type: string
+        version:
+          description: Version number. Increments with each new version. Defaults
+            to 1.
+          readOnly: true
+          type: integer
       type: object
     DocReqsRequirementList:
       items:
@@ -106380,6 +106439,7 @@ paths:
       - $ref: '#/components/parameters/FilterRequirementsConsolidated'
       - $ref: '#/components/parameters/SortRequirementsConsolidated'
       - $ref: '#/components/parameters/documents_PageConsolidated'
+      - $ref: '#/components/parameters/RequirementVersion'
       responses:
         '200':
           content:
@@ -106411,6 +106471,7 @@ paths:
       operationId: RetrieveDocumentRequirements
       parameters:
       - $ref: '#/components/parameters/DocReqsRequirementId'
+      - $ref: '#/components/parameters/RequirementVersion'
       responses:
         '200':
           content:
@@ -106433,6 +106494,84 @@ paths:
       summary: Retrieve a document requirement
       tags:
       - Requirements
+      x-latency-category: responsive
+  /requirements/{id}/versions:
+    post:
+      description: Create a new pending version of a requirement with a future effective
+        start date. Only one pending version may exist per requirement at a time.
+      operationId: CreateRequirementVersion
+      parameters:
+      - $ref: '#/components/parameters/DocReqsRequirementId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequirementVersionRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DocReqsRequirement'
+                type: object
+          description: Pending version created successfully
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/documents_Errors'
+          description: Resource not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/documents_Errors'
+          description: Unprocessable entity. Check the 'detail' field in response
+            for details.
+        default:
+          $ref: '#/components/responses/documents_GenericErrorResponse'
+      summary: Schedule a future requirement version
+      tags:
+      - Requirements
+      x-hidden: true
+      x-latency-category: responsive
+  /requirements/{id}/versions/pending:
+    delete:
+      description: Cancel a pending requirement version. The pending version is marked
+        as cancelled and the previously active version is restored with effective_end_at
+        set to NULL.
+      operationId: CancelPendingRequirementVersion
+      parameters:
+      - $ref: '#/components/parameters/DocReqsRequirementId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelPendingVersionResponse'
+          description: Pending version cancelled successfully
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/documents_Errors'
+          description: Resource not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/documents_Errors'
+          description: Unprocessable entity. The specified requirement is not a pending
+            version.
+        default:
+          $ref: '#/components/responses/documents_GenericErrorResponse'
+      summary: Cancel a pending requirement version
+      tags:
+      - Requirements
+      x-hidden: true
       x-latency-category: responsive
   /room_compositions:
     get:
