@@ -16413,6 +16413,205 @@ components:
       - added
       title: CloudflareSyncStatus
       type: string
+    CloudfsFilesystem:
+      description: A CloudFS filesystem, including its metadata credential. This shape
+        is returned only by create and rotate-meta-token.
+      properties:
+        created_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+        id:
+          example: 3be44fad-d34c-4884-b4b2-ef12c6133af4
+          format: uuid
+          type: string
+        meta_token:
+          description: "Metadata access token, in cleartext. Returned only by create\
+            \ and rotate-meta-token and not retrievable afterwards \u2014 store it\
+            \ securely."
+          example: cloudfs_tok_9f2c1e0a4b8d47c6a3e5f10298d7b654
+          type: string
+        meta_url:
+          description: 'PostgreSQL connection URL for the filesystem''s metadata database,
+            including the metadata token as the password. Pass it to `juicefs mount`:
+            the storage configuration is baked in at provisioning, so the metadata
+            URL is all a client needs to mount the filesystem.'
+          example: postgres://fs_1fe301e97d7c4edd:cloudfs_tok_9f2c1e0a4b8d47c6a3e5f10298d7b654@us-east-1.telnyxcloudfs.com:5432/fs_1fe301e97d7c4edd?sslmode=require
+          type: string
+        name:
+          example: agent-fs
+          type: string
+        record_type:
+          example: cloudfs
+          type: string
+        region:
+          example: us-east-1
+          type: string
+        s3_bucket:
+          description: Name of the bucket that stores this filesystem's data. Created
+            during provisioning.
+          example: cloudfs-fs-1fe301e97d7c4edd
+          type: string
+        s3_endpoint:
+          description: URL of the Telnyx Cloud Storage endpoint backing this filesystem.
+          example: https://us-east-1.telnyxcloudstorage.com
+          type: string
+        status:
+          $ref: '#/components/schemas/CloudfsFilesystemStatus'
+        updated_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+      type: object
+    CloudfsFilesystemDetail:
+      description: "A CloudFS filesystem as returned by get, update, and delete. `meta_url`\
+        \ omits the credential and there is no `meta_token` field \u2014 the token\
+        \ is only returned by create and rotate-meta-token."
+      properties:
+        created_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+        error:
+          description: Explanation of the most recent failed lifecycle action. Present
+            only when the filesystem is in a `failed` state.
+          example: failed to create storage bucket
+          type: string
+        id:
+          example: 3be44fad-d34c-4884-b4b2-ef12c6133af4
+          format: uuid
+          type: string
+        meta_url:
+          description: PostgreSQL connection URL for the filesystem's metadata database,
+            without the credential. Combine it with your stored metadata token, or
+            issue a new token with rotate-meta-token.
+          example: postgres://fs_1fe301e97d7c4edd@us-east-1.telnyxcloudfs.com:5432/fs_1fe301e97d7c4edd?sslmode=require
+          type: string
+        name:
+          example: agent-fs
+          type: string
+        record_type:
+          example: cloudfs
+          type: string
+        region:
+          example: us-east-1
+          type: string
+        s3_bucket:
+          description: Name of the bucket that stores this filesystem's data. Created
+            during provisioning.
+          example: cloudfs-fs-1fe301e97d7c4edd
+          type: string
+        s3_endpoint:
+          description: URL of the Telnyx Cloud Storage endpoint backing this filesystem.
+          example: https://us-east-1.telnyxcloudstorage.com
+          type: string
+        status:
+          $ref: '#/components/schemas/CloudfsFilesystemStatus'
+        updated_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+      type: object
+    CloudfsFilesystemDetailResponseWrapper:
+      properties:
+        data:
+          $ref: '#/components/schemas/CloudfsFilesystemDetail'
+      type: object
+    CloudfsFilesystemListItem:
+      description: "A CloudFS filesystem as returned in list results. Connection details\
+        \ (`meta_url`, `meta_token`) are omitted \u2014 retrieve the filesystem by\
+        \ ID for its redacted `meta_url`."
+      properties:
+        created_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+        id:
+          example: 3be44fad-d34c-4884-b4b2-ef12c6133af4
+          format: uuid
+          type: string
+        name:
+          example: agent-fs
+          type: string
+        record_type:
+          example: cloudfs
+          type: string
+        region:
+          example: us-east-1
+          type: string
+        s3_bucket:
+          description: Name of the bucket that stores this filesystem's data. Created
+            during provisioning.
+          example: cloudfs-fs-1fe301e97d7c4edd
+          type: string
+        s3_endpoint:
+          description: URL of the Telnyx Cloud Storage endpoint backing this filesystem.
+          example: https://us-east-1.telnyxcloudstorage.com
+          type: string
+        status:
+          $ref: '#/components/schemas/CloudfsFilesystemStatus'
+        updated_at:
+          example: '2026-07-14T21:42:01Z'
+          format: date-time
+          type: string
+      type: object
+    CloudfsFilesystemListResponseWrapper:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/CloudfsFilesystemListItem'
+          type: array
+        meta:
+          $ref: '#/components/schemas/CloudfsListMeta'
+      type: object
+    CloudfsFilesystemResponseWrapper:
+      properties:
+        data:
+          $ref: '#/components/schemas/CloudfsFilesystem'
+      type: object
+    CloudfsFilesystemStatus:
+      description: "Lifecycle status of the filesystem. `ready` means it is fully\
+        \ provisioned and usable. `needs_format` means the storage bucket and metadata\
+        \ database were provisioned but the filesystem has not yet been formatted\
+        \ \u2014 run `juicefs format` with the filesystem's `meta_url` before mounting.\
+        \ `failed` means the last lifecycle action failed \u2014 see the filesystem's\
+        \ `error` message. `deleted` appears only in the delete response: deleted\
+        \ filesystems are excluded from list results and return a `404` on retrieval."
+      enum:
+      - provisioning
+      - ready
+      - needs_format
+      - deleting
+      - failed
+      - deleted
+      example: ready
+      type: string
+    CloudfsListCursors:
+      description: Opaque cursors for the adjacent pages. Empty when there are no
+        adjacent pages.
+      properties:
+        after:
+          description: Cursor for the next page; pass it as `page[after]`. Omitted
+            on the last page.
+          type: string
+        before:
+          description: Cursor for the previous page; pass it as `page[before]`. Omitted
+            on the first page.
+          type: string
+      type: object
+    CloudfsListMeta:
+      properties:
+        cursors:
+          $ref: '#/components/schemas/CloudfsListCursors'
+        next:
+          description: Relative URL (path and query) of the next page. Omitted when
+            there are no further results.
+          type: string
+        previous:
+          description: Relative URL (path and query) of the previous page. Omitted
+            on the first page.
+          type: string
+      type: object
     ClusterNode:
       properties:
         filename:
@@ -20846,6 +21045,29 @@ components:
       - application_name
       - webhook_event_url
       title: Create Call Control Application Request
+      type: object
+    CreateCloudfsFilesystemRequest:
+      properties:
+        name:
+          description: Filesystem name, unique within your organization. Names are
+            trimmed and lowercased; after normalization they may contain lowercase
+            letters, numbers, `.`, `_`, and `-` only.
+          example: agent-fs
+          maxLength: 63
+          minLength: 1
+          pattern: ^[a-z0-9._-]+$
+          type: string
+        region:
+          description: Region where the filesystem's storage and metadata are provisioned.
+          enum:
+          - us-central-1
+          - us-east-1
+          - us-west-1
+          example: us-east-1
+          type: string
+      required:
+      - name
+      - region
       type: object
     CreateConferenceRequest:
       example:
@@ -61422,6 +61644,18 @@ components:
           title: WebhookURL
           type: string
       title: UpdateCampaignRequest
+      type: object
+    UpdateCloudfsFilesystemRequest:
+      properties:
+        name:
+          description: New filesystem name, unique within your organization. Names
+            are trimmed and lowercased; after normalization they may contain lowercase
+            letters, numbers, `.`, `_`, and `-` only.
+          example: agent-fs
+          maxLength: 63
+          minLength: 1
+          pattern: ^[a-z0-9._-]+$
+          type: string
       type: object
     UpdateConferenceParticipantRequest:
       example:
@@ -110150,6 +110384,455 @@ paths:
       tags:
       - Presigned Object URLs
       x-latency-category: responsive
+  /storage/cloudfs:
+    get:
+      description: 'Lists the CloudFS filesystems for the authenticated user''s organization.
+        Results use cursor-based pagination: fetch the next page by passing `meta.cursors.after`
+        as `page[after]`, or follow the `meta.next` URL.'
+      operationId: ListCloudfsFilesystems
+      parameters:
+      - description: The number of filesystems to return per page. Values above 250
+          are treated as 250.
+        in: query
+        name: page[limit]
+        schema:
+          default: 20
+          maximum: 250
+          minimum: 1
+          type: integer
+      - description: Opaque cursor from a previous response's `meta.cursors.after`;
+          returns the page after it. Mutually exclusive with `page[before]`.
+        in: query
+        name: page[after]
+        schema:
+          type: string
+      - description: Opaque cursor from a previous response's `meta.cursors.before`;
+          returns the page before it. Mutually exclusive with `page[after]`.
+        in: query
+        name: page[before]
+        schema:
+          type: string
+      - description: Return only the filesystem whose name matches exactly.
+        in: query
+        name: filter[name]
+        schema:
+          type: string
+      - description: Return only filesystems with this status. Unrecognized values
+          are ignored.
+        in: query
+        name: filter[status]
+        schema:
+          enum:
+          - provisioning
+          - ready
+          - needs_format
+          - deleting
+          - failed
+          type: string
+      - description: Return only filesystems in this region.
+        in: query
+        name: filter[region]
+        schema:
+          example: us-east-1
+          type: string
+      - description: 'Sort order for the results: a field name for ascending, or the
+          field name prefixed with `-` for descending.'
+        in: query
+        name: sort
+        schema:
+          default: -created_at
+          enum:
+          - created_at
+          - -created_at
+          - updated_at
+          - -updated_at
+          - name
+          - -name
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemListResponseWrapper'
+          description: CloudFS filesystems retrieved successfully
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 invalid `page[limit]`, malformed\
+            \ or conflicting cursor, or unsupported `sort` value"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: List CloudFS filesystems
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
+    post:
+      description: "Creates a CloudFS filesystem. Provisioning is synchronous \u2014\
+        \ typically a few seconds, up to a few minutes \u2014 and the filesystem is\
+        \ returned with status `ready`, together with its S3 bucket and metadata connection\
+        \ details. This response is the only time the filesystem's `meta_token` \u2014\
+        \ and the credential-bearing `meta_url` \u2014 are returned; store them securely.\
+        \ If the token is lost, issue a new one with the rotate-meta-token action.\
+        \ Names are unique within your organization: creating with an existing name\
+        \ returns a `422`. Requests are idempotent: retrying with the same `Idempotency-Key`\
+        \ within 24 hours replays the original response instead of creating another\
+        \ filesystem."
+      operationId: CreateCloudfsFilesystem
+      parameters:
+      - description: 'Unique key that makes the request idempotent (1-255 characters:
+          letters, numbers, `_`, and `-`). Retrying with the same key within 24 hours
+          replays the original response (marked with an `Idempotent-Replayed: true`
+          header) instead of repeating the action. Reusing a key with a different
+          request returns a `422`; sending a key while the original request is still
+          being processed returns a `409`.'
+        in: header
+        name: Idempotency-Key
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          pattern: ^[A-Za-z0-9_-]+$
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCloudfsFilesystemRequest'
+        description: CloudFS filesystem creation request
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemResponseWrapper'
+          description: CloudFS filesystem created successfully. This is the only response
+            (besides rotate-meta-token) that includes `meta_token`.
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 malformed JSON, unknown field, or a missing\
+            \ or invalid `Idempotency-Key` header"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 a request with this `Idempotency-Key` is still\
+            \ being processed"
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 missing or invalid `name` or `region`,\
+            \ a filesystem with this name already exists for your organization, or\
+            \ the `Idempotency-Key` was already used for a different request"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Create a CloudFS filesystem
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
+  /storage/cloudfs/{id}:
+    delete:
+      description: "Permanently deletes a CloudFS filesystem, removing its S3 bucket\
+        \ and its metadata database. Deletion is synchronous: the response returns\
+        \ the filesystem's final state with status `deleted`. There is no restore.\
+        \ A filesystem that is still `provisioning` returns a `409`. If the filesystem\
+        \ still contains data, the request may be rejected with a `409` \u2014 drain\
+        \ the bucket and retry."
+      operationId: DeleteCloudfsFilesystem
+      parameters:
+      - description: CloudFS filesystem ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemDetailResponseWrapper'
+          description: CloudFS filesystem deleted; the returned filesystem has status
+            `deleted`
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: CloudFS filesystem not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the filesystem is not in a state that allows\
+            \ deletion (for example, still `provisioning`), or its bucket still contains\
+            \ data that must be drained first"
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 `id` is not a valid UUID"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Delete a CloudFS filesystem
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
+    get:
+      description: "Retrieves a CloudFS filesystem by its ID. The returned `meta_url`\
+        \ omits the credential \u2014 the metadata token is only ever returned by\
+        \ create and rotate-meta-token. A filesystem whose last lifecycle action failed\
+        \ includes a customer-safe `error` message."
+      operationId: GetCloudfsFilesystem
+      parameters:
+      - description: CloudFS filesystem ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemDetailResponseWrapper'
+          description: CloudFS filesystem retrieved successfully
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: CloudFS filesystem not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 `id` is not a valid UUID"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Get a CloudFS filesystem
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
+    patch:
+      description: Updates a CloudFS filesystem. Only `name` can be changed; other
+        fields are immutable and unknown fields are rejected with a `400`. Renaming
+        to a name that already exists in your organization returns a `422`.
+      operationId: UpdateCloudfsFilesystem
+      parameters:
+      - description: CloudFS filesystem ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCloudfsFilesystemRequest'
+        description: CloudFS filesystem update request
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemDetailResponseWrapper'
+          description: CloudFS filesystem updated successfully
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 malformed JSON, unknown or immutable field,\
+            \ or missing body"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: CloudFS filesystem not found
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 `id` is not a valid UUID, the\
+            \ new `name` is invalid, or a filesystem with that name already exists"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Update a CloudFS filesystem
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
+  /storage/cloudfs/{id}/actions/rotate-meta-token:
+    post:
+      description: "Issues a new metadata access token for the filesystem and returns\
+        \ the full filesystem, including the new `meta_token` and credential-bearing\
+        \ `meta_url`. The previous token stops authenticating immediately; the metadata\
+        \ database and S3 bucket are unchanged. The request takes no body. Allowed\
+        \ while the filesystem is `ready` or `needs_format`; otherwise returns a `409`.\
+        \ Retrying with the same `Idempotency-Key` within 24 hours replays the original\
+        \ response \u2014 including the same token \u2014 instead of rotating again."
+      operationId: RotateCloudfsMetaToken
+      parameters:
+      - description: CloudFS filesystem ID
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: 'Unique key that makes the request idempotent (1-255 characters:
+          letters, numbers, `_`, and `-`). Retrying with the same key within 24 hours
+          replays the original response (marked with an `Idempotent-Replayed: true`
+          header) instead of repeating the action. Reusing a key with a different
+          request returns a `422`; sending a key while the original request is still
+          being processed returns a `409`.'
+        in: header
+        name: Idempotency-Key
+        required: true
+        schema:
+          maxLength: 255
+          minLength: 1
+          pattern: ^[A-Za-z0-9_-]+$
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudfsFilesystemResponseWrapper'
+          description: New metadata token issued; the response includes the new `meta_token`
+            and credential-bearing `meta_url`
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Bad request \u2014 missing or invalid `Idempotency-Key` header"
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: Unauthorized
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: CloudFS filesystem not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Conflict \u2014 the filesystem is not in a state that allows\
+            \ rotation (`status` is neither `ready` nor `needs_format`), or a request\
+            \ with this `Idempotency-Key` is still being processed"
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/edge-compute_Errors'
+          description: "Unprocessable entity \u2014 `id` is not a valid UUID, or the\
+            \ `Idempotency-Key` was already used for a different request"
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+          description: Internal server error
+      security:
+      - bearerAuth: []
+      summary: Rotate the metadata token
+      tags:
+      - cloudfs filesystems
+      x-latency-category: responsive
   /storage/kvs:
     get:
       description: Lists the KV namespaces for the authenticated user's organization.
@@ -117781,6 +118464,9 @@ tags:
   name: Wireless Blocklists
 - description: Regions for wireless services
   name: Wireless Regions
+- description: "Manage CloudFS filesystems \u2014 JuiceFS-compatible filesystems backed\
+    \ by Telnyx Cloud Storage"
+  name: cloudfs filesystems
 - description: Read and write keys within a KV namespace
   name: kv keys
 - description: Manage KV storage namespaces
