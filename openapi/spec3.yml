@@ -322,6 +322,22 @@ components:
         maximum: 100
         minimum: 1
         type: integer
+    DraftId:
+      description: Email draft UUID.
+      in: path
+      name: draft_id
+      required: true
+      schema:
+        format: uuid
+        type: string
+    DraftInboxId:
+      description: Email inbox UUID.
+      in: path
+      name: inbox_id
+      required: true
+      schema:
+        format: uuid
+        type: string
     EmailDomainDomainId:
       description: Email domain UUID
       in: path
@@ -1215,6 +1231,14 @@ components:
         minLength: 1
         pattern: ^[A-Za-z0-9_-]{1,255}$
         type: string
+    InboxIdPathParam:
+      description: Email inbox UUID.
+      in: path
+      name: inbox_id
+      required: true
+      schema:
+        format: uuid
+        type: string
     IncludeCancelledAccounts:
       description: Specifies if cancelled accounts should be included in the results.
       in: query
@@ -1273,6 +1297,14 @@ components:
       name: media_name
       required: true
       schema:
+        type: string
+    MessageIdPathParam:
+      description: Inbound message UUID.
+      in: path
+      name: message_id
+      required: true
+      schema:
+        format: uuid
         type: string
     MessagingProfileId:
       description: The id of the messaging profile to retrieve
@@ -1338,7 +1370,7 @@ components:
       style: deepObject
     PageCursor:
       description: Opaque URL-safe Base64 cursor returned by a previous list response.
-      example: Y3Vyc29yOmFmdGVyOjQy
+      example: eyJpbnNlcnRlZF9hdCI6IjIwMjQtMDEtMDEifQ
       in: query
       name: page_cursor
       required: false
@@ -1811,6 +1843,14 @@ components:
       schema:
         example: '2023-05-22T00:00:00Z'
         format: date-time
+        type: string
+    ThreadIdPathParam:
+      description: Thread UUID.
+      in: path
+      name: thread_id
+      required: true
+      schema:
+        format: uuid
         type: string
     To:
       description: Filters calls by the to number.
@@ -3975,6 +4015,18 @@ components:
           schema:
             $ref: '#/components/schemas/Errors'
       description: Resource conflict or in use
+    DraftUnavailableResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10016'
+              detail: Drafts are temporarily unavailable. Please try again later.
+              title: Service Unavailable
+          schema:
+            $ref: '#/components/schemas/email_ErrorResponse'
+      description: Drafts or the email domain service are temporarily unavailable
+        (10016).
     Forbidden:
       content:
         application/json:
@@ -4053,6 +4105,101 @@ components:
             $ref: '#/components/schemas/email_ErrorResponse'
       description: A request with the same Idempotency-Key is still being processed
         (10036). Retry later with the same key and request.
+    InboundMessageLabelResponse:
+      content:
+        application/json:
+          example:
+            data:
+              attachments: []
+              bcc: []
+              cc: []
+              created_at: '2026-07-15T12:30:00Z'
+              direction: inbound
+              from:
+                email: alice@example.com
+                name: Alice
+              has_quoted_text: true
+              headers: {}
+              html_body_url: null
+              id: 55555555-5555-5555-5555-555555555555
+              in_reply_to: <earlier@example.com>
+              inbox_id: 11111111-1111-1111-1111-111111111111
+              inline_files: []
+              labels:
+              - spam
+              - urgent
+              message_id: <message@example.com>
+              read_at: null
+              received_at: '2026-07-15T12:30:00Z'
+              record_type: email_message
+              references:
+              - <earlier@example.com>
+              reply_text: Thanks, I will send it today.
+              reply_to: []
+              sent_at: null
+              status: received
+              subject: Project update
+              text_body_url: null
+              thread_id: 33333333-3333-3333-3333-333333333333
+              to:
+              - email: agent@inbox.example.test
+              updated_at: '2026-07-15T12:30:00Z'
+          schema:
+            $ref: '#/components/schemas/InboundMessageResponse'
+      description: The updated message, including its current label set.
+    InboundThreadLabelResponse:
+      content:
+        application/json:
+          example:
+            data:
+              id: 33333333-3333-3333-3333-333333333333
+              inbox_id: 11111111-1111-1111-1111-111111111111
+              labels:
+              - needs_review
+              record_type: email_thread
+          schema:
+            properties:
+              data:
+                properties:
+                  id:
+                    format: uuid
+                    type: string
+                  inbox_id:
+                    format: uuid
+                    type: string
+                  labels:
+                    items:
+                      maxLength: 255
+                      type: string
+                    maxItems: 50
+                    type: array
+                  record_type:
+                    enum:
+                    - email_thread
+                    type: string
+                required:
+                - id
+                - record_type
+                - labels
+                type: object
+            required:
+            - data
+            type: object
+      description: The thread identity and its current label set.
+    InboxFiltersResponse:
+      content:
+        application/json:
+          example:
+            data:
+              allowlist:
+              - trusted@example.com
+              - '@partner.example'
+              blocklist:
+              - '@spam.example'
+              record_type: email_inbox_filters
+          schema:
+            $ref: '#/components/schemas/InboxFiltersResponse'
+      description: The inbox's current sender allowlist and blocklist.
     InitiateAICallResponse:
       content:
         application/json:
@@ -4082,6 +4229,17 @@ components:
             $ref: '#/components/schemas/call-control_Errors'
       description: Internal server error. An unexpected error occurred on the server.
         This is typically returned for unhandled exceptions or system failures.
+    LabelServiceUnavailableResponse:
+      content:
+        application/json:
+          example:
+            errors:
+            - code: '10016'
+              detail: Inbox labels are temporarily unavailable. Please try again later.
+              title: Service Unavailable
+          schema:
+            $ref: '#/components/schemas/email_ErrorResponse'
+      description: Inbound label storage is temporarily unavailable.
     ListAdvancedOrderResponse:
       content:
         application/json:
@@ -7521,23 +7679,60 @@ components:
           description: Attachment content, typically Base64-encoded. Defaults to empty
             string when omitted.
           type: string
+        content_id:
+          description: MIME Content-ID used to reference an inline attachment.
+          nullable: true
+          type: string
         content_type:
           description: MIME content type. Defaults to "application/octet-stream" when
             omitted.
+          type: string
+        disposition:
+          default: attachment
+          description: MIME disposition (`attachment` or `inline`).
           type: string
         filename:
           description: Attachment filename. Defaults to "attachment" when omitted.
           type: string
       type: object
     AttachmentResponse:
+      description: EDR-aligned attachment metadata. The base64 `content` is never
+        returned.
       properties:
+        content_id:
+          description: MIME Content-ID for inline references.
+          nullable: true
+          type: string
         content_type:
+          type: string
+        disposition:
+          default: attachment
+          description: MIME disposition (e.g. `attachment` or `inline`). Runtime passes
+            through the stored value without enforcing an enum.
           type: string
         filename:
           type: string
+        sha256:
+          description: SHA-256 hex digest of the attachment content.
+          nullable: true
+          type: string
+        size_bytes:
+          description: Attachment size in bytes.
+          nullable: true
+          type: integer
+        url:
+          description: Telnyx-hosted public URL for the attachment content.
+          format: uri
+          nullable: true
+          type: string
       required:
+      - url
+      - sha256
+      - size_bytes
       - filename
       - content_type
+      - disposition
+      - content_id
       type: object
     AudioChunkFrame:
       description: Server-to-client frame containing a base64-encoded audio chunk.
@@ -21432,11 +21627,130 @@ components:
           example: https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
           type: string
       type: object
+    CreateEmailBatchItemRequest:
+      description: "A single message in a batch create request. This schema mirrors\n\
+        `CreateEmailRequest` EXCEPT it does not accept the reply/forward\nthreading\
+        \ parameters (`in_reply_to_message_id`, `reply_to_all`,\n`forward_of_message_id`)\
+        \ \u2014 those are single-send-only in Phase 1\n(MSG-1491) and are not yet\
+        \ implemented on the batch endpoint. Recipient\nemail addresses must be unique\
+        \ across `to`, `cc`, and `bcc` after\ncase-insensitive normalization. Duplicate\
+        \ recipients return `400`."
+      properties:
+        attachments:
+          items:
+            $ref: '#/components/schemas/AttachmentRequest'
+          type: array
+        bcc:
+          items:
+            $ref: '#/components/schemas/EmailAddressInput'
+          type: array
+        cc:
+          items:
+            $ref: '#/components/schemas/EmailAddressInput'
+          type: array
+        from:
+          $ref: '#/components/schemas/EmailAddressInput'
+        from_name:
+          description: Optional display name for string `from`; overrides `from.name`
+            when provided.
+          type: string
+        group_id:
+          description: Optional unsubscribe-group UUID used for group-scoped suppression
+            checks and unsubscribe handling.
+          format: uuid
+          nullable: true
+          type: string
+        headers:
+          additionalProperties:
+            type: string
+          description: Custom email headers. Write-only; not returned in responses.
+          type: object
+        html_body:
+          description: HTML email body. Returned only by `GET /email_messages/{id}`;
+            omitted from create and list responses.
+          type: string
+        ignore_suppression:
+          default: false
+          description: 'When true, allows delivery to recipients whose suppressions
+            explicitly
+
+            permit an override. Hard bounces, spam complaints, and invalid-address
+
+            suppressions cannot be overridden. Requires the `email:override` API scope.
+
+            '
+          type: boolean
+        inline_css:
+          default: false
+          type: boolean
+        metadata:
+          additionalProperties: true
+          description: Custom metadata. Write-only; not returned in responses.
+          type: object
+        reply_to:
+          $ref: '#/components/schemas/EmailAddressInput'
+          description: Reply-to address. If provided as an object with a name, only
+            the email is stored; the name is ignored.
+        sandbox_mode:
+          default: false
+          type: boolean
+        scheduled_at:
+          description: 'Future ISO 8601 time to schedule sending. Invalid or past
+            timestamps
+
+            are silently ignored and the email is sent immediately. The legacy
+
+            alias `send_at` is still accepted for backward compatibility; when
+
+            both are provided, `scheduled_at` wins.
+
+            '
+          format: date-time
+          nullable: true
+          type: string
+        send_at:
+          deprecated: true
+          description: Deprecated alias for `scheduled_at`.
+          format: date-time
+          type: string
+        subject:
+          description: Required unless `template_id` is supplied. When using a template,
+            the template's subject is rendered; if the template has no subject or
+            renders empty, the request returns 400.
+          type: string
+        tags:
+          description: Tags for categorization and reporting. Stored on the message
+            and propagated to Email Detail Records. Not returned in API responses.
+          items:
+            type: string
+          type: array
+        template_id:
+          format: uuid
+          type: string
+        template_variables:
+          additionalProperties: true
+          default: {}
+          description: Variables for Liquid template rendering. Non-object values
+            may cause a 422 validation error on message creation, but are silently
+            treated as an empty object for template rendering.
+          type: object
+        text_body:
+          description: Plain text email body. Returned only by `GET /email_messages/{id}`;
+            omitted from create and list responses.
+          type: string
+        to:
+          $ref: '#/components/schemas/EmailAddressArrayInput'
+        tracking_settings:
+          $ref: '#/components/schemas/TrackingSettings'
+      required:
+      - from
+      - to
+      type: object
     CreateEmailBatchRequest:
       properties:
         messages:
           items:
-            $ref: '#/components/schemas/CreateEmailRequest'
+            $ref: '#/components/schemas/CreateEmailBatchItemRequest'
           maxItems: 50
           minItems: 1
           type: array
@@ -21497,7 +21811,7 @@ components:
           description: Enable inbound routing for this domain
           type: boolean
         tracking:
-          $ref: '#/components/schemas/TrackingSettings'
+          $ref: '#/components/schemas/DomainsTrackingSettings'
       required:
       - domain
       type: object
@@ -21519,6 +21833,9 @@ components:
           type: string
       type: object
     CreateEmailRequest:
+      description: Recipient email addresses must be unique across `to`, `cc`, and
+        `bcc` after case-insensitive normalization. Duplicate recipients return `400
+        Bad Request`.
       properties:
         attachments:
           items:
@@ -21532,6 +21849,18 @@ components:
           items:
             $ref: '#/components/schemas/EmailAddressInput'
           type: array
+        forward_of_message_id:
+          description: "Telnyx message UUID of the message this send forwards. Forwarded\n\
+            messages start a NEW thread per RFC 5322 \u2014 NO `In-Reply-To` or\n\
+            `References` headers are set on the outbound MIME. The id is\nrecorded\
+            \ in the message's metadata for EDR provenance only.\n\nThe id is validated\
+            \ as a UUID but is NOT looked up against the\nmessage store \u2014 existence\
+            \ is the caller's responsibility (the\nforward is pure metadata; it does\
+            \ not affect delivery). Cannot be\ncombined with `in_reply_to_message_id`\
+            \ (422)."
+          format: uuid
+          nullable: true
+          type: string
         from:
           $ref: '#/components/schemas/EmailAddressInput'
         from_name:
@@ -21539,9 +21868,10 @@ components:
             when provided.
           type: string
         group_id:
-          description: Optional unsubscribe group ID. Associates the message with
-            an unsubscribe group for group-scoped suppression handling.
+          description: Optional unsubscribe-group UUID used for group-scoped suppression
+            checks and unsubscribe handling.
           format: uuid
+          nullable: true
           type: string
         headers:
           additionalProperties:
@@ -21549,15 +21879,44 @@ components:
           description: Custom email headers. Write-only; not returned in responses.
           type: object
         html_body:
-          description: HTML email body. Write-only; not returned in responses.
+          description: HTML email body. Returned only by `GET /email_messages/{id}`;
+            omitted from create and list responses.
           type: string
         ignore_suppression:
           default: false
-          description: When true, bypasses suppression checks for overridable blocks.
-            Requires the `email:override` API key scope. Overrides are audited. Non-overridable
-            suppressions (hard bounces, spam complaints, invalid addresses) cannot
-            be bypassed.
+          description: 'When true, allows delivery to recipients whose suppressions
+            explicitly
+
+            permit an override. Hard bounces, spam complaints, and invalid-address
+
+            suppressions cannot be overridden. Requires the `email:override` API scope.
+
+            '
           type: boolean
+        in_reply_to_message_id:
+          description: 'Telnyx message UUID of the message this send replies to. When
+            provided,
+
+            the API sets RFC 5322 `In-Reply-To` and `References` headers on the
+
+            outbound MIME so the recipient''s mailbox (Gmail/Outlook) threads it
+
+            correctly. The parent is looked up under the caller''s account scope;
+
+            a UUID belonging to another account yields a non-enumerating 404.
+
+
+            Wire-only (Phase 1): the API sets the headers and does NOT resolve or
+
+            mutate `thread_id` on the server side. Messages sent without this
+
+            parameter are standalone (no threading headers injected).
+
+
+            Cannot be combined with `forward_of_message_id` (422).'
+          format: uuid
+          nullable: true
+          type: string
         inline_css:
           default: false
           type: boolean
@@ -21569,12 +21928,37 @@ components:
           $ref: '#/components/schemas/EmailAddressInput'
           description: Reply-to address. If provided as an object with a name, only
             the email is stored; the name is ignored.
+        reply_to_all:
+          default: false
+          description: "Indicates a reply-all intent. In Phase 1 (wire-only) this\
+            \ does not\nchange the threading headers \u2014 recipient selection is\
+            \ customer-\ncontrolled (`to`/`cc`), and a thread is not defined by its\
+            \ audience.\nWhen the referenced message has no thread context, reply-all\n\
+            degrades to a plain reply (parent ID only in `References`). The\nresolution\
+            \ engine (separate work) will expand the ancestor chain\nat a later phase\
+            \ with no API change.\n\nOnly meaningful alongside `in_reply_to_message_id`."
+          nullable: true
+          type: boolean
         sandbox_mode:
           default: false
           type: boolean
+        scheduled_at:
+          description: 'Future ISO 8601 time to schedule sending. Invalid or past
+            timestamps
+
+            are silently ignored and the email is sent immediately. The legacy
+
+            alias `send_at` is still accepted for backward compatibility; when
+
+            both are provided, `scheduled_at` wins.
+
+            '
+          format: date-time
+          nullable: true
+          type: string
         send_at:
-          description: Future ISO 8601 time to schedule sending. Invalid or past timestamps
-            are silently ignored and the email is sent immediately.
+          deprecated: true
+          description: Deprecated alias for `scheduled_at`.
           format: date-time
           type: string
         subject:
@@ -21583,7 +21967,8 @@ components:
             renders empty, the request returns 400.
           type: string
         tags:
-          description: Tags for categorization. Write-only; not returned in responses.
+          description: Tags for categorization and reporting. Stored on the message
+            and propagated to Email Detail Records. Not returned in API responses.
           items:
             type: string
           type: array
@@ -21598,10 +21983,13 @@ components:
             treated as an empty object for template rendering.
           type: object
         text_body:
-          description: Plain text email body. Write-only; not returned in responses.
+          description: Plain text email body. Returned only by `GET /email_messages/{id}`;
+            omitted from create and list responses.
           type: string
         to:
           $ref: '#/components/schemas/EmailAddressArrayInput'
+        tracking_settings:
+          $ref: '#/components/schemas/TrackingSettings'
       required:
       - from
       - to
@@ -27280,6 +27668,24 @@ components:
       required:
       - errors
       type: object
+    DomainsTrackingSettings:
+      properties:
+        click_tracking:
+          default: false
+          description: Rewrite HTML links through a tracking redirect to record click
+            events.
+          type: boolean
+        open_tracking:
+          default: false
+          description: Inject a tracking pixel into HTML messages to record open events.
+          type: boolean
+        unsubscribe_tracking:
+          default: true
+          description: Add RFC 8058 List-Unsubscribe headers with a signed one-click
+            unsubscribe URL. Enabled by default; Gmail/Yahoo bulk-sender rules require
+            one-click unsubscribe support.
+          type: boolean
+      type: object
     DownlinkData:
       properties:
         amount:
@@ -28008,7 +28414,7 @@ components:
         status:
           $ref: '#/components/schemas/EmailDomainStatus'
         tracking:
-          $ref: '#/components/schemas/TrackingSettings'
+          $ref: '#/components/schemas/DomainsTrackingSettings'
         type:
           $ref: '#/components/schemas/EmailDomainType'
           description: 'Domain type. `custom` domains are account-owned (BYOD). `shared`
@@ -28128,6 +28534,7 @@ components:
       enum:
       - custom
       - shared
+      - shared_inbound
       type: string
     EmailDomainVerification:
       properties:
@@ -28154,12 +28561,14 @@ components:
           enum:
           - pending
           - verified
+          - not_required
           type: string
         spf:
           enum:
           - missing_optional
           - verified
           - failed
+          - not_required
           type: string
       required:
       - ownership
@@ -28168,10 +28577,200 @@ components:
       - dmarc
       - mx
       type: object
+    EmailDraft:
+      description: An unsent, mutable draft message belonging to an inbox.
+      properties:
+        attachments:
+          items:
+            type: object
+          type: array
+        bcc:
+          items:
+            $ref: '#/components/schemas/EmailAddress'
+          type: array
+        cc:
+          items:
+            $ref: '#/components/schemas/EmailAddress'
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        from:
+          description: Sender address. Defaults to the inbox address at send time
+            when null.
+          nullable: true
+          type: string
+        from_name:
+          nullable: true
+          type: string
+        headers:
+          additionalProperties:
+            type: string
+          description: Custom headers. Reply drafts carry `In-Reply-To` and `References`.
+          type: object
+        html_body:
+          nullable: true
+          type: string
+        id:
+          format: uuid
+          type: string
+        inbox_id:
+          format: uuid
+          type: string
+        labels:
+          description: Mutable mailbox-state labels. Not propagated to Email Detail
+            Records.
+          items:
+            type: string
+          type: array
+        metadata:
+          description: Arbitrary customer-defined metadata.
+          type: object
+        record_type:
+          enum:
+          - email_draft
+          type: string
+        reply_to:
+          nullable: true
+          type: string
+        reply_to_message_id:
+          description: Inbound message this draft replies to. Server-owned; set only
+            on reply drafts.
+          format: uuid
+          nullable: true
+          type: string
+        sent_at:
+          format: date-time
+          nullable: true
+          type: string
+        sent_message_id:
+          description: The email message created when this draft was sent.
+          format: uuid
+          nullable: true
+          type: string
+        status:
+          description: '`draft` until the draft is sent. A sent draft is retained
+            for audit and
+
+            becomes immutable.
+
+            '
+          enum:
+          - draft
+          - sending
+          - sent
+          type: string
+        subject:
+          nullable: true
+          type: string
+        tags:
+          description: Transport/reporting attribution tags, propagated to Email Detail
+            Records at send time.
+          items:
+            type: string
+          type: array
+        text_body:
+          nullable: true
+          type: string
+        thread_id:
+          description: Conversation thread inherited from the parent message.
+          format: uuid
+          nullable: true
+          type: string
+        to:
+          items:
+            $ref: '#/components/schemas/EmailAddress'
+          type: array
+        updated_at:
+          format: date-time
+          type: string
+      required:
+      - record_type
+      - id
+      - inbox_id
+      - status
+      type: object
+    EmailDraftListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/EmailDraft'
+          type: array
+        meta:
+          $ref: '#/components/schemas/email_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    EmailDraftRequest:
+      description: "All fields are optional \u2014 a draft may be saved incomplete.\
+        \ `account_id`,\n`inbox_id`, `status`, `sent_at`, `sent_message_id`, `reply_to_message_id`\
+        \ and\n`thread_id` are server-owned and ignored if supplied.\n"
+      properties:
+        attachments:
+          items:
+            type: object
+          type: array
+        bcc:
+          items:
+            $ref: '#/components/schemas/EmailAddressInput'
+          type: array
+        cc:
+          items:
+            $ref: '#/components/schemas/EmailAddressInput'
+          type: array
+        from_email:
+          type: string
+        from_name:
+          type: string
+        headers:
+          additionalProperties:
+            type: string
+          type: object
+        html:
+          description: Alias for `html_body`, matching the send endpoint.
+          type: string
+        html_body:
+          type: string
+        labels:
+          items:
+            type: string
+          type: array
+        metadata:
+          type: object
+        reply_to:
+          type: string
+        subject:
+          maxLength: 255
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        text:
+          description: Alias for `text_body`, matching the send endpoint.
+          type: string
+        text_body:
+          type: string
+        to:
+          items:
+            $ref: '#/components/schemas/EmailAddressInput'
+          type: array
+      type: object
+    EmailDraftResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/EmailDraft'
+      required:
+      - data
+      type: object
     EmailEventCounts:
-      description: Event counts for the queried time range. Only the ten listed event
-        types are counted; other valid event types (scheduled, cancelled, sandbox,
-        sending, rejected) are not included in stats.
+      description: Recipient-level outcome counts for the queried time range. Each
+        to, cc, and bcc recipient counts separately; repeated events of the same type
+        for the same message and recipient count once. Partial MTA injection results
+        count successful recipients as sent and unsuccessful recipients as failed.
+        Only the ten listed event types are counted; other valid event types (scheduled,
+        cancelled, sandbox, sending, rejected) are not included in stats.
       properties:
         bounced:
           minimum: 0
@@ -28216,35 +28815,37 @@ components:
       - failed
       type: object
     EmailEventRates:
-      description: Event rates as percentages (0-100+), rounded to 2 decimal places.
+      description: Recipient-level event rates as percentages, rounded to 2 decimal
+        places.
       properties:
         bounce_rate:
-          description: bounced / queued as a percentage.
+          description: Bounced recipients / queued recipients as a percentage.
           format: float
           minimum: 0
           type: number
         click_rate:
-          description: clicked / opened as a percentage.
+          description: Recipients clicked / recipients opened as a percentage.
           format: float
           minimum: 0
           type: number
         complaint_rate:
-          description: complained / delivered as a percentage.
+          description: Recipients with a complaint feedback report / delivered recipients
+            as a percentage.
           format: float
           minimum: 0
           type: number
         deferred_rate:
-          description: deferred / queued as a percentage.
+          description: Deferred recipients / queued recipients as a percentage.
           format: float
           minimum: 0
           type: number
         delivery_rate:
-          description: delivered / queued as a percentage.
+          description: Delivered recipients / queued recipients as a percentage.
           format: float
           minimum: 0
           type: number
         open_rate:
-          description: opened / delivered as a percentage.
+          description: Recipients opened / recipients delivered as a percentage.
           format: float
           minimum: 0
           type: number
@@ -28298,6 +28899,7 @@ components:
       - opened
       - clicked
       - unsubscribed
+      - daily_limit_exceeded
       type: string
     EmailInbox:
       properties:
@@ -28387,6 +28989,9 @@ components:
           items:
             $ref: '#/components/schemas/EmailAddress'
           type: array
+        created_at:
+          format: date-time
+          type: string
         events:
           items:
             $ref: '#/components/schemas/MessageEvent'
@@ -28400,9 +29005,21 @@ components:
           description: Present when true in the immediate create response. Not persisted;
             absent on subsequent GET requests.
           type: boolean
-        inserted_at:
-          format: date-time
-          type: string
+        recipient_statuses:
+          additionalProperties:
+            type: integer
+          description: 'Per-status recipient counts for the message. Present only
+            for outbound messages
+
+            with recipient rows. Keys are recipient statuses, values are counts.
+
+            Example: `{"delivered": 998, "bounced": 2}`.
+
+            '
+          example:
+            bounced: 2
+            delivered: 998
+          type: object
         record_type:
           enum:
           - email_message
@@ -28413,32 +29030,15 @@ components:
         sandbox:
           description: Present when sandbox mode was used.
           type: boolean
-        send_at:
-          description: Present when a send_at value was stored. Persists even after
-            the scheduled send has been processed or cancelled.
+        scheduled_at:
+          description: Present when a scheduled_at value was stored. Persists even
+            after the scheduled send has been processed or cancelled.
           format: date-time
           type: string
         status:
           $ref: '#/components/schemas/EmailMessageStatus'
         subject:
           type: string
-        suppressed:
-          description: Present when one or more recipients were suppressed at send
-            time. Each entry lists the suppressed recipient, reason, scope, and whether
-            the block was overridable.
-          items:
-            properties:
-              override_allowed:
-                type: boolean
-              reason:
-                type: string
-              scope:
-                type: string
-              to:
-                format: email
-                type: string
-            type: object
-          type: array
         template_id:
           format: uuid
           nullable: true
@@ -28465,7 +29065,30 @@ components:
       - template_variables
       - attachments
       - events
-      - inserted_at
+      - created_at
+      type: object
+    EmailMessageDetail:
+      allOf:
+      - $ref: '#/components/schemas/EmailMessage'
+      - properties:
+          html_body:
+            description: HTML body submitted for the message.
+            nullable: true
+            type: string
+          text_body:
+            description: Plain-text body submitted for the message.
+            nullable: true
+            type: string
+        required:
+        - text_body
+        - html_body
+        type: object
+    EmailMessageDetailResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/EmailMessageDetail'
+      required:
+      - data
       type: object
     EmailMessageListResponse:
       properties:
@@ -28513,6 +29136,109 @@ components:
       - clicked
       - unsubscribed
       type: string
+    EmailRecipient:
+      properties:
+        address:
+          description: Recipient email address. Null for BCC recipients (redacted
+            for privacy).
+          format: email
+          nullable: true
+          type: string
+        billable:
+          description: Whether this recipient's delivery is billable (set on queue
+            acceptance).
+          type: boolean
+        delivered_at:
+          format: date-time
+          nullable: true
+          type: string
+        failed_at:
+          format: date-time
+          nullable: true
+          type: string
+        id:
+          description: Recipient UUID.
+          format: uuid
+          type: string
+        kind:
+          enum:
+          - to
+          - cc
+          - bcc
+          type: string
+        message_id:
+          description: Parent email message UUID.
+          format: uuid
+          type: string
+        record_type:
+          enum:
+          - email_recipient
+          type: string
+        sent_at:
+          format: date-time
+          nullable: true
+          type: string
+        smtp_code:
+          description: SMTP response code when available (e.g. 550 for bounces).
+          nullable: true
+          type: integer
+        smtp_response:
+          description: SMTP response message when available.
+          nullable: true
+          type: string
+        status:
+          description: Current per-recipient delivery status.
+          enum:
+          - queued
+          - sending
+          - sent
+          - deferred
+          - delivered
+          - bounced
+          - failed
+          - gw_reject
+          - cancelled
+          type: string
+      required:
+      - record_type
+      - id
+      - message_id
+      - address
+      - kind
+      - status
+      - billable
+      type: object
+    EmailRecipientListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/EmailRecipient'
+          type: array
+        meta:
+          properties:
+            page_cursor:
+              description: Cursor for the next page. Absent when there are no more
+                results.
+              nullable: true
+              type: string
+            page_size:
+              maximum: 100
+              minimum: 1
+              type: integer
+          required:
+          - page_size
+          type: object
+      required:
+      - data
+      - meta
+      type: object
+    EmailRecipientResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/EmailRecipient'
+      required:
+      - data
+      type: object
     EmailTemplate:
       properties:
         created_at:
@@ -28618,7 +29344,6 @@ components:
           minimum: 0
           type: integer
         webhook_url:
-          description: Omitted from the response entirely (not null) when unset.
           format: uri
           type: string
       required:
@@ -28653,7 +29378,6 @@ components:
             minimum: 0
             type: integer
           webhook_url:
-            description: Omitted from the response entirely (not null) when unset.
             format: uri
             type: string
         required:
@@ -29850,12 +30574,12 @@ components:
           - '10015'
           - '10016'
           - '10019'
-          - '10027'
-          - '10036'
-          - '404'
-          - '500'
           - recipient_suppressed
           - reputation_suspended
+          - '404'
+          - '500'
+          - '10027'
+          - '10036'
           type: string
         detail:
           description: Human-readable error detail. Changeset responses may return
@@ -34059,140 +34783,18 @@ components:
       title: Inbound Ip
       type: object
     InboundMessage:
-      properties:
-        attachments:
-          items:
-            additionalProperties: true
-            type: object
-          type: array
-        bcc:
-          items:
-            $ref: '#/components/schemas/InboundEmailAddress'
-          type: array
-        cc:
-          items:
-            $ref: '#/components/schemas/InboundEmailAddress'
-          type: array
-        created_at:
-          format: date-time
-          type: string
-        direction:
-          enum:
-          - inbound
-          type: string
-        from:
-          $ref: '#/components/schemas/InboundEmailAddress'
-        has_quoted_text:
-          description: Whether conservative plain-text extraction detected a quoted
-            tail. False does not prove that the source contains no quoted content.
-          type: boolean
-        headers:
-          additionalProperties: true
-          type: object
-        html_body_url:
-          description: URL for an offloaded HTML body. Null means the body is not
-            offloaded to a URL; an inline HTML body may still exist but is not returned
-            on list reads. `reply_text` and `has_quoted_text` are computed from the
-            inline plain-text body when present.
-          format: uri
-          nullable: true
-          type: string
-        id:
-          format: uuid
-          type: string
-        in_reply_to:
-          nullable: true
-          type: string
-        inbox_id:
-          format: uuid
-          type: string
-        inline_files:
-          items:
-            additionalProperties: true
-            type: object
-          type: array
-        message_id:
-          description: RFC Message-ID header.
-          type: string
-        read_at:
-          format: date-time
-          nullable: true
-          type: string
-        received_at:
-          format: date-time
-          type: string
-        record_type:
-          enum:
-          - email_message
-          type: string
-        references:
-          description: Ordered RFC Message-ID values from the References header.
-          items:
+      allOf:
+      - $ref: '#/components/schemas/ThreadMessage'
+      - properties:
+          direction:
+            enum:
+            - inbound
             type: string
-          type: array
-        reply_text:
-          description: Conservatively extracted new-reply content from the available
-            plain-text body. Null means no plain-text body was available because it
-            was absent or offloaded; HTML bodies are not parsed.
-          nullable: true
-          type: string
-        reply_to:
-          items:
-            $ref: '#/components/schemas/InboundEmailAddress'
-          type: array
-        status:
-          enum:
-          - received
-          type: string
-        subject:
-          nullable: true
-          type: string
-        text_body_url:
-          description: URL for an offloaded plain-text body. Null means the body is
-            not offloaded to a URL; an inline plain-text body may still exist but
-            is not returned on list reads. `reply_text` and `has_quoted_text` are
-            computed from the inline plain-text body when present.
-          format: uri
-          nullable: true
-          type: string
-        thread_id:
-          format: uuid
-          type: string
-        to:
-          items:
-            $ref: '#/components/schemas/InboundEmailAddress'
-          type: array
-        updated_at:
-          format: date-time
-          type: string
-      required:
-      - id
-      - record_type
-      - direction
-      - status
-      - inbox_id
-      - thread_id
-      - message_id
-      - in_reply_to
-      - references
-      - from
-      - to
-      - cc
-      - bcc
-      - reply_to
-      - subject
-      - text_body_url
-      - html_body_url
-      - reply_text
-      - has_quoted_text
-      - headers
-      - inline_files
-      - attachments
-      - read_at
-      - received_at
-      - created_at
-      - updated_at
-      type: object
+          status:
+            enum:
+            - received
+            type: string
+        type: object
     InboundMessageEvent:
       properties:
         data:
@@ -34526,6 +35128,13 @@ components:
           type:
           - string
           - 'null'
+    InboundMessageResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/InboundMessage'
+      required:
+      - data
+      type: object
     InboundSipHeader:
       example:
         name: Diversion
@@ -34558,6 +35167,15 @@ components:
         inbox_id:
           format: uuid
           type: string
+        labels:
+          description: Mutable thread labels used for agent workflow state. Independent
+            of the labels on the thread's messages, and distinct from the send-time
+            `tags` on outbound messages.
+          items:
+            maxLength: 255
+            type: string
+          maxItems: 50
+          type: array
         last_message_at:
           format: date-time
           type: string
@@ -34565,6 +35183,7 @@ components:
           format: uuid
           type: string
         message_count:
+          description: Total inbound and outbound messages in the thread.
           minimum: 1
           type: integer
         preview:
@@ -34579,6 +35198,8 @@ components:
           nullable: true
           type: string
         unread_count:
+          description: Unread inbound messages; outbound messages never increment
+            this count.
           minimum: 0
           type: integer
         updated_at:
@@ -34596,6 +35217,7 @@ components:
       - last_message_at
       - created_at
       - updated_at
+      - labels
       type: object
     InboundThreadDetail:
       allOf:
@@ -34603,7 +35225,7 @@ components:
       - properties:
           messages:
             items:
-              $ref: '#/components/schemas/InboundMessage'
+              $ref: '#/components/schemas/ThreadMessage'
             type: array
         required:
         - messages
@@ -34645,6 +35267,41 @@ components:
       - items:
           $ref: '#/components/schemas/InboxActionEmailAddressInput'
         type: array
+    InboxFilterEntry:
+      description: 'An exact sender address (`user@example.com`) or domain wildcard
+
+        (`@example.com`). Values are trimmed and normalized to lowercase.
+
+        '
+      example: '@example.com'
+      type: string
+    InboxFilterEntryList:
+      items:
+        $ref: '#/components/schemas/InboxFilterEntry'
+      maxItems: 500
+      type: array
+    InboxFilters:
+      properties:
+        allowlist:
+          $ref: '#/components/schemas/InboxFilterEntryList'
+        blocklist:
+          $ref: '#/components/schemas/InboxFilterEntryList'
+        record_type:
+          enum:
+          - email_inbox_filters
+          type: string
+      required:
+      - record_type
+      - allowlist
+      - blocklist
+      type: object
+    InboxFiltersResponse:
+      properties:
+        data:
+          $ref: '#/components/schemas/InboxFilters'
+      required:
+      - data
+      type: object
     InexplicitNumberOrderRequest:
       properties:
         billing_group_id:
@@ -36959,6 +37616,25 @@ components:
       - type
       - prompt
       title: LLMCondition
+      type: object
+    LabelMutationRequest:
+      description: Labels to add or remove. Both operations are idempotent set operations,
+        so a retried request converges instead of failing.
+      properties:
+        labels:
+          description: One or more labels. Each label is a freeform, case-sensitive
+            string of at most 255 characters; a message or thread may carry at most
+            50 labels. The `telnyx:` prefix is a reserved system namespace and is
+            rejected on customer writes.
+          items:
+            maxLength: 255
+            minLength: 1
+            type: string
+          maxItems: 50
+          minItems: 1
+          type: array
+      required:
+      - labels
       type: object
     LeaveConferenceRequest:
       example:
@@ -40047,6 +40723,20 @@ components:
           $ref: '#/components/schemas/SummaryAndTotal'
       required:
       - data
+      type: object
+    MutateInboxFiltersRequest:
+      properties:
+        entries:
+          $ref: '#/components/schemas/InboxFilterEntryList'
+        type:
+          description: The list to change.
+          enum:
+          - allowlist
+          - blocklist
+          type: string
+      required:
+      - type
+      - entries
       type: object
     Network:
       allOf:
@@ -50398,6 +51088,19 @@ components:
       required:
       - data
       type: object
+    ReplaceInboxFiltersRequest:
+      description: 'The complete filter configuration. An omitted list is replaced
+        with an
+
+        empty list. Unknown keys are ignored by the controller.
+
+        '
+      properties:
+        allowlist:
+          $ref: '#/components/schemas/InboxFilterEntryList'
+        blocklist:
+          $ref: '#/components/schemas/InboxFilterEntryList'
+      type: object
     ReplacedLinkClick:
       example:
         message_id: 7ee4241c-f127-47e5-9c34-3aac291f8058
@@ -58667,6 +59370,166 @@ components:
       - data
       title: TextClusteringResponseData
       type: object
+    ThreadMessage:
+      properties:
+        attachments:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        bcc:
+          items:
+            $ref: '#/components/schemas/InboundEmailAddress'
+          type: array
+        cc:
+          items:
+            $ref: '#/components/schemas/InboundEmailAddress'
+          type: array
+        created_at:
+          format: date-time
+          type: string
+        direction:
+          enum:
+          - inbound
+          - outbound
+          type: string
+        from:
+          $ref: '#/components/schemas/InboundEmailAddress'
+        has_quoted_text:
+          description: Whether conservative plain-text extraction detected a quoted
+            tail. False does not prove that the source contains no quoted content.
+          type: boolean
+        headers:
+          additionalProperties: true
+          type: object
+        html_body_url:
+          description: URL for an offloaded HTML body. Null means the body is not
+            offloaded to a URL; an inline HTML body may still exist but is not returned
+            on list reads. Reply extraction uses only the plain-text body during ingest.
+          format: uri
+          nullable: true
+          type: string
+        id:
+          format: uuid
+          type: string
+        in_reply_to:
+          nullable: true
+          type: string
+        inbox_id:
+          format: uuid
+          type: string
+        inline_files:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+        labels:
+          description: 'Mutable message labels used for agent workflow state (for
+            example `spam`, `needs_review`, `processed`). Distinct from the immutable
+            send-time `tags` on outbound messages: labels are never propagated to
+            Email Detail Records or Mission Control reporting. Always empty for outbound
+            messages. Labels on a message are independent of the labels on its thread.'
+          items:
+            maxLength: 255
+            type: string
+          maxItems: 50
+          type: array
+        message_id:
+          description: RFC Message-ID header. Null is possible for legacy outbound
+            messages.
+          nullable: true
+          type: string
+        read_at:
+          description: Time the inbound message was marked read. Null means unread.
+          format: date-time
+          nullable: true
+          type: string
+        received_at:
+          description: Receipt time for inbound messages; null for outbound messages.
+          format: date-time
+          nullable: true
+          type: string
+        record_type:
+          enum:
+          - email_message
+          type: string
+        references:
+          description: Ordered RFC Message-ID values from the References header.
+          items:
+            type: string
+          type: array
+        reply_text:
+          description: Conservatively extracted new-reply content persisted from the
+            plain-text body during ingest. Null means no plain-text extraction input
+            was available or extraction was skipped or failed; HTML bodies are not
+            parsed.
+          nullable: true
+          type: string
+        reply_to:
+          items:
+            $ref: '#/components/schemas/InboundEmailAddress'
+          type: array
+        sent_at:
+          description: Creation/send-acceptance time for outbound messages; null for
+            inbound messages.
+          format: date-time
+          nullable: true
+          type: string
+        status:
+          description: Received for inbound messages; the current send status for
+            outbound messages.
+          type: string
+        subject:
+          nullable: true
+          type: string
+        text_body_url:
+          description: URL for an offloaded plain-text body. Null means the body is
+            not offloaded to a URL; an inline plain-text body may still exist but
+            is not returned on list reads. `reply_text` and `has_quoted_text` are
+            persisted during ingest before any body offload.
+          format: uri
+          nullable: true
+          type: string
+        thread_id:
+          format: uuid
+          type: string
+        to:
+          items:
+            $ref: '#/components/schemas/InboundEmailAddress'
+          type: array
+        updated_at:
+          format: date-time
+          type: string
+      required:
+      - id
+      - record_type
+      - direction
+      - status
+      - inbox_id
+      - thread_id
+      - message_id
+      - in_reply_to
+      - references
+      - from
+      - to
+      - cc
+      - bcc
+      - reply_to
+      - subject
+      - text_body_url
+      - html_body_url
+      - reply_text
+      - has_quoted_text
+      - headers
+      - inline_files
+      - attachments
+      - labels
+      - read_at
+      - received_at
+      - sent_at
+      - created_at
+      - updated_at
+      type: object
     TimeRange:
       properties:
         from:
@@ -59115,21 +59978,14 @@ components:
       - grand_total
       type: object
     TrackingSettings:
+      description: Per-send open and click tracking overrides. Omitted properties
+        inherit the sender domain's tracking settings.
       properties:
         click_tracking:
-          default: false
-          description: Rewrite HTML links through a tracking redirect to record click
-            events.
+          description: Whether to rewrite links for click tracking in this message.
           type: boolean
         open_tracking:
-          default: false
-          description: Inject a tracking pixel into HTML messages to record open events.
-          type: boolean
-        unsubscribe_tracking:
-          default: true
-          description: Add RFC 8058 List-Unsubscribe headers with a signed one-click
-            unsubscribe URL. Enabled by default; Gmail/Yahoo bulk-sender rules require
-            one-click unsubscribe support.
+          description: Whether to inject an open-tracking pixel for this message.
           type: boolean
       type: object
     TrafficPolicyProfile:
@@ -62634,7 +63490,7 @@ components:
           description: Enable or disable inbound routing for this domain
           type: boolean
         tracking:
-          $ref: '#/components/schemas/TrackingSettings'
+          $ref: '#/components/schemas/DomainsTrackingSettings'
       type: object
     UpdateEmailTemplateRequest:
       properties:
@@ -62978,6 +63834,24 @@ components:
           - integer
           - 'null'
       title: Update FQDN Request
+      type: object
+    UpdateInboundMessageRequest:
+      properties:
+        read_at:
+          description: Set to `true` for server time, an ISO 8601 timestamp for an
+            explicit read time, or `null` to mark unread.
+          oneOf:
+          - enum:
+            - true
+            type: boolean
+          - format: date-time
+            type: string
+          - enum:
+            - null
+            nullable: true
+            type: string
+      required:
+      - read_at
       type: object
     UpdateIpConnectionRequest:
       example:
@@ -73113,8 +73987,9 @@ components:
   securitySchemes:
     BearerAuth:
       bearerFormat: API key
-      description: Telnyx API v2 key. Create keys in the Mission Control Portal under
-        Auth.
+      description: 'Telnyx API key supplied as `Authorization: Bearer <token>`. In
+        production, auth may be validated by the API gateway and forwarded via Telnyx
+        auth headers.'
       scheme: bearer
       type: http
     bearerAuth:
@@ -88158,7 +89033,6 @@ paths:
       summary: List suppressions
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
     post:
       description: 'Creates a suppression with `reason: manual_block` and `source:
@@ -88211,7 +89085,6 @@ paths:
       summary: Create a manual suppression
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
   /email_blocks/export:
     get:
@@ -88251,7 +89124,6 @@ paths:
       summary: Export suppressions as CSV
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
   /email_blocks/import:
     post:
@@ -88305,7 +89177,6 @@ paths:
       summary: Create an async CSV import job
       tags:
       - Email Suppression Imports
-      x-hidden: true
       x-latency-category: responsive
   /email_blocks/import/{id}:
     get:
@@ -88331,7 +89202,6 @@ paths:
       summary: Poll an import job
       tags:
       - Email Suppression Imports
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -88360,7 +89230,6 @@ paths:
       summary: Soft-delete a suppression
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
     get:
       operationId: showEmailBlock
@@ -88380,7 +89249,6 @@ paths:
       summary: Retrieve a suppression
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -88419,7 +89287,6 @@ paths:
       summary: List audit events for a suppression
       tags:
       - Email Suppressions
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -88492,7 +89359,6 @@ paths:
       summary: List email domains
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
     post:
       operationId: createEmailDomain
@@ -88523,7 +89389,6 @@ paths:
       summary: Create an email domain
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{domain_id}/dns_records:
     get:
@@ -88544,7 +89409,6 @@ paths:
       summary: List DNS records for an email domain
       tags:
       - Email Domain DNS Records
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{domain_id}/verify:
     post:
@@ -88574,7 +89438,6 @@ paths:
       summary: Verify DNS records for an email domain
       tags:
       - Email Domain DNS Records
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{domain_id}/webhooks:
     get:
@@ -88606,7 +89469,6 @@ paths:
       summary: List webhooks for an email domain
       tags:
       - Email Webhooks
-      x-hidden: true
       x-latency-category: responsive
     post:
       description: 'Creates a webhook endpoint subscribed to a specific allowlist
@@ -88645,7 +89507,6 @@ paths:
       summary: Create a webhook for an email domain
       tags:
       - Email Webhooks
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{domain_id}/webhooks/{id}:
     delete:
@@ -88667,7 +89528,6 @@ paths:
       summary: Delete a webhook
       tags:
       - Email Webhooks
-      x-hidden: true
       x-latency-category: responsive
     get:
       operationId: getEmailDomainWebhook
@@ -88688,7 +89548,6 @@ paths:
       summary: Retrieve a webhook
       tags:
       - Email Webhooks
-      x-hidden: true
       x-latency-category: responsive
     patch:
       description: "Update a webhook's URL and/or event subscription. A webhook is\
@@ -88724,7 +89583,6 @@ paths:
       summary: Update a webhook
       tags:
       - Email Webhooks
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{id}:
     delete:
@@ -88761,7 +89619,6 @@ paths:
       summary: Delete an email domain
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
     get:
       description: 'Shared (`type: shared`) Telnyx-managed domains are included/readable
@@ -88783,7 +89640,6 @@ paths:
       summary: Retrieve an email domain
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
     patch:
       operationId: updateEmailDomain
@@ -88822,7 +89678,6 @@ paths:
       summary: Update an email domain
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
   /email_domains/{id}/health:
     get:
@@ -88859,7 +89714,6 @@ paths:
       summary: Get domain health summary
       tags:
       - Email Domains
-      x-hidden: true
       x-latency-category: responsive
   /email_events:
     get:
@@ -88904,7 +89758,6 @@ paths:
       summary: List account email events
       tags:
       - Email Events
-      x-hidden: true
       x-latency-category: responsive
   /email_events/stats:
     get:
@@ -88926,7 +89779,6 @@ paths:
       summary: Get email event statistics
       tags:
       - Email Events
-      x-hidden: true
       x-latency-category: responsive
   /email_inboxes:
     get:
@@ -88965,7 +89817,7 @@ paths:
                   status: active
                   updated_at: '2026-07-12T00:00:00Z'
                 meta:
-                  page_cursor: Y3Vyc29yOmFmdGVyOjQy
+                  page_cursor: MjAyNi0wNy0xMlQwMCUzQTAwJTNBMDBafDExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTExMQ
                   page_size: 20
               schema:
                 $ref: '#/components/schemas/EmailInboxListResponse'
@@ -89000,7 +89852,6 @@ paths:
       summary: List email inboxes
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
     post:
       description: 'Creates an inbox on an inbound-enabled domain. When `domain_id`
@@ -89069,7 +89920,6 @@ paths:
       summary: Create an email inbox
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
   /email_inboxes/{id}:
     delete:
@@ -89106,7 +89956,6 @@ paths:
       summary: Delete an email inbox
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
     get:
       description: Returns an account-scoped, non-deleted inbox. Missing and foreign
@@ -89156,7 +90005,436 @@ paths:
       summary: Get an email inbox
       tags:
       - Email Inboxes
-      x-hidden: true
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/drafts:
+    get:
+      description: 'Lists drafts newest first using stable cursor pagination. All
+        access is scoped
+
+        to the authenticated account and the given inbox.
+
+        '
+      operationId: ListEmailDrafts
+      parameters:
+      - description: Email inbox UUID.
+        in: path
+        name: inbox_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Restrict results to drafts in this state.
+        in: query
+        name: filter[status]
+        required: false
+        schema:
+          enum:
+          - draft
+          - sending
+          - sent
+          type: string
+      - description: Number of results to return. Defaults to 25; maximum is 100.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 25
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Opaque cursor returned by the previous page.
+        in: query
+        name: page[after]
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftListResponse'
+          description: Paginated drafts.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: List drafts in an inbox
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+    post:
+      description: "Creates an unsent draft in the inbox. Every field is optional\
+        \ \u2014 a draft is a\nwork-in-progress and may be saved incomplete. Send-time\
+        \ requirements (sender,\nsubject, at least one recipient) are enforced when\
+        \ the draft is sent, not when\nit is created.\n\nDrafts are unbillable and\
+        \ emit no Email Detail Records until they are sent.\n"
+      operationId: CreateEmailDraft
+      parameters:
+      - description: Email inbox UUID.
+        in: path
+        name: inbox_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              labels:
+              - important
+              subject: Quarterly update
+              text_body: Here is the update.
+              to:
+              - email: recipient@example.com
+                name: Recipient
+            schema:
+              $ref: '#/components/schemas/EmailDraftRequest'
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftResponse'
+          description: The created draft.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Create a draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/drafts/{draft_id}:
+    delete:
+      description: 'Permanently deletes an unsent draft. Drafts that are being sent
+        or have been sent
+
+        cannot be deleted; sent drafts are retained for audit.
+
+        '
+      operationId: DeleteEmailDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - $ref: '#/components/parameters/DraftId'
+      responses:
+        '204':
+          description: The draft was deleted.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The draft is being sent or has already been sent and is retained
+            for audit.
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Delete a draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+    get:
+      description: 'Returns a single draft. Drafts that have been sent remain retrievable,
+        so the
+
+        exact content that was sent stays auditable.
+
+        '
+      operationId: GetEmailDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - $ref: '#/components/parameters/DraftId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftResponse'
+          description: The requested draft.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Retrieve a draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+    patch:
+      description: Identical to `PUT`; both apply a partial update to the supplied
+        fields.
+      operationId: PatchEmailDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - $ref: '#/components/parameters/DraftId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailDraftRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftResponse'
+          description: The updated draft.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Update a draft (alias)
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+    put:
+      description: "Updates the supplied fields on a draft. `account_id` and `inbox_id`\
+        \ are\nserver-owned and ignored if present in the body, so a draft can never\
+        \ be moved\nbetween accounts or inboxes.\n\nA draft that is being sent or\
+        \ has already been sent is immutable and returns\n422 \u2014 modifying it\
+        \ would race with delivery or rewrite the record of what was\nactually sent.\n"
+      operationId: UpdateEmailDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - $ref: '#/components/parameters/DraftId'
+      requestBody:
+        content:
+          application/json:
+            example:
+              subject: Quarterly update (revised)
+              text_body: Updated body.
+            schema:
+              $ref: '#/components/schemas/EmailDraftRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftResponse'
+          description: The updated draft.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Update a draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/drafts/{draft_id}/send:
+    post:
+      description: "Sends the draft through the standard send pipeline \u2014 the\
+        \ same domain resolution,\nsuppression, reputation, daily-quota, persistence\
+        \ and Detail Record behaviour as\n`POST /v2/email_messages`. The response\
+        \ body is the created email message.\n\nIf the draft has no explicit `from_email`,\
+        \ the inbox address is used.\n\nThe draft is marked `sent` only after the\
+        \ send is accepted; a send rejected for\nsuppression, quota or reputation\
+        \ leaves the draft editable so it can be fixed and\nretried. A draft that\
+        \ is already `sent` returns 422 rather than sending twice.\n"
+      operationId: SendEmailDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - $ref: '#/components/parameters/DraftId'
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessageResponse'
+          description: The draft was accepted for delivery. Returns the created email
+            message.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The draft is missing fields required to send (sender, subject,
+            or recipients).
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The sender domain is not permitted to send.
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10015'
+                  detail: this draft has already been sent
+                  source:
+                    pointer: /data/attributes/status
+                  title: Validation Failed
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The draft has already been sent, or failed send-time validation.
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: The account's daily send limit was exceeded.
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Send a draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/filters:
+    delete:
+      description: 'Removes entries from either the allowlist or blocklist. The operation
+        is
+
+        idempotent: removing an entry that is not present still returns the current
+
+        filter lists.
+
+        '
+      operationId: RemoveEmailInboxFilterEntries
+      requestBody:
+        content:
+          application/json:
+            example:
+              entries:
+              - former-partner@example.com
+              type: allowlist
+            schema:
+              $ref: '#/components/schemas/MutateInboxFiltersRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboxFiltersResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
+      summary: Remove sender filter entries from an inbox
+      tags:
+      - Email Inboxes
+      x-latency-category: responsive
+    get:
+      description: 'Returns the inbox''s sender allowlist and blocklist. Entries are
+        normalized
+
+        to lowercase. A blocklist match takes precedence over an allowlist match;
+
+        when both lists are empty, all senders are accepted.
+
+        '
+      operationId: ListEmailInboxFilters
+      responses:
+        '200':
+          $ref: '#/components/responses/InboxFiltersResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
+      summary: List sender filters for an inbox
+      tags:
+      - Email Inboxes
+      x-latency-category: responsive
+    parameters:
+    - $ref: '#/components/parameters/InboxIdPathParam'
+    post:
+      description: 'Adds entries to either the allowlist or blocklist. The operation
+        is an
+
+        idempotent set union: entries already present remain unchanged.
+
+        '
+      operationId: AddEmailInboxFilterEntries
+      requestBody:
+        content:
+          application/json:
+            example:
+              entries:
+              - '@spam.example'
+              type: blocklist
+            schema:
+              $ref: '#/components/schemas/MutateInboxFiltersRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboxFiltersResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
+      summary: Add sender filter entries to an inbox
+      tags:
+      - Email Inboxes
+      x-latency-category: responsive
+    put:
+      description: 'Replaces both sender filter lists atomically. Omitting either
+        list clears
+
+        that list. Use `POST` or `DELETE` for incremental changes.
+
+        '
+      operationId: ReplaceEmailInboxFilters
+      requestBody:
+        content:
+          application/json:
+            example:
+              allowlist:
+              - trusted@example.com
+              - '@partner.example'
+              blocklist:
+              - '@spam.example'
+            schema:
+              $ref: '#/components/schemas/ReplaceInboxFiltersRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboxFiltersResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
+      summary: Replace sender filters for an inbox
+      tags:
+      - Email Inboxes
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/messages:
     get:
@@ -89209,6 +90487,22 @@ paths:
         required: false
         schema:
           type: boolean
+      - description: Whether the message has no read timestamp. Set to `true` to return
+          only unread messages.
+        in: query
+        name: filter[unread]
+        required: false
+        schema:
+          type: boolean
+      - description: Returns only messages carrying this label. Matching is exact
+          and case-sensitive. Reserved `telnyx:` labels can be filtered on even though
+          they cannot be written by customers.
+        in: query
+        name: filter[label]
+        required: false
+        schema:
+          maxLength: 255
+          type: string
       - description: Full-text query over subject and body, up to 500 characters.
         in: query
         name: filter[search]
@@ -89252,6 +90546,7 @@ paths:
                   in_reply_to: <earlier@example.com>
                   inbox_id: 11111111-1111-1111-1111-111111111111
                   inline_files: []
+                  labels: []
                   message_id: <message@example.com>
                   read_at: null
                   received_at: '2026-07-15T12:30:00Z'
@@ -89260,6 +90555,7 @@ paths:
                   - <earlier@example.com>
                   reply_text: Thanks, I will send it today.
                   reply_to: []
+                  sent_at: null
                   status: received
                   subject: Project update
                   text_body_url: null
@@ -89268,7 +90564,7 @@ paths:
                   - email: agent@inbox.example.test
                   updated_at: '2026-07-15T12:30:00Z'
                 meta:
-                  page_cursor: Y3Vyc29yOmFmdGVyOjQy
+                  page_cursor: MjAyNi0wNy0xNVQxMjozMDowMFp8NTU1NTU1NTUtNTU1NS01NTU1LTU1NTUtNTU1NTU1NTU1NTU1
                   page_size: 25
               schema:
                 $ref: '#/components/schemas/InboundMessageListResponse'
@@ -89294,7 +90590,71 @@ paths:
       summary: List and search messages in an inbox
       tags:
       - Email Inboxes
-      x-hidden: true
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/messages/{message_id}:
+    patch:
+      description: 'Updates the explicit read state of an account-scoped inbound message.
+        Set `read_at`
+
+        to `true` to mark the message read at the server''s current time, to an ISO
+        8601
+
+        timestamp to use that timestamp, or to `null` to mark the message unread.
+        Repeating
+
+        the same update is idempotent.
+
+        '
+      operationId: UpdateEmailInboxMessage
+      parameters:
+      - description: Email inbox UUID.
+        in: path
+        name: inbox_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Inbound email message UUID.
+        in: path
+        name: message_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            examples:
+              explicitTimestamp:
+                value:
+                  read_at: '2026-07-23T12:34:56Z'
+              markRead:
+                value:
+                  read_at: true
+              markUnread:
+                value:
+                  read_at: null
+            schema:
+              $ref: '#/components/schemas/UpdateInboundMessageRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboundMessageResponse'
+          description: Updated inbox message.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/email_ServiceUnavailableResponse'
+      summary: Update an inbox message
+      tags:
+      - Email Inboxes
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/messages/{message_id}/actions/forward:
     post:
@@ -89360,11 +90720,11 @@ paths:
                   - email: blind@example.com
                   cc:
                   - email: copy@example.com
+                  created_at: '2026-07-15T12:35:00Z'
                   events: []
                   from:
                     email: agent@inbox.example.test
                   id: 44444444-4444-4444-4444-444444444444
-                  inserted_at: '2026-07-15T12:35:00Z'
                   record_type: email_message
                   reply_to: null
                   status: queued
@@ -89466,7 +90826,6 @@ paths:
       summary: Forward an inbox message
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/messages/{message_id}/actions/reply:
     post:
@@ -89526,11 +90885,11 @@ paths:
                   attachments: []
                   bcc: []
                   cc: []
+                  created_at: '2026-07-15T12:35:00Z'
                   events: []
                   from:
                     email: agent@inbox.example.test
                   id: 44444444-4444-4444-4444-444444444444
-                  inserted_at: '2026-07-15T12:35:00Z'
                   record_type: email_message
                   reply_to: null
                   status: queued
@@ -89619,7 +90978,6 @@ paths:
       summary: Reply to an inbox message
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/messages/{message_id}/actions/reply_all:
     post:
@@ -89685,11 +91043,11 @@ paths:
                   attachments: []
                   bcc: []
                   cc: []
+                  created_at: '2026-07-15T12:35:00Z'
                   events: []
                   from:
                     email: agent@inbox.example.test
                   id: 44444444-4444-4444-4444-444444444444
-                  inserted_at: '2026-07-15T12:35:00Z'
                   record_type: email_message
                   reply_to: null
                   status: queued
@@ -89785,7 +91143,139 @@ paths:
       summary: Reply all to an inbox message
       tags:
       - Email Inboxes
-      x-hidden: true
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/messages/{message_id}/drafts:
+    post:
+      description: 'Creates an unsent reply draft for an inbound message. Unlike the
+
+        `/actions/reply` endpoint, which sends immediately, this stores a draft that
+        can
+
+        be reviewed and edited before sending.
+
+
+        `reply_to_message_id` and `thread_id` are inherited from the parent message
+        and
+
+        cannot be set by the caller. The recipient, `Re:` subject and
+
+        `In-Reply-To`/`References` headers are pre-filled from the parent using the
+        same
+
+        rules as a live reply, so sending the draft threads identically. Supplying
+        `to`
+
+        or `subject` explicitly overrides the pre-filled value.
+
+        '
+      operationId: CreateEmailReplyDraft
+      parameters:
+      - $ref: '#/components/parameters/DraftInboxId'
+      - description: Inbound message UUID to reply to.
+        in: path
+        name: message_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      requestBody:
+        content:
+          application/json:
+            example:
+              text_body: "Thanks for the update \u2014 I will review today."
+            schema:
+              $ref: '#/components/schemas/EmailDraftRequest'
+        required: false
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDraftResponse'
+          description: The created reply draft.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/DraftUnavailableResponse'
+      summary: Create a reply draft
+      tags:
+      - Email Drafts
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/messages/{message_id}/labels:
+    delete:
+      description: "Removes one or more labels from a message. Idempotent \u2014 removing\
+        \ a\nlabel the message does not carry is a no-op and still returns 200.\n\
+        Removal is case-sensitive.\n"
+      operationId: RemoveEmailInboxMessageLabels
+      parameters:
+      - $ref: '#/components/parameters/InboxIdPathParam'
+      - $ref: '#/components/parameters/MessageIdPathParam'
+      requestBody:
+        content:
+          application/json:
+            example:
+              labels:
+              - spam
+            schema:
+              $ref: '#/components/schemas/LabelMutationRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboundMessageLabelResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/LabelServiceUnavailableResponse'
+      summary: Remove labels from an inbox message
+      tags:
+      - Email Inboxes
+      x-latency-category: responsive
+    post:
+      description: "Adds one or more mutable labels to a message. Labels carry agent\n\
+        workflow state such as `spam`, `needs_review`, or `processed`.\n\nLabels are\
+        \ **not** the same as the send-time `tags` on outbound\nmessages: `tags` are\
+        \ immutable and propagate to Email Detail Records\nand Mission Control for\
+        \ billing attribution, while labels are mailbox\nstate that never reaches\
+        \ the reporting contract.\n\nThe operation is an idempotent set union \u2014\
+        \ adding a label the message\nalready carries is a no-op and still returns\
+        \ 200. Labels are\ncase-sensitive, and message labels are independent of thread\
+        \ labels.\n"
+      operationId: AddEmailInboxMessageLabels
+      parameters:
+      - $ref: '#/components/parameters/InboxIdPathParam'
+      - $ref: '#/components/parameters/MessageIdPathParam'
+      requestBody:
+        content:
+          application/json:
+            example:
+              labels:
+              - spam
+              - urgent
+            schema:
+              $ref: '#/components/schemas/LabelMutationRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboundMessageLabelResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/LabelServiceUnavailableResponse'
+      summary: Add labels to an inbox message
+      tags:
+      - Email Inboxes
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/threads:
     get:
@@ -89814,6 +91304,14 @@ paths:
         required: false
         schema:
           type: string
+      - description: Returns only threads carrying this label. Thread labels are independent
+          of the labels on the thread's messages.
+        in: query
+        name: filter[label]
+        required: false
+        schema:
+          maxLength: 255
+          type: string
       responses:
         '200':
           content:
@@ -89823,6 +91321,8 @@ paths:
                 - created_at: '2026-07-14T10:00:00Z'
                   id: 33333333-3333-3333-3333-333333333333
                   inbox_id: 11111111-1111-1111-1111-111111111111
+                  labels:
+                  - needs_review
                   last_message_at: '2026-07-15T12:30:00Z'
                   last_message_id: 55555555-5555-5555-5555-555555555555
                   message_count: 2
@@ -89832,7 +91332,7 @@ paths:
                   unread_count: 1
                   updated_at: '2026-07-15T12:30:00Z'
                 meta:
-                  page_cursor: Y3Vyc29yOmFmdGVyOjQy
+                  page_cursor: MjAyNi0wNy0xNVQxMjozMDowMFp8MzMzMzMzMzMtMzMzMy0zMzMzLTMzMzMtMzMzMzMzMzMzMzMz
                   page_size: 25
               schema:
                 $ref: '#/components/schemas/InboundThreadListResponse'
@@ -89858,12 +91358,11 @@ paths:
       summary: List threads in an inbox
       tags:
       - Email Inboxes
-      x-hidden: true
       x-latency-category: responsive
   /email_inboxes/{inbox_id}/threads/{thread_id}:
     get:
-      description: Returns a bounded page of thread messages in chronological order
-        using stable cursor pagination.
+      description: Returns a bounded page of inbound and outbound thread messages
+        interleaved in chronological order using stable cursor pagination.
       operationId: GetEmailInboxThread
       parameters:
       - description: Email inbox UUID.
@@ -89906,6 +91405,8 @@ paths:
                   created_at: '2026-07-14T10:00:00Z'
                   id: 33333333-3333-3333-3333-333333333333
                   inbox_id: 11111111-1111-1111-1111-111111111111
+                  labels:
+                  - needs_review
                   last_message_at: '2026-07-15T12:30:00Z'
                   last_message_id: 55555555-5555-5555-5555-555555555555
                   message_count: 2
@@ -89925,6 +91426,7 @@ paths:
                     in_reply_to: <earlier@example.com>
                     inbox_id: 11111111-1111-1111-1111-111111111111
                     inline_files: []
+                    labels: []
                     message_id: <message@example.com>
                     read_at: null
                     received_at: '2026-07-15T12:30:00Z'
@@ -89933,6 +91435,7 @@ paths:
                     - <earlier@example.com>
                     reply_text: Thanks, I will send it today.
                     reply_to: []
+                    sent_at: null
                     status: received
                     subject: Project update
                     text_body_url: null
@@ -89946,7 +91449,7 @@ paths:
                   unread_count: 1
                   updated_at: '2026-07-15T12:30:00Z'
                 meta:
-                  page_cursor: Y3Vyc29yOmFmdGVyOjQy
+                  page_cursor: MjAyNi0wNy0xNVQxMjozMDowMFp8NTU1NTU1NTUtNTU1NS01NTU1LTU1NTUtNTU1NTU1NTU1NTU1
                   page_size: 25
               schema:
                 properties:
@@ -89980,11 +91483,124 @@ paths:
       summary: Get a thread and a page of its messages
       tags:
       - Email Inboxes
-      x-hidden: true
+      x-latency-category: responsive
+  /email_inboxes/{inbox_id}/threads/{thread_id}/labels:
+    delete:
+      description: "Removes one or more labels from a thread. Idempotent \u2014 removing\
+        \ a label\nthe thread does not carry is a no-op and still returns 200.\n"
+      operationId: RemoveEmailInboxThreadLabels
+      parameters:
+      - $ref: '#/components/parameters/InboxIdPathParam'
+      - $ref: '#/components/parameters/ThreadIdPathParam'
+      requestBody:
+        content:
+          application/json:
+            example:
+              labels:
+              - needs_review
+            schema:
+              $ref: '#/components/schemas/LabelMutationRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboundThreadLabelResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/LabelServiceUnavailableResponse'
+      summary: Remove labels from an inbox thread
+      tags:
+      - Email Inboxes
+      x-latency-category: responsive
+    post:
+      description: 'Adds one or more mutable labels to a thread, letting an agent
+        mark a
+
+        whole conversation (for example `needs_review`) without labelling each
+
+        message individually.
+
+
+        Thread labels are independent of message labels: labelling a thread
+
+        does not label its messages, and labelling a message does not label its
+
+        thread. Idempotent and case-sensitive.
+
+        '
+      operationId: AddEmailInboxThreadLabels
+      parameters:
+      - $ref: '#/components/parameters/InboxIdPathParam'
+      - $ref: '#/components/parameters/ThreadIdPathParam'
+      requestBody:
+        content:
+          application/json:
+            example:
+              labels:
+              - needs_review
+            schema:
+              $ref: '#/components/schemas/LabelMutationRequest'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/InboundThreadLabelResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          $ref: '#/components/responses/LabelServiceUnavailableResponse'
+      summary: Add labels to an inbox thread
+      tags:
+      - Email Inboxes
       x-latency-category: responsive
   /email_messages:
+    delete:
+      description: 'Permanently deletes every email in the authenticated account sent
+        from or to the
+
+        supplied address, including retained events whose parent message has expired.
+
+        Events and durable recipients are deleted immediately with each message. The
+
+        operation never searches or reports matches in another account. The legacy
+
+        `/v2/emails` DELETE route is a backward-compatible alias.
+
+        '
+      operationId: DeleteEmailMessagesByAddress
+      parameters:
+      - description: Sender or recipient address to delete. Matching is trimmed and
+          case-insensitive.
+        in: query
+        name: address
+        required: true
+        schema:
+          format: email
+          type: string
+      responses:
+        '204':
+          description: Matching account-scoped email data deleted successfully.
+        '400':
+          $ref: '#/components/responses/email_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/email_InternalServerErrorResponse'
+      summary: Delete email messages by address
+      tags:
+      - Email Messages
+      x-latency-category: responsive
     get:
-      description: 'Lists messages sorted newest first by `inserted_at desc, id desc`.
+      description: 'Lists messages sorted newest first by `created_at desc, id desc`.
         No filters other than
 
         cursor pagination are implemented. The legacy `/v2/emails` GET route is a
@@ -90009,7 +91625,6 @@ paths:
       summary: List email messages
       tags:
       - Email Messages
-      x-hidden: true
       x-latency-category: responsive
     post:
       description: 'Queues, schedules, or sandbox-sends an email message. The legacy
@@ -90128,7 +91743,6 @@ paths:
       summary: Create or send an email message
       tags:
       - Email Messages
-      x-hidden: true
       x-latency-category: responsive
   /email_messages/batch:
     post:
@@ -90211,7 +91825,6 @@ paths:
       summary: Create a batch of email messages
       tags:
       - Email Messages
-      x-hidden: true
       x-latency-category: responsive
   /email_messages/{email_id}/events:
     get:
@@ -90246,7 +91859,111 @@ paths:
       summary: List events for an email message
       tags:
       - Email Messages
-      x-hidden: true
+      x-latency-category: responsive
+  /email_messages/{email_id}/recipients:
+    get:
+      description: 'Lists per-recipient delivery states for a single message with
+        cursor pagination.
+
+        Each recipient has an independent status, billable flag, and lifecycle timestamps.
+
+        BCC recipient addresses are redacted (returned as null) to protect BCC privacy.
+
+        Default page size is 25, maximum is 100.
+
+        '
+      operationId: ListEmailMessageRecipients
+      parameters:
+      - description: Email message UUID.
+        in: path
+        name: email_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - $ref: '#/components/parameters/email_PageSize'
+      - $ref: '#/components/parameters/PageCursor'
+      - description: Filter recipients by status.
+        in: query
+        name: status
+        required: false
+        schema:
+          enum:
+          - queued
+          - sending
+          - sent
+          - deferred
+          - delivered
+          - bounced
+          - failed
+          - gw_reject
+          - cancelled
+          type: string
+      - description: Filter recipients by address kind.
+        in: query
+        name: kind
+        required: false
+        schema:
+          enum:
+          - to
+          - cc
+          - bcc
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailRecipientListResponse'
+          description: Paginated list of recipients.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+      summary: List recipients for an email message
+      tags:
+      - Email Messages
+      x-latency-category: responsive
+  /email_messages/{email_id}/recipients/{recipient_id}:
+    get:
+      description: 'Returns the current delivery state of a single recipient, including
+        status,
+
+        billable flag, SMTP detail, and lifecycle timestamps.
+
+        BCC recipient addresses are redacted (returned as null).
+
+        '
+      operationId: GetEmailMessageRecipient
+      parameters:
+      - description: Email message UUID.
+        in: path
+        name: email_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Recipient UUID.
+        in: path
+        name: recipient_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailRecipientResponse'
+          description: Recipient delivery state.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+      summary: Get a single recipient's delivery state
+      tags:
+      - Email Messages
       x-latency-category: responsive
   /email_messages/{email_id}/schedule:
     delete:
@@ -90277,9 +91994,38 @@ paths:
       summary: Cancel a scheduled email message
       tags:
       - Email Messages
-      x-hidden: true
       x-latency-category: responsive
   /email_messages/{id}:
+    delete:
+      description: 'Permanently deletes an account-scoped email message, its events,
+        its durable
+
+        recipients, and unshared attachment objects. Returns 404 when the message
+        does
+
+        not exist in the authenticated account. The legacy `/v2/emails/{id}` DELETE
+
+        route is a backward-compatible alias.
+
+        '
+      operationId: DeleteEmailMessage
+      parameters:
+      - $ref: '#/components/parameters/EmailMessageId'
+      responses:
+        '204':
+          description: Email data deleted successfully.
+        '400':
+          $ref: '#/components/responses/email_BadRequestResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '500':
+          $ref: '#/components/responses/email_InternalServerErrorResponse'
+      summary: Delete an email message
+      tags:
+      - Email Messages
+      x-latency-category: responsive
     get:
       description: The legacy `/v2/emails/{id}` GET route is a backward-compatible
         alias for this operation.
@@ -90291,8 +92037,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmailMessageResponse'
-          description: Email message details.
+                $ref: '#/components/schemas/EmailMessageDetailResponse'
+          description: Email message details, including plain-text and HTML bodies.
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
         '404':
@@ -90300,11 +92046,10 @@ paths:
       summary: Get an email message
       tags:
       - Email Messages
-      x-hidden: true
       x-latency-category: responsive
   /email_templates:
     get:
-      description: Lists templates sorted newest first by `inserted_at desc, id desc`.
+      description: Lists templates sorted newest first by `created_at desc, id desc`.
       operationId: ListEmailTemplates
       parameters:
       - $ref: '#/components/parameters/email_PageSize'
@@ -90321,7 +92066,6 @@ paths:
       summary: List email templates
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
     post:
       description: Creates a Liquid email template. Variables are auto-extracted when
@@ -90388,7 +92132,6 @@ paths:
       summary: Create an email template
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
   /email_templates/{id}:
     delete:
@@ -90407,7 +92150,6 @@ paths:
       summary: Delete an email template
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
     get:
       operationId: GetEmailTemplate
@@ -90427,7 +92169,6 @@ paths:
       summary: Get an email template
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
     patch:
       description: Updates one or more template fields.
@@ -90456,7 +92197,6 @@ paths:
       summary: Update an email template
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
     put:
       description: Replaces template fields. Behaves identically to PATCH; provided
@@ -90486,7 +92226,6 @@ paths:
       summary: Replace an email template
       tags:
       - Email Templates
-      x-hidden: true
       x-latency-category: responsive
   /email_templates/{id}/render:
     post:
@@ -90520,7 +92259,264 @@ paths:
       summary: Render an email template
       tags:
       - Email Templates
-      x-hidden: true
+      x-latency-category: responsive
+  /email_threads:
+    get:
+      description: 'Lists thread summaries for the whole account, newest first, using
+        stable
+
+        cursor pagination. An agent operating many inboxes gets every
+
+        conversation in one call instead of one call per inbox. Each thread
+
+        carries its own `inbox_id` so a reply can be routed back to the right
+
+        inbox. Use `filter[inbox_id]` (repeatable) to narrow the result to
+
+        specific inboxes. Because a thread ID can be delivered to multiple
+
+        inboxes, each result is identified by its `(inbox_id, id)` pair.
+
+        '
+      operationId: ListEmailThreads
+      parameters:
+      - description: 'Restrict results to one or more inboxes. Repeat the parameter
+
+          (`filter[inbox_id][]=...&filter[inbox_id][]=...`) or pass a
+
+          comma-separated list. Omit to list every inbox in the account.
+
+          Inboxes outside the account are silently excluded. If the filter
+
+          is present, it must contain at least one non-empty UUID.
+
+          '
+        explode: true
+        in: query
+        name: filter[inbox_id]
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+          minItems: 1
+          type: array
+      - description: Number of results to return. Defaults to 25; maximum is 100.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 25
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Opaque cursor returned by the previous page.
+        in: query
+        name: page[after]
+        required: false
+        schema:
+          type: string
+      - description: Returns only threads carrying this label. Matching is exact and
+          case-sensitive. Thread labels are independent of the labels on the thread's
+          messages.
+        in: query
+        name: filter[label]
+        required: false
+        schema:
+          maxLength: 255
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                - created_at: '2026-07-14T10:00:00Z'
+                  id: 33333333-3333-3333-3333-333333333333
+                  inbox_id: 11111111-1111-1111-1111-111111111111
+                  labels:
+                  - needs_review
+                  last_message_at: '2026-07-15T12:30:00Z'
+                  last_message_id: 55555555-5555-5555-5555-555555555555
+                  message_count: 2
+                  preview: null
+                  record_type: email_thread
+                  subject: Project update
+                  unread_count: 1
+                  updated_at: '2026-07-15T12:30:00Z'
+                - created_at: '2026-07-15T09:00:00Z'
+                  id: 44444444-4444-4444-4444-444444444444
+                  inbox_id: 22222222-2222-2222-2222-222222222222
+                  labels: []
+                  last_message_at: '2026-07-15T09:00:00Z'
+                  last_message_id: 66666666-6666-6666-6666-666666666666
+                  message_count: 1
+                  preview: null
+                  record_type: email_thread
+                  subject: Support request
+                  unread_count: 0
+                  updated_at: '2026-07-15T09:00:00Z'
+                meta:
+                  page_cursor: MjAyNi0wNy0xNVQxMjozMDowMFp8MzMzMzMzMzMtMzMzMy0zMzMzLTMzMzMtMzMzMzMzMzMzMzMz
+                  page_size: 25
+              schema:
+                $ref: '#/components/schemas/InboundThreadListResponse'
+          description: Paginated account-wide threads.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10016'
+                  detail: Email threads are temporarily unavailable. Please try again
+                    later.
+                  title: Service Unavailable
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Inbound thread storage is temporarily unavailable.
+      summary: List threads across every inbox in the account
+      tags:
+      - Email Threads
+      x-latency-category: responsive
+  /email_threads/{thread_id}:
+    get:
+      description: 'Returns a thread and a bounded page of its inbound and outbound
+        messages,
+
+        interleaved in chronological order. The `inbox_id` returned by the list
+
+        endpoint is required because a thread ID can occur in multiple inboxes.
+
+        Only messages matching that `(inbox_id, thread_id)` pair are returned. Threads
+        outside the account
+
+        return an opaque 404.
+
+        '
+      operationId: GetEmailThread
+      parameters:
+      - description: Email thread UUID.
+        in: path
+        name: thread_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Inbox UUID that, together with `thread_id`, identifies the thread.
+        in: query
+        name: inbox_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+      - description: Number of thread messages to return. Defaults to 25; maximum
+          is 100.
+        in: query
+        name: page[size]
+        required: false
+        schema:
+          default: 25
+          maximum: 100
+          minimum: 1
+          type: integer
+      - description: Opaque message cursor returned by the previous thread-detail
+          page.
+        in: query
+        name: page[after]
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              example:
+                data:
+                  created_at: '2026-07-15T12:30:00Z'
+                  id: 33333333-3333-3333-3333-333333333333
+                  inbox_id: 11111111-1111-1111-1111-111111111111
+                  labels:
+                  - needs_review
+                  last_message_at: '2026-07-15T12:30:00Z'
+                  last_message_id: 55555555-5555-5555-5555-555555555555
+                  message_count: 1
+                  messages:
+                  - attachments: []
+                    bcc: []
+                    cc: []
+                    created_at: '2026-07-15T12:30:00Z'
+                    direction: inbound
+                    from:
+                      email: alice@example.com
+                      name: Alice
+                    has_quoted_text: true
+                    headers: {}
+                    html_body_url: null
+                    id: 55555555-5555-5555-5555-555555555555
+                    in_reply_to: null
+                    inbox_id: 11111111-1111-1111-1111-111111111111
+                    inline_files: []
+                    labels: []
+                    message_id: <message@example.com>
+                    read_at: null
+                    received_at: '2026-07-15T12:30:00Z'
+                    record_type: email_message
+                    references: []
+                    reply_text: Thanks, I will send it today.
+                    reply_to: []
+                    sent_at: null
+                    status: received
+                    subject: Project update
+                    text_body_url: null
+                    thread_id: 33333333-3333-3333-3333-333333333333
+                    to:
+                    - email: agent@inbox.example.test
+                    updated_at: '2026-07-15T12:30:00Z'
+                  preview: null
+                  record_type: email_thread
+                  subject: Project update
+                  unread_count: 0
+                  updated_at: '2026-07-15T12:30:00Z'
+                meta:
+                  page_size: 25
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/InboundThreadDetail'
+                  meta:
+                    $ref: '#/components/schemas/email_PaginationMeta'
+                required:
+                - data
+                - meta
+                type: object
+          description: Thread summary and chronological messages.
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '422':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '503':
+          content:
+            application/json:
+              example:
+                errors:
+                - code: '10016'
+                  detail: Email threads are temporarily unavailable. Please try again
+                    later.
+                  title: Service Unavailable
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+          description: Inbound thread storage is temporarily unavailable.
+      summary: Get an account-wide thread and a page of its messages
+      tags:
+      - Email Threads
       x-latency-category: responsive
   /email_unsubscribe_groups:
     get:
@@ -90548,7 +92544,6 @@ paths:
       summary: List unsubscribe groups
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
     post:
       operationId: createUnsubscribeGroup
@@ -90574,7 +92569,6 @@ paths:
       summary: Create an unsubscribe group
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
   /email_unsubscribe_groups/{id}:
     delete:
@@ -90613,7 +92607,6 @@ paths:
       summary: Delete an unsubscribe group
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
     get:
       operationId: showUnsubscribeGroup
@@ -90633,7 +92626,6 @@ paths:
       summary: Retrieve an unsubscribe group
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -90664,7 +92656,6 @@ paths:
       summary: Update an unsubscribe group
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
   /email_unsubscribe_groups/{id}/suppressions:
     get:
@@ -90694,7 +92685,6 @@ paths:
       summary: List suppressions in a group
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -90733,7 +92723,6 @@ paths:
       summary: Add a group suppression
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
   /email_unsubscribe_groups/{id}/suppressions/{email}:
     delete:
@@ -90760,7 +92749,6 @@ paths:
       summary: Remove a group suppression
       tags:
       - Email Unsubscribe Groups
-      x-hidden: true
       x-latency-category: responsive
     parameters:
     - $ref: '#/components/parameters/PathId'
@@ -90820,7 +92808,6 @@ paths:
       summary: Validate a single email address
       tags:
       - Email Validations
-      x-hidden: true
       x-latency-category: responsive
   /email_validations/batch:
     post:
@@ -90892,7 +92879,6 @@ paths:
       summary: Create a batch email validation job
       tags:
       - Email Validations
-      x-hidden: true
       x-latency-category: responsive
   /email_validations/batch/{id}:
     get:
@@ -90915,7 +92901,6 @@ paths:
       summary: Get a batch email validation job
       tags:
       - Email Validations
-      x-hidden: true
       x-latency-category: responsive
   /enterprises:
     get:
@@ -120028,6 +122013,9 @@ tags:
   name: Email Domain DNS Records
 - description: Email domain CRUD operations
   name: Email Domains
+- description: Create, list, retrieve, update, delete, and send unsent draft messages
+    belonging to an agent inbox.
+  name: Email Drafts
 - description: Retrieve account-level email events and event statistics.
   name: Email Events
 - description: Create and manage agent inboxes, retrieve inbound messages and threads,
@@ -120042,6 +122030,9 @@ tags:
   name: Email Suppressions
 - description: Create, list, retrieve, update, delete, and render Liquid email templates.
   name: Email Templates
+- description: Account-wide conversation threads across every inbox, for agents operating
+    many inboxes at once.
+  name: Email Threads
 - description: Named groups and group-scoped suppressions.
   name: Email Unsubscribe Groups
 - description: Validate email addresses synchronously or in asynchronous batches.
