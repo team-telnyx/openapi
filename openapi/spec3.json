@@ -15600,6 +15600,57 @@
         "x-latency-category": "interactive"
       }
     },
+    "/calls/{call_control_id}/actions/pay": {
+      "post": {
+        "summary": "Collect payment details",
+        "description": "Collect payment details from the caller using DTMF and either charge or tokenize the payment method through a configured Pay connector. Pay pauses active call recordings while sensitive payment details are collected.\n\nWhen `payment_token` is supplied, the DTMF collection steps are skipped and the existing token is sent to the connector.\n\n**Expected Webhooks:**\n\n- `call.payment.progress`\n- `call.payment.completed`\n\n**Test mode card numbers:** `4111111111111111` (Visa), `5555555555554444` (Mastercard), `378282246310005` (American Express), `6011111111111117` (Discover), `3065930009020004` (Diners Club), `3566002020360505` (JCB), `6200000000000005` (UnionPay), and `6771798021000008` (Maestro). Test-mode connectors reject other card numbers before contacting the configured processor. The UnionPay and Maestro numbers are accepted for processor testing, but Pay currently does not emit a card type for them.",
+        "operationId": "PayCall",
+        "tags": [
+          "Call Commands"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CallControlId"
+          }
+        ],
+        "requestBody": {
+          "description": "Pay request",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response upon making a call control command.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Call Control Command Response",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CallControlCommandResult"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/call-control_GenericErrorResponse"
+          }
+        },
+        "x-latency-category": "interactive"
+      }
+    },
     "/calls/{call_control_id}/actions/playback_start": {
       "post": {
         "summary": "Play audio URL",
@@ -86310,6 +86361,437 @@
           }
         }
       },
+      "CallPaymentCompleted": {
+        "type": "object",
+        "title": "Call Payment Completed",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "event"
+            ],
+            "example": "event",
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "call.payment.completed"
+            ],
+            "example": "call.payment.completed",
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Unique identifier for the event."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-27T07:00:00.000000Z",
+            "description": "ISO 8601 datetime when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "description": "Call ID used to issue commands via Call Control API.",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
+              },
+              "connection_id": {
+                "type": "string",
+                "description": "Call Control App ID used in the call.",
+                "example": "7267xxxxxxxxxxxxxx"
+              },
+              "call_leg_id": {
+                "type": "string",
+                "description": "ID unique to the call leg.",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+              },
+              "call_session_id": {
+                "type": "string",
+                "description": "ID shared by related call legs in the same call session.",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1"
+              },
+              "client_state": {
+                "type": "string",
+                "description": "Base64-encoded state received from the command.",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+              },
+              "from": {
+                "type": "string",
+                "description": "Number or SIP URI placing the call.",
+                "example": "+353****5860"
+              },
+              "to": {
+                "type": "string",
+                "description": "Destination number or SIP URI of the call.",
+                "example": "+131****7420"
+              },
+              "payment_connector": {
+                "type": "string",
+                "description": "Name of the Pay connector used.",
+                "example": "Default"
+              },
+              "payment_method": {
+                "type": "string",
+                "enum": [
+                  "credit-card",
+                  "ach-debit"
+                ],
+                "description": "Payment method being collected.",
+                "example": "credit-card"
+              },
+              "payment_card_type": {
+                "type": "string",
+                "enum": [
+                  "visa",
+                  "mastercard",
+                  "amex",
+                  "discover",
+                  "diners-club",
+                  "jcb"
+                ],
+                "description": "Detected card type. Present only for the recognized card brands listed below.",
+                "example": "visa"
+              },
+              "payment_card_number": {
+                "type": "string",
+                "description": "Masked card number with only the last four digits visible.",
+                "example": "xxxxxxxxxxxx1111"
+              },
+              "expiration_date": {
+                "type": "string",
+                "description": "Card expiration date in MMYY format.",
+                "example": "1230"
+              },
+              "security_code": {
+                "type": "string",
+                "description": "Fully masked card security code.",
+                "example": "xxx"
+              },
+              "payment_card_postal_code": {
+                "type": "string",
+                "description": "Billing postal code collected from the caller.",
+                "example": "10001"
+              },
+              "bank_account_number": {
+                "type": "string",
+                "description": "Masked bank account number with only the last two digits visible.",
+                "example": "********34"
+              },
+              "bank_routing_number": {
+                "type": "string",
+                "description": "Bank routing number collected from the caller.",
+                "example": "110000000"
+              },
+              "bank_account_type": {
+                "type": "string",
+                "description": "Bank account type, when available.",
+                "example": "consumer-checking"
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "payment-connector-error",
+                  "internal-error",
+                  "too-many-failed-attempts",
+                  "cancelled"
+                ],
+                "description": "Final Pay session result.",
+                "example": "success"
+              },
+              "charge_id": {
+                "type": "string",
+                "description": "Charge identifier returned for a successful charge transaction.",
+                "example": "ch_abc123"
+              },
+              "token_id": {
+                "type": "string",
+                "description": "Token identifier returned for a successful tokenize transaction.",
+                "example": "tok_abc123"
+              },
+              "payment_confirmation_code": {
+                "type": "string",
+                "description": "Payment confirmation code returned by the processor, when available.",
+                "example": "CONF-98765"
+              },
+              "payment_error": {
+                "type": "string",
+                "description": "Step-level or processor error associated with the final result.",
+                "example": "pay_action_failed"
+              },
+              "pay_error_code": {
+                "type": "string",
+                "description": "Error code returned by the payment connector or processor.",
+                "example": "card_declined"
+              },
+              "connector_error": {
+                "description": "Additional connector error information, when supplied by the processor.",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.payment.completed",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2026-07-27T07:00:00.000000Z",
+          "payload": {
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+            "from": "+353****5860",
+            "to": "+131****7420",
+            "payment_connector": "Default",
+            "payment_method": "credit-card",
+            "payment_card_type": "visa",
+            "payment_card_number": "xxxxxxxxxxxx1111",
+            "expiration_date": "1230",
+            "security_code": "xxx",
+            "payment_card_postal_code": "10001",
+            "result": "success",
+            "charge_id": "ch_abc123",
+            "payment_confirmation_code": "CONF-98765"
+          }
+        }
+      },
+      "CallPaymentCompletedEvent": {
+        "type": "object",
+        "title": "Call Payment Completed Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallPaymentCompleted"
+          }
+        }
+      },
+      "CallPaymentProgress": {
+        "type": "object",
+        "title": "Call Payment Progress",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "event"
+            ],
+            "example": "event",
+            "description": "Identifies the type of the resource."
+          },
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "call.payment.progress"
+            ],
+            "example": "call.payment.progress",
+            "description": "The type of event being delivered."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+            "description": "Unique identifier for the event."
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-27T07:00:00.000000Z",
+            "description": "ISO 8601 datetime when the event occurred."
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "call_control_id": {
+                "type": "string",
+                "description": "Call ID used to issue commands via Call Control API.",
+                "example": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg"
+              },
+              "connection_id": {
+                "type": "string",
+                "description": "Call Control App ID used in the call.",
+                "example": "7267xxxxxxxxxxxxxx"
+              },
+              "call_leg_id": {
+                "type": "string",
+                "description": "ID unique to the call leg.",
+                "example": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1"
+              },
+              "call_session_id": {
+                "type": "string",
+                "description": "ID shared by related call legs in the same call session.",
+                "example": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1"
+              },
+              "client_state": {
+                "type": "string",
+                "description": "Base64-encoded state received from the command.",
+                "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+              },
+              "from": {
+                "type": "string",
+                "description": "Number or SIP URI placing the call.",
+                "example": "+353****5860"
+              },
+              "to": {
+                "type": "string",
+                "description": "Destination number or SIP URI of the call.",
+                "example": "+131****7420"
+              },
+              "payment_connector": {
+                "type": "string",
+                "description": "Name of the Pay connector used.",
+                "example": "Default"
+              },
+              "payment_method": {
+                "type": "string",
+                "enum": [
+                  "credit-card",
+                  "ach-debit"
+                ],
+                "description": "Payment method being collected.",
+                "example": "credit-card"
+              },
+              "payment_card_type": {
+                "type": "string",
+                "enum": [
+                  "visa",
+                  "mastercard",
+                  "amex",
+                  "discover",
+                  "diners-club",
+                  "jcb"
+                ],
+                "description": "Detected card type. Present only for the recognized card brands listed below.",
+                "example": "visa"
+              },
+              "payment_card_number": {
+                "type": "string",
+                "description": "Masked card number with only the last four digits visible.",
+                "example": "xxxxxxxxxxxx1111"
+              },
+              "expiration_date": {
+                "type": "string",
+                "description": "Card expiration date in MMYY format.",
+                "example": "1230"
+              },
+              "security_code": {
+                "type": "string",
+                "description": "Fully masked card security code.",
+                "example": "xxx"
+              },
+              "payment_card_postal_code": {
+                "type": "string",
+                "description": "Billing postal code collected from the caller.",
+                "example": "10001"
+              },
+              "bank_account_number": {
+                "type": "string",
+                "description": "Masked bank account number with only the last two digits visible.",
+                "example": "********34"
+              },
+              "bank_routing_number": {
+                "type": "string",
+                "description": "Bank routing number collected from the caller.",
+                "example": "110000000"
+              },
+              "bank_account_type": {
+                "type": "string",
+                "description": "Bank account type, when available.",
+                "example": "consumer-checking"
+              },
+              "payment_step": {
+                "type": "string",
+                "enum": [
+                  "payment-card-number",
+                  "expiration-date",
+                  "postal-code",
+                  "security-code",
+                  "bank-routing-number",
+                  "bank-account-number",
+                  "payment-processing"
+                ],
+                "description": "Current payment collection or processing step.",
+                "example": "payment-card-number"
+              },
+              "payment_status": {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "failed",
+                  "processing"
+                ],
+                "description": "Status of the current payment step.",
+                "example": "completed"
+              },
+              "attempt": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 3,
+                "description": "Current 1-based attempt number for the step.",
+                "example": 1
+              },
+              "error_type": {
+                "type": "string",
+                "enum": [
+                  "timeout",
+                  "invalid-card-number",
+                  "invalid-date",
+                  "invalid-security-code",
+                  "invalid-postal-code",
+                  "invalid-bank-routing-number",
+                  "invalid-bank-account-number",
+                  "input-matching-failed"
+                ],
+                "description": "Step-level error when payment collection fails.",
+                "example": "invalid-card-number"
+              }
+            }
+          }
+        },
+        "example": {
+          "record_type": "event",
+          "event_type": "call.payment.progress",
+          "id": "0ccc7b54-4df3-4bca-a65a-3da1ecc777f0",
+          "occurred_at": "2026-07-27T07:00:00.000000Z",
+          "payload": {
+            "call_control_id": "v3:MdI91X4lWFEs7IgbBEOT9M4AigoY08M0WWZFISt1Yw2axZ_IiE4pqg",
+            "connection_id": "7267xxxxxxxxxxxxxx",
+            "call_leg_id": "428c31b6-7af4-4bcb-b7f5-5013ef9657c1",
+            "call_session_id": "428c31b6-abf3-3bc1-b7f4-5013ef9657c1",
+            "from": "+353****5860",
+            "to": "+131****7420",
+            "payment_connector": "Default",
+            "payment_method": "credit-card",
+            "payment_step": "payment-card-number",
+            "payment_status": "completed",
+            "attempt": 1,
+            "payment_card_type": "visa",
+            "payment_card_number": "xxxxxxxxxxxx1111"
+          }
+        }
+      },
+      "CallPaymentProgressEvent": {
+        "type": "object",
+        "title": "Call Payment Progress Event",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CallPaymentProgress"
+          }
+        }
+      },
       "CallPlaybackEnded": {
         "type": "object",
         "title": "Call Playback Ended",
@@ -124538,6 +125020,250 @@
           }
         }
       },
+      "PayPrompt": {
+        "type": "object",
+        "title": "Pay Prompt",
+        "description": "A text-to-speech prompt with optional matching qualifiers.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Text spoken for the payment collection step.",
+            "example": "Please enter your card number."
+          },
+          "attempt": {
+            "type": "string",
+            "description": "Space-separated 1-based attempt numbers for which this prompt applies.",
+            "example": "2 3"
+          },
+          "error_type": {
+            "type": "string",
+            "description": "Step error for which this prompt applies.",
+            "enum": [
+              "timeout",
+              "invalid-card-number",
+              "invalid-date",
+              "invalid-security-code",
+              "invalid-postal-code",
+              "invalid-bank-routing-number",
+              "invalid-bank-account-number",
+              "input-matching-failed"
+            ],
+            "example": "invalid-card-number"
+          },
+          "card_type": {
+            "type": "string",
+            "description": "Lowercase, case-sensitive detected card type for which this prompt applies. Only the listed brands are currently detected; accepted UnionPay and Maestro test cards do not produce a card-type qualifier.",
+            "enum": [
+              "visa",
+              "mastercard",
+              "amex",
+              "discover",
+              "diners-club",
+              "jcb"
+            ],
+            "example": "amex"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PayPromptValue": {
+        "title": "Pay Prompt Value",
+        "description": "A default prompt string or an ordered list of qualified prompts.",
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/PayPrompt"
+            }
+          }
+        ]
+      },
+      "PayPrompts": {
+        "type": "object",
+        "title": "Pay Prompts",
+        "description": "Custom text-to-speech prompts keyed by payment collection step.",
+        "properties": {
+          "payment-card-number": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          },
+          "expiration-date": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          },
+          "postal-code": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          },
+          "security-code": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          },
+          "bank-routing-number": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          },
+          "bank-account-number": {
+            "$ref": "#/components/schemas/PayPromptValue"
+          }
+        },
+        "additionalProperties": false,
+        "example": {
+          "payment-card-number": [
+            {
+              "text": "Please enter your card number."
+            },
+            {
+              "text": "That card number was not accepted. Please try again.",
+              "attempt": "2 3",
+              "error_type": "invalid-card-number"
+            }
+          ]
+        }
+      },
+      "PayRequest": {
+        "type": "object",
+        "title": "Pay Request",
+        "properties": {
+          "connector_name": {
+            "type": "string",
+            "default": "Default",
+            "description": "Name of the Pay connector used to process the transaction.",
+            "example": "Default"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Amount to charge. Required when `transaction_type` is `charge`.",
+            "example": 10.5
+          },
+          "currency": {
+            "type": "string",
+            "default": "USD",
+            "enum": [
+              "USD",
+              "usd"
+            ],
+            "description": "Currency used for the transaction. Pay currently supports USD only.",
+            "example": "USD"
+          },
+          "payment_token": {
+            "type": "string",
+            "description": "Existing payment token. When supplied, payment-detail collection is skipped.",
+            "example": "tok_abc123"
+          },
+          "payment_method": {
+            "type": "string",
+            "default": "credit-card",
+            "enum": [
+              "credit-card",
+              "ach-debit"
+            ],
+            "description": "Payment method to collect."
+          },
+          "transaction_type": {
+            "type": "string",
+            "enum": [
+              "charge",
+              "tokenize"
+            ],
+            "description": "Transaction to perform. If omitted, Pay infers `tokenize` when `amount` is absent or zero and `charge` when `amount` is positive."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description forwarded with the payment transaction.",
+            "example": "Order 12345"
+          },
+          "client_state": {
+            "type": "string",
+            "description": "Base64-encoded state included in subsequent webhooks.",
+            "example": "aGF2ZSBhIG5pY2UgZGF5ID1d"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Metadata forwarded to the Pay connector.",
+            "additionalProperties": true,
+            "example": {
+              "order_id": "ORD-12345"
+            }
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Additional parameters forwarded to the Pay connector.",
+            "additionalProperties": true,
+            "example": {
+              "customer_id": "CUST-67890"
+            }
+          },
+          "prompts": {
+            "$ref": "#/components/schemas/PayPrompts"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 3,
+            "description": "Maximum number of attempts for each payment collection step."
+          },
+          "timeout_millis": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 600000,
+            "default": 5000,
+            "description": "Time in milliseconds to wait for DTMF input for each collection step."
+          },
+          "inter_digit_timeout_millis": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 600000,
+            "default": 5000,
+            "description": "Time in milliseconds to wait between consecutive DTMF digits."
+          },
+          "voice": {
+            "type": "string",
+            "default": "female",
+            "description": "Voice used for payment prompts. Accepts `male`, `female`, or a provider voice in `<Provider>.<Model>.<VoiceId>` format, for example `AWS.Polly.Joanna` or `Telnyx.KokoroTTS.af`.",
+            "example": "female"
+          },
+          "language": {
+            "type": "string",
+            "default": "en-US",
+            "description": "Language used for payment prompts.",
+            "example": "en-US"
+          },
+          "service_level": {
+            "type": "string",
+            "default": "premium",
+            "description": "Speech synthesis service level used for payment prompts. Pay defaults to `premium`."
+          },
+          "command_id": {
+            "type": "string",
+            "description": "Idempotency key for the command. Telnyx ignores a duplicate command with the same `command_id` for the same `call_control_id`.",
+            "example": "891510ac-f3e4-11e8-af5b-de00688a4901"
+          }
+        },
+        "example": {
+          "connector_name": "Default",
+          "amount": 10.5,
+          "currency": "USD",
+          "payment_method": "credit-card",
+          "transaction_type": "charge",
+          "max_attempts": 3,
+          "timeout_millis": 5000,
+          "inter_digit_timeout_millis": 5000,
+          "voice": "female",
+          "language": "en-US",
+          "client_state": "aGF2ZSBhIG5pY2UgZGF5ID1d",
+          "command_id": "891510ac-f3e4-11e8-af5b-de00688a4901"
+        }
+      },
       "PayTool": {
         "description": "(BETA) The pay tool allows the assistant to collect card payments from the caller via DTMF during the conversation. Recording is automatically paused while the pay tool is active and resumes when the payment flow completes. The connector_name must reference a pay connector configured in the Telnyx API.",
         "properties": {
@@ -161686,6 +162412,106 @@
           }
         ],
         "operationId": "CallMachinePremiumGreetingEnded",
+        "tags": [
+          "Callbacks"
+        ]
+      }
+    },
+    "callPaymentCompleted": {
+      "post": {
+        "summary": "Call Payment Completed",
+        "description": "\n\nThis webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519) that are compatible with Standard Webhooks specification for SDK generation. Custom validation logic can map these to standard webhook-timestamp and webhook-signature equivalents. See https://github.com/standard-webhooks/standard-webhooks for details.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallPaymentCompletedEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+          }
+        },
+        "parameters": [
+          {
+            "name": "telnyx-timestamp",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds since epoch) of when the webhook was sent - compatible with webhook-timestamp",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp for replay attack prevention"
+            },
+            "x-webhook-equivalent": "webhook-timestamp"
+          },
+          {
+            "name": "telnyx-signature-ed25519",
+            "in": "header",
+            "required": true,
+            "description": "Base64 encoded Ed25519 signature for webhook verification - compatible with webhook-signature",
+            "schema": {
+              "type": "string",
+              "description": "Ed25519 signature of timestamp|payload for verification"
+            },
+            "x-webhook-equivalent": "webhook-signature"
+          }
+        ],
+        "operationId": "CallPaymentCompleted",
+        "tags": [
+          "Callbacks"
+        ]
+      }
+    },
+    "callPaymentProgress": {
+      "post": {
+        "summary": "Call Payment Progress",
+        "description": "\n\nThis webhook uses Telnyx headers (telnyx-timestamp, telnyx-signature-ed25519) that are compatible with Standard Webhooks specification for SDK generation. Custom validation logic can map these to standard webhook-timestamp and webhook-signature equivalents. See https://github.com/standard-webhooks/standard-webhooks for details.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallPaymentProgressEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The server must return an HTTP 200, otherwise we will reattempt delivery at the failover webhook URL."
+          }
+        },
+        "parameters": [
+          {
+            "name": "telnyx-timestamp",
+            "in": "header",
+            "required": true,
+            "description": "Unix timestamp (seconds since epoch) of when the webhook was sent - compatible with webhook-timestamp",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp for replay attack prevention"
+            },
+            "x-webhook-equivalent": "webhook-timestamp"
+          },
+          {
+            "name": "telnyx-signature-ed25519",
+            "in": "header",
+            "required": true,
+            "description": "Base64 encoded Ed25519 signature for webhook verification - compatible with webhook-signature",
+            "schema": {
+              "type": "string",
+              "description": "Ed25519 signature of timestamp|payload for verification"
+            },
+            "x-webhook-equivalent": "webhook-signature"
+          }
+        ],
+        "operationId": "CallPaymentProgress",
         "tags": [
           "Callbacks"
         ]
