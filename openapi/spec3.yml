@@ -49170,6 +49170,155 @@ components:
           minimum: 1
           type: integer
       type: object
+    PricingEntry:
+      description: A single pricing entry. Standard products include rate, unit, currency,
+        type, country_iso, direction, and tiers. Inference products include model,
+        input_rate, output_rate, cached_input_rate, and their respective tier arrays.
+        Rate-deck products include pricing_type and note fields with null rate and
+        empty tiers.
+      properties:
+        cached_input_rate:
+          description: Cached input token rate. Present only on inference product
+            entries.
+          type: string
+        cached_input_tiers:
+          description: Cached input token tiered pricing. Present only on inference
+            product entries.
+          items:
+            $ref: '#/components/schemas/PricingTier'
+          type: array
+        country_iso:
+          description: ISO country code. Null for non-geographic products.
+          type:
+          - string
+          - 'null'
+        currency:
+          description: ISO currency code (e.g., USD).
+          type: string
+        direction:
+          description: Direction (e.g., termination). Null for non-directional products.
+          type:
+          - string
+          - 'null'
+        input_rate:
+          description: Input token rate. Present only on inference product entries.
+          type: string
+        input_tiers:
+          description: Input token tiered pricing. Present only on inference product
+            entries.
+          items:
+            $ref: '#/components/schemas/PricingTier'
+          type: array
+        model:
+          description: Model identifier. Present only on inference product entries.
+          type: string
+        name:
+          description: Human-readable name describing the pricing entry.
+          type: string
+        note:
+          description: Additional note for rate-deck products (e.g., "Pricing is determined
+            by the WhatsApp rate deck.").
+          type:
+          - string
+          - 'null'
+        output_rate:
+          description: Output token rate. Present only on inference product entries.
+          type: string
+        output_tiers:
+          description: Output token tiered pricing. Present only on inference product
+            entries.
+          items:
+            $ref: '#/components/schemas/PricingTier'
+          type: array
+        pricing_type:
+          description: Pricing type for non-standard products (e.g., rate_deck). Absent
+            on standard products.
+          type:
+          - string
+          - 'null'
+        rate:
+          description: Per-unit rate. Numeric for standard products, string for inference
+            products. Null for rate-deck products.
+          oneOf:
+          - description: Rate for standard products (e.g., 0.004).
+            type: number
+          - description: Rate for inference products (e.g., "0.001").
+            type: string
+          - type: 'null'
+        tiers:
+          description: Volume-based tiered pricing. Empty for rate-deck products.
+          items:
+            $ref: '#/components/schemas/PricingTier'
+          type: array
+        type:
+          description: Pricing type (e.g., usage).
+          type: string
+        unit:
+          description: Unit of measurement (e.g., part, message, GB, per_1k_tokens).
+          type: string
+      type: object
+    PricingEntryListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PricingEntry'
+          type: array
+        meta:
+          $ref: '#/components/schemas/pricing_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    PricingProduct:
+      properties:
+        description:
+          description: Human-readable description of the product.
+          type: string
+        name:
+          description: Display name of the product.
+          type: string
+        slug:
+          description: Product identifier used in the per-product pricing endpoint.
+          type: string
+      required:
+      - slug
+      - name
+      - description
+      type: object
+    PricingProductListResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/PricingProduct'
+          type: array
+        meta:
+          $ref: '#/components/schemas/pricing_PaginationMeta'
+      required:
+      - data
+      - meta
+      type: object
+    PricingTier:
+      properties:
+        max:
+          description: Upper bound of the tier (exclusive). Null means no upper limit.
+          type:
+          - integer
+          - 'null'
+        min:
+          description: Lower bound of the tier (inclusive).
+          minimum: 0
+          type: integer
+        rate:
+          description: Rate for this tier. Numeric for standard products, string for
+            inference products.
+          oneOf:
+          - type: number
+          - type: string
+      required:
+      - min
+      - max
+      - rate
+      type: object
     PrivacySettings:
       properties:
         data_retention:
@@ -73501,6 +73650,22 @@ components:
       description: The postal code of the address.
       example: '78701'
       type: string
+    pricing_PaginationMeta:
+      properties:
+        page_number:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+        total_results:
+          type: integer
+      required:
+      - page_number
+      - page_size
+      - total_pages
+      - total_results
+      type: object
     programmable-fax_Error:
       properties:
         code:
@@ -108976,6 +109141,90 @@ paths:
       tags:
       - Number Portout
       x-latency-category: responsive
+  /pricing/products:
+    get:
+      description: Returns the full product catalog with pagination. Each entry contains
+        a slug, display name, and description. Use the slug to fetch per-product pricing
+        via GET /pricing/products/{slug}.
+      operationId: listPricingProducts
+      parameters:
+      - description: Page number (1-based).
+        in: query
+        name: page_number
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page (max 100).
+        in: query
+        name: page_size
+        required: false
+        schema:
+          default: 25
+          maximum: 100
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingProductListResponse'
+          description: Product catalog listing
+        '400':
+          description: Invalid pagination parameters
+      security: []
+      summary: List products
+      tags:
+      - Pricing
+      x-latency-category: responsive
+  /pricing/products/{slug}:
+    get:
+      description: 'Returns pricing entries for a single product. Most products return
+        standard rate entries with fields like rate, unit, country_iso, direction,
+        and tiers. Inference products return model-specific fields (model, input_rate,
+        output_rate, cached_input_rate) with tiered pricing. Some products use rate
+        decks (pricing_type: rate_deck) where rates are determined dynamically.'
+      operationId: getProductPricing
+      parameters:
+      - description: Product slug from the catalog listing.
+        in: path
+        name: slug
+        required: true
+        schema:
+          type: string
+      - description: Page number (1-based).
+        in: query
+        name: page_number
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+      - description: Number of items per page (max 100).
+        in: query
+        name: page_size
+        required: false
+        schema:
+          default: 25
+          maximum: 100
+          minimum: 1
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingEntryListResponse'
+          description: Product pricing entries
+        '404':
+          description: Product not found
+      security: []
+      summary: Get product pricing
+      tags:
+      - Pricing
+      x-latency-category: responsive
   /private_wireless_gateways:
     get:
       description: Get all Private Wireless Gateways belonging to the user.
@@ -122774,6 +123023,8 @@ tags:
   name: Porting Orders
 - description: Presigned object URL operations
   name: Presigned Object URLs
+- description: Public pricing operations
+  name: Pricing
 - description: Private Wireless Gateways operations
   name: Private Wireless Gateways
 - description: Messaging profiles

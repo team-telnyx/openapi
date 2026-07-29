@@ -446,6 +446,10 @@
       "description": "Presigned object URL operations"
     },
     {
+      "name": "Pricing",
+      "description": "Public pricing operations"
+    },
+    {
       "name": "Private Wireless Gateways",
       "description": "Private Wireless Gateways operations"
     },
@@ -49918,6 +49922,119 @@
           }
         },
         "x-latency-category": "responsive"
+      }
+    },
+    "/pricing/products": {
+      "get": {
+        "summary": "List products",
+        "description": "Returns the full product catalog with pagination. Each entry contains a slug, display name, and description. Use the slug to fetch per-product pricing via GET /pricing/products/{slug}.",
+        "operationId": "listPricingProducts",
+        "tags": [
+          "Pricing"
+        ],
+        "parameters": [
+          {
+            "name": "page_number",
+            "in": "query",
+            "description": "Page number (1-based).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "Number of items per page (max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product catalog listing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingProductListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters"
+          }
+        },
+        "x-latency-category": "responsive",
+        "security": []
+      }
+    },
+    "/pricing/products/{slug}": {
+      "get": {
+        "summary": "Get product pricing",
+        "description": "Returns pricing entries for a single product. Most products return standard rate entries with fields like rate, unit, country_iso, direction, and tiers. Inference products return model-specific fields (model, input_rate, output_rate, cached_input_rate) with tiered pricing. Some products use rate decks (pricing_type: rate_deck) where rates are determined dynamically.",
+        "operationId": "getProductPricing",
+        "tags": [
+          "Pricing"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "description": "Product slug from the catalog listing.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_number",
+            "in": "query",
+            "description": "Page number (1-based).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "Number of items per page (max 100).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product pricing entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PricingEntryListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found"
+          }
+        },
+        "x-latency-category": "responsive",
+        "security": []
       }
     },
     "/private_wireless_gateways": {
@@ -130181,6 +130298,207 @@
           }
         }
       },
+      "PricingEntry": {
+        "type": "object",
+        "description": "A single pricing entry. Standard products include rate, unit, currency, type, country_iso, direction, and tiers. Inference products include model, input_rate, output_rate, cached_input_rate, and their respective tier arrays. Rate-deck products include pricing_type and note fields with null rate and empty tiers.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable name describing the pricing entry."
+          },
+          "rate": {
+            "oneOf": [
+              {
+                "type": "number",
+                "description": "Rate for standard products (e.g., 0.004)."
+              },
+              {
+                "type": "string",
+                "description": "Rate for inference products (e.g., \"0.001\")."
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Per-unit rate. Numeric for standard products, string for inference products. Null for rate-deck products."
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit of measurement (e.g., part, message, GB, per_1k_tokens)."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO currency code (e.g., USD)."
+          },
+          "type": {
+            "type": "string",
+            "description": "Pricing type (e.g., usage)."
+          },
+          "country_iso": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO country code. Null for non-geographic products."
+          },
+          "direction": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Direction (e.g., termination). Null for non-directional products."
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingTier"
+            },
+            "description": "Volume-based tiered pricing. Empty for rate-deck products."
+          },
+          "pricing_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pricing type for non-standard products (e.g., rate_deck). Absent on standard products."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Additional note for rate-deck products (e.g., \"Pricing is determined by the WhatsApp rate deck.\")."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model identifier. Present only on inference product entries."
+          },
+          "input_rate": {
+            "type": "string",
+            "description": "Input token rate. Present only on inference product entries."
+          },
+          "cached_input_rate": {
+            "type": "string",
+            "description": "Cached input token rate. Present only on inference product entries."
+          },
+          "output_rate": {
+            "type": "string",
+            "description": "Output token rate. Present only on inference product entries."
+          },
+          "input_tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingTier"
+            },
+            "description": "Input token tiered pricing. Present only on inference product entries."
+          },
+          "cached_input_tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingTier"
+            },
+            "description": "Cached input token tiered pricing. Present only on inference product entries."
+          },
+          "output_tiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingTier"
+            },
+            "description": "Output token tiered pricing. Present only on inference product entries."
+          }
+        }
+      },
+      "PricingEntryListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingEntry"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/pricing_PaginationMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "PricingProduct": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Product identifier used in the per-product pricing endpoint."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the product."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the product."
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "description"
+        ]
+      },
+      "PricingProductListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricingProduct"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/pricing_PaginationMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "PricingTier": {
+        "type": "object",
+        "properties": {
+          "min": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Lower bound of the tier (inclusive)."
+          },
+          "max": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Upper bound of the tier (exclusive). Null means no upper limit."
+          },
+          "rate": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Rate for this tier. Numeric for standard products, string for inference products."
+          }
+        },
+        "required": [
+          "min",
+          "max",
+          "rate"
+        ]
+      },
       "PrivacySettings": {
         "properties": {
           "data_retention": {
@@ -159784,6 +160102,29 @@
         "type": "string",
         "description": "The postal code of the address.",
         "example": "78701"
+      },
+      "pricing_PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "page_number": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          },
+          "total_results": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page_number",
+          "page_size",
+          "total_pages",
+          "total_results"
+        ]
       },
       "programmable-fax_Error": {
         "required": [
