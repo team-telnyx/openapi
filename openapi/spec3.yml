@@ -2680,6 +2680,7 @@ components:
         - $ref: '#/components/schemas/soniox_models'
         - $ref: '#/components/schemas/parakeet_models'
         - $ref: '#/components/schemas/humain_models'
+        - $ref: '#/components/schemas/reson8_models'
     model_id:
       description: 'Model identifier for the chosen provider. Examples: `Natural`,
         `NaturalHD`, `Ultra` (Telnyx); `Polly.Generative` (AWS).'
@@ -3122,6 +3123,7 @@ components:
         - Soniox
         - Parakeet
         - Humain
+        - Reson8
         type: string
     user-addresses_FilterConsolidated:
       description: 'Consolidated filter parameter (deepObject style). Originally:
@@ -60920,7 +60922,10 @@ components:
             \ (Arabic/English code-switching), and `auto` (resolves server-side to\
             \ code-switching). Unlike other models, `humain/realtime` does not fall\
             \ back to `auto` when `language` is omitted \u2014 omitting it applies\
-            \ `en` instead."
+            \ `en` instead. For `reson8/turns`, supported values are `auto` (or unset)\
+            \ for automatic language detection, and the language codes `nl`, `en`,\
+            \ `fr`, `fy`, `de`, `it`, `pl`, `pt`, `es`, and `sv` to fix the transcription\
+            \ language."
           example: auto
           type: string
         model:
@@ -60949,6 +60954,9 @@ components:
             - `humain/realtime` for live streaming transcription with native Arabic
             and Arabic/English code-switching support.
 
+            - `reson8/turns` for live streaming turn-based transcription of 10 European
+            languages with automatic language detection.
+
             - `azure/fast` and `azure/realtime`; Azure models require `region`, and
             unsupported regions require `api_key_ref`.
 
@@ -60971,6 +60979,7 @@ components:
           - soniox/stt-rt-v4
           - nvidia/parakeet-v3
           - humain/realtime
+          - reson8/turns
           - azure/fast
           - azure/realtime
           - google/latest_long
@@ -61285,6 +61294,39 @@ components:
           - nvidia/parakeet-v3
           type: string
       title: Transcription engine Parakeet config
+      type: object
+    TranscriptionEngineReson8Config:
+      properties:
+        language:
+          default: auto
+          description: The language of the audio to be transcribed. `auto` (the default,
+            also applied when `language` is omitted) enables automatic language detection.
+          enum:
+          - auto
+          - nl
+          - en
+          - fr
+          - fy
+          - de
+          - it
+          - pl
+          - pt
+          - es
+          - sv
+          example: auto
+          type: string
+        transcription_engine:
+          description: Engine identifier for Reson8 transcription service
+          enum:
+          - Reson8
+          type: string
+        transcription_model:
+          default: reson8/turns
+          description: The model to use for transcription.
+          enum:
+          - reson8/turns
+          type: string
+      title: Transcription engine Reson8 config
       type: object
     TranscriptionEngineSonioxConfig:
       properties:
@@ -61673,7 +61715,10 @@ components:
             \ `codeswitch` (Arabic/English code-switching), and `auto` (resolves server-side\
             \ to code-switching). Unlike other models, `humain/realtime` does not\
             \ fall back to `auto` when `language` is omitted \u2014 omitting it applies\
-            \ `en` instead."
+            \ `en` instead. For `reson8/turns`, supported values are `auto` (or unset)\
+            \ for automatic language detection, and the language codes `nl`, `en`,\
+            \ `fr`, `fy`, `de`, `it`, `pl`, `pt`, `es`, and `sv` to fix the transcription\
+            \ language."
           type: string
         model:
           description: 'The speech to text model to be used by the voice assistant.
@@ -61701,7 +61746,10 @@ components:
             language detection.
 
             - `humain/realtime` is a streaming model with native Arabic and Arabic/English
-            code-switching support.'
+            code-switching support.
+
+            - `reson8/turns` is a turn-based streaming model covering 10 European
+            languages with automatic language detection.'
           enum:
           - deepgram/flux
           - deepgram/nova-3
@@ -61712,6 +61760,7 @@ components:
           - soniox/stt-rt-v4
           - nvidia/parakeet-v3
           - humain/realtime
+          - reson8/turns
           - distil-whisper/distil-large-v2
           - openai/whisper-large-v3-turbo
           type: string
@@ -61850,6 +61899,7 @@ components:
           - Soniox
           - Parakeet
           - Humain
+          - Reson8
           - A
           - B
           example: Google
@@ -61865,6 +61915,7 @@ components:
               Google: '#/components/schemas/TranscriptionEngineGoogleConfig'
               Humain: '#/components/schemas/TranscriptionEngineHumainConfig'
               Parakeet: '#/components/schemas/TranscriptionEngineParakeetConfig'
+              Reson8: '#/components/schemas/TranscriptionEngineReson8Config'
               Soniox: '#/components/schemas/TranscriptionEngineSonioxConfig'
               Speechmatics: '#/components/schemas/TranscriptionEngineSpeechmaticsConfig'
               Telnyx: '#/components/schemas/TranscriptionEngineTelnyxConfig'
@@ -61881,6 +61932,7 @@ components:
           - $ref: '#/components/schemas/TranscriptionEngineSonioxConfig'
           - $ref: '#/components/schemas/TranscriptionEngineParakeetConfig'
           - $ref: '#/components/schemas/TranscriptionEngineHumainConfig'
+          - $ref: '#/components/schemas/TranscriptionEngineReson8Config'
           - $ref: '#/components/schemas/TranscriptionEngineAConfig'
           - $ref: '#/components/schemas/TranscriptionEngineBConfig'
         transcription_tracks:
@@ -73830,6 +73882,10 @@ components:
           format: int32
           type: integer
       type: object
+    reson8_models:
+      enum:
+      - reson8/turns
+      type: string
     settings:
       description: The settings associated with the authentication provider.
       properties:
@@ -114708,6 +114764,7 @@ paths:
           - soniox
           - parakeet
           - humain
+          - reson8
           - azure
           - openai
           - google
@@ -114745,7 +114802,7 @@ paths:
 
 
         Supported engines: `Azure`, `Deepgram`, `Google`, `Telnyx`, `xAI`, `Speechmatics`,
-        `Soniox`, `Parakeet`, `Humain`.
+        `Soniox`, `Parakeet`, `Humain`, `Reson8`.
 
 
         **Connection flow:**
