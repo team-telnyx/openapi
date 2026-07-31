@@ -1,0 +1,147 @@
+name: Sync canonical public OpenAPI mirror
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sync-canonical-openapi.yml'
+      - '.github/scripts/openapi-source/**'
+  repository_dispatch:
+    types: [canonical-openapi-source]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+      normalized_tree_sha256:
+        required: true
+        type: string
+      sdk_bundle_sha256:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-canonical-public-openapi
+  cancel-in-progress: false
+
+jobs:
+  validate-consumer:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyyaml
+      - run: python -m unittest discover -s .github/scripts/openapi-source -p 'test_*.py' -v
+
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.OPENAPI_DOCS_SYNC_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pyyaml
+
+      - name: Validate immutable dispatch
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.OPENAPI_DOCS_SYNC_TOKEN }}
+          EVENT_REPOSITORY: ${{ github.event.client_payload.source_repository }}
+          EVENT_SHA: ${{ github.event.client_payload.source_sha }}
+          EVENT_NORMALIZED: ${{ github.event.client_payload.normalized_tree_sha256 }}
+          EVENT_BUNDLE: ${{ github.event.client_payload.sdk_bundle_sha256 }}
+          MANUAL_SHA: ${{ inputs.source_sha }}
+          MANUAL_NORMALIZED: ${{ inputs.normalized_tree_sha256 }}
+          MANUAL_BUNDLE: ${{ inputs.sdk_bundle_sha256 }}
+        run: |
+          # shellcheck disable=SC2129
+          set -euo pipefail
+          repository="${EVENT_REPOSITORY:-team-telnyx/developer-docs-mintlify}"
+          source_sha="${EVENT_SHA:-${MANUAL_SHA:-}}"
+          normalized="${EVENT_NORMALIZED:-${MANUAL_NORMALIZED:-}}"
+          bundle="${EVENT_BUNDLE:-${MANUAL_BUNDLE:-}}"
+          test "$repository" = 'team-telnyx/developer-docs-mintlify'
+          [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$normalized" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$bundle" =~ ^[0-9a-f]{64}$ ]]
+          gh api "repos/$repository/commits/$source_sha" >/dev/null
+          current="$(jq -r '.source_sha // empty' openapi/direct-source-provenance.json 2>/dev/null || true)"
+          if [[ "$current" == "$source_sha" ]]; then
+            noop=true
+          elif [[ -n "$current" ]]; then
+            test "$(gh api "repos/$repository/compare/$current...$source_sha" --jq .status)" = 'ahead'
+            noop=false
+          else
+            noop=false
+          fi
+          {
+            echo "noop=$noop"
+            echo "repository=$repository"
+            echo "source_sha=$source_sha"
+            echo "normalized=$normalized"
+            echo "bundle=$bundle"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and attest public mirror
+        if: steps.source.outputs.noop != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.OPENAPI_DOCS_SYNC_TOKEN }}
+          SOURCE_REPOSITORY: ${{ steps.source.outputs.repository }}
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          EXPECTED_NORMALIZED: ${{ steps.source.outputs.normalized }}
+          EXPECTED_BUNDLE: ${{ steps.source.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/upstream"
+          gh api "repos/$SOURCE_REPOSITORY/tarball/$SOURCE_SHA" > "$RUNNER_TEMP/source.tar.gz"
+          tar -xzf "$RUNNER_TEMP/source.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/upstream"
+          root="$RUNNER_TEMP/upstream/openapi/source/external"
+          test "$(python .github/scripts/openapi-source/source_contract.py checksum "$root" --strip-samples)" = "$EXPECTED_NORMALIZED"
+          python .github/scripts/openapi-source/bundle_canonical_source.py \
+            "$root" --output "$RUNNER_TEMP/bundle.json" --report "$RUNNER_TEMP/bundle-report.json"
+          test "$(sha256sum "$RUNNER_TEMP/bundle.json" | cut -d' ' -f1)" = "$EXPECTED_BUNDLE"
+          python .github/scripts/openapi-source/build_public_mirror.py \
+            "$root" \
+            --json-output openapi/spec3.json \
+            --yaml-output openapi/spec3.yml \
+            --report "$RUNNER_TEMP/public-report.json"
+          jq -n \
+            --arg source_repository "$SOURCE_REPOSITORY" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg normalized "$EXPECTED_NORMALIZED" \
+            --arg bundle "$EXPECTED_BUNDLE" \
+            --arg public "$(jq -r .public_semantic_sha256 "$RUNNER_TEMP/public-report.json")" \
+            '{schema_version:1,source_repository:$source_repository,source_sha:$source_sha,source_root:"openapi/source/external",normalized_tree_sha256:$normalized,sdk_bundle_sha256:$bundle,public_semantic_sha256:$public}' \
+            > openapi/direct-source-provenance.json
+
+      - name: Create immutable public-mirror PR
+        if: steps.source.outputs.noop != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.OPENAPI_DOCS_SYNC_TOKEN }}
+          base: master
+          branch: chore/sync-canonical-openapi
+          delete-branch: true
+          add-paths: |
+            openapi/spec3.json
+            openapi/spec3.yml
+            openapi/direct-source-provenance.json
+          commit-message: 'chore: sync canonical public OpenAPI mirror'
+          title: 'chore: sync canonical public OpenAPI mirror'
+          labels: automated
+          body: |
+            Generated public mirror from immutable
+            `team-telnyx/developer-docs-mintlify@${{ steps.source.outputs.source_sha }}`.
+            Hidden operations are excluded. Source and bundle checksums were rebuilt
+            with trusted default-branch consumer code; stale or divergent epochs fail closed.
