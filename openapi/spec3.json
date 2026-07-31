@@ -20782,7 +20782,7 @@
         ],
         "summary": "List a DIR's references",
         "operationId": "listDirReferences",
-        "description": "List the business and financial references submitted for a DIR.\n\nReturns the two business references (slots 0 and 1) followed by the single financial reference. Each entry carries only the customer-supplied details (name, title, organization, relationship, phone, email, timezone). Returns an empty list when no references were submitted.",
+        "description": "List the business and financial references submitted for a DIR.\n\nReturns the two business references (slots 1 and 2) followed by the single financial reference. Each entry carries its `ref_type` and `slot`, which together address the reference when updating it, alongside the details supplied when it was submitted (name, title, organization, relationship, phone, email, timezone). No internal identifiers are exposed. Returns an empty list when no references were submitted.",
         "parameters": [
           {
             "$ref": "#/components/parameters/DirId"
@@ -20811,7 +20811,7 @@
         ],
         "summary": "Submit a DIR's references",
         "operationId": "submitDirReferences",
-        "description": "Submit the two business references and one financial reference for a DIR.\n\nThe DIR's authorizer email must be verified first (see the email-verification endpoint). Until it is, this returns `409` and no references are stored.\n\nThe request body carries exactly two business references plus one financial reference. On success the references are stored and the response echoes them in the same shape as the GET. Submitting again converges on the already-stored references rather than erroring.",
+        "description": "Submit the two business references and one financial reference for a DIR.\n\nThe DIR's authorizer email must be verified first (see the email-verification endpoint). Until it is, this returns `409` and no references are stored.\n\nThe request body carries exactly two business references plus one financial reference. The first submission stores them and returns `201`. Resubmitting returns `200`: identical values are simply confirmed and nothing is written, while changed values replace those references.\n\nReplacing a reference is allowed only while the DIR itself is still editable, the same window in which a single reference may be updated; once the DIR has been submitted for vetting this returns `400`. A replaced reference's pending verification call is cancelled and its dial-in code stops working, and the replacement contact is emailed fresh scheduling details. References whose details did not change keep their existing call, code, and the notice already sent to them.\n\nThe response always echoes the stored references in the same shape as the GET.",
         "parameters": [
           {
             "$ref": "#/components/parameters/DirId"
@@ -20828,6 +20828,16 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Resubmit accepted. Identical values were confirmed unchanged, or changed values replaced those references.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceList"
+                }
+              }
+            }
+          },
           "201": {
             "description": "The stored references.",
             "content": {
@@ -20837,6 +20847,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/branded-calling_GenericErrorResponse"
           },
           "404": {
             "$ref": "#/components/responses/branded-calling_GenericErrorResponse"
@@ -20878,12 +20891,12 @@
             "name": "slot",
             "in": "path",
             "required": true,
-            "description": "Reference slot. Business references use slots 0 and 1; the financial reference uses slot 0.",
+            "description": "Reference slot, counting from 1. Business references are slots 1 and 2, matching the order they were sent in the `business_references` array; the financial reference is slot 1. Every reference returned by the submit and list endpoints carries its own `ref_type` and `slot`, so you do not need to derive them.",
             "schema": {
               "type": "integer",
-              "minimum": 0,
-              "maximum": 1,
-              "example": 0
+              "minimum": 1,
+              "maximum": 2,
+              "example": 1
             }
           }
         ],
@@ -106565,6 +106578,21 @@
             ],
             "description": "`sent` after a code is emailed; `verified` after a successful confirm; `unverified` when no verification is in progress.",
             "example": "sent"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the outstanding code stops being accepted. Null when no verification is in progress.",
+            "example": "2026-07-30T17:15:00Z",
+            "readOnly": true
+          },
+          "sends_remaining_today": {
+            "type": "integer",
+            "nullable": true,
+            "description": "How many more codes may be requested for this DIR today. Null when the daily cap does not apply.",
+            "example": 9,
+            "readOnly": true
           }
         }
       },
@@ -132614,10 +132642,10 @@
           },
           "slot": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 1,
-            "description": "Position within the reference type. Business references occupy slots 0 and 1; the financial reference occupies slot 0.",
-            "example": 0
+            "minimum": 1,
+            "maximum": 2,
+            "description": "Position within the reference type, counting from 1. Business references occupy slots 1 and 2, in the order they were sent in the `business_references` array; the financial reference occupies slot 1. Use this value together with `ref_type` to address the reference when updating it.",
+            "example": 1
           },
           "full_name": {
             "type": "string",
@@ -132748,7 +132776,7 @@
             "type": "array",
             "minItems": 2,
             "maxItems": 2,
-            "description": "Exactly two business references.",
+            "description": "Exactly two business references. Array order determines each one's slot: the first entry becomes slot 1 and the second becomes slot 2. Those slots are what you pass when updating a single reference later.",
             "items": {
               "$ref": "#/components/schemas/ReferenceInput"
             }
