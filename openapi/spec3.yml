@@ -3390,8 +3390,11 @@ paths:
             Idempotent-Replayed:
               $ref: '#/components/headers/IdempotentReplayed'
         '400':
-          description: Bad Request / Validation Failed (10015). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key
-            headers are rejected by Edge with HTTP 400 and error code 10015.
+          description: 'Bad Request / Validation Failed (10015). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key
+            headers are rejected by Edge with HTTP 400 and error code 10015. The assistant configuration is validated too:
+            enabling `privacy_settings.in_transit_data_locality` is refused when the organization''s data-locality region
+            has no in-region inference, or when any model the assistant could use — its `model`, its `fallback_config`, or
+            a conversation-flow node override — is not Telnyx-hosted.'
           content:
             application/json:
               schema:
@@ -4152,6 +4155,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/inference-embedding_Assistant'
+        '400':
+          description: Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality`
+            is refused when the organization's data-locality region has no in-region inference, or when any model the assistant
+            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is not Telnyx-hosted. The
+            response detail names the model and where it is configured. Validation runs against the merged result of the update,
+            not only the fields sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
         '422':
           description: Validation Error
           content:
@@ -4428,6 +4441,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AssistantChatResponse'
+        '400':
+          description: Bad Request. The turn was refused before any message content was processed. For example, an assistant
+            with `privacy_settings.in_transit_data_locality` enabled refuses a request that entered the platform outside the
+            organization's data-locality region, or that this deployment cannot serve in that region; the response detail
+            names the API hostname to send it to.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
         '422':
           description: Validation Error
           content:
@@ -5281,6 +5303,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/inference-embedding_Assistant'
+        '400':
+          description: Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality`
+            is refused when the organization's data-locality region has no in-region inference, or when any model the assistant
+            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is not Telnyx-hosted. The
+            response detail names the model and where it is configured. Validation runs against the merged result of the update,
+            not only the fields sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
         '422':
           description: Validation Error
           content:
@@ -109198,6 +109230,16 @@ components:
             in‑tool toggle governs solely the retention of conversation history and insights via the AI assistant. It has
             no effect on any separate recording, transcription, or storage configuration that you have set at the account,
             number, or application level. All such external settings remain in force regardless of your selection here.
+        in_transit_data_locality:
+          type: boolean
+          default: false
+          description: 'Requires every model call made for a web chat turn to be received and served inside your organization''s
+            data-locality region, rather than only stored there. Applies to web chat only — voice and messaging assistants
+            are unaffected. Enabling it requires a data-locality region with in-region inference (USA, DEU, AUS, UAE) and
+            Telnyx-hosted models for the assistant, its fallback, and any conversation-flow node that overrides the model;
+            the request is rejected otherwise. Once enabled, send chat requests to your region''s API hostname: a request
+            entering the platform in another region is rejected rather than forwarded, because forwarding it would already
+            have moved the content across the border. Defaults to false.'
       type: object
     PrivateWirelessGateway:
       type: object
