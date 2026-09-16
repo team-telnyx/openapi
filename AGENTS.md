@@ -32,7 +32,7 @@ Do not run formatters, codegen, or "fix" commands against the spec files — the
 ## PR Expectations
 - Branch from `master`; small, focused PRs.
 - Do not hand-edit generated YAML/JSON specs — file an issue against the internal source-of-truth instead.
-- README maintainer is @nicktimko; recent sync PRs come from @ankitTelnyx — request review from one of them.
+- README maintainer is Ankit Samantaray (@ankitTelnyx) — request review from him.
 - Keep PRs scoped to repo-level docs/tooling (like this file). Spec changes should flow through the internal generator.
 
 ## API & Security Boundaries
