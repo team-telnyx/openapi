@@ -14,4 +14,4 @@ The files in this repository are generated from an internal repo.  However, sugg
 
 ## Maintainers
 
-Nick Timkovich ([@nicktimko](https://github.com/nicktimko))
+Ankit Samantaray ([@ankitTelnyx](https://github.com/ankitTelnyx))
