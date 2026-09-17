@@ -66653,15 +66653,18 @@ components:
         after creating/updating tests.'
     AssistantTools:
       description: Deprecated for new integrations. Inline tool definitions available to the assistant. Prefer `tool_ids`
-        to attach shared tools created with the AI Tools endpoints.
+        to attach shared tools created with the AI Tools endpoints. On update, a sent `tools` array fully replaces the assistant's
+        inline tools; omit the field to leave them unchanged. Each tool type except `function`, `webhook`, and `client_side_tool`
+        allows at most one instance per assistant, counted across inline `tools` and shared `tool_ids` combined.
       type: array
       items:
         oneOf:
+        - $ref: '#/components/schemas/FunctionTool'
         - $ref: '#/components/schemas/inference-embedding_WebhookTool'
         - $ref: '#/components/schemas/ClientSideTool'
         - $ref: '#/components/schemas/RetrievalTool'
         - $ref: '#/components/schemas/HandoffTool'
-        - $ref: '#/components/schemas/HangupTool'
+        - $ref: '#/components/schemas/inference-embedding_HangupTool'
         - $ref: '#/components/schemas/inference-embedding_TransferTool'
         - $ref: '#/components/schemas/InviteTool'
         - $ref: '#/components/schemas/SIPReferTool'
@@ -76198,6 +76201,14 @@ components:
           type: string
           enum:
           - client_side_tool
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         client_side_tool:
           $ref: '#/components/schemas/ClientSideToolParams'
       required:
@@ -85773,6 +85784,14 @@ components:
           type: string
           enum:
           - send_dtmf
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         send_dtmf:
           type: object
           additionalProperties: true
@@ -92501,6 +92520,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FunctionMetricAggregate'
+    FunctionTool:
+      properties:
+        type:
+          type: string
+          enum:
+          - function
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
+        function:
+          $ref: '#/components/schemas/FunctionDefinition'
+      type: object
+      required:
+      - type
+      - function
+      title: FunctionTool
     GCSConfigurationData:
       type: object
       title: Google Cloud Storage Configuration Data
@@ -93841,6 +93881,14 @@ components:
           type: string
           enum:
           - handoff
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         handoff:
           $ref: '#/components/schemas/HandoffToolParams'
       type: object
@@ -96654,6 +96702,14 @@ components:
           type: string
           enum:
           - invite
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         invite:
           $ref: '#/components/schemas/InviteToolConfig'
           title: InviteToolConfig
@@ -105260,6 +105316,14 @@ components:
           type: string
           enum:
           - pay
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         pay:
           $ref: '#/components/schemas/PayToolParams'
       type: object
@@ -112394,6 +112458,14 @@ components:
           type: string
           enum:
           - retrieval
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         retrieval:
           $ref: '#/components/schemas/BucketIds'
       type: object
@@ -113802,6 +113874,14 @@ components:
           type: string
           enum:
           - refer
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         refer:
           $ref: '#/components/schemas/SIPReferToolParams'
       type: object
@@ -114405,6 +114485,14 @@ components:
           type: string
           enum:
           - send_message
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         send_message:
           type: object
           properties:
@@ -115272,6 +115360,14 @@ components:
           type: string
           enum:
           - skip_turn
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         skip_turn:
           $ref: '#/components/schemas/SkipTurnToolParams'
       type: object
@@ -125006,8 +125102,13 @@ components:
           description: System instructions for the assistant. These may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
         tools:
           $ref: '#/components/schemas/AssistantTools'
-          description: Deprecated for new integrations. Inline tool definitions available to the assistant. Prefer `tool_ids`
-            to attach shared tools created with the AI Tools endpoints.
+          description: 'Deprecated for new integrations. Inline tool definitions available to the assistant. Prefer `tool_ids`
+            to attach shared tools created with the AI Tools endpoints. On update, a sent `tools` array fully replaces the
+            assistant''s inline tools; omit the field to leave the inline tools unchanged. Each tool type except `function`,
+            `webhook`, and `client_side_tool` allows at most one instance per assistant, counted across inline `tools` and
+            shared `tool_ids` combined — sending a duplicate of such a type returns HTTP 400 with error code 10015. Responses
+            merge shared tools into `tools` with `shared: true`; when updating, omit those tools from the `tools` array and
+            manage them through `tool_ids` instead.'
         mcp_servers:
           type: array
           items:
@@ -125032,7 +125133,9 @@ components:
             type: string
           type: array
           description: IDs of shared tools to attach to the assistant. New integrations should prefer `tool_ids` over inline
-            `tools`.
+            `tools`. On update, a sent `tool_ids` array fully replaces the assistant's attached shared tools; omit the field
+            to leave them unchanged. Single-instance tool types are counted across inline `tools` and `tool_ids` combined,
+            so attaching a shared tool of such a type when an instance already exists returns HTTP 400 with error code 10015.
         description:
           type: string
         greeting:
@@ -125875,6 +125978,14 @@ components:
           type: string
           enum:
           - update_dynamic_variables
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         update_dynamic_variables:
           $ref: '#/components/schemas/UpdateDynamicVariablesToolParams'
       type: object
@@ -136366,8 +136477,10 @@ components:
           description: System instructions for the assistant. These may be templated with [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
         tools:
           $ref: '#/components/schemas/AssistantTools'
-          description: Deprecated for new integrations. Inline tool definitions available to the assistant. Prefer `tool_ids`
-            to attach shared tools created with the AI Tools endpoints.
+          description: 'The assistant''s tools. Responses merge the assistant''s shared Tools Library tools into this array
+            alongside inline tools, each flagged `shared: true`; inline tools carry `shared: false`. On update, a sent `tools`
+            array fully replaces the inline tools only — shared tools stay attached unless `tool_ids` changes. Each tool type
+            except `function`, `webhook`, and `client_side_tool` allows at most one instance per assistant across both sources.'
         mcp_servers:
           type: array
           items:
@@ -136518,6 +136631,27 @@ components:
             $ref: '#/components/schemas/inference-embedding_ErrorObject'
       required:
       - errors
+    inference-embedding_HangupTool:
+      properties:
+        type:
+          type: string
+          enum:
+          - hangup
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
+        hangup:
+          $ref: '#/components/schemas/HangupToolParams'
+      type: object
+      required:
+      - type
+      - hangup
+      title: HangupTool
     inference-embedding_InterruptionSettings:
       type: object
       title: InterruptionSettings
@@ -136541,6 +136675,14 @@ components:
           type: string
           enum:
           - transfer
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         transfer:
           $ref: '#/components/schemas/InferenceEmbeddingTransferToolParams'
       type: object
@@ -136554,6 +136696,14 @@ components:
           type: string
           enum:
           - webhook
+        shared:
+          type: boolean
+          description: 'Whether this tool comes from the shared Tools Library. Responses merge shared tools into `tools` with
+            `shared: true`; inline tools carry `shared: false`. Read-only: set by the server, not accepted in requests. When
+            updating an assistant, omit `shared: true` tools from the request `tools` array and manage them through `tool_ids`
+            instead — re-sending their definitions creates an inline duplicate (rejected with error code 10015 when the type
+            allows only one instance per assistant).'
+          readOnly: true
         webhook:
           $ref: '#/components/schemas/WebhookToolParams'
       type: object
