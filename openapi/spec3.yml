@@ -20018,11 +20018,7 @@ paths:
                   source:
                     pointer: /data/attributes/status
         '429':
-          description: The account's daily send limit was exceeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/email_ErrorResponse'
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '503':
           $ref: '#/components/responses/DraftUnavailableResponse'
   /email_inboxes/{inbox_id}/filters:
@@ -20537,17 +20533,7 @@ paths:
                       scope: account
                       override_allowed: false
         '429':
-          description: Sending is suspended because the inbox domain reputation is too low.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/email_ErrorResponse'
-              example:
-                errors:
-                - code: reputation_suspended
-                  title: Sending Suspended
-                  detail: Sender domain reputation is too low. Sending has been suspended. Please contact support to resolve
-                    deliverability issues.
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '503':
           description: Inbox message actions or the email domain service are temporarily unavailable (10016).
           content:
@@ -20679,17 +20665,7 @@ paths:
                   source:
                     pointer: /data/attributes/text
         '429':
-          description: Sending is suspended because the inbox domain reputation is too low.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/email_ErrorResponse'
-              example:
-                errors:
-                - code: reputation_suspended
-                  title: Sending Suspended
-                  detail: Sender domain reputation is too low. Sending has been suspended. Please contact support to resolve
-                    deliverability issues.
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '503':
           description: Inbox message actions or the email domain service are temporarily unavailable (10016).
           content:
@@ -20831,17 +20807,7 @@ paths:
                   source:
                     pointer: /data/attributes/text
         '429':
-          description: Sending is suspended because the inbox domain reputation is too low.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/email_ErrorResponse'
-              example:
-                errors:
-                - code: reputation_suspended
-                  title: Sending Suspended
-                  detail: Sender domain reputation is too low. Sending has been suspended. Please contact support to resolve
-                    deliverability issues.
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '503':
           description: Inbox message actions or the email domain service are temporarily unavailable (10016).
           content:
@@ -21467,11 +21433,7 @@ paths:
         '503':
           $ref: '#/components/responses/email_ServiceUnavailableResponse'
         '429':
-          description: Sending suspended — domain reputation band is 'poor'.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReputationSuspendedError'
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '409':
           $ref: '#/components/responses/IdempotencyConflictResponse'
         '413':
@@ -21529,11 +21491,7 @@ paths:
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
         '429':
-          description: Sending suspended — domain reputation band is 'poor'.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReputationSuspendedError'
+          $ref: '#/components/responses/EmailSendTooManyRequestsResponse'
         '409':
           $ref: '#/components/responses/IdempotencyConflictResponse'
         '413':
@@ -61881,6 +61839,52 @@ components:
             - code: '10016'
               title: Service Unavailable
               detail: Drafts are temporarily unavailable. Please try again later.
+    EmailSendTooManyRequestsResponse:
+      description: Send rejected before message creation because the account daily recipient quota was exhausted (10011),
+        the sender-domain graduation ceiling was exceeded (domain_graduation_limit_exceeded), or domain reputation is poor
+        (reputation_suspended).
+      headers:
+        Retry-After:
+          description: Seconds until the next UTC-midnight reset. Present only for domain_graduation_limit_exceeded; omitted
+            for 10011 and reputation_suspended.
+          schema:
+            type: integer
+            minimum: 1
+          example: 3600
+      content:
+        application/json:
+          schema:
+            oneOf:
+            - $ref: '#/components/schemas/DailySendLimitError'
+            - $ref: '#/components/schemas/DomainGraduationLimitExceededError'
+            - $ref: '#/components/schemas/ReputationSuspendedError'
+          examples:
+            accountDailyLimit:
+              summary: Account daily recipient quota exhausted
+              value:
+                errors:
+                - code: '10011'
+                  title: Too Many Requests
+                  detail: Daily send limit of 1000 recipients exceeded. The limit resets at midnight UTC.
+            senderDomainGraduation:
+              summary: Sender-domain graduation ceiling exceeded
+              value:
+                errors:
+                - code: domain_graduation_limit_exceeded
+                  title: Too Many Requests
+                  detail: Daily send limit of 250 recipients for this sender domain exceeded. The limit resets at midnight
+                    UTC.
+                  meta:
+                    retry_after_seconds: 3600
+                    remaining_today: 0
+            reputationSuspended:
+              summary: Domain reputation is poor
+              value:
+                errors:
+                - code: reputation_suspended
+                  title: Sending Suspended
+                  detail: Sender domain reputation is too low. Sending has been suspended. Please contact support to resolve
+                    deliverability issues.
     Forbidden:
       description: The authenticated credential is not permitted to perform this operation.
       content:
@@ -86280,6 +86284,33 @@ components:
       - type
       - send_dtmf
       title: DTMFTool
+    DailySendLimitError:
+      type: object
+      description: Error envelope returned when the account's daily recipient quota is exhausted before message creation.
+      required:
+      - errors
+      properties:
+        errors:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: object
+            required:
+            - code
+            - title
+            - detail
+            properties:
+              code:
+                type: string
+                enum:
+                - '10011'
+              title:
+                type: string
+                example: Too Many Requests
+              detail:
+                type: string
+                example: Daily send limit of 1000 recipients exceeded. The limit resets at midnight UTC.
     DateTimeRFC2822:
       type: string
       format: date-time
@@ -87815,6 +87846,48 @@ components:
             $ref: '#/components/schemas/DocumentTypeReference'
         meta:
           $ref: '#/components/schemas/branded-calling_PaginationMeta'
+    DomainGraduationLimitExceededError:
+      type: object
+      description: Error envelope returned when a newly sending custom domain on shared egress would exceed its current daily
+        graduation ceiling. The send is rejected before message creation.
+      required:
+      - errors
+      properties:
+        errors:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: object
+            required:
+            - code
+            - title
+            - detail
+            properties:
+              code:
+                type: string
+                enum:
+                - domain_graduation_limit_exceeded
+              title:
+                type: string
+                example: Too Many Requests
+              detail:
+                type: string
+                example: Daily send limit of 250 recipients for this sender domain exceeded. The limit resets at midnight
+                  UTC.
+              meta:
+                type: object
+                description: Bounded retry guidance. Each field is omitted when unknown.
+                additionalProperties: false
+                properties:
+                  retry_after_seconds:
+                    type: integer
+                    minimum: 1
+                    description: Seconds until the next UTC-midnight reset.
+                  remaining_today:
+                    type: integer
+                    minimum: 0
+                    description: Recipient headroom remaining for the sender-domain identity before this rejected request.
     DomainsErrorResponse:
       type: object
       required:
@@ -90707,15 +90780,18 @@ components:
       properties:
         code:
           type: string
-          description: Telnyx error code. Edge idempotency errors use 10027 or 10036. Fallback 404/500 responses from the
-            framework may use string status codes ('404', '500') instead.
+          description: Telnyx error code. Send admission errors include account daily quota 10011 and sender-domain ramp code
+            domain_graduation_limit_exceeded. Edge idempotency errors use 10027 or 10036. Fallback 404/500 responses from
+            the framework may use string status codes ('404', '500') instead.
           enum:
           - '10001'
           - '10006'
           - '10007'
+          - '10011'
           - '10015'
           - '10016'
           - '10019'
+          - domain_graduation_limit_exceeded
           - recipient_suppressed
           - reputation_suspended
           - '404'
@@ -113482,11 +113558,19 @@ components:
       type: object
       description: Non-standard error envelope returned when the sending domain's reputation band is 'poor'. Uses string code
         `reputation_suspended` instead of a numeric code.
+      required:
+      - errors
       properties:
         errors:
           type: array
+          minItems: 1
+          maxItems: 1
           items:
             type: object
+            required:
+            - code
+            - title
+            - detail
             properties:
               code:
                 type: string
