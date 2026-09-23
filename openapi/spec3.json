@@ -343,6 +343,10 @@
       "description": "Messaging usage reports"
     },
     {
+      "name": "Machine Payments",
+      "description": "Machine payment (MPP) account-credit operations. Fund your Telnyx account programmatically from a machine or agent using the Machine Payment Protocol, an HTTP-402 flow settled via Stripe or Tempo."
+    },
+    {
       "name": "Managed Accounts",
       "description": "Managed Accounts operations"
     },
@@ -42429,6 +42433,261 @@
             "description": "Resource not found"
           }
         }
+      }
+    },
+    "/machine-payments/account-credit": {
+      "post": {
+        "summary": "Create a machine payment account credit",
+        "description": "Creates an account credit using the Machine Payment Protocol (MPP), an HTTP-402 payment flow for machines and agents.\n\nThe flow has two steps. First, send an authenticated request with the `amount_usd` to credit; the response is `402 Payment Required` with one or more payment challenges (for example separate Tempo and Stripe challenges) in the `WWW-Authenticate` header. Second, retry the request with an `Authorization: Payment ...` credential constructed from the challenge; on success the response includes the credited transaction and a `Payment-Receipt` header.\n\nThe credited account is never chosen by the request body: the initial request credits the account of the authenticated user, and a paid retry credits the account bound to the verified payment credential. The amount must be within the configured bounds (by default between 5.00 and 500.00 USD).\n\nSuccessful paid retries are idempotent \u2014 when Rails reaches its duplicate-transaction lookup for an already-recorded payment, it returns the existing transaction with `created: false` instead of crediting the account again. This deduplication applies to successful fulfillment: re-sending the same Stripe credential may instead be rejected by the upstream provider as an idempotent replay and return `402 Payment Required` rather than the existing transaction.\n\n> **Warning: the payment credential is bound to a specific Telnyx account ID.** A payment is captured before the bound account is validated. If the credential names an account that is missing, suspended, blocked, cancelled, dormant, or ineligible for the tier, the payment is captured but **no account is credited**. If the credential names a different but eligible account, that account is credited \u2014 the service does not compare it against the payer's account. There is **no automatic refund**: if the captured payment does not credit the intended account, contact Telnyx support for remediation.",
+        "operationId": "createMachinePaymentAccountCredit",
+        "tags": [
+          "Machine Payments"
+        ],
+        "x-endpoint-cost": "light",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "Payment": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MachinePaymentAccountCreditRequest"
+              },
+              "example": {
+                "amount_usd": "10.00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account credit created from a verified machine payment",
+            "headers": {
+              "Payment-Receipt": {
+                "$ref": "#/components/headers/PaymentReceipt"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachinePaymentAccountCreditResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "de06811a-2e43-4561-af5a-7d0a26e20bbb",
+                    "record_type": "machine_payment_account_credit",
+                    "account_id": "123456789",
+                    "amount": "10.00",
+                    "currency": "USD",
+                    "payment_source": "machine_payment",
+                    "provider": "stripe",
+                    "payment_method": "stripe_spt",
+                    "payment_intent_id": "pi_3OrJx2eZvKYlo2C1234abcd",
+                    "receipt_reference": "pi_3OrJx2eZvKYlo2C1234abcd",
+                    "mpp_resource": "telnyx:account-credit:123456789:usd:10.00",
+                    "status": "settled",
+                    "created": true,
+                    "created_at": "2026-08-12T15:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Successful duplicate paid retry \u2014 the existing account-credit transaction is returned and the account is not credited again. This applies when Rails reaches its duplicate-transaction lookup; re-sending the same Stripe credential may instead be rejected by the upstream provider as an idempotent replay and return `402 Payment Required`.",
+            "headers": {
+              "Payment-Receipt": {
+                "$ref": "#/components/headers/PaymentReceipt"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachinePaymentAccountCreditResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "de06811a-2e43-4561-af5a-7d0a26e20bbb",
+                    "record_type": "machine_payment_account_credit",
+                    "account_id": "123456789",
+                    "amount": "10.00",
+                    "currency": "USD",
+                    "payment_source": "machine_payment",
+                    "provider": "stripe",
+                    "payment_method": "stripe_spt",
+                    "payment_intent_id": "pi_3OrJx2eZvKYlo2C1234abcd",
+                    "receipt_reference": "pi_3OrJx2eZvKYlo2C1234abcd",
+                    "mpp_resource": "telnyx:account-credit:123456789:usd:10.00",
+                    "status": "settled",
+                    "created": false,
+                    "created_at": "2026-08-12T15:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required. One or more Machine Payment Protocol challenges (for example separate Tempo and Stripe challenges) are returned in the `WWW-Authenticate` header. Construct a payment credential from a challenge and retry the request with an `Authorization: Payment ...` header.",
+            "headers": {
+              "WWW-Authenticate": {
+                "$ref": "#/components/headers/WWWAuthenticateChallenge"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized \u2014 the request carried neither valid Telnyx API credentials nor an `Authorization: Payment ...` credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/machine-payments_ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "The required authentication headers were either invalid or not included in the request."
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden \u2014 machine payments are not enabled for the account, the account tier is ineligible, the account is suspended, or the request origin is not permitted. Note: when the account is suspended the failure is returned via `render_failure` as `{\"success\": false, \"message\": \"You must verify your identity before you may perform this action.\", \"reasons\": []}` rather than the standard `errors` envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/machine-payments_ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MachinePaymentSuspendedAccountFailure"
+                    }
+                  ]
+                },
+                "examples": {
+                  "machine-payments-disabled": {
+                    "summary": "Machine payments not enabled, tier ineligible, or origin not permitted",
+                    "value": {
+                      "errors": [
+                        {
+                          "detail": "Machine payments are not currently enabled"
+                        }
+                      ]
+                    }
+                  },
+                  "suspended-account": {
+                    "summary": "Suspended account",
+                    "value": {
+                      "success": false,
+                      "message": "You must verify your identity before you may perform this action.",
+                      "reasons": []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict \u2014 the payment maps to an already-recorded account credit with different fulfillment metadata, so the account is not credited again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/machine-payments_ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "detail": "machine payment account credit conflicts with existing transaction"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity \u2014 missing or invalid `amount_usd`, or the request fails account-credit policy checks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/machine-payments_ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10027",
+                      "title": "Invalid request",
+                      "detail": "amount_usd must be at least 5.00"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request \u2014 proxied verbatim from the upstream machine payment service when it rejects the request: a malformed or undeserializable `Authorization: Payment ...` credential, a payment credential whose amount violates the upstream amount policy, or a request that fails upstream schema validation. The body is the upstream singular `error` envelope, not the standard Telnyx `errors` array.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachinePaymentUpstreamError"
+                },
+                "examples": {
+                  "invalid-payment-credential": {
+                    "summary": "Malformed or undeserializable Payment credential",
+                    "value": {
+                      "error": "Invalid Payment authorization credential"
+                    }
+                  },
+                  "amount-policy": {
+                    "summary": "Credential amount outside the upstream amount policy",
+                    "value": {
+                      "error": "amount_usd must be at least 5.00"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found \u2014 proxied verbatim from the upstream machine payment service when the machine payment provider is disabled. The body is the upstream singular `error` envelope, not the standard Telnyx `errors` array.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachinePaymentUpstreamError"
+                },
+                "example": {
+                  "error": "Not found"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad gateway \u2014 the upstream machine payment service failed to process the request. Other upstream failure statuses (for example 404 when the machine payment provider is disabled, or 400 for schema validation failures) may be proxied verbatim to the client.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/machine-payments_ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "detail": "Machine payment service failed"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "x-latency-category": "responsive"
       }
     },
     "/managed_accounts": {
@@ -85114,6 +85373,18 @@
             true
           ],
           "example": true
+        }
+      },
+      "PaymentReceipt": {
+        "description": "Machine Payment Protocol receipt returned on successful paid responses. Contains the receipt token identifying the settled payment; keep it for audit and reconciliation alongside the credited transaction.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "WWWAuthenticateChallenge": {
+        "description": "Machine Payment Protocol challenge(s) returned on a 402 response, following the HTTP WWW-Authenticate format (RFC 9110). Construct a payment credential from a challenge and retry the same request with an `Authorization: Payment ...` header carrying it.",
+        "schema": {
+          "type": "string"
         }
       }
     },
@@ -138244,6 +138515,168 @@
           }
         }
       },
+      "MachinePaymentAccountCredit": {
+        "type": "object",
+        "description": "An account-credit transaction settled through the Machine Payment Protocol.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the account-credit transaction."
+          },
+          "record_type": {
+            "type": "string",
+            "enum": [
+              "machine_payment_account_credit"
+            ],
+            "description": "Record type identifier."
+          },
+          "account_id": {
+            "type": "string",
+            "description": "Identifier of the credited Telnyx account. Derived from the authenticated user on the initial request and from the verified payment credential on a paid retry \u2014 never from the request body."
+          },
+          "amount": {
+            "type": "string",
+            "description": "Credited amount as a decimal string with two fractional digits."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code of the credited amount (currently always USD)."
+          },
+          "payment_source": {
+            "type": "string",
+            "enum": [
+              "machine_payment"
+            ],
+            "description": "Payment source identifier distinguishing machine payments from other account-credit sources."
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "stripe",
+              "tempo",
+              null
+            ],
+            "description": "Upstream payment provider that settled the payment."
+          },
+          "payment_method": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "stripe_spt",
+              "tempo_usdc",
+              null
+            ],
+            "description": "Payment method used by the provider: `stripe_spt` for Stripe Shared Payment Token payments, `tempo_usdc` for Tempo USDC payments."
+          },
+          "payment_intent_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stripe PaymentIntent identifier for Stripe settlements. Absent for Tempo settlements."
+          },
+          "receipt_reference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Provider receipt reference: the Stripe PaymentIntent identifier for Stripe settlements, or the on-chain transaction hash for Tempo settlements."
+          },
+          "mpp_resource": {
+            "type": "string",
+            "nullable": true,
+            "description": "Machine Payment Protocol resource identifier the payment credential was bound to."
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "new",
+              "processing",
+              "settled",
+              "expired",
+              "invalid",
+              null
+            ],
+            "description": "Status of the transaction. Successful machine payment credits are recorded as `settled`."
+          },
+          "created": {
+            "type": "boolean",
+            "description": "True when this response created a new account credit, false when an existing transaction was returned for a duplicate paid retry."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the transaction was created."
+          }
+        },
+        "required": [
+          "id",
+          "record_type",
+          "account_id",
+          "amount",
+          "currency",
+          "payment_source"
+        ]
+      },
+      "MachinePaymentAccountCreditRequest": {
+        "type": "object",
+        "required": [
+          "amount_usd"
+        ],
+        "properties": {
+          "amount_usd": {
+            "type": "string",
+            "description": "Amount to credit in USD, as a decimal string with up to two fractional digits (by default between 5.00 and 500.00). The request body is required on the initial challenge request and remains required on a paid retry, where you re-send the identical body plus the payment credential \u2014 the credential, not the body, selects the payment, and the retried body is not re-validated.",
+            "example": "10.00"
+          }
+        }
+      },
+      "MachinePaymentAccountCreditResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MachinePaymentAccountCredit"
+          }
+        }
+      },
+      "MachinePaymentSuspendedAccountFailure": {
+        "type": "object",
+        "description": "Legacy failure envelope returned when the account is suspended.",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Always false for a failure response."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable reason the request failed."
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Additional machine-readable reasons for the failure."
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "reasons"
+        ]
+      },
+      "MachinePaymentUpstreamError": {
+        "type": "object",
+        "description": "Error envelope proxied verbatim from the upstream machine payment service. Unlike the standard Telnyx `errors` array, it carries a single top-level `error` message.",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Upstream error message.",
+            "example": "Invalid Payment authorization credential"
+          }
+        }
+      },
       "ManagedAccount": {
         "type": "object",
         "title": "ManagedAccount",
@@ -188992,6 +189425,47 @@
         "description": "The locality of the address. For US addresses, this corresponds to the city of the address.",
         "example": "Austin"
       },
+      "machine-payments_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "errors"
+        ]
+      },
       "media-storage_Error": {
         "required": [
           "code",
@@ -195554,6 +196028,12 @@
         "scheme": "bearer",
         "bearerFormat": "API key",
         "description": "Telnyx API key supplied as `Authorization: Bearer <token>`. In production, auth may be validated by the API gateway and forwarded via Telnyx auth headers."
+      },
+      "Payment": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Machine Payment Protocol credential used on paid retries, sent as `Authorization: Payment ...`. Obtained by paying a challenge returned in the `WWW-Authenticate` header of a 402 response. This is not a Telnyx API key; initial challenge requests use standard bearer authentication instead."
       },
       "bearerAuth": {
         "type": "http",
