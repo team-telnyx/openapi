@@ -18666,11 +18666,17 @@ paths:
 
         CSV columns: `id,to,from,reason,source,scope,status,domain_id,
 
-        created_at,updated_at,expires_at,group_id`. The CSV carries the
+        created_at,updated_at,expires_at,group_id,bounce_category,dsn_code,
 
-        `group_id` column so group-scoped suppressions'' group link survives
+        meta` (15 columns). The first 12 columns are the stable native
 
-        the export (empty for account-scope rows).
+        signature; `bounce_category`, `dsn_code`, and `meta` are optional
+
+        backup fields (empty when unset). The CSV carries the `group_id`
+
+        column so group-scoped suppressions'' group link survives the
+
+        export (empty for account-scope rows).
 
         '
       operationId: exportEmailBlocks
@@ -18689,7 +18695,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                description: CSV with header row `id,to,from,reason,source,scope,status,domain_id,created_at,updated_at,expires_at,group_id`.
+                description: CSV with header row `id,to,from,reason,source,scope,status,domain_id,created_at,updated_at,expires_at,group_id,bounce_category,dsn_code,meta`.
               example: string
         '400':
           $ref: '#/components/responses/ValidationErrorQuery'
@@ -18705,9 +18711,17 @@ paths:
       description: "Accepts `multipart/form-data` with a `file` field (the CSV) and an\noptional `block_ttl_days` (integer\
         \ >0, default 30). Validates:\n  - content ≤ 25 MiB, else `413`\n  - row count ≤ 250 000, else `413`\n  - header-only\
         \ / all-blank / undetectable provider → `400`\nReturns `202` with the import record (status `pending`); an Oban\n\
-        worker (`EmailBlockImportWorker`, max_attempts 3) transitions\n`pending → processing → completed | failed`. `block_ttl_days`\n\
-        applies only to imported `manual_block` rows; other reasons get\n`expires_at: nil`. Provider is auto-detected from\
-        \ the CSV header\n(`sendgrid` / `mailgun` / `ses` / `generic`).\n"
+        worker (`EmailBlockImportWorker`, max_attempts 3) transitions\n`pending → processing → completed | failed`.\n\nNative\
+        \ Telnyx exports are detected by the stable first-12-column\nheader signature (`id` … `group_id`) and are restored\
+        \ with their\noriginal `from`, `domain_id`, `group_id`, `source`, `status`,\n`expires_at`, plus `bounce_category`,\
+        \ `dsn_code`, and `meta` when\npresent (`scope` is re-derived from `domain_id`/`from`; the\nexported `scope` cell\
+        \ must be a valid enum value). Lifecycle\nchanges reconcile through the same create path as the API: a row\nalready\
+        \ in the requested state restores its mutable backup fields\nwithout a new audit event, and a real transition (e.g.\
+        \ tombstone\n→ active) appends the matching lifecycle event. `block_ttl_days`\nis not applied to native rows — their\
+        \ exported `expires_at` is\npreserved verbatim.\n\nCompetitor and generic imports (SendGrid / Mailgun / SES /\ngeneric)\
+        \ remain account-scoped (`from`, `domain_id`, `group_id`,\n`scope` are not read) and `block_ttl_days` applies only\
+        \ to\nimported `manual_block` rows; other reasons get `expires_at: nil`.\nProvider is auto-detected from the CSV header\n\
+        (`sendgrid` / `mailgun` / `ses` / `generic`).\n"
       operationId: createEmailBlockImport
       requestBody:
         required: true
@@ -19094,6 +19108,89 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       description: Returns the DNS records Telnyx generated for domain ownership and DKIM verification, plus MX records when
         inbound delivery is enabled.
+  /email_domains/{domain_id}/rotate_dkim:
+    post:
+      tags:
+      - Email Domains
+      summary: Rotate the DKIM key for an email domain
+      description: 'Generates a new DKIM key for the domain, activates it, and retires the previous key. The response includes
+        the updated DKIM DNS records the customer must publish. Selectors are fixed, so rotation replaces the TXT value at
+        the existing `<selector>._domainkey.<domain>` host rather than adding a second record — `old_selector_retained` is
+        false and the new TXT value must be published promptly, since signing switches to the new key immediately and the
+        old TXT value will no longer match. The previous key is retired to a `retiring` state (retained, not revoked) so it
+        can be revoked after the DNS propagation grace period.
+
+        '
+      operationId: rotateEmailDomainDKIMKey
+      parameters:
+      - $ref: '#/components/parameters/EmailDomainDomainId'
+      responses:
+        '201':
+          description: DKIM key rotated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDomainDKIMRotationResponse'
+              example:
+                data:
+                  record_type: email_domain_dkim_rotation
+                  domain_id: 123e4567-e89b-12d3-a456-426614174002
+                  domain: example.com
+                  dkim:
+                    id: 123e4567-e89b-12d3-a456-42661417400a
+                    selector: telnyx1
+                    algorithm: rsa-sha256
+                    key_length: 2048
+                    version: 2
+                    status: active
+                    activated_at: '2026-09-11T12:00:00Z'
+                  previous_dkim_key:
+                    id: 123e4567-e89b-12d3-a456-426614174009
+                    selector: telnyx1
+                    version: 1
+                    status: retiring
+                  old_selector_retained: false
+                  dns_records:
+                  - id: 123e4567-e89b-12d3-a456-42661417400b
+                    purpose: dkim
+                    record_type: TXT
+                    host: telnyx1._domainkey.example.com
+                    value: v=DKIM1; k=rsa; p=MIIBIjANBgkqh...
+                    actual_value: null
+                    priority: null
+                    required: true
+                    status: pending
+        '403':
+          description: 'Forbidden — shared email domains are managed by Telnyx and cannot have their DKIM keys rotated by
+            this account.
+
+            '
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainsErrorResponse'
+              example:
+                errors:
+                - code: '10008'
+                  title: Forbidden
+                  detail: Shared email domains are managed by Telnyx and cannot have their DKIM keys rotated by this account
+        '404':
+          $ref: '#/components/responses/email_NotFound'
+        '409':
+          description: DKIM rotation conflicted with a concurrent operation on this domain. Safe to retry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainsErrorResponse'
+              example:
+                errors:
+                - code: '40901'
+                  title: Conflict
+                  detail: DKIM rotation conflicted with a concurrent operation on this domain. Safe to retry.
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /email_domains/{domain_id}/verify:
     post:
       tags:
@@ -19403,14 +19500,64 @@ paths:
       - Email Events
       operationId: ListEmailEvents
       summary: List account email events
-      description: Lists account-level email events sorted oldest first by `occurred_at asc, id asc`.
+      description: 'Lists account-level email events sorted oldest first by `occurred_at asc, id asc`. Each row contains a
+        legacy email.-prefixed event_type and an additive canonical_event_type. Gateway rejection renders email.failed with
+        canonical email.gw_reject; ambiguous injection timeout renders email.injection_timeout in both; MTA expiration renders
+        email.bounced with canonical email.expired. Message-scoped queued, sending, sandbox, cancelled, and daily_limit_exceeded
+        rows fan out per durable recipient with stable derived IDs matching webhook delivery. Scheduled is the cardinality
+        exception: account polling retains one message-scoped scheduled row with its stored event ID, while scheduled webhook
+        publication fans out per recipient with derived IDs; reconcile scheduled events by message ID, event type, and occurrence
+        time rather than event UUID. Recipient-scoped stored rows retain their stored UUIDs across polling and webhook delivery.
+        Legacy names are derived from stored rows; an AdminBounce row stored as failed renders email.failed in polling while
+        its webhook retains email.bounced, both with canonical email.failed.'
       parameters:
       - $ref: '#/components/parameters/email_PageSize'
-      - $ref: '#/components/parameters/PageCursor'
+      - name: page[cursor]
+        in: query
+        description: Opaque URL-safe Base64 cursor returned by a previous event list response. The legacy `page[after]` and
+          flat `page_cursor` forms are also accepted.
+        required: false
+        schema:
+          type: string
+        example: eyJpbn...EifQ
       - name: event_type
         in: query
-        description: Comma-separated list of event types to include. Also accepts repeated query parameters (e.g. event_type=delivered&event_type=bounced).
+        description: 'Comma-separated list of event types to include. Also accepts repeated
+
+          query parameters (e.g. event_type=delivered&event_type=bounced).
+
           Unknown values return no matches.
+
+
+          Dual-name compatibility: values are accepted
+
+          bare or `email.`-prefixed. A legacy value keeps matching the
+
+          rows it matched pre-rename — no widening: `failed` also
+
+          matches the rows that now store the canonical names of the
+
+          outcomes it covered (`gw_reject`, `injection_timeout`,
+
+          `expired`); `bounced` matches stored `bounced` rows only
+
+          (recipient-scoped Expirations stored `failed` pre-rename and
+
+          never matched `bounced`, so `expired` is deliberately not a
+
+          `bounced` expansion). A canonical value matches its own rows
+
+          plus legacy rows whose recorded payload evidence proves that
+
+          outcome (`expired` also surfaces legacy `bounced` rows with
+
+          `bounce_category: transient`). The additive
+
+          `canonical_event_type` field in each response row names the
+
+          canonical outcome.
+
+          '
         required: false
         schema:
           oneOf:
@@ -19438,28 +19585,29 @@ paths:
                 $ref: '#/components/schemas/AccountEmailEventListResponse'
               example:
                 data:
-                - record_type: email_event
-                  id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  type: queued
-                  occurred_at: '2024-01-23T18:10:02.574Z'
-                  email_id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-                  email:
+                - id: f3a2c1d0-1234-4abc-9def-67890abcdef0
+                  event_type: email.delivered
+                  canonical_event_type: email.delivered
+                  occurred_at: '2026-07-06T18:24:00.000Z'
+                  recipient_id: 7c1e9a44-2f60-4d1b-9a0e-3c7b5e8d1f22
+                  payload:
+                    id: b0c7e8cb-6227-4c74-9f32-c7f80c30934b
+                    recipient_id: 7c1e9a44-2f60-4d1b-9a0e-3c7b5e8d1f22
+                    status: delivered
+                    occurred_at: '2026-07-06T18:24:00.000Z'
                     from:
-                      email: string
-                      name: string
+                      email: sender@example.com
+                      name: Telnyx
                     to:
-                    - email: string
-                      name: string
-                    cc:
-                    - email: string
-                      name: string
-                    subject: string
+                      email: recipient@example.com
+                      name: null
+                      kind: to
+                    subject: Welcome
                 meta:
-                  page_size: 1
+                  page_size: 50
                   time_range:
-                    from: '2024-01-23T18:10:02.574Z'
-                    to: '2024-01-23T18:10:02.574Z'
-                  page_cursor: string
+                    from: '2026-07-01T00:00:00Z'
+                    to: '2026-07-31T00:00:00Z'
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
   /email_events/stats:
@@ -20660,6 +20808,8 @@ paths:
                   - email: blind@example.com
                   reply_to: null
                   subject: 'Fwd: Project update'
+                  tags: []
+                  metadata: {}
                   template_id: null
                   template_variables: {}
                   attachments: []
@@ -20805,6 +20955,8 @@ paths:
                   bcc: []
                   reply_to: null
                   subject: 'Re: Project update'
+                  tags: []
+                  metadata: {}
                   template_id: null
                   template_variables: {}
                   attachments: []
@@ -20942,6 +21094,8 @@ paths:
                   bcc: []
                   reply_to: null
                   subject: 'Re: Project update'
+                  tags: []
+                  metadata: {}
                   template_id: null
                   template_variables: {}
                   attachments: []
@@ -21495,16 +21649,37 @@ paths:
       - Email Messages
       operationId: ListEmailMessages
       summary: List email messages
-      description: 'Lists messages sorted newest first by `created_at desc, id desc`. No filters other than
-
-        cursor pagination are implemented. The legacy `/v2/emails` GET route is a backward-compatible
-
-        alias for this operation.
+      description: 'Lists messages sorted newest first by `created_at desc, id desc`. Tags and metadata filters compose with
+        cursor pagination. The legacy `/v2/emails` GET route is a backward-compatible alias for this operation.
 
         '
       parameters:
       - $ref: '#/components/parameters/email_PageSize'
       - $ref: '#/components/parameters/PageCursor'
+      - name: filter[tags]
+        in: query
+        required: false
+        description: Comma-separated tags. Each segment is trimmed, and messages having at least one supplied tag are returned;
+          matching is exact and case-sensitive after trimming. Because commas delimit values and surrounding whitespace is
+          removed, this filter cannot represent stored tags containing literal commas or leading/trailing whitespace. An empty
+          value omits the filter. Empty segments and non-string/nested query shapes return HTTP 400.
+        schema:
+          type: string
+        example: billing,transactional
+      - name: filter[metadata]
+        in: query
+        required: false
+        description: Metadata containment filter, supplied as a JSON object or comma-separated `key=value` pairs. All supplied
+          key/value pairs must be contained in the message metadata. An empty value or empty JSON object omits the filter.
+          Malformed values, valid non-object JSON, pairs without `=`, empty keys, and non-string/nested query shapes return
+          HTTP 400.
+        schema:
+          type: string
+        examples:
+          jsonObject:
+            value: '{"campaign":"spring","region":"us"}'
+          keyValuePairs:
+            value: campaign=spring,region=us
       responses:
         '200':
           description: Paginated list of email messages.
@@ -21512,6 +21687,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmailMessageListResponse'
+        '400':
+          description: The tags or metadata filter is malformed or uses an unsupported query shape.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+              examples:
+                invalidTagsFilter:
+                  value:
+                    errors:
+                    - code: '10015'
+                      title: Bad Request
+                      detail: filter[tags] must be a comma-separated list of non-empty tags
+                invalidMetadataFilter:
+                  value:
+                    errors:
+                    - code: '10015'
+                      title: Bad Request
+                      detail: filter[metadata] must be a JSON object or comma-separated key=value pairs
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
     post:
@@ -21600,8 +21794,10 @@ paths:
         '404':
           $ref: '#/components/responses/email_NotFoundResponse'
         '422':
-          description: Validation failed, send-time template rendering failed, or all recipients suppressed (code `recipient_suppressed`,
-            includes top-level `suppressed` array). Reusing an Idempotency-Key with a different request also returns 422 (10027).
+          description: Validation failed (including an invalid or non-future `scheduled_at`/`send_at`), send-time template
+            rendering failed (including a strict-variable failure naming the missing required variable), or all recipients
+            suppressed (code `recipient_suppressed`, includes top-level `suppressed` array). Reusing an Idempotency-Key with
+            a different request also returns 422 (10027).
           content:
             application/json:
               schema:
@@ -21632,7 +21828,9 @@ paths:
       summary: Create a batch of email messages
       description: Creates up to 1,000 email messages in a single request. Request-wide admission checks run first and can
         reject the whole batch before message creation. After those checks pass, each message is validated and sent independently;
-        item-level failures do not affect other messages, and the processed batch returns 207 Multi-Status.
+        item-level failures do not affect other messages, and the processed batch returns 207 Multi-Status. Per-message failures
+        include validation errors; when a template has `strict_variables` enabled, a missing required variable produces a
+        per-item `unprocessable_entity` error naming that variable while the other messages continue.
       requestBody:
         required: true
         content:
@@ -21654,10 +21852,11 @@ paths:
                 text_body: Message 2
       responses:
         '207':
-          description: Multi-Status — returned after request-wide admission checks pass and item processing runs. When all
-            messages succeed, `errors` is empty and every item is in `data`. When one or more items fail, the response contains
-            a `data` array for successes and an `errors` array for failures. Request-wide gates can instead return 4xx or
-            5xx.
+          description: Multi-Status — returned after request-wide admission checks pass and item processing runs. Each message
+            is validated and sent independently; per-message failures do not affect other messages in the batch. An invalid
+            or non-future `scheduled_at`/`send_at` is reported as a per-item `unprocessable_entity` error while the remaining
+            items continue. When all messages succeed, `errors` is empty and every item is in `data`; otherwise `data` contains
+            successes and `errors` contains failures. Request-wide gates can instead return 4xx or 5xx.
           content:
             application/json:
               schema:
@@ -21707,6 +21906,25 @@ paths:
 
         The legacy `/v2/emails/{id}/events` GET route is a backward-compatible alias.
 
+
+        For compatibility, each event carries the legacy
+
+        customer-visible `event_type` (`email.`-prefixed), the additive
+
+        `canonical_event_type` (`email.`-prefixed), and the deprecated
+
+        `type` duplicate — whose value keeps the exact legacy format:
+
+        the bare stored event name, never `email.`-prefixed. Gateway
+
+        rejections render `email.failed` + canonical `email.gw_reject`; MTA
+
+        expirations render `email.bounced` + canonical `email.expired`;
+
+        every unchanged outcome carries identical `event_type` and
+
+        `canonical_event_type` values (and `type` keeps the stored name).
+
         '
       parameters:
       - name: email_id
@@ -21728,10 +21946,15 @@ paths:
               example:
                 data:
                 - type: queued
-                  occurred_at: '2024-01-23T18:10:02.574Z'
+                  event_type: email.queued
+                  canonical_event_type: email.queued
+                  occurred_at: '2026-07-06T18:24:00.000Z'
+                - type: gw_reject
+                  event_type: email.failed
+                  canonical_event_type: email.gw_reject
+                  occurred_at: '2026-07-06T18:24:00.000Z'
                 meta:
-                  page_size: 1
-                  page_cursor: string
+                  page_size: 50
         '401':
           $ref: '#/components/responses/email_UnauthorizedResponse'
         '404':
@@ -21777,6 +22000,8 @@ paths:
           - failed
           - gw_reject
           - cancelled
+          - injection_timeout
+          - expired
       - name: kind
         in: query
         description: Filter recipients by address kind.
@@ -21897,6 +22122,63 @@ paths:
           $ref: '#/components/responses/email_UnauthorizedResponse'
         '404':
           $ref: '#/components/responses/email_NotFoundResponse'
+    patch:
+      tags:
+      - Email Messages
+      operationId: RescheduleEmailMessage
+      summary: Reschedule a scheduled email message
+      description: Moves an existing scheduled email to a new future send time. Only the delivery time (`scheduled_at`) changes;
+        the message ID, content, recipients, tags, and metadata remain unchanged. Returns `409 Conflict` if the message is
+        no longer scheduled or its scheduled-send worker has already started processing it. This route emits no dedicated
+        `rescheduled` event.
+      parameters:
+      - name: email_id
+        in: path
+        required: true
+        description: Email message UUID.
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        description: Provide a future delivery time. The timestamp in this example is illustrative; replace it with a value
+          that is in the future when making a request.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RescheduleEmailMessageRequest'
+            example:
+              scheduled_at: '2099-08-07T14:30:00Z'
+      responses:
+        '200':
+          description: Scheduled email rescheduled. The response matches the single-message GET representation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessageDetailResponse'
+        '401':
+          $ref: '#/components/responses/email_UnauthorizedResponse'
+        '404':
+          $ref: '#/components/responses/email_NotFoundResponse'
+        '409':
+          description: The email is not scheduled or its scheduled-send worker is already processing it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+        '422':
+          description: '`scheduled_at` is missing, invalid ISO 8601, or not in the future.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/email_ErrorResponse'
+              example:
+                errors:
+                - code: '10015'
+                  title: Validation Failed
+                  detail: scheduled_at must be in the future
+                  source:
+                    pointer: /data/attributes/scheduled_at
   /email_messages/{id}:
     delete:
       tags:
@@ -21971,6 +22253,9 @@ paths:
                   text_body: string
                   variables:
                   - string
+                  strict_variables: false
+                  autoescape: false
+                  variable_schema: null
                   created_at: '2024-01-23T18:10:02.574Z'
                   updated_at: '2024-01-23T18:10:02.574Z'
                 meta:
@@ -22084,6 +22369,9 @@ paths:
                   text_body: string
                   variables:
                   - string
+                  strict_variables: false
+                  autoescape: false
+                  variable_schema: null
                   created_at: '2024-01-23T18:10:02.574Z'
                   updated_at: '2024-01-23T18:10:02.574Z'
         '401':
@@ -22125,6 +22413,9 @@ paths:
                   text_body: string
                   variables:
                   - string
+                  strict_variables: false
+                  autoescape: false
+                  variable_schema: null
                   created_at: '2024-01-23T18:10:02.574Z'
                   updated_at: '2024-01-23T18:10:02.574Z'
         '401':
@@ -22167,6 +22458,9 @@ paths:
                   text_body: string
                   variables:
                   - string
+                  strict_variables: false
+                  autoescape: false
+                  variable_schema: null
                   created_at: '2024-01-23T18:10:02.574Z'
                   updated_at: '2024-01-23T18:10:02.574Z'
         '401':
@@ -22181,7 +22475,12 @@ paths:
       - Email Templates
       operationId: RenderEmailTemplate
       summary: Render an email template
-      description: Renders a template using the provided Liquid variables. Missing `template_variables` defaults to `{}`.
+      description: 'Renders a template using the provided Liquid variables. Missing `template_variables` defaults to `{}`.
+
+
+        When the template has `strict_variables` enabled and a required variable (per `variable_schema`) is missing, returns
+        422 naming the variable. When the template has `autoescape` enabled, the rendered `html_body` expression output is
+        HTML-escaped at the output boundary; `subject` and `text_body` are not autoescaped.'
       parameters:
       - $ref: '#/components/parameters/TemplateId'
       requestBody:
@@ -22210,6 +22509,9 @@ paths:
                   text_body: string
                   variables:
                   - string
+                  strict_variables: false
+                  autoescape: false
+                  variable_schema: null
                   created_at: '2024-01-23T18:10:02.574Z'
                   updated_at: '2024-01-23T18:10:02.574Z'
         '401':
@@ -65357,34 +65659,44 @@ components:
           format: date-time
     AccountEmailEvent:
       type: object
+      description: 'An account-polling event. The envelope is webhook-shaped, but polling preserves stored-event cardinality:
+        queued, sending, sandbox, cancelled, and daily_limit_exceeded message events fan out per recipient; scheduled remains
+        one message-scoped row. Payload fields vary among recipient-scoped, message-scoped, and minimal fallback rows.'
       properties:
-        record_type:
-          type: string
-          enum:
-          - email_event
         id:
           type: string
           format: uuid
-        type:
-          $ref: '#/components/schemas/EmailEventType'
+          description: Event UUID.
+        event_type:
+          type: string
+          pattern: ^email\.
+          example: email.delivered
+          description: Legacy customer-visible event name, prefixed with `email.`. Gateway rejections render `email.failed`;
+            MTA expirations render `email.bounced`. Webhook subscription allowlists match the legacy name.
+        canonical_event_type:
+          type: string
+          pattern: ^email\.
+          example: email.delivered
+          description: Additive canonical outcome name, prefixed with `email.`. Gateway rejection is `email.gw_reject`, ambiguous
+            injection timeout is `email.injection_timeout`, and MTA expiration is `email.expired`. Unchanged outcomes retain
+            their names. Existing stored rows are translated only when recorded payload evidence proves the outcome; a legacy
+            failed row is not guessed or sharpened.
         occurred_at:
           type: string
           format: date-time
-        email_id:
+        recipient_id:
           type: string
           format: uuid
-        email:
-          $ref: '#/components/schemas/EventEmailSummary'
-          description: Summary of the associated email message. Present when the email_message preload is available.
+          description: Durable email recipient UUID. Present for recipient-scoped events, including each queued, sending,
+            sandbox, cancelled, and daily_limit_exceeded fan-out event.
         payload:
-          type: object
-          additionalProperties: true
+          $ref: '#/components/schemas/AccountEmailEventPayload'
       required:
-      - record_type
       - id
-      - type
+      - event_type
+      - canonical_event_type
       - occurred_at
-      - email_id
+      - payload
     AccountEmailEventListResponse:
       type: object
       properties:
@@ -65397,6 +65709,98 @@ components:
       required:
       - data
       - meta
+    AccountEmailEventPayload:
+      type: object
+      additionalProperties: true
+      description: Payload returned by GET /email_events. Every row includes id, status, and occurred_at. Recipient-scoped
+        rows also include recipient_id, from, subject, and exactly one object-valued to, cc, or bcc field. Legacy or message-scoped
+        rows can omit recipient_id and use object-valued or string-valued to/cc fields, including an empty string when no
+        address exists; bcc is redacted. If the related message or recipient cannot be loaded, the minimal fallback can omit
+        from, subject, and recipient fields. Additional persisted public evidence can be present.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Email message UUID.
+        recipient_id:
+          type: string
+          format: uuid
+          description: Durable email recipient UUID. Present for recipient-scoped events.
+        status:
+          type: string
+          description: 'Stored event outcome slug, not the authoritative recipient status. Account polling returns the stored
+            name, including suppression, scan, and quarantine lifecycle names. Webhooks retain legacy payload names: gateway
+            rejections use failed and MTA expirations use bounced. New sharp stored rows can expose gw_reject, injection_timeout,
+            or expired. Use the envelope canonical_event_type to identify the outcome across surfaces.'
+          enum:
+          - queued
+          - deferred
+          - scheduled
+          - cancelled
+          - sandbox
+          - sending
+          - sent
+          - failed
+          - delivered
+          - bounced
+          - complained
+          - suppressed
+          - rejected
+          - opened
+          - clicked
+          - unsubscribed
+          - daily_limit_exceeded
+          - scan_deferred
+          - quarantined
+          - quarantine_released
+          - quarantine_release_dispatched
+          - quarantine_rejected
+          - quarantine_expired
+          - gw_reject
+          - injection_timeout
+          - expired
+        occurred_at:
+          type: string
+          format: date-time
+        from:
+          $ref: '#/components/schemas/AccountEmailEventSender'
+        to:
+          oneOf:
+          - $ref: '#/components/schemas/EmailWebhookRecipient'
+          - type: string
+            description: Legacy message-scoped address, or an empty string when absent.
+        cc:
+          oneOf:
+          - $ref: '#/components/schemas/EmailWebhookRecipient'
+          - type: string
+            description: Legacy message-scoped address, or an empty string when absent.
+        bcc:
+          oneOf:
+          - $ref: '#/components/schemas/EmailWebhookRecipient'
+          - type: string
+            enum:
+            - redacted
+        subject:
+          type: string
+      required:
+      - id
+      - status
+      - occurred_at
+    AccountEmailEventSender:
+      type: object
+      additionalProperties: false
+      description: Sender projection in account event polling. The display name is explicitly null when the message has no
+        sender name.
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+      required:
+      - email
+      - name
     AccountSid:
       type: string
       example: 61bf923e-5e4d-4595-a110-56190ea18a1b
@@ -82400,8 +82804,8 @@ components:
           type: array
           items:
             type: string
-          description: Tags for categorization and reporting. Stored on the message and propagated to Email Detail Records.
-            Not returned in API responses.
+          description: Tags for categorization and filtering. Stored on the message, returned on message responses, and propagated
+            to Email Detail Records. Usable in `filter[tags]` when listing messages.
         group_id:
           type: string
           format: uuid
@@ -82420,7 +82824,8 @@ components:
         metadata:
           type: object
           additionalProperties: true
-          description: Custom metadata. Write-only; not returned in responses.
+          description: Custom metadata key/value pairs. Stored on the message, returned on message responses, and propagated
+            to Email Detail Records. Usable in `filter[metadata]` when listing messages.
         tracking_settings:
           $ref: '#/components/schemas/TrackingSettings'
         template_id:
@@ -82431,20 +82836,17 @@ components:
           default: {}
           additionalProperties: true
           description: Variables for Liquid template rendering. Non-object values may cause a 422 validation error on message
-            creation, but are silently treated as an empty object for template rendering.
+            creation, but are silently treated as an empty object for template rendering. When the template enables `strict_variables`,
+            a missing required variable fails the request with 422 (single send) or a per-item `unprocessable_entity` error
+            (batch) naming the variable; no message is persisted for the failed item.
         scheduled_at:
           type: string
           format: date-time
           nullable: true
-          description: 'Future ISO 8601 time to schedule sending. Invalid or past timestamps
-
-            are silently ignored and the email is sent immediately. The legacy
-
-            alias `send_at` is still accepted for backward compatibility; when
-
-            both are provided, `scheduled_at` wins.
-
-            '
+          description: Future ISO 8601 delivery time. Invalid or non-future timestamps are rejected. Single sends return HTTP
+            422; in batch sends the invalid item is reported in the 207 per-item errors while other items continue. `send_at`
+            remains a deprecated request alias. A non-null `scheduled_at` takes precedence over `send_at`; when `scheduled_at`
+            is omitted or null, `send_at` is used.
         send_at:
           type: string
           format: date-time
@@ -82456,6 +82858,10 @@ components:
         sandbox_mode:
           type: boolean
           default: false
+          description: 'Per-message sandbox flag. The batch-level `sandbox_mode` envelope value is authoritative: it overwrites
+            every message''s `sandbox_mode` before processing, including the `false` default when the envelope omits the field.
+            A per-item `sandbox_mode: true` inside a non-sandbox batch is therefore a real send. Set the envelope field to
+            run any batch item in sandbox mode.'
       required:
       - from
       - to
@@ -82473,8 +82879,11 @@ components:
         sandbox_mode:
           type: boolean
           default: false
-          description: Applies sandbox mode to all messages in the batch. Overrides any per-message sandbox_mode in the messages
-            array.
+          description: Applies sandbox mode to all messages in the batch and overrides any per-message `sandbox_mode` value
+            — each message's effective `sandbox_mode` is exactly this envelope value. Reserved recipients at `test.telnyx.com`
+            produce the deterministic event chains documented on CreateEmailRequest.sandbox_mode; no batch item is injected
+            into the MTA or outbound Kafka path. Sandbox batch items are non-billable, consume no daily-send-limit quota,
+            and feed no delivery-reputation signals.
       required:
       - messages
     CreateEmailBlockRequest:
@@ -82588,8 +82997,8 @@ components:
           type: array
           items:
             type: string
-          description: Tags for categorization and reporting. Stored on the message and propagated to Email Detail Records.
-            Not returned in API responses.
+          description: Tags for categorization and filtering. Stored on the message, returned on message responses, and propagated
+            to Email Detail Records. Usable in `filter[tags]` when listing messages.
         group_id:
           type: string
           format: uuid
@@ -82608,7 +83017,8 @@ components:
         metadata:
           type: object
           additionalProperties: true
-          description: Custom metadata. Write-only; not returned in responses.
+          description: Custom metadata key/value pairs. Stored on the message, returned on message responses, and propagated
+            to Email Detail Records. Usable in `filter[metadata]` when listing messages.
         tracking_settings:
           $ref: '#/components/schemas/TrackingSettings'
         template_id:
@@ -82619,20 +83029,17 @@ components:
           default: {}
           additionalProperties: true
           description: Variables for Liquid template rendering. Non-object values may cause a 422 validation error on message
-            creation, but are silently treated as an empty object for template rendering.
+            creation, but are silently treated as an empty object for template rendering. When the template enables `strict_variables`,
+            a missing required variable fails the request with 422 (single send) or a per-item `unprocessable_entity` error
+            (batch) naming the variable; no message is persisted for the failed item.
         scheduled_at:
           type: string
           format: date-time
           nullable: true
-          description: 'Future ISO 8601 time to schedule sending. Invalid or past timestamps
-
-            are silently ignored and the email is sent immediately. The legacy
-
-            alias `send_at` is still accepted for backward compatibility; when
-
-            both are provided, `scheduled_at` wins.
-
-            '
+          description: Future ISO 8601 delivery time. Invalid or non-future timestamps are rejected. Single sends return HTTP
+            422; in batch sends the invalid item is reported in the 207 per-item errors while other items continue. `send_at`
+            remains a deprecated request alias. A non-null `scheduled_at` takes precedence over `send_at`; when `scheduled_at`
+            is omitted or null, `send_at` is used.
         send_at:
           type: string
           format: date-time
@@ -82644,6 +83051,37 @@ components:
         sandbox_mode:
           type: boolean
           default: false
+          description: 'Validates and accepts the message without injecting it into the MTA or outbound Kafka path. Nothing
+            is delivered: sandbox records are non-billable, consume no daily-send-limit quota, and feed no delivery-reputation
+            signals.
+
+
+            The reserved sandbox test-recipient domain is `test.telnyx.com`. In sandbox mode, these addresses produce deterministic
+            recipient-scoped lifecycle events:
+
+
+            - `delivered@test.telnyx.com`: queued -> sending -> sent -> delivered
+
+            - `hard-bounce@test.telnyx.com`: queued -> sending -> sent -> bounced (permanent)
+
+            - `soft-bounce@test.telnyx.com`: queued -> sending -> sent -> bounced (transient)
+
+            - `complaint@test.telnyx.com`: queued -> sending -> sent -> complained
+
+            - `suppressed@test.telnyx.com`: queued -> suppressed
+
+            - `invalid@test.telnyx.com`: queued -> sending -> failed (invalid recipient)
+
+            - `dkim-fail@test.telnyx.com`: queued -> sending -> failed (DKIM unavailable)
+
+            - `rate-limit@test.telnyx.com`: queued -> sending -> failed (rate limit exceeded)
+
+
+            Matching is case-insensitive for both the local part and the domain and requires the exact domain `test.telnyx.com`
+            — subdomains and other domains do not match. Mixed sandbox sends simulate only reserved test recipients; other
+            recipients retain ordinary sandbox behavior (accepted, no delivery attempted). Hard-bounce and complaint outcomes
+            also use the normal automatic-suppression pipeline. Non-sandbox sends to these addresses use the normal delivery
+            path.'
         in_reply_to_message_id:
           type: string
           format: uuid
@@ -82734,6 +83172,32 @@ components:
           description: Template variables. Auto-extracted from subject/body fields when absent.
           items:
             type: string
+        strict_variables:
+          type: boolean
+          default: false
+          description: 'Per-template strict variable-validation setting. Defaults to `false` for backward compatibility. When
+            `true`, a send or render that is missing a variable marked `required: true` in `variable_schema` fails with 422
+            naming the variable. Missing optional variables never fail; their schema `default` (when set) is applied to the
+            render.'
+        autoescape:
+          type: boolean
+          default: false
+          description: 'Per-template HTML autoescaping setting. Defaults to `false` for backward compatibility. When `true`,
+            the rendered `html_body` HTML-escapes each Liquid expression''s output at the output boundary (after its filters
+            run, before concatenation with literal template markup). Input values are never mutated and `subject`/`text_body`
+            are never autoescaped. The boundary escape is idempotent: HTML entities already present in the output (e.g. from
+            an explicit `escape` filter) are preserved, so an explicit `escape`/`escape_once` is never double-escaped, and
+            markup introduced by any later filter in the chain is still escaped.'
+        variable_schema:
+          type: object
+          nullable: true
+          description: 'Structured variable requirements. Required variables cannot define defaults; invalid combinations
+            return 422. This is independent of the legacy `variables` array. On render with `strict_variables` enabled: `required`
+            variables must be supplied as non-empty values — absent, `null`, empty string, empty object `{}`, and empty array
+            `[]` all fail with 422 naming the variable, while present values such as `false` and `0` pass (they are present,
+            not empty). Optional variables fall back to their `default` when absent.'
+          additionalProperties:
+            $ref: '#/components/schemas/VariableSchemaEntry'
       required:
       - name
     CreateEmailValidationBatchRequest:
@@ -89252,6 +89716,15 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: 'Optional expiration time. An active row stops matching
+
+            send-time suppression checks as soon as `expires_at <= now()`.
+
+            A maintenance worker later transitions the row to `status: expired`
+
+            and appends an `expired` audit event (normally within 15 minutes).
+
+            '
       description: 'Suppression record. Schema fields hidden by the view:
 
         `account_id`, `bounce_category`, `dsn_code`, `meta`.
@@ -89372,7 +89845,15 @@ components:
           description: Only when `status == completed`.
         error_count:
           type: integer
-          description: Only when `status == completed`.
+          description: 'Rows that passed CSV parsing but failed suppression creation.
+
+            This is the creation-failure subset of `skipped_count`;
+
+            parser-rejected rows equal `skipped_count - error_count`.
+
+            Only when `status == completed`.
+
+            '
         errors:
           type: object
           additionalProperties:
@@ -89575,6 +90056,142 @@ components:
         created_at: '2026-01-01T00:00:00Z'
         updated_at: '2026-01-01T00:00:00Z'
         verified_at: null
+    EmailDomainDKIMRotation:
+      type: object
+      description: 'Result of rotating a domain''s DKIM key. The new key is active and signing switches to it immediately;
+        the previous key is retired to a `retiring` state (retained, not revoked) so it can be revoked after the DNS propagation
+        grace period. Selectors are fixed, so the DKIM DNS record''s TXT value is replaced in place at the shared `<selector>._domainkey.<domain>`
+        host — `old_selector_retained` is false and the returned dns_records carry the new value the customer must publish
+        promptly.
+
+        '
+      required:
+      - record_type
+      - domain_id
+      - domain
+      - dkim
+      - previous_dkim_key
+      - old_selector_retained
+      - dns_records
+      properties:
+        record_type:
+          type: string
+          enum:
+          - email_domain_dkim_rotation
+        domain_id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+        dkim:
+          type: object
+          description: The new active DKIM key.
+          required:
+          - id
+          - selector
+          - algorithm
+          - key_length
+          - version
+          - status
+          properties:
+            id:
+              type: string
+              format: uuid
+            selector:
+              type: string
+            algorithm:
+              type: string
+              enum:
+              - rsa-sha256
+            key_length:
+              type: integer
+              enum:
+              - 2048
+            version:
+              type: integer
+              description: Monotonically increasing per-domain key version.
+              minimum: 1
+            status:
+              type: string
+              enum:
+              - active
+            activated_at:
+              type: string
+              format: date-time
+              nullable: true
+        previous_dkim_key:
+          type: object
+          nullable: true
+          description: 'The retired previous key, or null when the domain had no active key before rotation. Retained in a
+            `retiring` state so it can be revoked after the DNS propagation grace period.
+
+            '
+          required:
+          - id
+          - selector
+          - version
+          - status
+          properties:
+            id:
+              type: string
+              format: uuid
+            selector:
+              type: string
+            version:
+              type: integer
+            status:
+              type: string
+              enum:
+              - retiring
+              - revoked
+        old_selector_retained:
+          type: boolean
+          description: 'False for this service: one selector is fixed per domain, so rotation replaces the TXT value at the
+            existing _domainkey host. There is no dual-selector overlap; publish the replacement TXT promptly because signing
+            switches immediately.'
+        dns_records:
+          type: array
+          description: 'The DKIM DNS records the customer must publish, carrying the new key''s TXT value with verification
+            reset to pending.
+
+            '
+          items:
+            $ref: '#/components/schemas/DNSRecord'
+      example:
+        record_type: email_domain_dkim_rotation
+        domain_id: 123e4567-e89b-12d3-a456-426614174002
+        domain: example.com
+        dkim:
+          id: 123e4567-e89b-12d3-a456-42661417400a
+          selector: telnyx1
+          algorithm: rsa-sha256
+          key_length: 2048
+          version: 2
+          status: active
+          activated_at: '2026-09-11T12:00:00Z'
+        previous_dkim_key:
+          id: 123e4567-e89b-12d3-a456-426614174009
+          selector: telnyx1
+          version: 1
+          status: retiring
+        old_selector_retained: false
+        dns_records:
+        - id: 123e4567-e89b-12d3-a456-42661417400b
+          purpose: dkim
+          record_type: TXT
+          host: telnyx1._domainkey.example.com
+          value: v=DKIM1; k=rsa; p=MIIBIjANBgkqh...
+          actual_value: null
+          priority: null
+          required: true
+          status: pending
+    EmailDomainDKIMRotationResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/EmailDomainDKIMRotation'
     EmailDomainHealth:
       type: object
       required:
@@ -90003,6 +90620,11 @@ components:
       - data
     EmailEventType:
       type: string
+      description: Bare stored event names returned by message history. In addition to the normal send and delivery lifecycle,
+        polling can expose suppression, scan, and quarantine lifecycle rows. Sharp canonical names gw_reject, injection_timeout,
+        and expired distinguish gateway rejection, ambiguous injection timeout, and MTA expiration. The failed and bounced
+        names remain valid for system/admin failures and hard bounces respectively. Existing stored rows retain their original
+        names.
       enum:
       - queued
       - deferred
@@ -90015,11 +90637,21 @@ components:
       - delivered
       - bounced
       - complained
+      - suppressed
       - rejected
       - opened
       - clicked
       - unsubscribed
       - daily_limit_exceeded
+      - scan_deferred
+      - quarantined
+      - quarantine_released
+      - quarantine_release_dispatched
+      - quarantine_rejected
+      - quarantine_expired
+      - gw_reject
+      - injection_timeout
+      - expired
     EmailInbox:
       type: object
       properties:
@@ -90133,6 +90765,17 @@ components:
           type: object
           additionalProperties: true
           default: {}
+        tags:
+          type: array
+          default: []
+          items:
+            type: string
+          description: Customer-supplied tags stored with the message.
+        metadata:
+          type: object
+          additionalProperties: true
+          default: {}
+          description: Customer-supplied metadata stored with the message.
         attachments:
           type: array
           items:
@@ -90140,7 +90783,7 @@ components:
         events:
           type: array
           items:
-            $ref: '#/components/schemas/MessageEvent'
+            $ref: '#/components/schemas/EmbeddedMessageEvent'
         created_at:
           type: string
           format: date-time
@@ -90188,6 +90831,8 @@ components:
       - reply_to
       - template_id
       - template_variables
+      - tags
+      - metadata
       - attachments
       - events
       - created_at
@@ -90296,6 +90941,8 @@ components:
           - failed
           - gw_reject
           - cancelled
+          - injection_timeout
+          - expired
           description: Current per-recipient delivery status.
         billable:
           type: boolean
@@ -90381,8 +91028,23 @@ components:
           nullable: true
         variables:
           type: array
+          description: Legacy unstructured variable names. This path remains supported unchanged.
           items:
             type: string
+        strict_variables:
+          type: boolean
+          description: 'Whether strict variable validation is enabled for this template. When `true`, sends and renders that
+            are missing a variable marked `required: true` in `variable_schema` fail with 422 naming the variable.'
+        autoescape:
+          type: boolean
+          description: Whether HTML autoescaping is enabled for this template. When `true`, only rendered `html_body` expression
+            output is HTML-escaped at the output boundary; `subject` and `text_body` are never autoescaped.
+        variable_schema:
+          type: object
+          nullable: true
+          description: Structured variable requirements, or `null` when the template uses only the legacy `variables` array.
+          additionalProperties:
+            $ref: '#/components/schemas/VariableSchemaEntry'
         created_at:
           type: string
           format: date-time
@@ -90397,6 +91059,9 @@ components:
       - html_body
       - text_body
       - variables
+      - strict_variables
+      - autoescape
+      - variable_schema
       - created_at
       - updated_at
     EmailTemplateListResponse:
@@ -90703,11 +91368,9 @@ components:
         updated_at: '2026-06-18T12:00:00Z'
     EmailWebhookEvent:
       type: string
-      description: 'Event types a webhook may subscribe to. The union of email.* events (published by email-api) and email_domain.*
-        lifecycle events (published by this service). An event not listed here can never be subscribed to and is silently
-        dropped.
-
-        '
+      description: Event types accepted by domain webhook subscriptions. Allowlists match the legacy event_type, not canonical_event_type.
+        Of the 22 accepted types, email.sending is stored but intentionally not published. Cancellation, daily-limit failures,
+        and system failures publish after commit when a matching domain webhook is configured.
       enum:
       - email.scheduled
       - email.sandbox
@@ -90723,11 +91386,14 @@ components:
       - email.clicked
       - email.unsubscribed
       - email.received
+      - email.cancelled
+      - email.daily_limit_exceeded
       - email_domain.created
       - email_domain.verified
       - email_domain.degraded
       - email_domain.suspended
       - email_domain.deleted
+      - email_domain.dkim_rotated
     EmailWebhookListResponse:
       type: object
       required:
@@ -90740,6 +91406,23 @@ components:
             $ref: '#/components/schemas/EmailWebhook'
         meta:
           $ref: '#/components/schemas/OffsetPaginationMeta'
+    EmailWebhookRecipient:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        kind:
+          type: string
+          enum:
+          - to
+          - cc
+          - bcc
+      required:
+      - email
     EmailWebhookResponse:
       type: object
       required:
@@ -90747,6 +91430,22 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/EmailWebhook'
+    EmbeddedMessageEvent:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/EmailEventType'
+        occurred_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: true
+      required:
+      - type
+      - occurred_at
+      description: An event embedded in a message response. The dedicated per-message events endpoint additionally returns
+        event_type and canonical_event_type.
     EmbeddingBucketRequest:
       properties:
         bucket_name:
@@ -91813,26 +92512,6 @@ components:
       - summary
       - timestamp
       title: EventData
-    EventEmailSummary:
-      type: object
-      properties:
-        from:
-          $ref: '#/components/schemas/EmailAddress'
-        to:
-          type: array
-          items:
-            $ref: '#/components/schemas/EmailAddress'
-        cc:
-          type: array
-          items:
-            $ref: '#/components/schemas/EmailAddress'
-        subject:
-          type: string
-      required:
-      - from
-      - to
-      - cc
-      - subject
     EventNode:
       type: object
       required:
@@ -101255,9 +101934,29 @@ components:
       - record_type
     MessageEvent:
       type: object
+      description: An event on the per-message events endpoint. The legacy event_type and additive canonical_event_type are
+        email.-prefixed. The deprecated type preserves the bare stored event name for compatibility.
       properties:
         type:
-          $ref: '#/components/schemas/EmailEventType'
+          allOf:
+          - $ref: '#/components/schemas/EmailEventType'
+          deprecated: true
+          description: Deprecated name field retained for compatibility. Its value is the bare stored event name, never email.-prefixed.
+            Use event_type for the legacy rendering or canonical_event_type for the canonical name.
+        event_type:
+          type: string
+          pattern: ^email\.
+          example: email.delivered
+          description: Legacy customer-visible event name, prefixed with `email.`. Gateway rejections render `email.failed`;
+            MTA expirations render `email.bounced`. Webhook subscription allowlists match the legacy name.
+        canonical_event_type:
+          type: string
+          pattern: ^email\.
+          example: email.delivered
+          description: Additive canonical outcome name, prefixed with `email.`. Gateway rejection is `email.gw_reject`, ambiguous
+            injection timeout is `email.injection_timeout`, and MTA expiration is `email.expired`. Unchanged outcomes retain
+            their names. Existing stored rows are translated only when recorded payload evidence proves the outcome; a legacy
+            failed row is not guessed or sharpened.
         occurred_at:
           type: string
           format: date-time
@@ -101266,6 +101965,8 @@ components:
           additionalProperties: true
       required:
       - type
+      - event_type
+      - canonical_event_type
       - occurred_at
     MessageEventListResponse:
       type: object
@@ -114746,6 +115447,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserRequirement'
+    RescheduleEmailMessageRequest:
+      type: object
+      description: Only the delivery time is mutable; any other request fields are ignored.
+      properties:
+        scheduled_at:
+          type: string
+          format: date-time
+          description: New ISO 8601 delivery time. Must be strictly in the future.
+      required:
+      - scheduled_at
     ResearchCitation:
       type: object
       required:
@@ -128852,6 +129563,19 @@ components:
           type: array
           items:
             type: string
+        strict_variables:
+          type: boolean
+          description: Per-template strict variable-validation setting.
+        autoescape:
+          type: boolean
+          description: Per-template HTML autoescaping setting.
+        variable_schema:
+          type: object
+          nullable: true
+          description: Structured variable requirements. Required variables cannot define defaults; invalid combinations return
+            422. Set to `null` to clear the schema.
+          additionalProperties:
+            $ref: '#/components/schemas/VariableSchemaEntry'
     UpdateEmailWebhookRequest:
       type: object
       properties:
@@ -131566,6 +132290,18 @@ components:
           - display_name
           msg: Field required
           type: missing
+    VariableSchemaEntry:
+      type: object
+      additionalProperties: false
+      properties:
+        required:
+          type: boolean
+          description: Whether the variable must be supplied when strict variable validation is enabled.
+        default:
+          type: string
+          description: Default value for an optional variable. Rejected when `required` is `true`.
+      required:
+      - required
     Verification:
       title: Verification
       type: object
@@ -139052,6 +139788,7 @@ components:
           - '10007'
           - '10008'
           - '10020'
+          - '40901'
         title:
           type: string
         detail:
