@@ -103,7 +103,7 @@ tags:
 - name: Debugging
   description: Call Control debugging
 - name: Decision Models
-  description: Beta API for evaluating shared context with typed questions and structured answers. Telnyx manages model selection.
+  description: Beta API for evaluating shared context with typed questions and structured answers using Flash or Pro.
 - name: Detail Records
   description: Detail Records operations
 - name: Dialogflow Integration
@@ -10984,23 +10984,26 @@ paths:
       tags:
       - Decision Models
       summary: Evaluate decision models (TypeSafe-compatible)
-      description: '**Beta API.** Telnyx controls model selection.
+      description: '**Beta API.** Choose telnyx/decision-flash for the lowest cost and latency, or telnyx/decision-pro for
+        decisions that require long context, including inputs beyond Jev’s 32k per-decision limit. Omitted model defaults
+        to telnyx/decision-flash.
 
 
         Evaluate shared context using named choice, noul (yes/no), and score questions. Returns TypeSafe System One-compatible
-        answer shapes, an opaque compatibility identifier, and token usage. See the [decision model guide](https://developers.telnyx.com/docs/inference/decision-models)
+        answer shapes, the selected public model alias, and token usage. See the [decision model guide](https://developers.telnyx.com/docs/inference/decision-models)
         for examples and compatibility limits.
 
 
         The supported request subset requires instructions for every question, string descriptions for criteria (or null for
-        choice descriptions), 1–64 questions, and 2–64 options for choice and score questions. The SDK-supplied model value
-        is ignored and cannot select a model. Other unknown fields are rejected. The endpoint is synchronous and does not
-        stream.
+        choice descriptions), 1–64 questions, and 2–64 options for choice and score questions. The model field accepts only
+        telnyx/decision-flash or telnyx/decision-pro. Unsupported model values and unknown fields are rejected. The endpoint
+        is synchronous and does not stream.
 
 
         Use the TypeSafe Python SDK with base_url set to https://api.telnyx.com/v2/ai/typesafe and a Telnyx API key. The SDK
-        appends /v1/systemone. Compatibility covers this operation and the documented request subset; it does not include
-        TypeSafe model listing. Scores describe relative preference, not calibrated correctness.'
+        appends /v1/systemone; explicitly set model to a supported Telnyx alias because its own default model is not supported.
+        Compatibility covers this operation and the documented request subset; it does not include TypeSafe model listing.
+        Scores describe relative preference, not calibrated correctness.'
       operationId: create_typesafe_systemone
       requestBody:
         required: true
@@ -11009,6 +11012,7 @@ paths:
             schema:
               $ref: '#/components/schemas/DecisionModelRequest'
             example:
+              model: telnyx/decision-flash
               state: Our production calls are failing. Every customer is affected.
               questions:
                 team:
@@ -11037,7 +11041,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/DecisionModelResponse'
               example:
-                model: telnyx-managed
+                model: telnyx/decision-flash
                 answers:
                   team:
                     type: choice
@@ -87493,9 +87497,19 @@ components:
           score: '#/components/schemas/DecisionModelScoreQuestion'
     DecisionModelRequest:
       type: object
-      description: Decision Models beta request. Telnyx manages model selection. SDK-supplied model values are ignored for
-        compatibility; they do not select a model.
+      description: Decision Models beta request. Choose a public model alias; omitted model defaults to telnyx/decision-flash.
+        Telnyx manages the underlying models behind these aliases.
       properties:
+        model:
+          type: string
+          enum:
+          - telnyx/decision-flash
+          - telnyx/decision-pro
+          default: telnyx/decision-flash
+          description: Public model alias. telnyx/decision-flash offers the lowest cost and latency; telnyx/decision-pro supports
+            decisions that require long context, including inputs beyond Jev’s 32k per-decision limit. Applies to every question
+            in the request. Other values are rejected.
+          example: telnyx/decision-flash
         state:
           $ref: '#/components/schemas/DecisionModelContent'
           description: Shared context evaluated by every question.
@@ -87512,6 +87526,7 @@ components:
       - questions
       additionalProperties: false
       example:
+        model: telnyx/decision-flash
         state: Our production calls are failing. Every customer is affected.
         questions:
           team:
@@ -87532,18 +87547,19 @@ components:
             - Normal
             - High
             - Critical
-      patternProperties:
-        ^model$:
-          description: Ignored SDK compatibility value. Telnyx controls model selection.
     DecisionModelResponse:
       type: object
       description: A complete synchronous evaluation. Answers are returned directly without a data wrapper.
       properties:
         model:
           type: string
-          description: Opaque Telnyx-controlled identifier retained for TypeSafe SDK response compatibility. It is not a selectable
-            model name or a guarantee of a particular underlying model.
+          description: Public model alias used to evaluate the request. Returns telnyx/decision-flash when model was omitted.
+            The underlying model is managed by Telnyx.
           readOnly: true
+          enum:
+          - telnyx/decision-flash
+          - telnyx/decision-pro
+          example: telnyx/decision-flash
         answers:
           type: object
           description: Answers keyed by exactly the question IDs in the request. Each answer type matches its question.
@@ -87559,7 +87575,7 @@ components:
       - usage
       additionalProperties: false
       example:
-        model: telnyx-managed
+        model: telnyx/decision-flash
         answers:
           team:
             type: choice
