@@ -75419,7 +75419,7 @@
     "/text-to-speech/speech": {
       "get": {
         "summary": "Stream text to speech over WebSocket",
-        "description": "Open a WebSocket connection to stream text and receive synthesized audio in real time. Authentication is provided via the standard `Authorization: Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive JSON frames containing base64-encoded audio chunks.\n\nSupported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`.\n\n**Connection flow:**\n1. Open WebSocket with query parameters specifying provider, voice, and model.\n2. Send an initial handshake message `{\"text\": \" \"}` (single space) with optional `voice_settings` to initialize the session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive audio chunks as JSON frames with base64-encoded audio.\n5. A final frame with `isFinal: true` indicates the end of audio for the current text.\n\nTo interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014 the current worker is stopped and a new one is started.\n\n**Note:** The Telnyx `Ultra` model is not available over WebSocket. Use the HTTP POST `/text-to-speech/speech` endpoint instead.",
+        "description": "Open a WebSocket connection to stream text and receive synthesized audio in real time. Authentication is provided via the standard `Authorization: Bearer <API_KEY>` header. Send JSON frames with text to synthesize; receive JSON frames containing base64-encoded audio chunks.\n\nSupported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`, `soniox`.\n\n**Connection flow:**\n1. Open WebSocket with query parameters specifying provider, voice, and model.\n2. Send an initial handshake message `{\"text\": \" \"}` (single space) with optional `voice_settings` to initialize the session.\n3. Send text messages as `{\"text\": \"Hello world\"}`.\n4. Receive audio chunks as JSON frames with base64-encoded audio.\n5. A final frame with `isFinal: true` indicates the end of audio for the current text.\n\nTo interrupt and restart synthesis mid-stream, send `{\"force\": true}` \u2014 the current worker is stopped and a new one is started.\n\n**Note:** The Telnyx `Ultra` model is not available over WebSocket. Use the HTTP POST `/text-to-speech/speech` endpoint instead.",
         "operationId": "TextToSpeechOverWs",
         "tags": [
           "Text To Speech Commands"
@@ -75478,7 +75478,7 @@
       },
       "post": {
         "summary": "Generate speech from text",
-        "description": "Generate synthesized speech audio from text input. Returns audio in the requested format (binary audio stream, base64-encoded JSON, or an audio URL for later retrieval).\n\nAuthentication is provided via the standard `Authorization: Bearer <API_KEY>` header.\n\nThe `voice` parameter provides a convenient shorthand to specify provider, model, and voice in a single string (e.g. `Telnyx.Ultra.<voice_id>`). Alternatively, specify `provider` explicitly along with provider-specific parameters.\n\nSupported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`.\n\nThe Telnyx `Ultra` model supports 44 languages with emotion control, speed adjustment, and volume control. Use the `telnyx` provider-specific parameters to configure these features.",
+        "description": "Generate synthesized speech audio from text input. Returns audio in the requested format (binary audio stream, base64-encoded JSON, or an audio URL for later retrieval).\n\nAuthentication is provided via the standard `Authorization: Bearer <API_KEY>` header.\n\nThe `voice` parameter provides a convenient shorthand to specify provider, model, and voice in a single string (e.g. `Telnyx.Ultra.<voice_id>`). Alternatively, specify `provider` explicitly along with provider-specific parameters.\n\nSupported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`, `soniox`.\n\nThe Telnyx `Ultra` model supports 44 languages with emotion control, speed adjustment, and volume control. Use the `telnyx` provider-specific parameters to configure these features.",
         "operationId": "generateSpeech",
         "tags": [
           "Text To Speech Commands"
@@ -75550,6 +75550,13 @@
                 "humain": {
                   "voice_id": "sara-en",
                   "ttfb_eagerness": 0
+                },
+                "soniox": {
+                  "voice_id": "Emma",
+                  "model_id": "tts-rt-v2",
+                  "language": "en",
+                  "speed": 1.0,
+                  "audio_format": "mp3"
                 }
               }
             }
@@ -75642,7 +75649,8 @@
                 "minimax",
                 "resemble",
                 "xai",
-                "humain"
+                "humain",
+                "soniox"
               ]
             }
           },
@@ -89395,7 +89403,8 @@
             "minimax",
             "resemble",
             "xai",
-            "humain"
+            "humain",
+            "soniox"
           ],
           "default": "telnyx"
         }
@@ -114583,7 +114592,7 @@
             "example": "ssml"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices). Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -114613,6 +114622,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -114625,7 +114637,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -116105,6 +116118,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -116117,7 +116133,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -116295,6 +116312,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -116307,7 +116327,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -116460,6 +116481,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -116472,7 +116496,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -117040,7 +117065,7 @@
             "$ref": "#/components/schemas/FallbackConfigReq"
           },
           "voice_settings": {
-            "$ref": "#/components/schemas/VoiceSettings"
+            "$ref": "#/components/schemas/inference-embedding_VoiceSettings"
           },
           "transcription": {
             "$ref": "#/components/schemas/TranscriptionSettings"
@@ -131997,7 +132022,7 @@
             "type": "string"
           },
           "voice_settings": {
-            "$ref": "#/components/schemas/VoiceSettings",
+            "$ref": "#/components/schemas/inference-embedding_VoiceSettings",
             "description": "Per-node voice override (response form)."
           }
         },
@@ -132110,7 +132135,7 @@
             "type": "string"
           },
           "voice_settings": {
-            "$ref": "#/components/schemas/VoiceSettings",
+            "$ref": "#/components/schemas/inference-embedding_VoiceSettings",
             "description": "Per-node voice override. Only fields set here override the assistant-level voice settings; unset fields cascade."
           }
         },
@@ -133091,6 +133116,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -133101,7 +133129,8 @@
                 "aws": "#/components/schemas/AWSVoiceSettings",
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -133340,7 +133369,7 @@
             "example": "premium"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices). Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -133370,6 +133399,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -133382,7 +133414,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -133598,7 +133631,8 @@
               "minimax",
               "resemble",
               "xai",
-              "humain"
+              "humain",
+              "soniox"
             ]
           },
           "language": {
@@ -133655,6 +133689,9 @@
           },
           "humain": {
             "$ref": "#/components/schemas/HumainProviderParams"
+          },
+          "soniox": {
+            "$ref": "#/components/schemas/SonioxProviderParams"
           }
         }
       },
@@ -163815,6 +163852,97 @@
           }
         }
       },
+      "SonioxProviderParams": {
+        "type": "object",
+        "description": "Soniox provider-specific parameters. Every voice speaks all supported languages; set `language` to the language of the text.",
+        "required": [
+          "voice_id"
+        ],
+        "properties": {
+          "voice_id": {
+            "type": "string",
+            "description": "Soniox voice name from the [voices listing](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices), for example `Emma`."
+          },
+          "model_id": {
+            "type": "string",
+            "description": "Soniox model.",
+            "enum": [
+              "tts-rt-v2"
+            ],
+            "default": "tts-rt-v2"
+          },
+          "language": {
+            "type": "string",
+            "description": "Two-letter ISO 639-1 code of the text.",
+            "default": "en"
+          },
+          "speed": {
+            "type": "number",
+            "format": "float",
+            "description": "Speaking rate. 1.0 is normal speed.",
+            "minimum": 0.7,
+            "maximum": 1.3,
+            "default": 1.0
+          },
+          "reduce_silence": {
+            "type": "boolean",
+            "description": "Shortens the pauses between words.",
+            "default": false
+          },
+          "audio_format": {
+            "type": "string",
+            "description": "Audio output format.",
+            "enum": [
+              "mp3",
+              "wav",
+              "pcm_s16le",
+              "pcm_mulaw",
+              "pcm_alaw"
+            ],
+            "default": "mp3"
+          },
+          "sample_rate": {
+            "type": "integer",
+            "description": "Audio sample rate in Hz. `pcm_mulaw` and `pcm_alaw` accept 8000 only; `mp3` does not accept 8000. Defaults to 24000, or 8000 for `pcm_mulaw` and `pcm_alaw`.",
+            "enum": [
+              8000,
+              16000,
+              24000,
+              44100,
+              48000
+            ]
+          }
+        }
+      },
+      "SonioxVoiceSettings": {
+        "type": "object",
+        "title": "Soniox Voice Settings",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "soniox"
+            ],
+            "description": "Voice settings provider type"
+          },
+          "speed": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0.7,
+            "maximum": 1.3,
+            "default": 1.0,
+            "description": "Speaking rate. 1.0 is normal speed."
+          },
+          "reduce_silence": {
+            "type": "boolean",
+            "default": false,
+            "description": "Shortens the pauses between words."
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
       "SoundModifications": {
         "type": "object",
         "title": "Sound modifications",
@@ -164163,7 +164291,7 @@
             "example": "current"
           },
           "voice": {
-            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
+            "description": "Specifies the voice used in speech synthesis.\n\n- Define voices using the format `<Provider>.<Model>.<VoiceId>`. Specifying only the provider will give default values for voice_id and model_id.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>` (e.g., `Azure.en-CA-ClaraNeural`, `Azure.en-US-BrianMultilingualNeural`, `Azure.en-US-Ava:DragonHDLatestNeural`). For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery). Use `voice_settings` to configure custom deployments, regions, or API keys.\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.eleven_multilingual_v2.21m00Tcm4TlvDq8ikWAM`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n- **Telnyx:** Use `Telnyx.<model_id>.<voice_id>` (e.g., `Telnyx.KokoroTTS.af`). Use `voice_settings` to configure voice_speed and other synthesis parameters. `Bayan` provides Arabic (multiple dialects) and English voices (e.g., `Telnyx.Bayan.Ahmed`, `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed` is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`). Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings` to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g., `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices). Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male or female).",
             "type": "string",
             "example": "Telnyx.KokoroTTS.af"
           },
@@ -164193,6 +164321,9 @@
               },
               {
                 "$ref": "#/components/schemas/XAIVoiceSettings"
+              },
+              {
+                "$ref": "#/components/schemas/SonioxVoiceSettings"
               }
             ],
             "discriminator": {
@@ -164205,7 +164336,8 @@
                 "azure": "#/components/schemas/AzureVoiceSettings",
                 "resemble": "#/components/schemas/ResembleVoiceSettings",
                 "inworld": "#/components/schemas/InworldVoiceSettings",
-                "xai": "#/components/schemas/XAIVoiceSettings"
+                "xai": "#/components/schemas/XAIVoiceSettings",
+                "soniox": "#/components/schemas/SonioxVoiceSettings"
               }
             }
           },
@@ -175586,7 +175718,7 @@
             "$ref": "#/components/schemas/FallbackConfigReq"
           },
           "voice_settings": {
-            "$ref": "#/components/schemas/VoiceSettings"
+            "$ref": "#/components/schemas/inference-embedding_VoiceSettings"
           },
           "transcription": {
             "$ref": "#/components/schemas/TranscriptionSettings"
@@ -181902,7 +182034,7 @@
         ]
       },
       "VoiceConfig": {
-        "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.BaseModel.John`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration secret under `\"voice_settings\": {\"api_key_ref\": \"<secret_id>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.",
+        "description": "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices.\n\n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which provide more realistic, human-like speech, append `-Neural` to the `VoiceId` (e.g., `AWS.Polly.Joanna-Neural`). Check the [available voices](https://docs.aws.amazon.com/polly/latest/dg/available-voices.html) for compatibility.\n- **Azure:** Use `Azure.<VoiceId>. (e.g. Azure.en-CA-ClaraNeural, Azure.en-CA-LiamNeural, Azure.en-US-BrianMultilingualNeural, Azure.en-US-Ava:DragonHDLatestNeural. For a complete list of voices, go to [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).)\n- **ElevenLabs:** Use `ElevenLabs.<ModelId>.<VoiceId>` (e.g., `ElevenLabs.BaseModel.John`). The `ModelId` part is optional. To use ElevenLabs, you must provide your ElevenLabs API key as an integration secret under `\"voice_settings\": {\"api_key_ref\": \"<secret_id>\"}`. See [integration secrets documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret) for details. Check [available voices](https://elevenlabs.io/docs/api-reference/get-voices).\n - **Telnyx:** Use `Telnyx.<model_id>.<voice_id>`\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices). Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only \u2014 no `ModelId` segment.",
         "type": "string",
         "default": "Telnyx.KokoroTTS.af",
         "example": "Telnyx.KokoroTTS.af"
@@ -190163,7 +190295,7 @@
             "$ref": "#/components/schemas/FallbackConfig"
           },
           "voice_settings": {
-            "$ref": "#/components/schemas/VoiceSettings"
+            "$ref": "#/components/schemas/inference-embedding_VoiceSettings"
           },
           "transcription": {
             "$ref": "#/components/schemas/TranscriptionSettings"
@@ -190388,6 +190520,188 @@
           "transfer"
         ],
         "title": "TransferTool"
+      },
+      "inference-embedding_VoiceSettings": {
+        "properties": {
+          "voice": {
+            "type": "string",
+            "description": "The voice to be used by the voice assistant. Check the full list of [available voices](https://developers.telnyx.com/docs/tts-stt/tts-available-voices) via our voices API.\nTo use ElevenLabs, you must reference your ElevenLabs API key as an integration secret under the `api_key_ref` field. See [integration secrets documentation](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret) for details. For Telnyx voices, use `Telnyx.<model_id>.<voice_id>` (e.g. Telnyx.KokoroTTS.af_heart). For Soniox voices, use `Soniox.tts-rt-v2.<voice_id>` (e.g. Soniox.tts-rt-v2.Emma); every Soniox voice speaks all supported languages.\nThe voice portion of the identifier supports [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables) using mustache syntax (e.g. `Telnyx.Ultra.{{voice_id}}`). The variable is resolved at call time from your dynamic variables webhook, allowing you to select the voice dynamically per call."
+          },
+          "voice_speed": {
+            "type": "number",
+            "default": 1,
+            "description": "The speed of the voice in the range [0.25, 2.0]. 1.0 is deafult speed. Larger numbers make the voice faster, smaller numbers make it slower. This is only applicable for Telnyx Natural voices and Soniox voices (0.7 to 1.3 for Soniox)."
+          },
+          "api_key_ref": {
+            "type": "string",
+            "description": "The `identifier` for an integration secret [/v2/integration_secrets](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret) that refers to your ElevenLabs API key. Warning: Free plans are unlikely to work with this integration."
+          },
+          "temperature": {
+            "type": "number",
+            "default": 0.5,
+            "description": "Determines how stable the voice is and the randomness between each generation. Lower values create a broader emotional range; higher values produce more consistent, monotonous output. Only applicable when using ElevenLabs."
+          },
+          "similarity_boost": {
+            "type": "number",
+            "default": 0.75,
+            "description": "Determines how closely the AI should adhere to the original voice when attempting to replicate it. Only applicable when using ElevenLabs."
+          },
+          "use_speaker_boost": {
+            "type": "boolean",
+            "default": true,
+            "description": "Amplifies similarity to the original speaker voice. Increases computational load and latency slightly. Only applicable when using ElevenLabs."
+          },
+          "style": {
+            "type": "number",
+            "default": 0,
+            "description": "Determines the style exaggeration of the voice. Amplifies speaker style but consumes additional resources when set above 0. Only applicable when using ElevenLabs."
+          },
+          "speed": {
+            "type": "number",
+            "default": 1.0,
+            "description": "Adjusts speech velocity. 1.0 is default speed; values less than 1.0 slow speech; values greater than 1.0 accelerate it. Only applicable when using ElevenLabs."
+          },
+          "language_boost": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Enhances recognition for specific languages and dialects during MiniMax TTS synthesis. Default is null (no boost). Set to 'auto' for automatic language detection. Only applicable when using MiniMax voices.",
+            "enum": [
+              null,
+              "auto",
+              "Chinese",
+              "Chinese,Yue",
+              "English",
+              "Arabic",
+              "Russian",
+              "Spanish",
+              "French",
+              "Portuguese",
+              "German",
+              "Turkish",
+              "Dutch",
+              "Ukrainian",
+              "Vietnamese",
+              "Indonesian",
+              "Japanese",
+              "Italian",
+              "Korean",
+              "Thai",
+              "Polish",
+              "Romanian",
+              "Greek",
+              "Czech",
+              "Finnish",
+              "Hindi",
+              "Bulgarian",
+              "Danish",
+              "Hebrew",
+              "Malay",
+              "Persian",
+              "Slovak",
+              "Swedish",
+              "Croatian",
+              "Filipino",
+              "Hungarian",
+              "Norwegian",
+              "Slovenian",
+              "Catalan",
+              "Nynorsk",
+              "Tamil",
+              "Afrikaans"
+            ],
+            "default": null
+          },
+          "expressive_mode": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enables emotionally expressive speech using SSML emotion tags. When enabled, the assistant uses audio tags like angry, excited, content, and sad to add emotional nuance. Only supported for Telnyx Ultra voices."
+          },
+          "background_audio": {
+            "description": "Optional background audio to play on the call. Use a predefined media bed, or supply a looped MP3 URL. If a media URL is chosen in the portal, customers can preview it before saving.",
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "predefined_media"
+                    ],
+                    "description": "Select from predefined media options."
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "silence",
+                      "office"
+                    ],
+                    "default": "silence",
+                    "description": "The predefined media to use. `silence` disables background audio."
+                  },
+                  "volume": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.0,
+                    "multipleOf": 0.1,
+                    "default": 1.0,
+                    "description": "Volume level for the predefined background audio. Supports values from 0.1 to 1.0 in 0.1 increments."
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "media_url"
+                    ],
+                    "description": "Provide a direct URL to an MP3 file. The audio will loop during the call."
+                  },
+                  "value": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "HTTPS URL to an MP3 file."
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "media_name"
+                    ],
+                    "description": "Reference a previously uploaded media by its name from Telnyx Media Storage."
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "The `name` of a media asset created via [Media Storage API](https://developers.telnyx.com/api/media-storage/create-media-storage). The audio will loop during the call."
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ]
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "voice"
+        ]
       },
       "inference-embedding_WebhookTool": {
         "properties": {
