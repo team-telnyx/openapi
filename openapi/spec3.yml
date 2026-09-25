@@ -51527,7 +51527,7 @@ paths:
         JSON frames containing base64-encoded audio chunks.
 
 
-        Supported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`.
+        Supported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`, `soniox`.
 
 
         **Connection flow:**
@@ -51594,7 +51594,7 @@ paths:
         `Telnyx.Ultra.<voice_id>`). Alternatively, specify `provider` explicitly along with provider-specific parameters.
 
 
-        Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`.
+        Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`, `soniox`.
 
 
         The Telnyx `Ultra` model supports 44 languages with emotion control, speed adjustment, and volume control. Use the
@@ -51660,6 +51660,12 @@ paths:
               humain:
                 voice_id: sara-en
                 ttfb_eagerness: 0
+              soniox:
+                voice_id: Emma
+                model_id: tts-rt-v2
+                language: en
+                speed: 1.0
+                audio_format: mp3
       responses:
         '200':
           description: 'Speech generated successfully. The response format depends on the `output_type` parameter:
@@ -51731,6 +51737,7 @@ paths:
           - resemble
           - xai
           - humain
+          - soniox
       - name: api_key
         in: query
         required: false
@@ -61339,6 +61346,7 @@ components:
         - resemble
         - xai
         - humain
+        - soniox
         default: telnyx
     push-notifications_PageConsolidated:
       name: page
@@ -80185,11 +80193,14 @@ components:
             \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
             \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
             \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`,\
-            \ `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`,\
-            \ `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English\
-            \ voices only — no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male\
-            \ or female)."
+            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
+            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
+            \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
+            - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
+            \ Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`,\
+            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\n\
+            For service_level basic, you may define the gender of the speaker (male or female)."
           type: string
           example: Telnyx.KokoroTTS.af
         voice_settings:
@@ -80203,6 +80214,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -80214,6 +80226,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -81354,6 +81367,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -81365,6 +81379,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         tts_provider:
           type: string
           description: Text-to-speech provider. If omitted, Telnyx derives it from `voice` or `provider`.
@@ -81493,6 +81508,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -81504,6 +81520,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         transcription_engine:
           description: Engine to use for speech recognition. Legacy values `A` - `Google`, `B` - `Telnyx` are supported for
             backward compatibility. When provided in a Conversation Relay language entry, Telnyx derives `transcription_provider`
@@ -81617,6 +81634,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -81628,6 +81646,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         greeting:
           type: string
           description: Text played when the relay session starts.
@@ -82069,7 +82088,7 @@ components:
         fallback_config:
           $ref: '#/components/schemas/FallbackConfigReq'
         voice_settings:
-          $ref: '#/components/schemas/VoiceSettings'
+          $ref: '#/components/schemas/inference-embedding_VoiceSettings'
         transcription:
           $ref: '#/components/schemas/TranscriptionSettings'
         telephony_settings:
@@ -94166,7 +94185,7 @@ components:
           title: Type
           type: string
         voice_settings:
-          $ref: '#/components/schemas/VoiceSettings'
+          $ref: '#/components/schemas/inference-embedding_VoiceSettings'
           description: Per-node voice override (response form).
       required:
       - id
@@ -94272,7 +94291,7 @@ components:
           title: Type
           type: string
         voice_settings:
-          $ref: '#/components/schemas/VoiceSettings'
+          $ref: '#/components/schemas/inference-embedding_VoiceSettings'
           description: Per-node voice override. Only fields set here override the assistant-level voice settings; unset fields
             cascade.
       required:
@@ -95009,6 +95028,7 @@ components:
           - $ref: '#/components/schemas/AzureVoiceSettings'
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -95018,6 +95038,7 @@ components:
               azure: '#/components/schemas/AzureVoiceSettings'
               resemble: '#/components/schemas/ResembleVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         greeting:
           description: Text that will be played when the gathering starts, if none then nothing will be played when the gathering
             starts. The greeting can be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There is a 3,000 character
@@ -95247,11 +95268,14 @@ components:
             \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
             \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
             \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`,\
-            \ `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`,\
-            \ `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English\
-            \ voices only — no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male\
-            \ or female)."
+            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
+            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
+            \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
+            - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
+            \ Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`,\
+            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\n\
+            For service_level basic, you may define the gender of the speaker (male or female)."
           type: string
           example: Telnyx.KokoroTTS.af
         voice_settings:
@@ -95265,6 +95289,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -95276,6 +95301,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -95468,6 +95494,7 @@ components:
           - resemble
           - xai
           - humain
+          - soniox
         language:
           type: string
           description: Language code (e.g. `en-US`). Usage varies by provider.
@@ -95510,6 +95537,8 @@ components:
           $ref: '#/components/schemas/XAIProviderParams'
         humain:
           $ref: '#/components/schemas/HumainProviderParams'
+        soniox:
+          $ref: '#/components/schemas/SonioxProviderParams'
     GenericError:
       properties:
         code:
@@ -119158,6 +119187,80 @@ components:
             format: date-time
           - type: 'null'
           readOnly: true
+    SonioxProviderParams:
+      type: object
+      description: Soniox provider-specific parameters. Every voice speaks all supported languages; set `language` to the
+        language of the text.
+      required:
+      - voice_id
+      properties:
+        voice_id:
+          type: string
+          description: Soniox voice name from the [voices listing](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices),
+            for example `Emma`.
+        model_id:
+          type: string
+          description: Soniox model.
+          enum:
+          - tts-rt-v2
+          default: tts-rt-v2
+        language:
+          type: string
+          description: Two-letter ISO 639-1 code of the text.
+          default: en
+        speed:
+          type: number
+          format: float
+          description: Speaking rate. 1.0 is normal speed.
+          minimum: 0.7
+          maximum: 1.3
+          default: 1.0
+        reduce_silence:
+          type: boolean
+          description: Shortens the pauses between words.
+          default: false
+        audio_format:
+          type: string
+          description: Audio output format.
+          enum:
+          - mp3
+          - wav
+          - pcm_s16le
+          - pcm_mulaw
+          - pcm_alaw
+          default: mp3
+        sample_rate:
+          type: integer
+          description: Audio sample rate in Hz. `pcm_mulaw` and `pcm_alaw` accept 8000 only; `mp3` does not accept 8000. Defaults
+            to 24000, or 8000 for `pcm_mulaw` and `pcm_alaw`.
+          enum:
+          - 8000
+          - 16000
+          - 24000
+          - 44100
+          - 48000
+    SonioxVoiceSettings:
+      type: object
+      title: Soniox Voice Settings
+      properties:
+        type:
+          type: string
+          enum:
+          - soniox
+          description: Voice settings provider type
+        speed:
+          type: number
+          format: float
+          minimum: 0.7
+          maximum: 1.3
+          default: 1.0
+          description: Speaking rate. 1.0 is normal speed.
+        reduce_silence:
+          type: boolean
+          default: false
+          description: Shortens the pauses between words.
+      required:
+      - type
     SoundModifications:
       type: object
       title: Sound modifications
@@ -119463,11 +119566,14 @@ components:
             \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
             \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
             \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`,\
-            \ `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`,\
-            \ `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English\
-            \ voices only — no `ModelId` segment.\n\nFor service_level basic, you may define the gender of the speaker (male\
-            \ or female)."
+            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
+            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
+            \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
+            - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
+            \ Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`,\
+            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\n\
+            For service_level basic, you may define the gender of the speaker (male or female)."
           type: string
           example: Telnyx.KokoroTTS.af
         voice_settings:
@@ -119481,6 +119587,7 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -119492,6 +119599,7 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -128824,7 +128932,7 @@ components:
         fallback_config:
           $ref: '#/components/schemas/FallbackConfigReq'
         voice_settings:
-          $ref: '#/components/schemas/VoiceSettings'
+          $ref: '#/components/schemas/inference-embedding_VoiceSettings'
         transcription:
           $ref: '#/components/schemas/TranscriptionSettings'
         telephony_settings:
@@ -133858,10 +133966,13 @@ components:
         \ `Telnyx.<model_id>.<voice_id>`\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`,\
         \ `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
         \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library\
-        \ reference ID.\n- **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n\
-        - **Humain:** Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`,\
-        \ `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId`\
-        \ segment."
+        \ reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model:\
+        \ `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+        \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for example\
+        \ `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n- **xAI:**\
+        \ Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:** Use `Humain.<VoiceId>`\
+        \ (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`, `nourah-ar`, `abdullah-ar`.\
+        \ Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment."
       type: string
       default: Telnyx.KokoroTTS.af
       example: Telnyx.KokoroTTS.af
@@ -140211,7 +140322,7 @@ components:
         fallback_config:
           $ref: '#/components/schemas/FallbackConfig'
         voice_settings:
-          $ref: '#/components/schemas/VoiceSettings'
+          $ref: '#/components/schemas/inference-embedding_VoiceSettings'
         transcription:
           $ref: '#/components/schemas/TranscriptionSettings'
         telephony_settings:
@@ -140394,6 +140505,172 @@ components:
       - type
       - transfer
       title: TransferTool
+    inference-embedding_VoiceSettings:
+      properties:
+        voice:
+          type: string
+          description: 'The voice to be used by the voice assistant. Check the full list of [available voices](https://developers.telnyx.com/docs/tts-stt/tts-available-voices)
+            via our voices API.
+
+            To use ElevenLabs, you must reference your ElevenLabs API key as an integration secret under the `api_key_ref`
+            field. See [integration secrets documentation](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret)
+            for details. For Telnyx voices, use `Telnyx.<model_id>.<voice_id>` (e.g. Telnyx.KokoroTTS.af_heart). For Soniox
+            voices, use `Soniox.tts-rt-v2.<voice_id>` (e.g. Soniox.tts-rt-v2.Emma); every Soniox voice speaks all supported
+            languages.
+
+            The voice portion of the identifier supports [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
+            using mustache syntax (e.g. `Telnyx.Ultra.{{voice_id}}`). The variable is resolved at call time from your dynamic
+            variables webhook, allowing you to select the voice dynamically per call.'
+        voice_speed:
+          type: number
+          default: 1
+          description: The speed of the voice in the range [0.25, 2.0]. 1.0 is deafult speed. Larger numbers make the voice
+            faster, smaller numbers make it slower. This is only applicable for Telnyx Natural voices and Soniox voices (0.7
+            to 1.3 for Soniox).
+        api_key_ref:
+          type: string
+          description: 'The `identifier` for an integration secret [/v2/integration_secrets](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret)
+            that refers to your ElevenLabs API key. Warning: Free plans are unlikely to work with this integration.'
+        temperature:
+          type: number
+          default: 0.5
+          description: Determines how stable the voice is and the randomness between each generation. Lower values create
+            a broader emotional range; higher values produce more consistent, monotonous output. Only applicable when using
+            ElevenLabs.
+        similarity_boost:
+          type: number
+          default: 0.75
+          description: Determines how closely the AI should adhere to the original voice when attempting to replicate it.
+            Only applicable when using ElevenLabs.
+        use_speaker_boost:
+          type: boolean
+          default: true
+          description: Amplifies similarity to the original speaker voice. Increases computational load and latency slightly.
+            Only applicable when using ElevenLabs.
+        style:
+          type: number
+          default: 0
+          description: Determines the style exaggeration of the voice. Amplifies speaker style but consumes additional resources
+            when set above 0. Only applicable when using ElevenLabs.
+        speed:
+          type: number
+          default: 1.0
+          description: Adjusts speech velocity. 1.0 is default speed; values less than 1.0 slow speech; values greater than
+            1.0 accelerate it. Only applicable when using ElevenLabs.
+        language_boost:
+          type:
+          - string
+          - 'null'
+          description: Enhances recognition for specific languages and dialects during MiniMax TTS synthesis. Default is null
+            (no boost). Set to 'auto' for automatic language detection. Only applicable when using MiniMax voices.
+          enum:
+          - null
+          - auto
+          - Chinese
+          - Chinese,Yue
+          - English
+          - Arabic
+          - Russian
+          - Spanish
+          - French
+          - Portuguese
+          - German
+          - Turkish
+          - Dutch
+          - Ukrainian
+          - Vietnamese
+          - Indonesian
+          - Japanese
+          - Italian
+          - Korean
+          - Thai
+          - Polish
+          - Romanian
+          - Greek
+          - Czech
+          - Finnish
+          - Hindi
+          - Bulgarian
+          - Danish
+          - Hebrew
+          - Malay
+          - Persian
+          - Slovak
+          - Swedish
+          - Croatian
+          - Filipino
+          - Hungarian
+          - Norwegian
+          - Slovenian
+          - Catalan
+          - Nynorsk
+          - Tamil
+          - Afrikaans
+          default: null
+        expressive_mode:
+          type: boolean
+          default: false
+          description: Enables emotionally expressive speech using SSML emotion tags. When enabled, the assistant uses audio
+            tags like angry, excited, content, and sad to add emotional nuance. Only supported for Telnyx Ultra voices.
+        background_audio:
+          description: Optional background audio to play on the call. Use a predefined media bed, or supply a looped MP3 URL.
+            If a media URL is chosen in the portal, customers can preview it before saving.
+          oneOf:
+          - type: object
+            properties:
+              type:
+                type: string
+                enum:
+                - predefined_media
+                description: Select from predefined media options.
+              value:
+                type: string
+                enum:
+                - silence
+                - office
+                default: silence
+                description: The predefined media to use. `silence` disables background audio.
+              volume:
+                type: number
+                minimum: 0.1
+                maximum: 1.0
+                multipleOf: 0.1
+                default: 1.0
+                description: Volume level for the predefined background audio. Supports values from 0.1 to 1.0 in 0.1 increments.
+            required:
+            - type
+            - value
+          - type: object
+            properties:
+              type:
+                type: string
+                enum:
+                - media_url
+                description: Provide a direct URL to an MP3 file. The audio will loop during the call.
+              value:
+                type: string
+                format: uri
+                description: HTTPS URL to an MP3 file.
+            required:
+            - type
+            - value
+          - type: object
+            properties:
+              type:
+                type: string
+                enum:
+                - media_name
+                description: Reference a previously uploaded media by its name from Telnyx Media Storage.
+              value:
+                type: string
+                description: The `name` of a media asset created via [Media Storage API](https://developers.telnyx.com/api/media-storage/create-media-storage).
+                  The audio will loop during the call.
+            required:
+            - type
+            - value
+      type: object
+      required:
+      - voice
     inference-embedding_WebhookTool:
       properties:
         type:
