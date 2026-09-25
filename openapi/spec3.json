@@ -133965,7 +133965,7 @@
         "example": 10
       },
       "FlowEdge": {
-        "description": "Directed transition from one node to a target, gated by a condition.\n\nThe target is either another node in the same flow (`NodeTarget`) or a\ndifferent assistant (`AssistantTarget`). Multiple edges may share a\n`start_node_id`; the runtime evaluates them in the order they're\ndeclared and takes the first whose condition is true.",
+        "description": "Directed transition from one node to a target, gated by a condition.\n\nThe target is either another node in the same flow (`NodeTarget`) or a\ndifferent assistant (`AssistantTarget`). Multiple edges may share a\n`start_node_id`. On calls, `expression` conditions are evaluated before\nthe model turn and take precedence over `llm` conditions regardless of\ndeclaration order, while `llm` conditions are offered to the assistant's\nmodel as transition tools and fire when the model selects one. On chat\nchannels, an `expression` condition that is true when the turn begins\nroutes before the reply is generated; all conditioned edges that remain\nare considered together in declaration order after the reply, and the\nfirst true one wins.",
         "properties": {
           "condition": {
             "description": "Condition that gates the transition. Discriminated by `type`: `llm`, `expression`.",
@@ -141228,14 +141228,14 @@
         }
       },
       "LLMCondition": {
-        "description": "Edge condition evaluated by the LLM from a natural-language prompt.\n\nThe model is asked to judge the prompt against conversation context and\nreturns true/false. Use this for fuzzy intents that aren't expressible as\na deterministic expression (e.g. 'user wants to escalate to a human').",
+        "description": "Edge condition routed by the assistant's LLM from a natural-language\nprompt.\n\nHow the edge is decided depends on the channel. On calls, each outgoing\n`llm` condition is offered to the assistant's model as a transition tool\nalongside the assistant's tools, and the edge fires when the model\nselects it; the platform does not evaluate the prompt itself, and\ninstructions that forbid or discourage tool calls can stop these edges\nfrom firing. On chat channels, the edge prompts are evaluated in a\nseparate model call after the reply, which does not use the assistant's\ninstructions. Use this for fuzzy intents that aren't expressible as a\ndeterministic expression (e.g. 'user wants to escalate to a human').",
         "example": {
           "prompt": "The user has confirmed their booking details.",
           "type": "llm"
         },
         "properties": {
           "prompt": {
-            "description": "Natural-language criterion the LLM judges as true/false.",
+            "description": "Natural-language criterion the model routes on. On calls this is offered to the model as the transition tool's description; on chat channels it is judged as a statement in the post-reply evaluation call.",
             "example": "The user has confirmed their booking details.",
             "title": "Prompt",
             "type": "string"
