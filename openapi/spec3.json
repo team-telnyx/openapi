@@ -375,6 +375,10 @@
       "description": "Create, list, retrieve, update, and stop meeting sessions."
     },
     {
+      "name": "Memory",
+      "description": "Write memories into a profile and recall them."
+    },
+    {
       "name": "Messages",
       "description": "Messages"
     },
@@ -429,6 +433,10 @@
     {
       "name": "OpenAI Embeddings",
       "description": "OpenAI-compatible embeddings endpoints for generating vector representations of text"
+    },
+    {
+      "name": "Operations",
+      "description": "Whether a write has finished."
     },
     {
       "name": "Opt-Out Management",
@@ -497,6 +505,10 @@
     {
       "name": "Private Wireless Gateways",
       "description": "Private Wireless Gateways operations"
+    },
+    {
+      "name": "Profiles",
+      "description": "What a namespace and a profile hold."
     },
     {
       "name": "Profiles",
@@ -635,8 +647,16 @@
       "description": "Analyze voice AI sessions, costs, and event hierarchies across Telnyx products."
     },
     {
+      "name": "Settings",
+      "description": "How a namespace's summaries are written."
+    },
+    {
       "name": "Short Codes",
       "description": "Short codes"
+    },
+    {
+      "name": "Sources",
+      "description": "What a profile stored, and what its memories came from."
     },
     {
       "name": "Speech To Text Capabilities",
@@ -12549,6 +12569,2025 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/operations/{operation_id}": {
+      "get": {
+        "summary": "Status of a write",
+        "operationId": "GetMemoryOperation",
+        "tags": [
+          "Operations"
+        ],
+        "parameters": [
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operation Id"
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                },
+                "example": {
+                  "data": {
+                    "operation_id": "op_01HZY4M7Q9",
+                    "status": "completed",
+                    "created_at": "2026-08-26T21:14:07Z",
+                    "completed_at": "2026-08-26T21:14:11Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The operation does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "operation_not_found",
+                      "detail": "no such operation"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Whether a write has finished. Both `ingest` and `remember` return an `operation_id`, and a memory is not recallable until its operation completes \u2014 extraction, embedding and consolidation all run first."
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles": {
+      "get": {
+        "summary": "List a namespace's profiles",
+        "operationId": "ListMemoryProfiles",
+        "tags": [
+          "Profiles"
+        ],
+        "description": "Profiles are never created, only written to, so this lists the ones that hold a memory. A profile whose first ingest is still running is not here yet. Ordered by memory count, largest first, so a profile written to while the listing is paged can move between pages and be repeated or missed.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          },
+          {
+            "name": "page[number]",
+            "in": "query",
+            "required": false,
+            "description": "The page to return, counting from 1. Bounded in depth: (page[number] - 1) * page[size] may be at most 10000.",
+            "schema": {
+              "type": "integer",
+              "maximum": 10001,
+              "minimum": 1,
+              "default": 1,
+              "title": "Number"
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "required": false,
+            "description": "How many results a page holds.",
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "profile_id": "caller:+13128675309",
+                      "memory_count": 12
+                    }
+                  ],
+                  "meta": {
+                    "page_number": 1,
+                    "page_size": 20,
+                    "total_pages": 1,
+                    "total_results": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "limit is no longer supported: page with page[number] and page[size] instead"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}": {
+      "delete": {
+        "summary": "Forget a profile's memories",
+        "operationId": "ForgetProfile",
+        "tags": [
+          "Profiles"
+        ],
+        "description": "Delete everything held about one profile. A 2xx means none of its memories are left, and its summary goes with them. There is no undo.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The profile: your identifier for the user, caller or agent this memory is about."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The profile's memories are gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetResponse"
+                },
+                "example": {
+                  "data": {
+                    "profile_id": "caller:+13128675309",
+                    "memories_deleted": 12
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/ingest": {
+      "post": {
+        "summary": "Ingest a session's messages into a profile",
+        "operationId": "IngestSession",
+        "tags": [
+          "Memory"
+        ],
+        "description": "Store a session. Facts are extracted from whatever you send \u2014 the body is taken as any JSON value and stored whole, so a framework's own transcript shape works unchanged. `messages` of `role`/`content` is the conventional shape, not a requirement. An empty object or a null body is refused. Carry a `session_id` to name the session: re-ingesting the same one replaces what it held. Omit it and a session is opened and returned. Extraction runs asynchronously \u2014 poll the returned operation.",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Names the session. Re-ingesting the same session replaces what it held and keeps its `source_id`. Omit it to have one derived from the content and returned. No whitespace, control characters, or any of / \\ # ? %.",
+              "title": "Session Id"
+            },
+            "description": "Names the session. Re-ingesting the same session replaces what it held and keeps its `source_id`. Omit it to have one derived from the content and returned. No whitespace, control characters, or any of / \\ # ? %."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestPayload"
+              },
+              "examples": {
+                "session": {
+                  "summary": "A session you name",
+                  "value": {
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Invoices go to 220 W Chicago Ave now."
+                      },
+                      {
+                        "role": "assistant",
+                        "content": "Got it."
+                      }
+                    ]
+                  }
+                },
+                "new_session": {
+                  "summary": "A new session, opened for you",
+                  "value": {
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "I prefer email."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResponse"
+                },
+                "example": {
+                  "data": {
+                    "operation_id": "op_01HZY4M7Q9",
+                    "profile_id": "caller:+13128675309",
+                    "session_id": "conv_8901",
+                    "source_id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "empty_payload",
+                      "detail": "payload must carry something to remember"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/memories": {
+      "get": {
+        "summary": "List a profile's memories, most recent first",
+        "operationId": "ListMemories",
+        "tags": [
+          "Profiles"
+        ],
+        "description": "Everything stored under one profile, unranked -- ask `recall` for the memories that answer a question. A profile that holds nothing is an empty page rather than a 404: profiles exist by being written to. Each memory names the `source_id` it was extracted from, or null for a memory derived from other memories -- which can read almost the same as the fact it restates. A `source_id` narrows the listing to the memories extracted from that source, and a `session_id` to those extracted from the session, which is the same thing named another way; pass one or the other. Neither is everything the source led to: a memory derived from several sources belongs to no single one and appears only in the unfiltered listing. A memory written while the listing is paged shifts the pages after it, so an entry can be repeated or missed at a page boundary.",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "description": "An ingested session, by the `session_id` it was ingested with. Narrows the request to the source that session was stored as.",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": false,
+            "description": "Narrows the listing to the memories extracted from one source, a remembered fact as well as a session. Pass this or `session_id`, not both.",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Id"
+            }
+          },
+          {
+            "name": "page[number]",
+            "in": "query",
+            "required": false,
+            "description": "The page to return, counting from 1. Bounded in depth: (page[number] - 1) * page[size] may be at most 10000.",
+            "schema": {
+              "type": "integer",
+              "maximum": 10001,
+              "minimum": 1,
+              "default": 1,
+              "title": "Number"
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "required": false,
+            "description": "How many results a page holds.",
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "mem_01HZY4",
+                      "text": "Invoices go to 220 W Chicago Ave.",
+                      "recorded_at": "2026-08-26T21:14:11Z",
+                      "source_id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d"
+                    }
+                  ],
+                  "meta": {
+                    "page_number": 1,
+                    "page_size": 20,
+                    "total_pages": 22,
+                    "total_results": 431
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "pass source_id or session_id, not both"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/memories/{memory_id}": {
+      "get": {
+        "summary": "Read one memory, and what it came from",
+        "operationId": "GetMemory",
+        "tags": [
+          "Profiles"
+        ],
+        "description": "One memory by its id, as `recall` and the listing return it, together with what it came from. A fact names its `source_id`: read it with `GET .../sources/{source_id}` to see what was stored. A memory derived from other memories names them in `derived_from` instead; read each of those to reach its source.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id",
+              "description": "The profile: your identifier for the user, caller or agent this memory is about."
+            },
+            "description": "The profile: your identifier for the user, caller or agent this memory is about."
+          },
+          {
+            "name": "memory_id",
+            "in": "path",
+            "required": true,
+            "description": "A memory's id, as `recall` and the listing return it.",
+            "schema": {
+              "type": "string",
+              "title": "Memory Id",
+              "description": "A memory's id, as `recall` and the listing return it."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "mem_01HZY4",
+                    "text": "Invoices go to 220 W Chicago Ave.",
+                    "recorded_at": "2026-08-26T21:14:11Z",
+                    "source_id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d",
+                    "derived_from": null
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "memory id must be a UUID"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The memory does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "memory_not_found",
+                      "detail": "no such memory"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/recall": {
+      "post": {
+        "summary": "Recall a profile's memories, ranked",
+        "operationId": "RecallMemories",
+        "tags": [
+          "Memory"
+        ],
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecallRequest"
+              },
+              "example": {
+                "query": "where do invoices go?",
+                "top_k": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecallResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "mem_01HZY4",
+                      "text": "Invoices go to 220 W Chicago Ave.",
+                      "recorded_at": "2026-08-26T21:14:11Z",
+                      "score": 0.82
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "body.query: String should have at least 1 character"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Ranked memories for a question. Matching runs over the profile's memories and returns them in rank order with a relevance `score`; the score is null where the deployment's reranker is a passthrough, in which case order is the only signal. No model runs in this path \u2014 recall returns facts, it does not compose an answer."
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/remember": {
+      "post": {
+        "summary": "Remember one fact, stored as written",
+        "operationId": "RememberFact",
+        "tags": [
+          "Memory"
+        ],
+        "description": "For a fact the agent has already distilled: `text` is stored as given, with nothing extracted from it. Send a transcript to `ingest` instead. Remembering the same text again writes the same memory rather than a second copy of it, so a retry is safe. The write runs asynchronously -- poll the returned operation.",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RememberRequest"
+              },
+              "example": {
+                "text": "Prefers window seats and flies out of ORD"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RememberResponse"
+                },
+                "example": {
+                  "data": {
+                    "operation_id": "op_01HZY4M7Q9",
+                    "profile_id": "caller:+13128675309",
+                    "source_id": "9af23d17-2b6c-4d8e-a1f0-3c4b5d6e7f80"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "body.text: String should have at least 1 character"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/sources": {
+      "get": {
+        "summary": "List a profile's sources, most recently written first",
+        "operationId": "ListMemorySources",
+        "tags": [
+          "Sources"
+        ],
+        "description": "Everything a profile has stored and extracts memories from: each ingested session, and each remembered fact, which has no session. Content is not listed; read one source for it. A source whose ingest is still queued is not here yet. Re-ingesting a session moves it to the front, so a listing paged while sessions are written can repeat or miss one at a page boundary. A `session_id` narrows the listing to the source that session was stored as: one source or none, and none -- an empty page, not a 404 -- for a session never ingested, still queued, or another profile's.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace"
+            }
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "description": "An ingested session, by the `session_id` it was ingested with. Narrows the request to the source that session was stored as.",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "page[number]",
+            "in": "query",
+            "required": false,
+            "description": "The page to return, counting from 1. Bounded in depth: (page[number] - 1) * page[size] may be at most 10000.",
+            "schema": {
+              "type": "integer",
+              "maximum": 10001,
+              "minimum": 1,
+              "default": 1,
+              "title": "Number"
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "required": false,
+            "description": "How many results a page holds.",
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceListResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d",
+                      "session_id": "conv_8901",
+                      "memory_count": 3,
+                      "created_at": "2026-08-26T21:14:11Z",
+                      "updated_at": "2026-08-26T21:14:11Z"
+                    },
+                    {
+                      "id": "9af23d17-2b6c-4d8e-a1f0-3c4b5d6e7f80",
+                      "session_id": null,
+                      "memory_count": 1,
+                      "created_at": "2026-08-25T09:02:44Z",
+                      "updated_at": "2026-08-25T09:02:44Z"
+                    }
+                  ],
+                  "meta": {
+                    "page_number": 1,
+                    "page_size": 20,
+                    "total_pages": 1,
+                    "total_results": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "limit is no longer supported: page with page[number] and page[size] instead"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/sources/{source_id}": {
+      "delete": {
+        "summary": "Forget one source",
+        "operationId": "ForgetSource",
+        "tags": [
+          "Sources"
+        ],
+        "description": "Deletes one source -- an ingested session or a remembered fact -- together with the memories derived from it. A memory derived from this source and others is deleted too, and derived again from what remains in the background. It answers only once the source is gone. A source that is not there -- never stored, another profile's, or already deleted -- answers 404, so on a `502` or a `504` repeat the identical request and read a 404 as done. An ingest of the same session that is still queued is not cancelled, and stores the session again when it runs. Nothing here can be undone.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id",
+              "description": "The profile: your identifier for the user, caller or agent this memory is about."
+            },
+            "description": "The profile: your identifier for the user, caller or agent this memory is about."
+          },
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id.",
+            "schema": {
+              "type": "string",
+              "title": "Source Id",
+              "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The source and its memories are gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgetSourceResponse"
+                },
+                "example": {
+                  "data": {
+                    "profile_id": "caller:+13128675309",
+                    "source_id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d",
+                    "memories_deleted": 3
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "source id must be a UUID"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The source does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "source_not_found",
+                      "detail": "no such source"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Read one source, with what was stored",
+        "operationId": "GetMemorySource",
+        "tags": [
+          "Sources"
+        ],
+        "description": "One source and its content, as it was stored: an ingested session's payload or a remembered fact. A source whose ingest is still queued answers 404 until it has been stored.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Namespace",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id",
+              "description": "The profile: your identifier for the user, caller or agent this memory is about."
+            },
+            "description": "The profile: your identifier for the user, caller or agent this memory is about."
+          },
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id.",
+            "schema": {
+              "type": "string",
+              "title": "Source Id",
+              "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "b1e6c0a2-4f3d-4a2e-9c7b-8e1f2a3b4c5d",
+                    "session_id": "conv_8901",
+                    "memory_count": 3,
+                    "created_at": "2026-08-26T21:14:11Z",
+                    "updated_at": "2026-08-26T21:14:11Z",
+                    "content": {
+                      "messages": [
+                        {
+                          "role": "user",
+                          "content": "invoices go to 220 W Chicago Ave now"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_request",
+                      "detail": "source id must be a UUID"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The source does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "source_not_found",
+                      "detail": "no such source"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/profiles/{profile_id}/summary": {
+      "get": {
+        "summary": "Get a profile's precomputed summary",
+        "operationId": "GetProfileSummary",
+        "tags": [
+          "Memory"
+        ],
+        "description": "The whole profile as one card, precomputed, with no query. Built for the start of a session, where there is no question to ask yet.\n\nA summary is generated in the background. `is_stale` tells you newer memories have arrived since it was written; that is ordinary and the card is still usable.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          },
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The profile: your identifier for the user, caller or agent this memory is about."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The profile's summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                },
+                "example": {
+                  "data": {
+                    "profile_id": "user-42",
+                    "text": "## Profile Summary\n\n- Prefers Slack over email.\n- Timezone: US Central.",
+                    "generated_at": "2026-09-18T18:32:17.501833+00:00",
+                    "is_stale": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/memory/namespaces/{namespace}/settings": {
+      "get": {
+        "summary": "Get a namespace's settings",
+        "operationId": "GetNamespaceSettings",
+        "tags": [
+          "Settings"
+        ],
+        "description": "What is currently set for this namespace. `instructions: null` means none are set and summaries use the neutral default.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The namespace's settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NamespaceSettingsResponse"
+                },
+                "example": {
+                  "data": {
+                    "summary": {
+                      "instructions": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Change a namespace's settings",
+        "operationId": "UpdateNamespaceSettings",
+        "tags": [
+          "Settings"
+        ],
+        "description": "Only the fields you send are changed; anything omitted is left as it is, so `{}` changes nothing. Sending `instructions: null`, or an empty or whitespace-only string, clears them and returns summaries to the neutral default.\n\nInstructions are capped at 2000 characters. A longer note is refused rather than truncated, because a note cut mid-sentence is a worse steer than none. A change reaches each summary the next time that summary is regenerated, not immediately.",
+        "parameters": [
+          {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "The namespace. `default` exists for every organization."
+            },
+            "description": "The namespace. `default` exists for every organization."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NamespaceSettingsPatch"
+              },
+              "example": {
+                "summary": {
+                  "instructions": "Lead with the customer's plan tier. Keep it under 100 words."
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The settings as stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NamespaceSettingsResponse"
+                },
+                "example": {
+                  "data": {
+                    "summary": {
+                      "instructions": "Lead with the customer's plan tier. Keep it under 100 words."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10009",
+                      "title": "Authentication failed",
+                      "detail": "Could not find any usable credentials in the request.",
+                      "source": {
+                        "pointer": "/"
+                      },
+                      "meta": {
+                        "url": "https://developers.telnyx.com/docs/overview/errors/10009"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "invalid_instructions",
+                      "detail": "instructions must be at most 2000 characters"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "upstream_error",
+                      "detail": "the memory dataplane is unavailable"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The namespace does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelnyxErrors"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "namespace_not_found",
+                      "detail": "no such namespace"
+                    }
+                  ]
                 }
               }
             }
@@ -96059,6 +98098,59 @@
           }
         }
       },
+      "AcceptedIngest": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id"
+          },
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id",
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+          }
+        },
+        "type": "object",
+        "required": [
+          "operation_id",
+          "profile_id",
+          "session_id",
+          "source_id"
+        ],
+        "title": "AcceptedIngest"
+      },
+      "AcceptedMemory": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id"
+          },
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id",
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+          }
+        },
+        "type": "object",
+        "required": [
+          "operation_id",
+          "profile_id",
+          "source_id"
+        ],
+        "title": "AcceptedMemory"
+      },
       "AccessIPAddressListResponseSchema": {
         "title": "AccessIPAddressListResponseSchema",
         "required": [
@@ -111882,7 +113974,7 @@
           "sources": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Source"
+              "$ref": "#/components/schemas/collections_Source"
             }
           },
           "settings": {
@@ -129934,7 +132026,7 @@
             "example": "Available metrics values for sip-trunking: connected,cost,completed,call_sec,attempted,billed_sec."
           },
           "source": {
-            "$ref": "#/components/schemas/SourceResponse"
+            "$ref": "#/components/schemas/legacy_published_account_billing_usage_reports_SourceResponse"
           },
           "meta": {
             "$ref": "#/components/schemas/MetaResponse"
@@ -132178,6 +134270,74 @@
             "type": "object"
           }
         ]
+      },
+      "ForgetResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ForgottenProfile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ForgetResponse"
+      },
+      "ForgetSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ForgottenSource"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ForgetSourceResponse"
+      },
+      "ForgottenProfile": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "memories_deleted": {
+            "type": "integer",
+            "title": "Memories Deleted",
+            "description": "Memories the profile held and no longer does, counted before and after. A report rather than an audit: memory moves in the background between the two counts. The status carries the outcome."
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "memories_deleted"
+        ],
+        "title": "ForgottenProfile"
+      },
+      "ForgottenSource": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id",
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+          },
+          "memories_deleted": {
+            "type": "integer",
+            "title": "Memories Deleted",
+            "description": "Memories the profile held and no longer does, counted before and after across the whole profile: it includes memories derived from this source together with others, and anything else the profile lost in between. A report rather than an audit. The status carries the outcome."
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "source_id",
+          "memories_deleted"
+        ],
+        "title": "ForgottenSource"
       },
       "ForwardEmailInboxMessageRequest": {
         "type": "object",
@@ -136806,6 +138966,36 @@
           }
         }
       },
+      "IngestPayload": {
+        "title": "Payload",
+        "description": "The session's messages, in whatever shape your framework produces. Any JSON value but null is accepted and stored whole, as long as it holds something to remember: a body with no content anywhere in it -- `{}`, `[]`, `\"\"`, `{\"messages\": []}` -- is a 422.",
+        "anyOf": [
+          {
+            "type": "object",
+            "additionalProperties": true
+          },
+          {
+            "type": [
+              "array",
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        ]
+      },
+      "IngestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AcceptedIngest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "IngestResponse"
+      },
       "InitiateAICallRequest": {
         "type": "object",
         "title": "Initiate AI Call Request",
@@ -139340,6 +141530,48 @@
             "$ref": "#/components/schemas/verify_Meta"
           }
         }
+      },
+      "ListedMemory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id",
+            "description": "The source this memory was extracted from. Set for a fact, which comes from exactly one source; null for a memory derived from other memories. Read it with `GET .../sources/{source_id}`. A source deleted a moment ago can still be named here, and then answers 404."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "source_id"
+        ],
+        "title": "ListedMemory"
       },
       "LoaSignaturePayload": {
         "type": "object",
@@ -141912,6 +144144,38 @@
             "$ref": "#/components/schemas/MeetingSession"
           }
         }
+      },
+      "MemoryListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ListedMemory"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "MemoryListResponse"
+      },
+      "MemoryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TracedMemory"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "MemoryResponse"
       },
       "MessageDetailRecord": {
         "type": "object",
@@ -145581,6 +147845,46 @@
           "entries"
         ]
       },
+      "NamespaceSettings": {
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/SummarySettings",
+            "description": "Settings that shape this namespace's summaries."
+          }
+        },
+        "type": "object",
+        "title": "NamespaceSettings",
+        "description": "A namespace's settings, grouped by what they affect."
+      },
+      "NamespaceSettingsPatch": {
+        "properties": {
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummarySettingsPatch"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Summary settings to change. Omit to change nothing."
+          }
+        },
+        "type": "object",
+        "title": "NamespaceSettingsPatch"
+      },
+      "NamespaceSettingsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/NamespaceSettings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "NamespaceSettingsResponse"
+      },
       "Network": {
         "allOf": [
           {
@@ -148074,6 +150378,66 @@
         ],
         "title": "OpenAIEmbeddingUsage"
       },
+      "Operation": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Where the write is. `completed`, `failed` and `cancelled` are terminal: stop polling at any of them, and treat `failed` and `cancelled` as writes that did not happen.",
+            "enum": [
+              "pending",
+              "processing",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "operation_id",
+          "status"
+        ],
+        "title": "Operation"
+      },
+      "OperationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Operation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "OperationResponse"
+      },
       "Operator": {
         "type": "string",
         "enum": [
@@ -149783,6 +152147,39 @@
             "readOnly": true
           }
         }
+      },
+      "PageMeta": {
+        "properties": {
+          "page_number": {
+            "type": "integer",
+            "title": "Page Number",
+            "description": "The page returned, counting from 1."
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "How many results a page holds."
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "Pages that can be requested; 0 when nothing matched. Page until `page_number` reaches it rather than until a page comes back short: a page can hold fewer than `page_size` results without being the last. Capped at the deepest page served, so on a very large listing it covers fewer results than `total_results`."
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results",
+            "description": "Results the request matched, including any past the deepest page."
+          }
+        },
+        "type": "object",
+        "required": [
+          "page_number",
+          "page_size",
+          "total_pages",
+          "total_results"
+        ],
+        "title": "PageMeta",
+        "description": "Where a listing's page sits in the whole.\n\nA page is a snapshot: the counts it reports and the order it is drawn in\nboth move as writes land, so paging through a busy namespace can repeat or\nmiss an entry at a page boundary."
       },
       "PaginatedAssistantTestList": {
         "properties": {
@@ -156002,6 +158399,25 @@
           }
         }
       },
+      "Profile": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "memory_count": {
+            "type": "integer",
+            "title": "Memory Count",
+            "description": "Memories stored under this profile, including the consolidated ones that paraphrase others. Listings are ordered by it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "memory_count"
+        ],
+        "title": "Profile"
+      },
       "ProfileAssignmentPhoneNumbers": {
         "title": "ProfileAssignmentPhoneNumbers",
         "required": [
@@ -156031,6 +158447,26 @@
           }
         }
       },
+      "ProfileListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Profile"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ProfileListResponse"
+      },
       "ProfileMetrics": {
         "type": "object",
         "description": "Detailed metrics for a messaging profile.",
@@ -156040,6 +158476,49 @@
         "type": "object",
         "description": "High-level metrics summary for a messaging profile.",
         "additionalProperties": true
+      },
+      "ProfileSummary": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text",
+            "description": "The precomputed summary, ready to place in an assistant's context at the start of a session."
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At",
+            "description": "When the summary was last generated. Null while none is ready."
+          },
+          "is_stale": {
+            "type": "boolean",
+            "title": "Is Stale",
+            "description": "Whether newer memories have arrived since the summary was generated. The summary is regenerated in the background, so a true here is ordinary and the summary is still usable."
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile_id",
+          "is_stale"
+        ],
+        "title": "ProfileSummary"
       },
       "PromptSyncStatus": {
         "type": "string",
@@ -157514,6 +159993,93 @@
           "invalid",
           "manual_block"
         ]
+      },
+      "RecallRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "RecallRequest"
+      },
+      "RecallResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RecalledMemory"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "RecallResponse"
+      },
+      "RecalledMemory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Relevance, 0-1. Null where the deployment's reranker is a passthrough; results are in rank order either way."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "RecalledMemory"
       },
       "RecipientSuppressedError": {
         "type": "object",
@@ -159006,6 +161572,32 @@
           "cancelled"
         ],
         "example": "in_progress"
+      },
+      "RememberRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "RememberRequest"
+      },
+      "RememberResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AcceptedMemory"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "RememberResponse"
       },
       "RenderEmailTemplateRequest": {
         "type": "object",
@@ -163981,42 +166573,68 @@
         }
       },
       "Source": {
-        "type": "object",
         "properties": {
           "id": {
             "type": "string",
-            "example": "source_8vkvtcksnawvbnxq48yv2l06wx"
+            "title": "Id",
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
           },
-          "record_type": {
-            "type": "string",
-            "description": "Identifies the record type. Always `ai_collection_source`.",
-            "example": "ai_collection_source"
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "The session this source was ingested as. Null for a remembered fact."
           },
-          "collection_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "6a09ccbd-8f9b-4c3a-9b0e-2f1d3c4b5a6e"
+          "memory_count": {
+            "type": "integer",
+            "title": "Memory Count",
+            "description": "Memories extracted from this source. A memory derived from several sources is not counted here."
           },
-          "source_type": {
-            "$ref": "#/components/schemas/SourceType"
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "When the source was first stored."
           },
-          "bucket_id": {
-            "type": "string",
-            "description": "The Telnyx Storage bucket name. Present only for `bucket` sources.",
-            "example": "policy-docs"
-          },
-          "status": {
-            "type": "string",
-            "example": "ready"
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "When the source was last written; re-ingesting moves it."
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "memory_count"
+        ],
+        "title": "Source"
       },
       "SourceEnvelope": {
         "type": "object",
         "description": "Envelope containing a single collection source.",
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/Source"
+            "$ref": "#/components/schemas/collections_Source"
           }
         }
       },
@@ -164026,10 +166644,30 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Source"
+              "$ref": "#/components/schemas/collections_Source"
             }
           }
         }
+      },
+      "SourceListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PageMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SourceListResponse"
       },
       "SourceReconcileEnvelope": {
         "type": "object",
@@ -164037,7 +166675,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Source"
+              "$ref": "#/components/schemas/collections_Source"
             }
           },
           "meta": {
@@ -164110,19 +166748,16 @@
         ]
       },
       "SourceResponse": {
-        "type": "object",
         "properties": {
-          "pointer": {
-            "type": "string",
-            "description": "A JSON Pointer [RFC6901] to the associated entity in the request document",
-            "example": "/title"
-          },
-          "parameter": {
-            "type": "string",
-            "description": "a string indicating which URI query parameter caused the error",
-            "example": "metrics"
+          "data": {
+            "$ref": "#/components/schemas/SourceWithContent"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "SourceResponse"
       },
       "SourceType": {
         "type": "string",
@@ -164134,6 +166769,82 @@
           "bucket"
         ],
         "example": "voice"
+      },
+      "SourceWithContent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identifies one source within its profile: an ingested session, or one remembered fact. Returned by `ingest` and `remember` when the write is accepted. Re-ingesting a session keeps its source id."
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "The session this source was ingested as. Null for a remembered fact."
+          },
+          "memory_count": {
+            "type": "integer",
+            "title": "Memory Count",
+            "description": "Memories extracted from this source. A memory derived from several sources is not counted here."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "When the source was first stored."
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "When the source was last written; re-ingesting moves it."
+          },
+          "content": {
+            "title": "Content",
+            "description": "What was stored, in the shape it was sent: an ingested JSON body as JSON, a string body or a remembered fact as a string. A session ingested before formats were recorded is returned as the text it was stored as.",
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": [
+                  "array",
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "session_id",
+          "memory_count",
+          "content"
+        ],
+        "title": "SourceWithContent"
       },
       "SpeakMeetingSessionRequest": {
         "title": "SpeakMeetingSessionRequest",
@@ -166162,21 +168873,20 @@
       },
       "SummaryResponse": {
         "properties": {
-          "summary": {
-            "type": "string",
-            "title": "Summary"
+          "data": {
+            "$ref": "#/components/schemas/ProfileSummary"
           }
         },
         "type": "object",
         "required": [
-          "summary"
+          "data"
         ],
         "title": "SummaryResponse"
       },
       "SummaryResponseData": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/SummaryResponse"
+            "$ref": "#/components/schemas/inference-embedding_SummaryResponse"
           }
         },
         "type": "object",
@@ -166184,6 +168894,46 @@
           "data"
         ],
         "title": "SummaryResponseData"
+      },
+      "SummarySettings": {
+        "properties": {
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions",
+            "description": "Free-form instructions that influence how this namespace's summaries are written, shared by every profile in the namespace. How you use them is up to you -- they steer the outcome, so try a phrasing and see how the summary comes out. Advisory: they steer the summary but never override or deny a profile's own facts, and they do not affect recall. Null or empty means none are set, and summaries use the neutral default. A change reaches each summary the next time it is regenerated."
+          }
+        },
+        "type": "object",
+        "title": "SummarySettings",
+        "description": "A namespace's summary settings, shared by every profile in it."
+      },
+      "SummarySettingsPatch": {
+        "properties": {
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions",
+            "description": "Replace the namespace's summary instructions. Null or empty clears them and returns to the neutral default. Omit the field to leave the current instructions unchanged."
+          }
+        },
+        "type": "object",
+        "title": "SummarySettingsPatch",
+        "description": "A partial update to a namespace's summary settings.\n\nOnly the fields present in the request are changed; the rest are left as\nthey are. Sending `instructions: null` (or empty) clears the instructions."
       },
       "SupportedEmbeddingLoaders": {
         "type": "string",
@@ -168398,6 +171148,47 @@
           "totalRecords": {
             "title": "Totalrecords",
             "type": "integer"
+          }
+        }
+      },
+      "TelnyxError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "pointer": {
+                "type": "string"
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "TelnyxErrors": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelnyxError"
+            }
           }
         }
       },
@@ -172491,6 +175282,64 @@
           "ledger_adjustments",
           "grand_total"
         ]
+      },
+      "TracedMemory": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id",
+            "description": "The source this memory was extracted from. Set for a fact, which comes from exactly one source; null for a memory derived from other memories. Read it with `GET .../sources/{source_id}`. A source deleted a moment ago can still be named here, and then answers 404."
+          },
+          "derived_from": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derived From",
+            "description": "The ids of the memories this one was derived from. Read each with `GET .../memories/{memory_id}` to reach its `source_id`. Set for a derived memory; null for a fact."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "source_id",
+          "derived_from"
+        ],
+        "title": "TracedMemory"
       },
       "TrackingSettings": {
         "type": "object",
@@ -188964,6 +191813,37 @@
           }
         }
       },
+      "collections_Source": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "source_8vkvtcksnawvbnxq48yv2l06wx"
+          },
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the record type. Always `ai_collection_source`.",
+            "example": "ai_collection_source"
+          },
+          "collection_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6a09ccbd-8f9b-4c3a-9b0e-2f1d3c4b5a6e"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "bucket_id": {
+            "type": "string",
+            "description": "The Telnyx Storage bucket name. Present only for `bucket` sources.",
+            "example": "policy-docs"
+          },
+          "status": {
+            "type": "string",
+            "example": "ready"
+          }
+        }
+      },
       "conference-participants_DialConferenceParticipantRequest": {
         "type": "object",
         "title": "Create Conference Participant Request",
@@ -190497,6 +193377,19 @@
           }
         }
       },
+      "inference-embedding_SummaryResponse": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary"
+        ],
+        "title": "SummaryResponse"
+      },
       "inference-embedding_TransferTool": {
         "properties": {
           "type": {
@@ -190858,6 +193751,21 @@
           },
           "meta": {
             "$ref": "#/components/schemas/batch-csv_PaginationMeta"
+          }
+        }
+      },
+      "legacy_published_account_billing_usage_reports_SourceResponse": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "description": "A JSON Pointer [RFC6901] to the associated entity in the request document",
+            "example": "/title"
+          },
+          "parameter": {
+            "type": "string",
+            "description": "a string indicating which URI query parameter caused the error",
+            "example": "metrics"
           }
         }
       },
@@ -196261,6 +199169,21 @@
           }
         }
       },
+      "usage_reports_usage_reports_SourceResponse": {
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "description": "A JSON Pointer [RFC6901] to the associated entity in the request document",
+            "example": "/title"
+          },
+          "parameter": {
+            "type": "string",
+            "description": "a string indicating which URI query parameter caused the error",
+            "example": "metrics"
+          }
+        }
+      },
       "usage_reports_usage_reports_UsageReportsOptionsRecord": {
         "type": "object",
         "description": "An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records",
@@ -197629,6 +200552,11 @@
         "in": "header",
         "name": "Authorization",
         "description": "Machine Payment Protocol credential used on paid retries, sent as `Authorization: Payment ...`. Obtained by paying a challenge returned in the `WWW-Authenticate` header of a 402 response. This is not a Telnyx API key; initial challenge requests use standard bearer authentication instead."
+      },
+      "agent-memory_bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Telnyx API key"
       },
       "bearerAuth": {
         "type": "http",
