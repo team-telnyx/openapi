@@ -675,6 +675,10 @@
       "description": "Speech to text usage reports"
     },
     {
+      "name": "Spend Limits",
+      "description": "Daily and monthly spend limits per product. A limit applies to the organization of the authenticated user, or to the user's own account when they belong to no organization; every user of the organization sees and changes the same limits.\n\n- **Periods.** `daily` covers the current UTC day and `monthly` the current UTC calendar month. The two limits are independent: you can set either, both or neither.\n- **Blocking.** When spend in a period goes above the limit (strictly greater), the product is blocked until the period ends: 00:00 UTC the next day for `daily`, 00:00 UTC on the 1st of the next month for `monthly`. A block appears within about 2 minutes (daily) or 10 minutes (monthly) of the spend being recorded.\n- **Changes apply immediately.** Creating, updating or deleting a limit checks the period's spend in the same request: raising the limit above the spend, or removing it, lifts that period's block, and lowering it below the spend blocks the product at once. The `evaluation` object in the response says what happened.\n- **Supported products.** Today only `inference` supports spend limits. A blocked account gets HTTP 403 with the error title `Inference spend limit reached` (code `10039`) on new billable chat completions, Responses, Anthropic Messages and classification requests; requests already running finish normally. Take the list of products from the list operation.\n- **Limits set by Telnyx.** Telnyx support can also set a limit on your account. It is listed with `origin: operator` and you can update or delete it like your own."
+    },
+    {
       "name": "Stored Payment Transactions",
       "description": "Operations for managing stored payment transactions."
     },
@@ -26135,7 +26139,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -37041,7 +37045,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/external-voice-integrations_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -37243,7 +37247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/external-voice-integrations_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -37262,7 +37266,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/external-voice-integrations_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -38353,7 +38357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/programmable-fax_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -38958,7 +38962,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -39117,7 +39121,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -39397,7 +39401,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -41817,7 +41821,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -42095,7 +42099,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -51230,7 +51234,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/noise-suppression-engines_ErrorResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -55602,7 +55606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/outbound-voice-profiles_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -71809,6 +71813,931 @@
         "x-latency-category": "interactive"
       }
     },
+    "/spend_limits": {
+      "get": {
+        "summary": "List spend limits",
+        "description": "Returns one entry per product and period you can set a limit on, with the limit, the spend so far in the period and whether the product is blocked. An entry without a limit is still listed (`limit: null`). When the spend cannot be read, the entry is returned with `spend_usd: null` and `spend_error` set. The list is not paginated.",
+        "operationId": "listSpendLimits",
+        "tags": [
+          "Spend Limits"
+        ],
+        "x-endpoint-cost": "medium",
+        "x-latency-category": "responsive",
+        "responses": {
+          "200": {
+            "description": "Spend limits, spend and blocks per product and period.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpendLimitListResponse"
+                },
+                "examples": {
+                  "daily_limit_set": {
+                    "summary": "A daily limit and no monthly limit",
+                    "value": {
+                      "data": [
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "daily",
+                          "period_start": "2026-09-24",
+                          "period_end": "2026-09-25",
+                          "limit": {
+                            "amount": "100",
+                            "unlimited": false,
+                            "origin": "self_service",
+                            "updated_at": "2026-09-24T09:12:03.412Z"
+                          },
+                          "effective_limit_usd": "100",
+                          "spend_usd": "37.41",
+                          "spend_error": null,
+                          "blocked": false,
+                          "block": null
+                        },
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "monthly",
+                          "period_start": "2026-09-01",
+                          "period_end": "2026-10-01",
+                          "limit": null,
+                          "effective_limit_usd": null,
+                          "spend_usd": "812.03",
+                          "spend_error": null,
+                          "blocked": false,
+                          "block": null
+                        }
+                      ],
+                      "meta": {
+                        "total_pages": 1,
+                        "total_results": 2,
+                        "page_number": 1,
+                        "page_size": 2
+                      }
+                    }
+                  },
+                  "blocked": {
+                    "summary": "Blocked by the daily limit",
+                    "value": {
+                      "data": [
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "daily",
+                          "period_start": "2026-09-24",
+                          "period_end": "2026-09-25",
+                          "limit": {
+                            "amount": "10",
+                            "unlimited": false,
+                            "origin": "self_service",
+                            "updated_at": "2026-09-24T08:00:00Z"
+                          },
+                          "effective_limit_usd": "10",
+                          "spend_usd": "12.80",
+                          "spend_error": null,
+                          "blocked": true,
+                          "block": {
+                            "detected_at": "2026-09-24T08:41:17Z",
+                            "spend_usd": "10.20",
+                            "limit_usd": "10",
+                            "blocked_until": "2026-09-25"
+                          }
+                        },
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "monthly",
+                          "period_start": "2026-09-01",
+                          "period_end": "2026-10-01",
+                          "limit": null,
+                          "effective_limit_usd": null,
+                          "spend_usd": "812.03",
+                          "spend_error": null,
+                          "blocked": false,
+                          "block": null
+                        }
+                      ],
+                      "meta": {
+                        "total_pages": 1,
+                        "total_results": 2,
+                        "page_number": 1,
+                        "page_size": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. The request did not carry valid Telnyx API credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unauthorized": {
+                    "summary": "Missing or invalid credentials",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10009",
+                          "title": "Authentication failed",
+                          "detail": "The required authentication headers were either invalid or not included in the request."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden. The caller's access policy does not allow this spend limits action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden": {
+                    "summary": "Action not allowed",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10010",
+                          "title": "Authorization failed",
+                          "detail": "You do not have permission to perform the requested action on the specified resource or resources."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a spend limit",
+        "description": "Sets a limit for a product and period that has none. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: if it is already above the new limit, the product is blocked immediately (`evaluation.blocked_now`). Returns 409 when a limit already exists for the product and period; update it instead.",
+        "operationId": "createSpendLimit",
+        "tags": [
+          "Spend Limits"
+        ],
+        "x-endpoint-cost": "light",
+        "x-latency-category": "responsive",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSpendLimitRequest"
+              },
+              "examples": {
+                "amount": {
+                  "summary": "A daily limit of 100 USD",
+                  "value": {
+                    "product": "inference",
+                    "period": "daily",
+                    "amount": 100,
+                    "reason": "Team budget"
+                  }
+                },
+                "unlimited": {
+                  "summary": "Explicitly no monthly limit",
+                  "value": {
+                    "product": "inference",
+                    "period": "monthly",
+                    "unlimited": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The limit was created. `evaluation` says whether the change blocked the product.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpendLimitResponse"
+                },
+                "examples": {
+                  "created": {
+                    "summary": "Created, spend below the limit",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-09-24",
+                        "period_end": "2026-09-25",
+                        "limit": {
+                          "amount": "100",
+                          "unlimited": false,
+                          "origin": "self_service",
+                          "updated_at": "2026-09-24T09:12:03.412Z"
+                        },
+                        "effective_limit_usd": "100",
+                        "spend_usd": "37.41",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "evaluation": {
+                          "spend_usd": "37.41",
+                          "released": false,
+                          "blocked_now": false,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": false,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
+                  },
+                  "blocked_now": {
+                    "summary": "Created below the current spend: blocked at once",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-09-24",
+                        "period_end": "2026-09-25",
+                        "limit": {
+                          "amount": "20",
+                          "unlimited": false,
+                          "origin": "self_service",
+                          "updated_at": "2026-09-24T09:12:03.412Z"
+                        },
+                        "effective_limit_usd": "20",
+                        "spend_usd": "37.41",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "evaluation": {
+                          "spend_usd": "37.41",
+                          "released": false,
+                          "blocked_now": true,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": false,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unsupported_product": {
+                    "summary": "Product without self-service spend limits",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Product does not support self-service spend limits",
+                          "detail": "Spend limits for this product cannot be managed through the API; contact support"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_period": {
+                    "summary": "Invalid period",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid period",
+                          "detail": "period must be daily or monthly"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_limit": {
+                    "summary": "Invalid amount or unlimited",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid override",
+                          "detail": "Exactly one of amount (>= 0) or unlimited: true must be given"
+                        }
+                      ]
+                    }
+                  },
+                  "period_not_available": {
+                    "summary": "Product and period cannot be limited",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Spend limits are not available",
+                          "detail": "Spend limits are not available for inference (monthly)"
+                        }
+                      ]
+                    }
+                  },
+                  "reason_too_long": {
+                    "summary": "Reason too long",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid reason",
+                          "detail": "reason must be at most 500 characters"
+                        }
+                      ]
+                    }
+                  },
+                  "unknown_field": {
+                    "summary": "Unknown field in the body",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Unknown fields",
+                          "detail": "Unknown field(s): user_id; the account is always the one you are authenticated as"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. The request did not carry valid Telnyx API credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unauthorized": {
+                    "summary": "Missing or invalid credentials",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10009",
+                          "title": "Authentication failed",
+                          "detail": "The required authentication headers were either invalid or not included in the request."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden. The caller's access policy does not allow this spend limits action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden": {
+                    "summary": "Action not allowed",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10010",
+                          "title": "Authorization failed",
+                          "detail": "You do not have permission to perform the requested action on the specified resource or resources."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict. A limit already exists for the product and period.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "limit_exists": {
+                    "summary": "Limit already exists",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Limit already exists",
+                          "detail": "An active daily limit exists for inference; update it instead"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/spend_limits/{product}": {
+      "delete": {
+        "summary": "Delete a spend limit",
+        "description": "Removes the limit for the product and period. For `inference`, which has no default limit, the product becomes unlimited for the period and the period's block is lifted (`evaluation.released`). The response carries `limit: null` and the `effective_limit_usd` that applies after the removal. Returns 404 when no limit is set.",
+        "operationId": "deleteSpendLimit",
+        "tags": [
+          "Spend Limits"
+        ],
+        "x-endpoint-cost": "light",
+        "x-latency-category": "responsive",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "path",
+            "required": true,
+            "description": "Product the limit applies to, as returned in `product` by the list operation.",
+            "schema": {
+              "type": "string",
+              "example": "inference"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "description": "Limit period. Defaults to `daily`; send it explicitly.",
+            "schema": {
+              "$ref": "#/components/schemas/SpendLimitPeriod"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "description": "Why the limit is removed, kept for audit. At most 500 characters.",
+            "schema": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The limit was deleted. `evaluation` says whether a block was lifted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpendLimitResponse"
+                },
+                "examples": {
+                  "deleted": {
+                    "summary": "Deleted while blocked: the daily block is lifted",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-09-24",
+                        "period_end": "2026-09-25",
+                        "limit": null,
+                        "effective_limit_usd": null,
+                        "spend_usd": "12.80",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "evaluation": {
+                          "spend_usd": null,
+                          "released": true,
+                          "blocked_now": false,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": false,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. The product does not support self-service spend limits or the period is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unsupported_product": {
+                    "summary": "Product without self-service spend limits",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Product does not support self-service spend limits",
+                          "detail": "Spend limits for this product cannot be managed through the API; contact support"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_period": {
+                    "summary": "Invalid period",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid period",
+                          "detail": "period must be daily or monthly"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. The request did not carry valid Telnyx API credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unauthorized": {
+                    "summary": "Missing or invalid credentials",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10009",
+                          "title": "Authentication failed",
+                          "detail": "The required authentication headers were either invalid or not included in the request."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden. The caller's access policy does not allow this spend limits action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden": {
+                    "summary": "Action not allowed",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10010",
+                          "title": "Authorization failed",
+                          "detail": "You do not have permission to perform the requested action on the specified resource or resources."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. No spend limit is set for the product and period.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "limit_not_found": {
+                    "summary": "No limit for the product and period",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10005",
+                          "title": "Limit not found",
+                          "detail": "No active daily limit for inference; nothing to delete"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a spend limit",
+        "description": "Replaces the value of the existing limit for the product and period. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: raising the limit above the spend lifts the period's block (`evaluation.released`), and lowering it below the spend blocks the product (`evaluation.blocked_now`). Returns 404 when no limit is set; create it instead.",
+        "operationId": "updateSpendLimit",
+        "tags": [
+          "Spend Limits"
+        ],
+        "x-endpoint-cost": "light",
+        "x-latency-category": "responsive",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "path",
+            "required": true,
+            "description": "Product the limit applies to, as returned in `product` by the list operation.",
+            "schema": {
+              "type": "string",
+              "example": "inference"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "description": "Limit period. Defaults to `daily`; send it explicitly.",
+            "schema": {
+              "$ref": "#/components/schemas/SpendLimitPeriod"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSpendLimitRequest"
+              },
+              "examples": {
+                "amount": {
+                  "summary": "Raise the limit to 250 USD",
+                  "value": {
+                    "amount": 250
+                  }
+                },
+                "unlimited": {
+                  "summary": "Remove the cap but keep the limit",
+                  "value": {
+                    "unlimited": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The limit was updated. `evaluation` says whether the change lifted or started a block.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpendLimitResponse"
+                },
+                "examples": {
+                  "released": {
+                    "summary": "Raised above the spend: the daily block is lifted",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-09-24",
+                        "period_end": "2026-09-25",
+                        "limit": {
+                          "amount": "250",
+                          "unlimited": false,
+                          "origin": "self_service",
+                          "updated_at": "2026-09-24T09:12:03.412Z"
+                        },
+                        "effective_limit_usd": "250",
+                        "spend_usd": "37.41",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "evaluation": {
+                          "spend_usd": "112.50",
+                          "released": true,
+                          "blocked_now": false,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": false,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
+                  },
+                  "still_blocked_other_period": {
+                    "summary": "Daily block lifted, still blocked by the monthly limit",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-09-24",
+                        "period_end": "2026-09-25",
+                        "limit": {
+                          "amount": "250",
+                          "unlimited": false,
+                          "origin": "self_service",
+                          "updated_at": "2026-09-24T09:12:03.412Z"
+                        },
+                        "effective_limit_usd": "250",
+                        "spend_usd": "37.41",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "evaluation": {
+                          "spend_usd": "112.50",
+                          "released": true,
+                          "blocked_now": false,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": true,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unsupported_product": {
+                    "summary": "Product without self-service spend limits",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Product does not support self-service spend limits",
+                          "detail": "Spend limits for this product cannot be managed through the API; contact support"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_period": {
+                    "summary": "Invalid period",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid period",
+                          "detail": "period must be daily or monthly"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_limit": {
+                    "summary": "Invalid amount or unlimited",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid override",
+                          "detail": "Exactly one of amount (>= 0) or unlimited: true must be given"
+                        }
+                      ]
+                    }
+                  },
+                  "period_not_available": {
+                    "summary": "Product and period cannot be limited",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Spend limits are not available",
+                          "detail": "Spend limits are not available for inference (monthly)"
+                        }
+                      ]
+                    }
+                  },
+                  "reason_too_long": {
+                    "summary": "Reason too long",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid reason",
+                          "detail": "reason must be at most 500 characters"
+                        }
+                      ]
+                    }
+                  },
+                  "unknown_field": {
+                    "summary": "Unknown field in the body",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Unknown fields",
+                          "detail": "Unknown field(s): user_id; the account is always the one you are authenticated as"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. The request did not carry valid Telnyx API credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "unauthorized": {
+                    "summary": "Missing or invalid credentials",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10009",
+                          "title": "Authentication failed",
+                          "detail": "The required authentication headers were either invalid or not included in the request."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden. The caller's access policy does not allow this spend limits action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "forbidden": {
+                    "summary": "Action not allowed",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10010",
+                          "title": "Authorization failed",
+                          "detail": "You do not have permission to perform the requested action on the specified resource or resources."
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found. No spend limit is set for the product and period.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "limit_not_found": {
+                    "summary": "No limit for the product and period",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10005",
+                          "title": "Limit not found",
+                          "detail": "No active daily limit for inference; create it instead"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/storage/buckets/{bucketName}/ssl_certificate": {
       "delete": {
         "summary": "Remove SSL Certificate",
@@ -77124,7 +78053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/call-scripting_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -77437,7 +78366,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/call-scripting_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -78893,7 +79822,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/connections_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -80787,7 +81716,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/stored-payment-transactions_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -80806,7 +81735,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/stored-payment-transactions_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -80825,7 +81754,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/stored-payment-transactions_ErrorResponse"
                 },
                 "example": {
                   "errors": [
@@ -93844,7 +94773,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "examples": {
               "notFound": {
@@ -94178,7 +95107,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "examples": {
               "Authentication Failed": {
@@ -95316,7 +96245,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "examples": {
               "conference_ended": {
@@ -95352,7 +96281,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "example": {
               "errors": [
@@ -95391,7 +96320,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "example": {
               "errors": [
@@ -95410,7 +96339,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "examples": {
               "notAuthorized": {
@@ -95439,7 +96368,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/calls_ErrorResponse"
             },
             "examples": {
               "missing_required_parameter": {
@@ -95511,7 +96440,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/call-scripting_ErrorResponse"
             },
             "examples": {
               "missing_required_parameter": {
@@ -95640,7 +96569,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/connections_ErrorResponse"
             },
             "examples": {
               "missingParameter": {
@@ -95669,7 +96598,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/connections_ErrorResponse"
             },
             "examples": {
               "notFound": {
@@ -95698,7 +96627,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/connections_ErrorResponse"
             },
             "examples": {
               "notAuthorized": {
@@ -95727,7 +96656,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/connections_ErrorResponse"
             },
             "examples": {
               "unprocessableEntity": {
@@ -96985,7 +97914,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/programmable-fax_ErrorResponse"
             },
             "examples": {
               "missingParameter": {
@@ -97303,7 +98232,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/users_ErrorResponse"
             },
             "examples": {
               "missingParameter": {
@@ -97332,7 +98261,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/users_ErrorResponse"
             },
             "examples": {
               "notFound": {
@@ -97361,7 +98290,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+              "$ref": "#/components/schemas/users_ErrorResponse"
             },
             "examples": {
               "notAuthorized": {
@@ -123436,6 +124365,91 @@
           "type": "MMS"
         }
       },
+      "CreateSpendLimitRequest": {
+        "description": "Send exactly one of `amount` and `unlimited: true`.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateSpendLimitWithAmount"
+          },
+          {
+            "$ref": "#/components/schemas/CreateSpendLimitUnlimited"
+          }
+        ]
+      },
+      "CreateSpendLimitUnlimited": {
+        "title": "Unlimited",
+        "description": "Explicitly no cap.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product to limit, as returned in `product` by the list operation.",
+            "example": "inference"
+          },
+          "period": {
+            "$ref": "#/components/schemas/SpendLimitPeriod"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "`true`: explicitly no cap.",
+            "example": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the limit is set or changed, kept for audit.",
+            "example": "Team budget"
+          }
+        },
+        "required": [
+          "product",
+          "unlimited"
+        ]
+      },
+      "CreateSpendLimitWithAmount": {
+        "title": "Amount",
+        "description": "A limit in USD.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product to limit, as returned in `product` by the list operation.",
+            "example": "inference"
+          },
+          "period": {
+            "$ref": "#/components/schemas/SpendLimitPeriod"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Limit in USD. `0` blocks at the first cent of spend.",
+            "example": 100
+          },
+          "unlimited": {
+            "type": "boolean",
+            "enum": [
+              false
+            ],
+            "description": "Optional; only `false` is allowed together with `amount`.",
+            "example": false
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the limit is set or changed, kept for audit.",
+            "example": "Team budget"
+          }
+        },
+        "required": [
+          "product",
+          "amount"
+        ]
+      },
       "CreateSqlDatabaseRequest": {
         "type": "object",
         "properties": {
@@ -132044,8 +133058,15 @@
             "type": "array",
             "items": {
               "type": "object",
+              "required": [
+                "code",
+                "title"
+              ],
               "properties": {
                 "code": {
+                  "type": "string"
+                },
+                "title": {
                   "type": "string"
                 },
                 "detail": {
@@ -132055,13 +133076,9 @@
                   "type": "object",
                   "properties": {
                     "url": {
-                      "type": "string",
-                      "format": "uri"
+                      "type": "string"
                     }
                   }
-                },
-                "title": {
-                  "type": "string"
                 },
                 "source": {
                   "type": "object",
@@ -132074,7 +133091,10 @@
               }
             }
           }
-        }
+        },
+        "required": [
+          "errors"
+        ]
       },
       "ErrorSource": {
         "type": "object",
@@ -167157,6 +168177,250 @@
           "cmn_en_ms_ta"
         ]
       },
+      "SpendLimit": {
+        "type": "object",
+        "description": "The spend limit, spend and block state of one product and period.",
+        "properties": {
+          "record_type": {
+            "type": "string",
+            "description": "Identifies the type of the resource.",
+            "example": "spend_limit"
+          },
+          "product": {
+            "type": "string",
+            "description": "Product the entry applies to.",
+            "example": "inference"
+          },
+          "product_name": {
+            "type": "string",
+            "description": "Display name of the product.",
+            "example": "Inference"
+          },
+          "period": {
+            "$ref": "#/components/schemas/SpendLimitPeriod"
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date",
+            "description": "First UTC day of the current period.",
+            "example": "2026-09-24"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date",
+            "description": "Exclusive end of the current period, a UTC date.",
+            "example": "2026-09-25"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/SpendLimitLimit"
+          },
+          "effective_limit_usd": {
+            "type": "string",
+            "nullable": true,
+            "description": "The limit in USD that is enforced, as a decimal string. `null` means unlimited.",
+            "example": "100"
+          },
+          "spend_usd": {
+            "type": "string",
+            "nullable": true,
+            "description": "Spend in USD so far in the period, as a decimal string. It can lag actual usage by about a minute. `null` when it could not be read.",
+            "example": "37.41"
+          },
+          "spend_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set when `spend_usd` is `null`.",
+            "example": null
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "The product is blocked for this period. Always `false` in write responses; list the limits to read the block state.",
+            "example": false
+          },
+          "block": {
+            "$ref": "#/components/schemas/SpendLimitBlock"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/SpendLimitEvaluation"
+          }
+        },
+        "required": [
+          "record_type",
+          "product",
+          "product_name",
+          "period",
+          "period_start",
+          "period_end",
+          "limit",
+          "effective_limit_usd",
+          "spend_usd",
+          "spend_error",
+          "blocked",
+          "block"
+        ]
+      },
+      "SpendLimitBlock": {
+        "type": "object",
+        "nullable": true,
+        "description": "The active block of the period. `null` when the period is not blocked.",
+        "properties": {
+          "detected_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the block started.",
+            "example": "2026-09-24T08:41:17Z"
+          },
+          "spend_usd": {
+            "type": "string",
+            "description": "Spend in USD when the block started, as a decimal string.",
+            "example": "10.20"
+          },
+          "limit_usd": {
+            "type": "string",
+            "description": "The limit in USD that the spend went above, as a decimal string.",
+            "example": "10"
+          },
+          "blocked_until": {
+            "type": "string",
+            "format": "date",
+            "description": "Exclusive end of the block: it is lifted at 00:00 UTC on this date at the latest.",
+            "example": "2026-09-25"
+          }
+        },
+        "required": [
+          "detected_at",
+          "spend_usd",
+          "limit_usd",
+          "blocked_until"
+        ]
+      },
+      "SpendLimitEvaluation": {
+        "type": "object",
+        "description": "What a create, update or delete did to the period at once. Only present in write responses.",
+        "properties": {
+          "spend_usd": {
+            "type": "string",
+            "nullable": true,
+            "description": "Spend in USD used for the check, as a decimal string. `null` when the spend was not checked.",
+            "example": "37.41"
+          },
+          "released": {
+            "type": "boolean",
+            "description": "The change lifted a block of this period.",
+            "example": false
+          },
+          "blocked_now": {
+            "type": "boolean",
+            "description": "The change blocked the product: the spend was already above the new limit.",
+            "example": false
+          },
+          "still_over_limit": {
+            "type": "boolean",
+            "description": "A block of this period remains because the spend is still above the new limit.",
+            "example": false
+          },
+          "still_blocked_other_period": {
+            "type": "boolean",
+            "description": "The other period has an active block, so the product stays blocked whatever this period's result.",
+            "example": false
+          },
+          "evaluation_deferred": {
+            "type": "boolean",
+            "description": "The spend could not be checked now. The change is saved and applied within a few minutes.",
+            "example": false
+          },
+          "note": {
+            "type": "string",
+            "description": "Additional information about the result, when there is any.",
+            "example": "A block was lifted by Telnyx support today; this limit applies from tomorrow."
+          }
+        },
+        "required": [
+          "spend_usd",
+          "released",
+          "blocked_now",
+          "still_over_limit",
+          "still_blocked_other_period",
+          "evaluation_deferred"
+        ]
+      },
+      "SpendLimitLimit": {
+        "type": "object",
+        "nullable": true,
+        "description": "The limit set on the account for the product and period, whoever set it. `null` when none is set.",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Limit in USD, as a decimal string. `null` when `unlimited` is true.",
+            "example": "100"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "description": "True when the limit was set to explicitly no cap.",
+            "example": false
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "self_service",
+              "operator"
+            ],
+            "description": "`self_service` when a user of the account set it, `operator` when Telnyx support did.",
+            "example": "self_service"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the limit was last set or changed.",
+            "example": "2026-09-24T09:12:03.412Z"
+          }
+        },
+        "required": [
+          "amount",
+          "unlimited",
+          "origin",
+          "updated_at"
+        ]
+      },
+      "SpendLimitListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpendLimit"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/spend-limits_PaginationMeta"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "SpendLimitPeriod": {
+        "type": "string",
+        "description": "`daily` is the current UTC day; `monthly` is the current UTC calendar month.",
+        "enum": [
+          "daily",
+          "monthly"
+        ],
+        "default": "daily",
+        "example": "daily"
+      },
+      "SpendLimitResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SpendLimit"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
       "SqlDatabase": {
         "type": "object",
         "properties": {
@@ -181402,6 +182666,73 @@
           ]
         }
       },
+      "UpdateSpendLimitRequest": {
+        "description": "Send exactly one of `amount` and `unlimited: true`.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/UpdateSpendLimitWithAmount"
+          },
+          {
+            "$ref": "#/components/schemas/UpdateSpendLimitUnlimited"
+          }
+        ]
+      },
+      "UpdateSpendLimitUnlimited": {
+        "title": "Unlimited",
+        "description": "Explicitly no cap.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "unlimited": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "`true`: explicitly no cap.",
+            "example": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the limit is set or changed, kept for audit.",
+            "example": "Raised for the product launch"
+          }
+        },
+        "required": [
+          "unlimited"
+        ]
+      },
+      "UpdateSpendLimitWithAmount": {
+        "title": "Amount",
+        "description": "A new limit in USD.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Limit in USD. `0` blocks at the first cent of spend.",
+            "example": 100
+          },
+          "unlimited": {
+            "type": "boolean",
+            "enum": [
+              false
+            ],
+            "description": "Optional; only `false` is allowed together with `amount`.",
+            "example": false
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why the limit is set or changed, kept for audit.",
+            "example": "Raised for the product launch"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
       "UpdateSubNumberOrderRequest": {
         "properties": {
           "regulatory_requirements": {
@@ -190074,6 +191405,45 @@
           "FriendlyName": "Support Queue"
         }
       },
+      "call-scripting_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "call-scripting_PaginationMeta": {
         "title": "Pagination Meta",
         "type": "object",
@@ -190952,6 +192322,45 @@
             "type": "string",
             "description": "The URI of the current page.",
             "example": "/v2/texml/Accounts/61bf923e-5e4d-4595-a110-56190ea18a1b/Calls.json?Page=0&PageSize=1"
+          }
+        }
+      },
+      "calls_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -192567,6 +193976,45 @@
           }
         }
       },
+      "connections_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "connections_OutboundVoiceProfileId": {
         "title": "Outbound Voice Profile ID",
         "type": "string",
@@ -192972,6 +194420,45 @@
         "type": "string",
         "description": "Additional street address information about the address such as, but not limited to, unit number or apartment number.",
         "example": "14th Floor"
+      },
+      "external-voice-integrations_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "external-voice-integrations_IntId": {
         "title": "Int ID",
@@ -196410,51 +197897,6 @@
           }
         ]
       },
-      "noise-suppression-engines_ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "code",
-                "title"
-              ],
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "detail": {
-                  "type": "string"
-                },
-                "meta": {
-                  "type": "object",
-                  "properties": {
-                    "url": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "source": {
-                  "type": "object",
-                  "properties": {
-                    "pointer": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "required": [
-          "errors"
-        ]
-      },
       "noise-suppression-engines_NoiseSuppressionEngine": {
         "type": "object",
         "description": "A noise suppression engine available to the authenticated user.",
@@ -197877,6 +199319,45 @@
         "description": "The id from the Organization the authentication provider belongs to.",
         "example": "24b4a4bb-c4df-46ad-bbcb-23fc741c5ad7"
       },
+      "outbound-voice-profiles_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "parakeet_models": {
         "type": "string",
         "enum": [
@@ -197951,6 +199432,45 @@
           }
         },
         "type": "object"
+      },
+      "programmable-fax_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "programmable-fax_RecordType": {
         "type": "string",
@@ -198757,6 +200277,27 @@
           "speechmatics/standard"
         ]
       },
+      "spend-limits_PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "total_pages": {
+            "type": "integer",
+            "example": 1
+          },
+          "total_results": {
+            "type": "integer",
+            "example": 2
+          },
+          "page_number": {
+            "type": "integer",
+            "example": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
       "standard_CdrGetUsageReportsResponse": {
         "type": "object",
         "properties": {
@@ -198931,10 +200472,88 @@
           }
         }
       },
+      "stored-payment-transactions_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "street_address": {
         "type": "string",
         "description": "The primary street address information about the address.",
         "example": "600 Congress Avenue"
+      },
+      "taggings_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "telnyx_models": {
         "type": "string",
@@ -199481,6 +201100,84 @@
         "type": "string",
         "description": "The primary street address information about the user address.",
         "example": "600 Congress Avenue"
+      },
+      "user-tags_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "users_ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "meta": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "pointer": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
       "users_PaginationMeta": {
         "title": "Pagination Meta",
