@@ -118692,7 +118692,7 @@
             "type": "array"
           },
           "nodes": {
-            "description": "All nodes in the flow. Must contain `start_node_id`. Each node is a prompt node (`type: prompt`) or a tool node (`type: tool`).",
+            "description": "All nodes in the flow. Must contain `start_node_id`. Each node is a prompt node (`type: prompt`), a tool node (`type: tool`), or a speak node (`type: speak`).",
             "items": {
               "discriminator": {
                 "mapping": {
@@ -135246,7 +135246,7 @@
           "type": {
             "const": "prompt",
             "default": "prompt",
-            "description": "Node kind discriminator. `prompt` (default) is an LLM-driven step; `tool` is a standalone tool execution (see `ToolNodeReq`).",
+            "description": "Node kind discriminator. `prompt` (default) is an LLM-driven step; `tool` is a standalone tool execution and `speak` a scripted message (see `ToolNodeReq` / `SpeakNodeReq`).",
             "title": "Type",
             "type": "string"
           },
@@ -176298,7 +176298,7 @@
             "description": "Optional canvas coordinates used by authoring UIs to lay out the graph. Ignored by the runtime; round-trips so frontends can persist graph layout across reloads."
           },
           "shared_tool_id": {
-            "description": "ID of the single shared (org-level) tool this node executes. When the flow reaches this node the tool runs as a deliberate step (no LLM turn); its outgoing `tool_result` edges then route on the outcome. Arguments are filled from the conversation's dynamic variables by name \u2014 a dynamic variable whose name matches one of the tool's parameters supplies that argument. Cross-validated against the org's shared tools on write.",
+            "description": "ID of the single shared (org-level) tool this node executes. When the flow reaches this node the tool runs as a deliberate step (no LLM turn); its outgoing `llm` / `expression` edges route the flow on the tool's outcome. Arguments are filled from the conversation's dynamic variables by name \u2014 a dynamic variable whose name matches one of the tool's parameters supplies that argument. Cross-validated against the org's shared tools on write.",
             "title": "Shared Tool Id",
             "type": "string"
           },
@@ -176312,6 +176312,14 @@
             "description": "Node kind discriminator. Always `tool` for a tool node.",
             "title": "Type",
             "type": "string"
+          },
+          "message": {
+            "description": "Optional message delivered to the user verbatim immediately before the tool executes \u2014 an announcement such as 'One moment while I look that up.' No LLM turn and no customer turn: the message is spoken/sent, then the tool runs, in the same deterministic step. `{{variable}}` placeholders are interpolated from the conversation's dynamic variables (unresolved \u2192 empty string); the tool's own result is not yet available when the message is rendered. Omit for a silent tool step.",
+            "example": "One moment while I process your payment.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Message",
+            "type": "string"
           }
         },
         "required": [
@@ -176322,9 +176330,10 @@
         "type": "object"
       },
       "ToolNodeReq": {
-        "description": "A standalone tool step in a conversation flow, as supplied by clients.\n\nUnlike a prompt node, a tool node has no instructions or model \u2014 it\nisn't an LLM turn. Reaching it deterministically runs one shared tool\n(arguments filled from matching dynamic variables by name), then routes\non the result via outgoing `tool_result` edges.",
+        "description": "A standalone tool step in a conversation flow, as supplied by clients.\n\nUnlike a prompt node, a tool node has no instructions or model \u2014 it\nisn't an LLM turn. Reaching it deterministically runs one shared tool\n(arguments filled from matching dynamic variables by name), then routes\nvia outgoing `llm` / `expression` edges, with exactly one `default`\nfallback edge required when the node has any outgoing edges (the\ntool's outcome is readable as `telnyx_last_tool_status_code` in\n`expression` conditions).",
         "example": {
           "id": "n_charge",
+          "message": "One moment while I process your payment.",
           "name": "Charge card",
           "position": {
             "x": 300,
@@ -176338,6 +176347,14 @@
             "description": "Caller-supplied unique identifier for this node within the flow.",
             "example": "n_charge",
             "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "description": "Optional message delivered to the user verbatim immediately before the tool executes \u2014 an announcement such as 'One moment while I look that up.' No LLM turn and no customer turn: the message is spoken/sent, then the tool runs, in the same deterministic step. `{{variable}}` placeholders are interpolated from the conversation's dynamic variables (unresolved \u2192 empty string); the tool's own result is not yet available when the message is rendered. Omit for a silent tool step.",
+            "example": "One moment while I process your payment.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Message",
             "type": "string"
           },
           "name": {
@@ -176355,7 +176372,7 @@
             }
           },
           "shared_tool_id": {
-            "description": "ID of the single shared (org-level) tool this node executes. When the flow reaches this node the tool runs as a deliberate step (no LLM turn); its outgoing `tool_result` edges then route on the outcome. Arguments are filled from the conversation's dynamic variables by name \u2014 a dynamic variable whose name matches one of the tool's parameters supplies that argument. Cross-validated against the org's shared tools on write.",
+            "description": "ID of the single shared (org-level) tool this node executes. When the flow reaches this node the tool runs as a deliberate step (no LLM turn); its outgoing `llm` / `expression` edges route the flow on the tool's outcome. Arguments are filled from the conversation's dynamic variables by name \u2014 a dynamic variable whose name matches one of the tool's parameters supplies that argument. Cross-validated against the org's shared tools on write.",
             "example": "tool-charge-card",
             "title": "Shared Tool Id",
             "type": "string"
