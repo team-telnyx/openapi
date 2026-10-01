@@ -4569,6 +4569,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+  /ai/assistants/{assistant_id}/chat/whatsapp:
+    post:
+      tags:
+      - Assistants
+      summary: Assistant WhatsApp Chat
+      description: 'Start a WhatsApp conversation with a customer from the business side. This endpoint:
+
+        1. Validates that `from` is a WhatsApp number on your account whose messaging profile has this assistant configured
+
+        2. Creates a new `whatsapp_chat` conversation with the provided metadata
+
+        3. Asks the assistant to pick one of its approved WhatsApp templates and fill its variables from `content`
+
+        4. Sends the template from `from` to `to`
+
+        5. Returns the conversation ID and the message ID
+
+
+        When the customer replies, the reply is routed to the same conversation and the assistant answers within the 24-hour
+        customer service window. The assistant needs a `whatsapp_template` tool with at least one approved template, data
+        retention enabled and PII redaction disabled.'
+      operationId: assistant_whatsapp_chat_assistants__assistant_id__chat_whatsapp_post
+      parameters:
+      - name: assistant_id
+        in: path
+        description: Unique identifier of the assistant. Must be the assistant configured on the messaging profile of the
+          `from` number.
+        required: true
+        schema:
+          type: string
+          title: Assistant Id
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssistantWhatsappChatReq'
+            example:
+              from: '+13125550001'
+              to: '+13125550002'
+              content: Send the login verification code 482913 to the customer.
+              conversation_metadata:
+                order_id: A1
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantWhatsappChatResponse'
+              example:
+                conversation_id: 59f1f39e-180c-4f5d-81e9-393b46ca4077
+                message_id: 4031a0e8-f724-4e22-a086-0f18720ac829
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
+        '400':
+          description: Bad Request. Missing required fields or a reserved `conversation_metadata` key, or the assistant is
+            not the one configured on the messaging profile of `from` (10015). Invalid JSON (10023). A field of the wrong
+            type, for example a non-string `from`, `to` or `content`, or a `conversation_metadata` value that is not a string,
+            integer or boolean (10026). `from` is not a valid WhatsApp number on a messaging profile (40305). `to` is not
+            a valid E.164 number or BSUID (40310). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key headers
+            are rejected by Edge with HTTP 400 and error code 10015.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '401':
+          description: Authentication Failed (10009). The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '403':
+          description: Forbidden. The `from` number is not associated with your account (10010), messaging is disabled on
+            the account (40314), or the account is inactive (20012), blocked (20013) or unverified (20014).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '404':
+          description: Not Found (10005). The assistant does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '409':
+          description: Conflict. The messaging profile of `from` is disabled (40312), or a request with the same Idempotency-Key
+            is still being processed (10036), in which case retry later with the same key and request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+              example:
+                errors:
+                - code: '10036'
+                  title: Resource is being processed
+                  detail: A request with this Idempotency-Key is already being processed.
+                  source:
+                    pointer: /header/Idempotency-Key
+        '413':
+          description: Payload Too Large. A request sent with an Idempotency-Key whose body exceeds the endpoint's Edge replay-protection
+            limit (256 KB) is rejected before it reaches the service. Requests sent without the header are not subject to
+            this limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '422':
+          description: Unprocessable Entity (10027). The assistant did not return a WhatsApp template, or its privacy settings
+            do not allow storing conversations. Reusing an Idempotency-Key with a different request body also returns 422
+            with error code 10027.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
+        '503':
+          description: Service Unavailable (10037). The assistant could not be looked up, the conversation could not be started,
+            or the template could not be sent. Retry the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inference-embedding_ErrorResponse'
   /ai/assistants/{assistant_id}/clone:
     post:
       tags:
@@ -14252,6 +14376,19 @@ paths:
       summary: Answer call
       description: 'Answer an incoming call. You must issue this command before executing subsequent commands on an incoming
         call.
+
+
+        To answer with an AI assistant, include `assistant.id` and any per-call overrides in the `assistant` object. Telnyx
+        attempts to warm up the assistant before answering the call, then starts the assistant automatically when the call
+        is answered. Do not also send `ai_assistant_start` for this flow. The HTTP success response can arrive before the
+        call is answered; use the `call.answered` webhook to track the answer. If warm-up fails, Telnyx falls back to starting
+        the assistant after answering.
+
+
+        Set the assistant voice with `assistant.voice_settings.voice` and speech-to-text settings with `assistant.transcription`.
+        You can reuse one stored assistant with different per-call settings. Warm-up prepares assistant configuration and
+        dependencies; it does not wait for the greeting audio to be ready or guarantee zero silence after answer. A plain
+        `answer` followed by `ai_assistant_start` performs assistant startup after the call has already been answered.
 
 
         **Expected Webhooks:**
@@ -69534,7 +69671,9 @@ components:
           - GET
           example: GET
         transcription:
-          description: Enable transcription upon call answer. The default value is false.
+          description: Enable standalone call transcription upon call answer. The default value is false. Configure this feature
+            with `transcription_config`. To configure speech recognition for an AI assistant, use `assistant.transcription`
+            instead.
           type: boolean
           default: false
           example: true
@@ -69675,6 +69814,11 @@ components:
         assistant:
           id: asst_123
           greeting: Hi, I'm your assistant. How can I help?
+          voice_settings:
+            voice: Telnyx.KokoroTTS.af_heart
+          transcription:
+            model: deepgram/flux
+            language: en
           tools:
           - type: hangup
             hangup: {}
@@ -70406,6 +70550,52 @@ components:
         - $ref: '#/components/schemas/SkipTurnTool'
         - $ref: '#/components/schemas/PayTool'
         - $ref: '#/components/schemas/UpdateDynamicVariablesTool'
+    AssistantWhatsappChatReq:
+      properties:
+        from:
+          type: string
+          title: From
+          description: WhatsApp number on your account to send from, in E.164 format. Its messaging profile must have this
+            assistant configured.
+        to:
+          type: string
+          title: To
+          description: Customer to message, as an E.164 phone number or a WhatsApp business-scoped user ID (BSUID).
+        content:
+          type: string
+          title: Content
+          description: Instruction for the assistant, including the values for the template variables, e.g. `Send the login
+            verification code 482913 to the customer.`
+        conversation_metadata:
+          title: Conversation Metadata
+          description: Metadata stored on the conversation. Keys starting with `telnyx_` and the `assistant_id` key are reserved.
+          additionalProperties:
+            anyOf:
+            - type: string
+            - type: integer
+            - type: boolean
+          type: object
+      type: object
+      required:
+      - from
+      - to
+      - content
+      title: AssistantWhatsappChatReq
+    AssistantWhatsappChatResponse:
+      properties:
+        conversation_id:
+          title: Conversation Id
+          type: string
+          description: ID of the conversation created for this WhatsApp chat.
+        message_id:
+          title: Message Id
+          type: string
+          description: ID of the WhatsApp template message that was sent.
+      type: object
+      required:
+      - conversation_id
+      - message_id
+      title: AssistantWhatsappChatResponse
     AssistantsListData:
       properties:
         data:
@@ -73805,8 +73995,10 @@ components:
           $ref: '#/components/schemas/CallAnswered'
     CallAssistantRequest:
       type: object
-      description: AI Assistant configuration. All fields except `id` are optional — the assistant's stored configuration
-        will be used as fallback for any omitted fields.
+      description: AI Assistant configuration and per-call overrides. All fields except `id` are optional. Omitted assistant
+        fields use the stored configuration. Supplied `voice_settings` and `transcription` objects replace their stored objects
+        rather than merging individual settings; include every setting you want to retain. `dynamic_variables` are merged,
+        with request values taking precedence.
       required:
       - id
       properties:
@@ -73832,6 +74024,13 @@ components:
             `AWS.Polly.<voice_id>` voices. There is a 3,000 character limit.
         voice_settings:
           $ref: '#/components/schemas/VoiceSettings'
+          description: Per-call voice configuration. Set the voice identifier in `voice_settings.voice`, not in `assistant.voice`.
+            If supplied, this object replaces the stored voice settings.
+        transcription:
+          $ref: '#/components/schemas/TranscriptionConfig'
+          description: Per-call speech-to-text configuration for the assistant. If omitted, the stored assistant transcription
+            configuration is used. If supplied, this object replaces the stored transcription settings. This is separate from
+            the top-level `transcription` boolean on answer and dial commands.
         tools:
           type: array
           description: Inline tool definitions available to the assistant (webhook, retrieval, transfer, hangup, etc.). Overrides
