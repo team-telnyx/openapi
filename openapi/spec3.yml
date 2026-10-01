@@ -18783,17 +18783,28 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
   /dir/{dir_id}:
     delete:
-      summary: Delete a DIR
-      description: 'Delete a DIR. Failure modes: `400` if a child phone number is in a non-deletable status, `409` if the
-        DIR has an unresolved infringement claim, `404` if the DIR is not yours.'
+      summary: Request deletion of a DIR
+      description: 'Request deletion of a DIR. This does not remove the DIR on this call: it records the request, moves the
+        DIR to `delete_requested`, and Telnyx completes the removal (de-registration and cleanup) shortly after. A verified
+        DIR keeps serving its branded identity, and keeps billing, until the removal is executed. Failure modes: `400` if
+        a child phone number is still attached or the DIR is `in_review` (wait for the review to finish), `409` if the DIR
+        has an unresolved infringement claim, `404` if the DIR is not yours.'
       operationId: deleteDirSimple
       tags:
       - Display Identity Records
       parameters:
       - $ref: '#/components/parameters/DirId'
       responses:
-        '204':
-          description: DIR deleted.
+        '202':
+          description: Deletion requested. The DIR moves to `delete_requested` and is torn down shortly after.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirDeleteRequestAccepted'
+              example:
+                data:
+                  id: 16635d38-75a6-4481-82e8-69af60e05011
+                  status: delete_requested
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         4XX:
@@ -18822,10 +18833,12 @@ paths:
       summary: Update a DIR
       description: 'Edit a DIR. DIRs in `draft`, `rejected`, `unsuccessful`, or `suspended` can be edited freely: PATCH is
         a pure edit, `status` is never changed, and you re-vet by calling `POST /v2/dir/{dir_id}/submit` explicitly. A `verified`
-        DIR can also be edited in place: a PATCH that changes any value returns the DIR to `draft` and branded delivery stops
-        until you re-submit and the DIR is approved again, while a PATCH that changes nothing (an empty body or values identical
-        to the current ones) leaves the DIR `verified`, so idempotent retries are safe. DIRs in any other status (`submitted`,
-        `in_review`, `expired`, `infringement_claimed`, `permanently_rejected`) cannot be edited.'
+        DIR can also be edited in place: a PATCH that changes any value returns the DIR to `draft`; the currently approved
+        identity keeps displaying, and the edited content goes live only after you re-submit and the DIR is approved again.
+        A PATCH that changes nothing (an empty body or values identical to the current ones) leaves the DIR `verified`, so
+        idempotent retries are safe. Changing only `bpo_authorizations` or `webhook_url` is the exception: the DIR stays `verified`.
+        Each BPO authorization is reviewed on its own instead. DIRs in any other status (`submitted`, `in_review`, `expired`,
+        `infringement_claimed`, `permanently_rejected`) cannot be edited.'
       operationId: updateDirSimple
       tags:
       - Display Identity Records
@@ -18854,6 +18867,79 @@ paths:
         default:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+  /dir/{dir_id}/bpo_authorizations:
+    get:
+      tags:
+      - Display Identity Records
+      summary: List a DIR's authorized BPOs
+      operationId: listDirBpoAuthorizations
+      description: 'List the BPO (Business Process Outsourcer) accounts a Brand Owner has authorized on this DIR, together
+        with the review state of each authorization.
+
+
+        Authorizations are supplied as the `bpo_authorizations` array when creating or updating a DIR, and each one is reviewed
+        on its own. Only an `approved` authorization adds that BPO to this DIR''s authorized callers in the branded calling
+        registry; `pending` and `rejected` authorizations do not. Each entry includes the `loa_document_id` you submitted:
+        because `bpo_authorizations` replaces the whole list on every DIR update, send each entry you want to keep back with
+        its `loa_document_id` unchanged, and it keeps its review state. A rejected entry carries a `rejection_reason`. Returns
+        an empty list when the DIR has authorized no BPOs.'
+      parameters:
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      responses:
+        '200':
+          description: Paginated list of the DIR's BPO authorizations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpoAuthorizationList'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+  /dir/{dir_id}/bpo_loa:
+    post:
+      tags:
+      - Display Identity Records
+      summary: Render the BPO Authorization LOA for a DIR
+      operationId: renderDirBpoLoa
+      description: 'The Letter of Authorization in which a Brand Owner authorizes an approved BPO (Business Process Outsourcer)
+        to place branded calls that display this DIR on the owner''s behalf. Both parties are read from the caller''s account:
+        the Brand Owner is the enterprise that owns the DIR, and the BPO is `bpo_enterprise_id`. No business identity is accepted
+        in the body.
+
+
+        When `signature` is omitted the PDF is returned unsigned so the Brand Owner can sign it externally and the BPO can
+        upload it via the Documents API. When `signature` is present the PDF embeds the supplied image, printed name, and
+        signed-at date.
+
+
+        Returns `application/pdf`.'
+      parameters:
+      - name: dir_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: The DIR id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BpoAuthorizationLoaRenderRequest'
+      responses:
+        '200':
+          description: The rendered BPO Authorization LOA PDF.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
   /dir/{dir_id}/comments:
     get:
@@ -24825,6 +24911,17 @@ paths:
         schema:
           type: string
           example: Acme
+      - name: filter[role_type]
+        in: query
+        required: false
+        description: 'Only return enterprises of this type: `bpo` for call-center (BPO) enterprises, `enterprise` for normal
+          enterprises. Omit to return both.'
+        schema:
+          type: string
+          enum:
+          - enterprise
+          - bpo
+          example: bpo
       responses:
         '200':
           description: Paginated list of enterprises.
@@ -24957,7 +25054,20 @@ paths:
       description: 'Replace the enterprise''s mutable fields. Only mutable fields may be sent. Server-assigned and immutable
         fields (`id`, `record_type`, `created_at`, `updated_at`, status fields, `organization_type`, `country_code`, `role_type`)
         cannot be changed: including any of them in the body is rejected with `400 Bad Request` (`Field ''X'' is not allowed
-        in this request`).'
+        in this request`).
+
+
+        For an approved BPO enterprise (`role_type` `bpo`), changing any identity field (legal name, DBA, website, FEIN, industry,
+        number of employees, physical address, organization contact, D-U-N-S number, legal type, SIC code, corporate registration
+        number, professional license number, or jurisdiction of incorporation) resets `bpo_verification_status` to `pending`
+        for re-approval and sets every DIR authorization for that BPO to `rejected`. After re-approval, link it again with
+        a newly signed LOA (a new `loa_document_id`); resending the old one keeps the authorization `rejected`. Re-sending
+        an unchanged value does not reset anything.
+
+
+        If Number Reputation is enabled on the enterprise, `legal_name`, `doing_business_as`, `website`, `fein`, `industry`,
+        `number_of_employees`, `organization_physical_address`, `organization_contact`, and `dun_bradstreet_number` cannot
+        be changed: the request is rejected with `400`.'
       operationId: updateEnterprise
       tags:
       - Enterprises
@@ -25236,6 +25346,168 @@ paths:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
         4XX:
           $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+  /enterprises/{enterprise_id}/dir/{dir_id}/phone_number_batches:
+    get:
+      summary: List phone-number batches for a DIR
+      description: List the phone-number batches submitted under a DIR. The DIR is validated against the enterprise given
+        in the path.
+      operationId: listDirPhoneNumberBatches
+      tags:
+      - Phone Number Batches
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - name: filter[status]
+        in: query
+        required: false
+        description: Restrict to batches whose aggregate status equals this value.
+        schema:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+      responses:
+        '200':
+          description: Paginated list of batches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBatchList'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      x-hidden: true
+  /enterprises/{enterprise_id}/dir/{dir_id}/phone_number_batches/{batch_id}:
+    get:
+      summary: Get a phone-number batch
+      description: Get a single phone-number batch by id. The DIR is validated against the enterprise given in the path.
+      operationId: getDirPhoneNumberBatch
+      tags:
+      - Phone Number Batches
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/DirId'
+      - name: batch_id
+        in: path
+        required: true
+        description: The batch id (lowercase UUID).
+        schema:
+          type: string
+          format: uuid
+          example: 0a4b1f5e-2f12-4c0c-9a98-9b3a7d8b8e62
+      responses:
+        '200':
+          description: Batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBatchWrapped'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      x-hidden: true
+  /enterprises/{enterprise_id}/dir/{dir_id}/phone_numbers:
+    delete:
+      summary: Remove phone numbers from a DIR
+      description: Deregister phone numbers from a DIR. The DIR is validated against the enterprise given in the path. Returns
+        a partial-success envelope.
+      operationId: deleteDirPhoneNumbers
+      tags:
+      - Phone Numbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkDeletePhoneNumbersRequest'
+            example:
+              phone_numbers:
+              - '+19493253498'
+      responses:
+        '200':
+          description: Bulk-delete response. Inspect both `deleted` and `errors`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBulkDeleteResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      x-hidden: true
+    get:
+      summary: List phone numbers attached to a DIR
+      description: List the phone numbers registered under a DIR. The DIR is validated against the enterprise given in the
+        path.
+      operationId: listDirPhoneNumbers
+      tags:
+      - Phone Numbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/DirId'
+      - $ref: '#/components/parameters/BcPageNumber'
+      - $ref: '#/components/parameters/BcPageSize'
+      - name: status
+        in: query
+        required: false
+        description: Filter by phone-number status.
+        schema:
+          $ref: '#/components/schemas/PhoneNumberStatus'
+      responses:
+        '200':
+          description: Paginated list of phone numbers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberList'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      x-hidden: true
+    post:
+      summary: Add phone numbers to a DIR
+      description: 'Register phone numbers under a DIR. The DIR is validated against the enterprise given in the path. Same
+        body, failure modes, and batch semantics whichever path form you use.
+
+
+        **Pricing:** This is a billable action. See https://telnyx.com/pricing/numbers for current pricing.'
+      operationId: addDirPhoneNumbers
+      tags:
+      - Phone Numbers
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      - $ref: '#/components/parameters/DirId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkAddPhoneNumbersRequest'
+            example:
+              phone_numbers:
+              - '+19493253498'
+              - '+12134445566'
+              documents:
+              - document_id: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+                document_type: letter_of_authorization
+                description: LOA authorising Telnyx to register these numbers under the DIR.
+      responses:
+        '201':
+          description: Bulk-add response. Inspect both `added` and `errors`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneNumberBulkResponse'
+        default:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        4XX:
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+      x-hidden: true
   /enterprises/{enterprise_id}/reputation:
     delete:
       summary: Disable phone-number reputation for an enterprise
@@ -25716,6 +25988,68 @@ paths:
           $ref: '#/components/responses/number-reputation_GenericErrorResponse'
         '404':
           $ref: '#/components/responses/number-reputation_GenericErrorResponse'
+  /enterprises/{enterprise_id}/verify_email:
+    post:
+      tags:
+      - Email Verification
+      summary: Send an email-ownership verification code to an enterprise
+      operationId: requestEnterpriseEmailVerification
+      description: 'Email a 6-digit code to the enterprise account''s contact email to confirm ownership of that address.
+
+
+        A BPO (Business Process Outsourcer) account has no DIR, so it proves ownership of its own contact email here rather
+        than through a DIR. A BPO account cannot be approved for use until this contact email is verified.
+
+
+        The code expires in 15 minutes. Requesting a new code invalidates any previous one. Resends are rate limited (a short
+        cooldown plus a daily cap). Submit the code to `POST /enterprises/{enterprise_id}/verify_email/confirm`.'
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      responses:
+        '200':
+          description: A code was emailed; the current verification state is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseEmailVerificationStatusWrapped'
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '429':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '503':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+  /enterprises/{enterprise_id}/verify_email/confirm:
+    post:
+      tags:
+      - Email Verification
+      summary: Confirm an enterprise email-ownership verification code
+      operationId: confirmEnterpriseEmailVerification
+      description: 'Submit the 6-digit code that was emailed to the enterprise account''s contact email. On success the contact
+        email is marked verified.
+
+
+        For security, any failure (wrong, expired, already-used, or too many attempts) returns the same generic message.'
+      parameters:
+      - $ref: '#/components/parameters/EnterpriseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnterpriseEmailVerificationConfirmRequest'
+      responses:
+        '200':
+          description: The contact email is verified.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnterpriseEmailVerificationStatusWrapped'
+        '400':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
+        '404':
+          $ref: '#/components/responses/branded-calling_GenericErrorResponse'
   /external_connections:
     get:
       description: This endpoint returns a list of your External Connections inside the 'data' attribute of the response.
@@ -68743,43 +69077,57 @@ components:
         legal_name:
           type: string
           maxLength: 200
+          description: The legal name of the third-party partner or reseller managing these numbers on your behalf.
         dba:
           type: string
           nullable: true
           maxLength: 200
+          description: The trade name (Doing Business As) the partner operates under, if different from its legal name. Leave
+            blank if it does not apply.
         street_address:
           type: string
           maxLength: 255
+          description: The street address of the partner, including the building number and street name.
         extended_address:
           type: string
           nullable: true
           maxLength: 255
+          description: An optional second address line for the partner, such as a suite, unit, or floor. Leave blank if it
+            does not apply.
         city:
           type: string
           maxLength: 120
+          description: The city of the partner's address.
         administrative_area:
           type: string
           maxLength: 120
+          description: The state or province of the partner's address, as its code, for example IL or ON.
         postal_code:
           type: string
           maxLength: 30
+          description: The postal or ZIP code of the partner's address.
         country:
           type: string
           minLength: 2
           maxLength: 2
+          description: The two-letter country code of the partner's address, for example US.
           example: US
         contact_name:
           type: string
           maxLength: 200
+          description: The name of a contact person at the partner.
         contact_title:
           type: string
           maxLength: 200
+          description: The job title of the contact person at the partner.
         contact_email:
           type: string
           format: email
+          description: The email address of the contact person at the partner.
         contact_phone:
           type: string
           maxLength: 30
+          description: The phone number of the contact person at the partner, in E.164 format, for example +13125550000.
           example: '+13125550000'
     AgentInteraction:
       type: object
@@ -71485,18 +71833,21 @@ components:
         first_name:
           type: string
           maxLength: 255
+          description: The first name of the person Telnyx should contact about billing for this account.
           example: Alex
         last_name:
           type: string
           maxLength: 255
+          description: The last name of the person Telnyx should contact about billing for this account.
           example: Bill
         email:
           type: string
           format: email
+          description: The email address of the person Telnyx should contact about billing for this account.
           example: billing@acmeplumbing.example.com
         phone_number:
           type: string
-          description: E.164 format with leading `+`.
+          description: The phone number of the billing contact, in E.164 format, for example +12125551234.
           example: '+13125550001'
     BillingGroup:
       type: object
@@ -71823,6 +72174,98 @@ components:
       - privacy_policy_url
       - bot_challenge_nonce
       - bot_challenge_answer
+    BpoAuthorization:
+      type: object
+      description: A single authorization of a BPO (Business Process Outsourcer) account on a DIR.
+      required:
+      - record_type
+      - bpo_enterprise_id
+      - status
+      - loa_document_id
+      properties:
+        record_type:
+          type: string
+          enum:
+          - bpo_authorization
+          description: Always `bpo_authorization`.
+          example: bpo_authorization
+          readOnly: true
+        bpo_enterprise_id:
+          type: string
+          format: uuid
+          description: The authorized BPO account's enterprise id.
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+        status:
+          type: string
+          enum:
+          - pending
+          - approved
+          - rejected
+          description: Review state of this authorization. `pending` on create or when the Letter of Authorization is re-uploaded;
+            an admin moves it to `approved` or `rejected`. Only an `approved` authorization adds the BPO to this DIR's authorized
+            callers in the branded calling registry.
+          example: pending
+        loa_document_id:
+          type: string
+          format: uuid
+          description: Id of the signed Letter of Authorization document submitted for this BPO. Send it back unchanged in
+            `bpo_authorizations` when updating the DIR to keep this authorization and its review state.
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+        rejection_reason:
+          type: string
+          nullable: true
+          description: Why the authorization was rejected. `null` unless `status` is `rejected`.
+          example: Letter of Authorization is unsigned
+    BpoAuthorizationInput:
+      type: object
+      description: 'One authorization to include when creating or updating a DIR: an approved BPO (Business Process Outsourcer)
+        account plus the signed Letter of Authorization the Brand Owner granted it.'
+      required:
+      - bpo_enterprise_id
+      - loa_document_id
+      properties:
+        bpo_enterprise_id:
+          type: string
+          format: uuid
+          description: Enterprise id of an approved BPO (Business Process Outsourcer) account on your organization to authorize
+            for this DIR.
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+        loa_document_id:
+          type: string
+          format: uuid
+          description: Id of the signed Letter of Authorization document (uploaded via the Telnyx Documents API) in which
+            the Brand Owner authorizes this BPO.
+          example: 2a7e8337-e803-4057-a4ae-26c40eb0bc6c
+    BpoAuthorizationList:
+      type: object
+      description: Paginated list of a DIR's BPO authorizations.
+      required:
+      - data
+      - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpoAuthorization'
+        meta:
+          $ref: '#/components/schemas/branded-calling_PaginationMeta'
+    BpoAuthorizationLoaRenderRequest:
+      type: object
+      required:
+      - bpo_enterprise_id
+      properties:
+        bpo_enterprise_id:
+          type: string
+          format: uuid
+          description: The approved BPO enterprise the Brand Owner is authorizing. Must be a BPO account on the caller's organization
+            that has already been approved.
+          example: 4a6192a4-573d-446d-b3ce-aff9117272a6
+        signature:
+          allOf:
+          - $ref: '#/components/schemas/SignaturePayload'
+          description: Optional. When provided the rendered PDF embeds the signature image, printed name, and signed-at date.
+            When absent the PDF is returned unsigned so the Brand Owner can sign externally and the BPO can upload it via
+            the Documents API.
     BrandAddress:
       type: object
       additionalProperties: false
@@ -72785,6 +73228,8 @@ components:
             example: '+19493253498'
           minItems: 1
           maxItems: 100
+          description: The phone numbers to remove from this brand, in E.164 format, up to 100 per request. They must currently
+            be attached to this brand.
     BulkMessagingSettingsUpdatePhoneNumbers:
       type: object
       properties:
@@ -90926,6 +91371,20 @@ components:
           nullable: true
           example: '2027-04-26T18:07:29.537981Z'
           readOnly: true
+        delete_requested_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When deletion was requested. Set once the DIR enters `delete_requested`; `null` otherwise.
+          example: '2026-04-27T09:12:44.201820Z'
+          readOnly: true
+        webhook_url:
+          type: string
+          format: uri
+          nullable: true
+          description: '`https://` URL that receives webhook notifications for this DIR''s compliance-review outcomes. `null`
+            when not subscribed.'
+          example: https://acmehealthcare.example.com/webhooks/branded-calling
     DirComment:
       type: object
       properties:
@@ -91013,7 +91472,8 @@ components:
           example: false
         certify_brand_is_accurate:
           type: boolean
-          description: Must be `true`.
+          description: Certification that the DIR information is accurate. Must be `true` for the DIR to be submitted for
+            vetting.
           example: true
           enum:
           - true
@@ -91065,6 +91525,45 @@ components:
             $ref: '#/components/schemas/Document'
           maxItems: 20
           description: Supporting documents. Each `document_id` may appear at most once on a DIR.
+        webhook_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 2048
+          description: Optional `https://` URL that receives webhook notifications when this DIR's compliance review completes
+            (rejection outcomes include structured rejection reasons). Maximum 2048 characters.
+          example: https://mapleridge.example.com/webhooks/branded-calling
+        bpo_authorizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpoAuthorizationInput'
+          maxItems: 10
+          description: Optional. Approved BPO (Business Process Outsourcer) accounts on your organization authorized to place
+            branded calls for this DIR, each with the signed Letter of Authorization the Brand Owner granted it. Each authorization
+            starts `pending` and takes effect only after an admin reviews its Letter of Authorization. Omit or send an empty
+            list to authorize no BPO on this DIR. Maximum 10.
+    DirDeleteRequestAccepted:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - id
+          - status
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Id of the DIR whose deletion was requested.
+              example: 16635d38-75a6-4481-82e8-69af60e05011
+            status:
+              type: string
+              enum:
+              - delete_requested
+              description: 'Always `delete_requested`: the DIR has been queued for removal, not yet removed.'
+              example: delete_requested
     DirInfringementUpdateRequest:
       type: object
       required:
@@ -91076,7 +91575,7 @@ components:
       properties:
         certify_no_infringement:
           type: boolean
-          description: Must be `true`.
+          description: Check to certify that the brand no longer infringes anyone else's trademark or intellectual property.
           enum:
           - true
         certify_brand_is_accurate:
@@ -91104,6 +91603,7 @@ components:
           nullable: true
           minLength: 1
           maxLength: 35
+          description: The business name shown to call recipients, 1 to 35 characters, no emoji, not blank.
         logo_url:
           type: string
           nullable: true
@@ -91203,6 +91703,7 @@ components:
       - expired
       - infringement_claimed
       - permanently_rejected
+      - delete_requested
       description: 'DIR lifecycle status.
 
         - `draft` - newly created; editable; not yet submitted.
@@ -91221,7 +91722,10 @@ components:
 
         - `infringement_claimed` - a trademark/impersonation claim is open against this DIR.
 
-        - `permanently_rejected` - terminal; cannot be resubmitted.'
+        - `permanently_rejected` - terminal; cannot be resubmitted.
+
+        - `delete_requested` - you have requested deletion; the DIR still exists and Telnyx is completing the removal (de-registration
+        and cleanup). A verified DIR keeps serving its branded identity, and keeps billing, until the removal finishes.'
     DirUpdateRequest:
       type: object
       description: All fields are optional; only those supplied are updated. Same per-field rules as `DirCreateRequest`.
@@ -91278,6 +91782,24 @@ components:
           maxItems: 20
           description: 'Additional supporting documents to attach. Append-only: existing documents are never removed or replaced,
             and an empty or omitted list is a no-op. Each `document_id` may appear at most once on a DIR.'
+        webhook_url:
+          type: string
+          format: uri
+          nullable: true
+          maxLength: 2048
+          description: Optional `https://` URL that receives webhook notifications when this DIR's compliance review completes.
+            Send `null` to clear. Changing only this field on a `verified` DIR does not re-vet it. Maximum 2048 characters.
+          example: https://mapleridge.example.com/webhooks/branded-calling
+        bpo_authorizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpoAuthorizationInput'
+          maxItems: 10
+          description: 'Optional. Replace this DIR''s authorized BPO (Business Process Outsourcer) accounts with these, each
+            with its signed Letter of Authorization. The supplied list replaces the current one: a BPO left out has its authorization
+            removed, and a new BPO (or a changed Letter of Authorization) is created `pending` admin review. Send an empty
+            list to clear all authorizations; omit the field to leave them unchanged. Editing this list does not re-vet the
+            DIR. Maximum 10.'
     DirWrapped:
       type: object
       required:
@@ -91609,6 +92131,7 @@ components:
         description:
           type: string
           maxLength: 255
+          description: An optional note describing this document, for example what it proves.
           example: Certificate of incorporation.
     DocumentTypeReference:
       type: object
@@ -94204,7 +94727,8 @@ components:
         legal_name:
           type: string
           example: Acme Plumbing LLC
-          description: Legal name of the enterprise.
+          description: Your business's full registered legal name, exactly as it appears on your incorporation or tax documents,
+            3 to 64 characters.
           minLength: 3
           maxLength: 64
         organization_type:
@@ -94231,8 +94755,12 @@ components:
           enum:
           - enterprise
           - bpo
-          description: '`enterprise` for an organization registering its own DIRs; `bpo` for a Business Process Outsourcer
-            placing calls on behalf of one or more enterprises.'
+          description: '`enterprise` for an organization registering its own DIRs (the default, and the right choice when
+            the calls display your own brand). `bpo` for a Business Process Outsourcer: a call center that places calls on
+            behalf of other enterprises and displays their brand. A `bpo` enterprise describes the call center itself and
+            cannot own a DIR. Each client the call center calls for gets its own `enterprise` in the same account, with the
+            client''s DIR under it; that DIR is then linked to the `bpo` enterprise through `bpo_authorizations`. Fixed at
+            creation.'
           example: enterprise
           default: enterprise
         website:
@@ -94240,13 +94768,15 @@ components:
           format: uri
           maxLength: 255
           example: https://acmeplumbing.example.com
+          description: Your business's public website address, including https://. Leave blank if your business has no website.
         fein:
           type: string
           description: US Federal Employer Identification Number (`NN-NNNNNNN`) or Canadian equivalent.
           example: 12-3456789
         industry:
           type: string
-          description: Industry classification.
+          description: The industry your business operates in. Choose the closest match from the list; if your value is not
+            accepted, pick the nearest category.
           example: technology
           enum:
           - accounting
@@ -94330,32 +94860,39 @@ components:
           type: string
           maxLength: 255
           example: Acme Plumbing
+          description: The trade name your business operates under if it is different from your legal name, also called a
+            Doing Business As (DBA) name. Leave blank if you only use your legal name.
         jurisdiction_of_incorporation:
           type: string
           maxLength: 255
           example: Delaware
+          description: The state, province, or country where your business was legally incorporated, for example Delaware.
         customer_reference:
           type: string
           maxLength: 255
-          description: Optional free-form string the caller can attach for their own bookkeeping. Telnyx does not interpret
-            it.
+          description: Your own label for this account. Enter any reference that helps you find it in your records. Telnyx
+            does not use it during vetting.
           example: internal-id-12345
         primary_business_domain_sic_code:
           type: string
           nullable: true
-          description: Optional SIC code for the primary line of business.
+          description: The 4-digit Standard Industrial Classification code for your main line of business, which tells us
+            what industry you operate in. Look it up in the SIC code directory if you are unsure.
         corporate_registration_number:
           type: string
           nullable: true
-          description: Optional corporate-registration / company-number identifier.
+          description: The official number your company received when it was legally registered or incorporated (for example
+            from your state or national business registry). It is on your certificate of incorporation.
         professional_license_number:
           type: string
           nullable: true
-          description: Optional professional-license number for regulated industries.
+          description: If your business operates under a professional license (for example legal, medical, or financial services),
+            enter the license number issued by the licensing authority. Leave blank if it does not apply.
         dun_bradstreet_number:
           type: string
           nullable: true
-          description: Optional D-U-N-S Number.
+          description: Your optional 9-digit D-U-N-S Number issued by Dun & Bradstreet, a unique identifier for your business.
+            Leave blank if you do not have one.
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
         billing_contact:
@@ -94364,6 +94901,65 @@ components:
           $ref: '#/components/schemas/PhysicalAddress'
         billing_address:
           $ref: '#/components/schemas/BillingAddress'
+    EnterpriseEmailVerificationConfirmRequest:
+      type: object
+      required:
+      - code
+      properties:
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: ^\d{6}$
+          description: The 6-digit code sent to the enterprise account's contact email.
+          example: '482915'
+    EnterpriseEmailVerificationStatus:
+      type: object
+      description: Verification state for an enterprise account's contact email.
+      required:
+      - record_type
+      - email_verified
+      - status
+      properties:
+        record_type:
+          type: string
+          enum:
+          - email_verification
+          description: Always `email_verification`.
+          example: email_verification
+          readOnly: true
+        email_verified:
+          type: boolean
+          description: Whether the enterprise account's contact email has been confirmed.
+          example: false
+        status:
+          type: string
+          enum:
+          - sent
+          - verified
+          description: '`sent` after a code is emailed; `verified` after a successful confirm.'
+          example: sent
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the code just sent stops being accepted. Present on a send response; null on a confirm response.
+          example: '2026-07-30T17:15:00Z'
+          readOnly: true
+        sends_remaining_today:
+          type: integer
+          nullable: true
+          description: How many more codes may be requested for this enterprise account today. Present on a send response;
+            null on a confirm response.
+          example: 9
+          readOnly: true
+    EnterpriseEmailVerificationStatusWrapped:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/EnterpriseEmailVerificationStatus'
     EnterpriseListPublic:
       type: object
       required:
@@ -94387,6 +94983,8 @@ components:
         legal_name:
           type: string
           example: Acme Plumbing LLC
+          description: Your business's full registered legal name, exactly as it appears on your incorporation or tax documents,
+            3 to 64 characters.
         organization_type:
           type: string
           example: commercial
@@ -94395,50 +94993,80 @@ components:
           example: US
         role_type:
           type: string
+          enum:
+          - enterprise
+          - bpo
           example: enterprise
         website:
           type: string
           example: https://acmeplumbing.example.com
+          description: Your business's public website address, including https://. Leave blank if your business has no website.
         fein:
           type: string
           example: 12-3456789
+          description: US Federal Employer Identification Number (`NN-NNNNNNN`) or Canadian equivalent.
         industry:
           type: string
           example: technology
+          description: The industry your business operates in. Choose the closest match from the list; if your value is not
+            accepted, pick the nearest category.
         number_of_employees:
           type: string
           example: 51-200
+          description: Approximate headcount range. Used for vetting heuristics; pick the bucket that contains your current
+            employee count.
         organization_legal_type:
           type: string
           example: llc
+          description: 'Legal-entity form. Pick the form that matches your incorporation documents:
+
+            - `corporation` - C-corp or S-corp.
+
+            - `llc` - limited liability company.
+
+            - `partnership` - general/limited partnership.
+
+            - `nonprofit` - non-profit corporation, charitable trust, or 501(c)(3)/equivalent.
+
+            - `other` - anything else (sole proprietorships, government bodies, DBAs, etc.). You may be asked for additional
+            documents during vetting.'
         doing_business_as:
           type: string
           example: Acme Plumbing
+          description: The trade name your business operates under if it is different from your legal name, also called a
+            Doing Business As (DBA) name. Leave blank if you only use your legal name.
         jurisdiction_of_incorporation:
           type: string
           example: Delaware
+          description: The state, province, or country where your business was legally incorporated, for example Delaware.
         customer_reference:
           type: string
+          description: Your own label for this account. Enter any reference that helps you find it in your records. Telnyx
+            does not use it during vetting.
           example: internal-id-12345
         primary_business_domain_sic_code:
           type: string
           nullable: true
-          description: Optional SIC code for the primary line of business.
+          description: The 4-digit Standard Industrial Classification code for your main line of business, which tells us
+            what industry you operate in. Look it up in the SIC code directory if you are unsure.
           example: null
         corporate_registration_number:
           type: string
           nullable: true
-          description: Optional corporate-registration / company-number identifier.
+          description: The official number your company received when it was legally registered or incorporated (for example
+            from your state or national business registry). It is on your certificate of incorporation.
           example: null
         professional_license_number:
           type: string
           nullable: true
-          description: Optional professional-license number for regulated industries.
+          description: If your business operates under a professional license (for example legal, medical, or financial services),
+            enter the license number issued by the licensing authority. Leave blank if it does not apply.
           example: null
         dun_bradstreet_number:
           type: string
           nullable: true
-          description: Optional D-U-N-S Number issued by Dun & Bradstreet.
+          description: Your optional 9-digit D-U-N-S Number issued by Dun & Bradstreet, a unique identifier for your business.
+            Leave blank if you do not have one.
           example: null
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
@@ -94464,6 +95092,23 @@ components:
         number_reputation_enabled:
           type: boolean
           description: True once Phone Number Reputation has been enabled on this enterprise (see `POST /enterprises/{id}/reputation`).
+        bpo_verification_status:
+          type: string
+          enum:
+          - pending
+          - approved
+          - rejected
+          nullable: true
+          description: Whether Telnyx has approved this BPO (Business Process Outsourcer) account. Only set for accounts created
+            with `role_type` `bpo`; `null` for normal enterprises. A BPO enterprise must be `approved` before a DIR can be
+            linked to it through `bpo_authorizations`.
+          example: approved
+        bpo_verification_rejection_reason:
+          type: string
+          nullable: true
+          description: Reason Telnyx rejected the BPO (Business Process Outsourcer) verification, when `bpo_verification_status`
+            is `rejected`; `null` otherwise.
+          example: Business registration document could not be verified.
     EnterprisePublicWrapped:
       type: object
       required:
@@ -94495,7 +95140,7 @@ components:
         the enterprise record keyed by the path parameter.
       properties:
         agent:
-          $ref: '#/components/schemas/AgentInput'
+          $ref: '#/components/schemas/number-reputation_AgentInput'
         signature:
           $ref: '#/components/schemas/LoaSignaturePayload'
     EnterpriseReputationLoaUpdate:
@@ -94566,17 +95211,22 @@ components:
       properties:
         legal_name:
           type: string
-          description: Legal name of the enterprise.
+          description: Your business's full registered legal name, exactly as it appears on your incorporation or tax documents,
+            3 to 64 characters.
           minLength: 3
           maxLength: 64
         website:
           type: string
           format: uri
           maxLength: 255
+          description: Your business's public website address, including https://. Leave blank if your business has no website.
         fein:
           type: string
+          description: US Federal Employer Identification Number (`NN-NNNNNNN`) or Canadian equivalent.
         industry:
           type: string
+          description: The industry your business operates in. Choose the closest match from the list; if your value is not
+            accepted, pick the nearest category.
           enum:
           - accounting
           - finance
@@ -94623,26 +95273,52 @@ components:
           - hotel
         number_of_employees:
           type: string
+          description: Approximate headcount range. Used for vetting heuristics; pick the bucket that contains your current
+            employee count.
         organization_legal_type:
           type: string
+          description: 'Legal-entity form. Pick the form that matches your incorporation documents:
+
+            - `corporation` - C-corp or S-corp.
+
+            - `llc` - limited liability company.
+
+            - `partnership` - general/limited partnership.
+
+            - `nonprofit` - non-profit corporation, charitable trust, or 501(c)(3)/equivalent.
+
+            - `other` - anything else (sole proprietorships, government bodies, DBAs, etc.). You may be asked for additional
+            documents during vetting.'
         doing_business_as:
           type: string
           maxLength: 255
+          description: The trade name your business operates under if it is different from your legal name, also called a
+            Doing Business As (DBA) name. Leave blank if you only use your legal name.
         customer_reference:
           type: string
           maxLength: 255
+          description: Your own label for this account. Enter any reference that helps you find it in your records. Telnyx
+            does not use it during vetting.
         primary_business_domain_sic_code:
           type: string
           nullable: true
+          description: The 4-digit Standard Industrial Classification code for your main line of business, which tells us
+            what industry you operate in. Look it up in the SIC code directory if you are unsure.
         corporate_registration_number:
           type: string
           nullable: true
+          description: The official number your company received when it was legally registered or incorporated (for example
+            from your state or national business registry). It is on your certificate of incorporation.
         professional_license_number:
           type: string
           nullable: true
+          description: If your business operates under a professional license (for example legal, medical, or financial services),
+            enter the license number issued by the licensing authority. Leave blank if it does not apply.
         dun_bradstreet_number:
           type: string
           nullable: true
+          description: Your optional 9-digit D-U-N-S Number issued by Dun & Bradstreet, a unique identifier for your business.
+            Leave blank if you do not have one.
         organization_contact:
           $ref: '#/components/schemas/OrganizationContact'
         billing_contact:
@@ -94654,7 +95330,7 @@ components:
         jurisdiction_of_incorporation:
           type: string
           maxLength: 255
-          description: Updated state/province/country of incorporation. Optional on update.
+          description: The state, province, or country where your business was legally incorporated, for example Delaware.
           example: Delaware
     EntityType:
       title: EntityType
@@ -109399,22 +110075,27 @@ components:
         first_name:
           type: string
           maxLength: 255
+          description: The first name of the main person Telnyx should contact about this account.
           example: Sam
         last_name:
           type: string
           maxLength: 255
+          description: The last name of the main person Telnyx should contact about this account.
           example: Org
         email:
           type: string
           format: email
+          description: The email address of the main person Telnyx should contact about this account. For a call center (BPO)
+            account this is the email you will verify later, so use a mailbox you can access.
           example: sam@acmeplumbing.example.com
         job_title:
           type: string
           maxLength: 255
+          description: The job title of the main person Telnyx should contact about this account.
           example: Compliance Lead
         phone_number:
           type: string
-          description: E.164 format with leading `+`.
+          description: The phone number of the main contact, in E.164 format, for example +12125551234.
           example: '+13125550000'
     OrganizationUser:
       type: object
@@ -112957,18 +113638,22 @@ components:
         city:
           type: string
           maxLength: 100
+          description: The city of your registered business address.
           example: Chicago
         postal_code:
           type: string
           maxLength: 20
+          description: The postal or ZIP code of your registered business address.
           example: '60601'
         street_address:
           type: string
           maxLength: 255
+          description: The street address of your registered business, including the building number and street name.
           example: 100 Main St
         extended_address:
           type: string
           maxLength: 255
+          description: An optional second address line, such as a suite, unit, or floor. Leave blank if it does not apply.
           example: Suite 504
           nullable: true
     PlanResponse:
@@ -117417,19 +118102,19 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-          description: Full name of the reference contact.
+          description: The full name of the person we should contact as your reference.
           example: Dana Reyes
         job_title:
           type: string
           maxLength: 255
           nullable: true
-          description: Job title of the reference contact.
+          description: The reference contact's job title, for example CFO or Owner.
           example: VP of Operations
         organization:
           type: string
           maxLength: 255
           nullable: true
-          description: Organization the reference contact belongs to.
+          description: The name of the organization the reference contact works for.
           example: Acme Logistics
         relationship_to_registrant:
           type: string
@@ -117440,16 +118125,19 @@ components:
         phone_e164:
           type: string
           pattern: ^\+[1-9]\d{1,14}$
-          description: Reference phone number in E.164 format.
+          description: The reference's phone number in E.164 format, for example +14155550123. We call this number during
+            their local business hours.
           example: '+14155550123'
         email:
           type: string
           format: email
-          description: Reference contact email address.
+          description: The reference's email address. We email them scheduling and dial-in instructions before we call, so
+            use an address they check.
           example: dana.reyes@example.com
         timezone:
           type: string
-          description: IANA timezone id for the reference.
+          description: The reference's IANA time zone, for example America/New_York. We only call during their local 8am to
+            9pm hours, which is why we need it.
           example: America/New_York
     ReferenceWrapped:
       type: object
@@ -126171,16 +126859,20 @@ components:
           $ref: '#/components/schemas/TosProductType'
         current_version:
           type: string
+          description: The latest published version of these terms.
           example: v1.0.0
         terms_url:
           type: string
+          description: A link to the full terms text.
           example: https://telnyx.com/terms/reputation-services
         effective_date:
           type: string
           format: date
+          description: The date this version took effect.
           example: '2025-07-10'
         description:
           type: string
+          description: A short summary of the product these terms cover.
           example: Terms and Conditions for Telnyx Number Reputation service
     TestDeviceCreateRequest:
       type: object
@@ -129083,10 +129775,12 @@ components:
         id:
           type: string
           format: uuid
+          description: The unique identifier of this recorded agreement.
           example: 550e8400-e29b-41d4-a716-446655440000
           readOnly: true
         terms_version:
           type: string
+          description: The version of the terms you accepted.
           example: v1.0.0
         version:
           type: string
@@ -129098,11 +129792,13 @@ components:
         agreed_at:
           type: string
           format: date-time
+          description: When you accepted this version of the terms.
           example: '2025-07-10T10:30:00Z'
           readOnly: true
         created_at:
           type: string
           format: date-time
+          description: When this agreement record was created.
           example: '2025-07-10T10:30:00Z'
           readOnly: true
     TosAgreementList:
@@ -129162,6 +129858,7 @@ components:
           type: string
           format: date-time
           nullable: true
+          description: When you accepted the terms, or null if you have not.
           example: '2025-07-10T10:30:00Z'
         agreement_required:
           type: boolean
@@ -146224,6 +146921,63 @@ components:
           type: object
           additionalProperties: true
       type: object
+    number-reputation_AgentInput:
+      type: object
+      description: Third-party reseller / partner managing the enterprise's phone numbers. Omit when the enterprise works
+        directly with Telnyx.
+      required:
+      - legal_name
+      - street_address
+      - city
+      - administrative_area
+      - postal_code
+      - country
+      - contact_name
+      - contact_title
+      - contact_email
+      - contact_phone
+      properties:
+        legal_name:
+          type: string
+          maxLength: 200
+        dba:
+          type: string
+          nullable: true
+          maxLength: 200
+        street_address:
+          type: string
+          maxLength: 255
+        extended_address:
+          type: string
+          nullable: true
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        administrative_area:
+          type: string
+          maxLength: 120
+        postal_code:
+          type: string
+          maxLength: 30
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+          example: US
+        contact_name:
+          type: string
+          maxLength: 200
+        contact_title:
+          type: string
+          maxLength: 200
+        contact_email:
+          type: string
+          format: email
+        contact_phone:
+          type: string
+          maxLength: 30
+          example: '+13125550000'
     number-reputation_Error:
       type: object
       required:
@@ -146327,6 +147081,36 @@ components:
       description: JSON:API pagination metadata returned with every paginated list response. Page numbering is 1-based. `page_size`
         reports the number of items actually returned in `data` for this page; the requested size is taken from the `page[size]`
         query parameter.
+    number-reputation_TosAgreement:
+      type: object
+      description: A recorded user agreement to a product's Terms of Service. The `user_id` is intentionally NOT echoed back
+        on this public surface - the caller already knows their own identity.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+          readOnly: true
+        terms_version:
+          type: string
+          example: v1.0.0
+        version:
+          type: string
+          description: Convenience alias of `terms_version`. Both keys are present on every response.
+          example: v1.0.0
+          readOnly: true
+        product_type:
+          $ref: '#/components/schemas/TosProductType'
+        agreed_at:
+          type: string
+          format: date-time
+          example: '2025-07-10T10:30:00Z'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          example: '2025-07-10T10:30:00Z'
+          readOnly: true
     numbers_Error:
       properties:
         code:
