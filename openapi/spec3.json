@@ -5175,6 +5175,84 @@
         }
       }
     },
+    "/ai/assistants/deleted": {
+      "get": {
+        "tags": [
+          "Assistants"
+        ],
+        "summary": "List deleted assistants",
+        "description": "List the organization's soft-deleted assistants in the Recently Deleted list.\n\nEach entry includes `deleted_at` and `permanently_deleted_at`, the point after which the assistant is erased automatically and can no longer be restored.",
+        "operationId": "get_deleted_assistants_public_assistants_deleted_get",
+        "parameters": [
+          {
+            "name": "page[number]",
+            "in": "query",
+            "description": "Page number to retrieve (1-based).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page[Number]"
+            }
+          },
+          {
+            "name": "page[size]",
+            "in": "query",
+            "description": "Number of items to return per page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page[Size]"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDeletedAssistantsResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "assistant_7f3c2a1b",
+                      "name": "Support Assistant",
+                      "created_at": "2025-08-14T09:24:11.000000Z",
+                      "model": "telnyx-gpt",
+                      "instructions": "You are a support assistant.",
+                      "deleted_at": "2026-10-02T00:46:15.245000Z",
+                      "permanently_deleted_at": "2026-11-01T00:46:15.245000Z"
+                    }
+                  ],
+                  "meta": {
+                    "total_pages": 1,
+                    "total_results": 1,
+                    "page_number": 1,
+                    "page_size": 20
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ai/assistants/import": {
       "post": {
         "tags": [
@@ -6123,7 +6201,7 @@
           "Assistants"
         ],
         "summary": "Delete an assistant",
-        "description": "Delete an AI Assistant by `assistant_id`.",
+        "description": "Delete an AI Assistant by `assistant_id`.\n\nBy default this performs a soft delete: the assistant moves to the Recently Deleted list and stays restorable for 30 days, after which it is permanently deleted automatically. The assistant's versions and TeXML application are preserved during the retention window.\n\nPass `hard_delete=true` to skip the retention window and permanently delete the assistant immediately. A hard delete erases the assistant and all of its versions, and deletes its TeXML application unless phone numbers are still assigned to it. It does not delete conversations, recordings, shared tools the assistant referenced, or knowledge-base embeddings.\n\nDeletion fails with `400` if other assistants reference this one through a handoff tool or a conversation-flow edge \u2014 remove those references first.",
         "operationId": "delete_assistant_public_assistants__assistant_id__delete",
         "parameters": [
           {
@@ -6134,6 +6212,17 @@
             "schema": {
               "type": "string",
               "title": "Assistant Id"
+            }
+          },
+          {
+            "name": "hard_delete",
+            "in": "query",
+            "description": "Permanently delete the assistant immediately instead of soft-deleting it to the Recently Deleted list, where it stays restorable for 30 days.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Hard Delete"
             }
           }
         ],
@@ -6159,6 +6248,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (code 10015). Another assistant depends on this one: a handoff tool points to it, or a conversation-flow edge hands off to it. The detail names the referencing assistants; remove those references and retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inference-embedding_ErrorResponse"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "code": "10015",
+                      "title": "Bad Request",
+                      "detail": "Cannot delete assistant assistant_7f3c2a1b. The following assistant(s) have handoff tools pointing to it: 'Billing Bot' (assistant_9c1d2e3f). Please remove these handoff tools before deleting."
+                    }
+                  ]
                 }
               }
             }
@@ -7105,6 +7213,59 @@
         }
       }
     },
+    "/ai/assistants/{assistant_id}/deleted": {
+      "get": {
+        "tags": [
+          "Assistants"
+        ],
+        "summary": "Get a deleted assistant",
+        "description": "Retrieve a soft-deleted assistant from the Recently Deleted list by `assistant_id`, including its `deleted_at` and `permanently_deleted_at` timestamps. This is a read-only view; the assistant cannot be modified while it remains deleted.",
+        "operationId": "get_deleted_assistant_public_assistants__assistant_id__deleted_get",
+        "parameters": [
+          {
+            "name": "assistant_id",
+            "in": "path",
+            "description": "Unique identifier of the assistant.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assistant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedAssistant"
+                },
+                "example": {
+                  "id": "assistant_7f3c2a1b",
+                  "name": "Support Assistant",
+                  "created_at": "2025-08-14T09:24:11.000000Z",
+                  "model": "telnyx-gpt",
+                  "instructions": "You are a support assistant.",
+                  "deleted_at": "2026-10-02T00:46:15.245000Z",
+                  "permanently_deleted_at": "2026-11-01T00:46:15.245000Z"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ai/assistants/{assistant_id}/instructions/enhance": {
       "post": {
         "tags": [
@@ -7149,6 +7310,57 @@
                   "title": "Enhanced Instructions Stream"
                 },
                 "example": "Enhanced Instructions Stream"
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/assistants/{assistant_id}/restore": {
+      "post": {
+        "tags": [
+          "Assistants"
+        ],
+        "summary": "Restore an assistant",
+        "description": "Restore a soft-deleted assistant from the Recently Deleted list.\n\nThe assistant becomes fully active again with its versions and TeXML application as they were at deletion time. Restoring does not re-enable numbers or connections that were released separately after the deletion.",
+        "operationId": "restore_assistant_public_assistants__assistant_id__restore_post",
+        "parameters": [
+          {
+            "name": "assistant_id",
+            "in": "path",
+            "description": "Unique identifier of the assistant.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assistant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inference-embedding_Assistant"
+                },
+                "example": {
+                  "id": "assistant_7f3c2a1b",
+                  "name": "Support Assistant",
+                  "created_at": "2025-08-14T09:24:11.000000Z",
+                  "model": "telnyx-gpt",
+                  "instructions": "You are a support assistant."
+                }
               }
             }
           },
@@ -128207,6 +128419,35 @@
           }
         }
       },
+      "DeletedAssistant": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/inference-embedding_Assistant"
+          },
+          {
+            "properties": {
+              "deleted_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Deleted At",
+                "description": "Timestamp of the soft delete."
+              },
+              "permanently_deleted_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "Permanently Deleted At",
+                "description": "Point after which the assistant is permanently deleted automatically and can no longer be restored."
+              }
+            },
+            "required": [
+              "deleted_at",
+              "permanently_deleted_at"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A soft-deleted assistant in the Recently Deleted list: the full assistant configuration plus deletion metadata."
+      },
       "DetailRecord": {
         "type": "object",
         "description": "An object following one of the schemas published in https://developers.telnyx.com/docs/api/v2/detail-records",
@@ -154404,6 +154645,27 @@
             }
           }
         }
+      },
+      "PaginatedDeletedAssistantsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DeletedAssistant"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "PaginatedDeletedAssistantsResponse",
+        "description": "Paginated list of Recently Deleted assistants."
       },
       "PaginatedScheduledEventList": {
         "properties": {
