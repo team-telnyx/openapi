@@ -5742,7 +5742,9 @@ paths:
       summary: List avatars
       description: Returns a paginated list of the Telnyx stock avatars and custom avatars available to the authenticated
         organization. Custom avatars owned by other organizations are never returned. The `image_url` value is suitable for
-        displaying a thumbnail and may be refreshed by listing or retrieving the avatar again.
+        displaying a thumbnail and may be refreshed by listing or retrieving the avatar again. `suggested_voice_id` recommends
+        a compatible Telnyx voice for stock avatars and is an empty string for custom avatars; it does not change an AI Assistant's
+        voice automatically.
       operationId: list_avatars_public_avatars_get
       parameters:
       - name: page[size]
@@ -5797,6 +5799,7 @@ paths:
                   avatar_type: stock
                   hosted: true
                   image_url: https://example.com/avatars/elena.png
+                  suggested_voice_id: Telnyx.Ultra.db6b0ed5-d5d3-463d-ae85-518a07d3c2b4
                 - id: avatar_0123456789abcdef0123456789abcdef
                   name: Customer portrait
                   provider: telnyx
@@ -5804,6 +5807,7 @@ paths:
                   hosted: true
                   image_url: https://example.com/avatar.png
                   image_url_expires_at: '2026-10-13T15:00:00Z'
+                  suggested_voice_id: ''
                   content_type: image/png
                   size_bytes: 248512
                   width_px: 1920
@@ -5860,6 +5864,7 @@ paths:
                   hosted: true
                   image_url: https://example.com/avatar.png
                   image_url_expires_at: '2026-10-13T15:00:00Z'
+                  suggested_voice_id: ''
                   content_type: image/png
                   size_bytes: 248512
                   width_px: 1920
@@ -5898,6 +5903,7 @@ paths:
                   hosted: true
                   image_url: https://example.com/avatar.png
                   image_url_expires_at: '2026-10-13T15:00:00Z'
+                  suggested_voice_id: ''
                   content_type: image/png
                   size_bytes: 248512
                   width_px: 1920
@@ -74734,6 +74740,15 @@ components:
           format: date-time
           description: Expiration time of `image_url`. Omitted when the URL does not expire.
           example: '2026-10-13T15:00:00Z'
+        suggested_voice_id:
+          type: string
+          minLength: 0
+          maxLength: 255
+          readOnly: true
+          description: Optional recommended Telnyx text-to-speech voice for this avatar. An omitted field or empty string
+            means no recommendation is available. Custom avatars have no suggested voice. It is informational and selecting
+            the avatar does not automatically change the AI Assistant's configured voice.
+          example: Telnyx.Ultra.db6b0ed5-d5d3-463d-ae85-518a07d3c2b4
         content_type:
           $ref: '#/components/schemas/AvatarContentType'
         size_bytes:
@@ -74826,23 +74841,13 @@ components:
           description: Location of the invalid request value.
           example: /image_file
     AvatarId:
-      oneOf:
-      - title: Stock avatar ID
-        type: string
-        enum:
-        - elena
-        - ben
-        - jordan
-        - lin
-        - avery
-        - raphael
-      - title: Custom avatar ID
-        type: string
-        pattern: ^avatar_[a-z0-9][a-z0-9._:-]{0,120}$
-        minLength: 8
-        maxLength: 128
-      description: Stable identifier of a Telnyx stock avatar or an organization-owned custom avatar. Custom avatar IDs are
-        returned by the Avatars API and use the `avatar_` prefix.
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$
+      description: Stable identifier returned by the Avatars API. Discover available stock IDs with GET /v2/ai/avatars and
+        filter[avatar_type]=stock rather than maintaining a fixed list. Custom avatar IDs use the `avatar_` prefix and must
+        belong to the authenticated organization. The service validates that the selected avatar is available.
       example: avatar_0123456789abcdef0123456789abcdef
     AvatarListMeta:
       type: object
