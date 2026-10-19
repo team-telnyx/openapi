@@ -102,8 +102,14 @@ tags:
 - name: Customer Service Record
   description: Customer Service Record operations
 - name: DIR References
-  description: Submit and manage the two business references and one financial reference that vouch for a DIR. References
+  description: 'Submit and manage the two business references and one financial reference that vouch for a DIR. References
     are contacted to confirm the business identity during vetting.
+
+
+    References (two business references and one financial reference) are needed only if the documents uploaded with the DIR
+    don''t already prove the business is legitimate and financially stable. Any one of these is enough proof: audited or certified
+    financial statements (uploaded as `other`, with a description), a commercial credit report (uploaded as `business_credit_report`),
+    or references. Telnyx reviewers decide during vetting whether your documents are enough.'
 - name: Data Migration
   description: Migrate data from an external provider into Telnyx Cloud Storage
 - name: Debugging
@@ -148,8 +154,7 @@ tags:
 - name: Email Validations
   description: Validate email addresses synchronously or in asynchronous batches.
 - name: Email Verification
-  description: Verify ownership of a DIR's authorizer email. A short code is emailed and confirmed; the email must be verified
-    before references can be submitted.
+  description: Verify ownership of a DIR's authorizer email. A short code is emailed and confirmed.
 - name: Email Webhooks
   description: Per-domain webhook endpoints with event subscriptions
 - name: Embeddings
@@ -19962,8 +19967,13 @@ paths:
       description: 'Submit the two business references and one financial reference for a DIR.
 
 
-        The DIR''s authorizer email must be verified first (see the email-verification endpoint). Until it is, this returns
-        `409` and no references are stored.
+        References (two business references and one financial reference) are needed only if the documents uploaded with the
+        DIR don''t already prove the business is legitimate and financially stable. Any one of these is enough proof: audited
+        or certified financial statements (uploaded as `other`, with a description), a commercial credit report (uploaded
+        as `business_credit_report`), or references. Telnyx reviewers decide during vetting whether your documents are enough.
+
+
+        References can''t be changed while the DIR is `verified`. Update the DIR first, which returns it to draft.
 
 
         The request body carries exactly two business references plus one financial reference. The first submission stores
@@ -19971,10 +19981,9 @@ paths:
         while changed values replace those references.
 
 
-        Replacing a reference is allowed only while the DIR itself is still editable, the same window in which a single reference
-        may be updated; once the DIR has been submitted for vetting this returns `400`. A replaced reference''s pending verification
-        call is cancelled and its dial-in code stops working, and the replacement contact is emailed fresh scheduling details.
-        References whose details did not change keep their existing call, code, and the notice already sent to them.
+        A replaced reference''s pending verification call is cancelled and its dial-in code stops working, and the replacement
+        contact is emailed fresh scheduling details. References whose details did not change keep their existing call, code,
+        and the notice already sent to them.
 
 
         The response always echoes the stored references in the same shape as the GET.
@@ -20076,8 +20085,8 @@ paths:
         live throughout the new vetting cycle.
 
 
-        Returns `400` from `submitted`/`in_review`/`permanently_rejected`. Returns `400` if the DIR''s business and financial
-        references have not been submitted. Returns `400` if the DIR has an unresolved infringement claim.'
+        Returns `400` from `submitted`/`in_review`/`permanently_rejected`. Returns `400` if the DIR has an unresolved infringement
+        claim.'
       operationId: submitDirSimple
       tags:
       - Display Identity Records
@@ -20117,11 +20126,23 @@ paths:
       - Email Verification
       summary: Send an email-ownership verification code
       operationId: requestDirEmailVerification
-      description: 'Email a 6-digit code to the DIR''s authorizer email to confirm ownership of that address.
+      description: 'Email a 6-digit code to the DIR''s authorizer email to confirm ownership of that address. The code goes
+        to the authorizer, not to the caller. If the authorizer is someone else (for example a client''s executive), that
+        person has to share the code with whoever is completing setup.
 
 
-        The code expires in 15 minutes. Requesting a new code invalidates any previous one. Resends are rate limited (a short
-        cooldown plus a daily cap). Submit the code to `POST /dir/{dir_id}/verify_email/confirm`.'
+        How long the code lasts: 15 minutes by default. 8 hours when the DIR has a call center (BPO) linked through `bpo_authorizations`
+        whose authorization is pending review or approved (a rejected authorization does not count). Link the call center
+        before you send the code: a code sent before the link keeps the 15-minute window, and a code sent after the link lasts
+        8 hours. The email states the window, and `expires_at` in the response always shows the exact expiry.
+
+
+        To resend, call this endpoint again. Each send issues a fresh code and invalidates the previous one. Sends are limited
+        to one every 60 seconds and 10 per DIR per UTC day. A throttled send returns `429` with `retry_after_secs` and `sends_remaining_today`
+        in the error `meta`.
+
+
+        Submit the code to `POST /dir/{dir_id}/verify_email/confirm`.'
       parameters:
       - $ref: '#/components/parameters/DirId'
       responses:
@@ -96422,6 +96443,7 @@ components:
           - letter_of_authorization
           - business_registration
           - articles_of_incorporation
+          - certificate_of_good_standing
           - tax_document
           - ein_letter
           - trademark_registration
@@ -96431,6 +96453,8 @@ components:
           - government_id
           - utility_bill
           - bank_statement
+          - business_credit_report
+          - bank_reference_letter
           - other
           example: business_registration
           description: Type of supporting document. Pick the closest match to what the file actually contains; `other` triggers
@@ -123348,8 +123372,7 @@ components:
             $ref: '#/components/schemas/Reference'
     ReferenceSubmissionRequest:
       type: object
-      description: Exactly two business references plus one financial reference. The DIR's authorizer email must be verified
-        before this is accepted.
+      description: Exactly two business references plus one financial reference.
       required:
       - business_references
       - financial_reference
