@@ -19271,6 +19271,314 @@ paths:
               schema:
                 $ref: '#/components/schemas/detail-records_ErrorResponse'
       x-latency-category: interactive
+  /dial_metrics:
+    get:
+      summary: List dial metrics
+      description: 'Returns dials-per-second (DPS) metrics for your account''s outbound dials made with the Call Control `Dial`
+        command and TeXML, as time buckets with dial counts, accepted and rejected dials, average and peak DPS, and the DPS
+        limit in force.
+
+
+        The result has one record per region per bucket, ordered by `start_time` and then `region`, newest first unless `sort=start_time`.
+        Regions are never summed: the DPS limit is enforced per region, so a cross-region total cannot be compared with it.
+
+
+        Only buckets that saw dials are returned. Treat a missing bucket as zero dials.
+
+
+        Only complete 5-second windows are counted, and a window is counted about 15 seconds after it closes. The newest `granularity=second`
+        record is therefore your live DPS, about 20 seconds old. Request the last minute or two with `sort=-start_time`; the
+        first record of each `region` is that region''s live rate (`page[limit]=1` would hide every region but one). If no
+        recent record exists, the live rate is zero.
+
+
+        Results are cursor paginated. Follow `meta.next`, or pass `meta.cursors.after` as `page[after]`, until `meta.next`
+        is absent. No total count is returned.
+
+
+        This endpoint is in development and can change before general availability.
+
+        '
+      x-latency-category: responsive
+      x-group-parameters: 'true'
+      operationId: ListDialMetrics
+      tags:
+      - Call Information
+      parameters:
+      - name: granularity
+        in: query
+        required: true
+        description: Bucket size. `second` returns 5-second buckets (the finest resolution) and is kept for the last 48 hours.
+          `minute` and `hour` are kept for the last 30 days.
+        schema:
+          type: string
+          enum:
+          - second
+          - minute
+          - hour
+        example: hour
+      - name: start_time
+        in: query
+        required: true
+        description: Inclusive start of the range, ISO 8601 (for example `2026-09-29T12:00:00.000Z`). Buckets that start at
+          or after this time are returned. Must not be older than the retention window of the chosen `granularity`.
+        schema:
+          type: string
+          format: date-time
+        example: '2026-09-29T12:00:00.000Z'
+      - name: end_time
+        in: query
+        required: true
+        description: Exclusive end of the range, ISO 8601. Must be after `start_time`. Buckets that start before this time
+          are returned.
+        schema:
+          type: string
+          format: date-time
+        example: '2026-09-29T14:00:00.000Z'
+      - name: sort
+        in: query
+        required: false
+        description: Sort order of the buckets by `start_time`. `-start_time` (default) returns the newest first, `start_time`
+          the oldest first. `region` follows the same direction for buckets with the same `start_time`. To read the live rate,
+          use `granularity=second` and `sort=-start_time`, then take the first record of each `region`.
+        schema:
+          type: string
+          enum:
+          - -start_time
+          - start_time
+          default: -start_time
+      - name: page[after]
+        in: query
+        required: false
+        description: Opaque cursor from `meta.cursors.after` of the previous page. Do not parse or construct it. A cursor
+          that matches no records returns an empty page whose `meta.cursors.after` and `meta.cursors.before` both echo the
+          given cursor.
+        schema:
+          type: string
+      - name: page[limit]
+        in: query
+        required: false
+        description: Maximum number of buckets per page. Values outside the range are clamped to 1-10,000.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 10000
+          default: 1000
+      responses:
+        '200':
+          description: Successful response with a page of dial metrics buckets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDialMetricsResponse'
+              examples:
+                hour:
+                  summary: Hourly buckets, newest first
+                  value:
+                    data:
+                    - record_type: dial_metric
+                      region: us
+                      start_time: '2026-09-29T13:00:00.000Z'
+                      end_time: '2026-09-29T14:00:00.000Z'
+                      dials:
+                        total: 85600
+                        accepted: 85240
+                        rejected:
+                          dps_limit: 360
+                          hourly_limit: 0
+                          daily_limit: 0
+                      average_dps: 23.7778
+                      peak_dps: 104.0
+                      dps_limit: 100
+                    - record_type: dial_metric
+                      region: eu
+                      start_time: '2026-09-29T13:00:00.000Z'
+                      end_time: '2026-09-29T14:00:00.000Z'
+                      dials:
+                        total: 1200
+                        accepted: 1200
+                        rejected:
+                          dps_limit: 0
+                          hourly_limit: 0
+                          daily_limit: 0
+                      average_dps: 0.3333
+                      peak_dps: 4.0
+                      dps_limit: null
+                    meta:
+                      granularity: hour
+                      sort: -start_time
+                      start_time: '2026-09-29T12:00:00.000Z'
+                      end_time: '2026-09-29T14:00:00.000Z'
+                      cursors:
+                        after: MTc5MDY4NjgwMDpldQ
+                      next: /v2/dial_metrics?end_time=2026-09-29T14%3A00%3A00.000Z&granularity=hour&page%5Bafter%5D=MTc5MDY4NjgwMDpldQ&page%5Blimit%5D=2&sort=-start_time&start_time=2026-09-29T12%3A00%3A00.000Z
+                second:
+                  summary: One 5-second bucket, DPS limit reached (granularity=second)
+                  value:
+                    data:
+                    - record_type: dial_metric
+                      region: us
+                      start_time: '2026-09-29T12:00:30.000Z'
+                      end_time: '2026-09-29T12:00:35.000Z'
+                      dials:
+                        total: 162
+                        accepted: 150
+                        rejected:
+                          dps_limit: 12
+                          hourly_limit: 0
+                          daily_limit: 0
+                      average_dps: 32.4
+                      peak_dps: 32.4
+                      dps_limit: 30
+                    meta:
+                      granularity: second
+                      sort: -start_time
+                      start_time: '2026-09-29T12:00:30.000Z'
+                      end_time: '2026-09-29T12:00:35.000Z'
+                      cursors: {}
+                second_normal:
+                  summary: One 5-second bucket, no rejections (granularity=second)
+                  value:
+                    data:
+                    - record_type: dial_metric
+                      region: us
+                      start_time: '2026-09-29T12:00:30.000Z'
+                      end_time: '2026-09-29T12:00:35.000Z'
+                      dials:
+                        total: 95
+                        accepted: 95
+                        rejected:
+                          dps_limit: 0
+                          hourly_limit: 0
+                          daily_limit: 0
+                      average_dps: 19.0
+                      peak_dps: 19.0
+                      dps_limit: 30
+                    meta:
+                      granularity: second
+                      sort: -start_time
+                      start_time: '2026-09-29T12:00:30.000Z'
+                      end_time: '2026-09-29T12:00:35.000Z'
+                      cursors: {}
+                empty_page:
+                  summary: Cursor that matches nothing
+                  value:
+                    data: []
+                    meta:
+                      granularity: hour
+                      sort: -start_time
+                      start_time: '2026-09-29T12:00:00.000Z'
+                      end_time: '2026-09-29T14:00:00.000Z'
+                      cursors:
+                        after: MTc5MDY4MzIwMDp1cw
+                        before: MTc5MDY4MzIwMDp1cw
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '404':
+          description: Resource not found. The route does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/call-control_Errors'
+              example:
+                errors:
+                - code: '10005'
+                  title: Resource not found
+                  detail: Not Found
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+        '422':
+          description: Unprocessable entity. A required parameter is missing, a parameter has an invalid value, or the range
+            is outside the retention window of the chosen granularity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/call-control_Errors'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  value:
+                    errors:
+                    - code: '10004'
+                      title: Missing required parameter
+                      detail: start_time is required
+                      source:
+                        parameter: start_time
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10004
+                invalid_granularity:
+                  summary: Unknown granularity
+                  value:
+                    errors:
+                    - code: '10032'
+                      title: Invalid enumerated value
+                      detail: 'granularity must be one of: second, minute, hour'
+                      source:
+                        parameter: granularity
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10032
+                invalid_date_time:
+                  summary: Unparseable date-time
+                  value:
+                    errors:
+                    - code: '10026'
+                      title: Invalid parameter type
+                      detail: start_time must be an ISO 8601 date-time, e.g. 2026-09-29T12:00:00.000Z
+                      source:
+                        parameter: start_time
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10026
+                invalid_cursor:
+                  summary: Invalid cursor
+                  value:
+                    errors:
+                    - code: '10026'
+                      title: Invalid parameter type
+                      detail: page[after] is not a cursor this API returned
+                      source:
+                        parameter: page[after]
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10026
+                end_before_start:
+                  summary: end_time not after start_time
+                  value:
+                    errors:
+                    - code: '10033'
+                      title: Value outside of range
+                      detail: end_time must be after start_time
+                      source:
+                        parameter: end_time
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10033
+                outside_retention:
+                  summary: Outside retention
+                  value:
+                    errors:
+                    - code: '10033'
+                      title: Value outside of range
+                      detail: granularity is only available for the last 48 hours; start_time is before 2026-09-27T12:00:00.000Z,
+                        which is outside the retention window
+                      source:
+                        parameter: start_time
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10033
+                invalid_sort:
+                  summary: Unknown sort
+                  value:
+                    errors:
+                    - code: '10032'
+                      title: Invalid enumerated value
+                      detail: 'sort must be one of: -start_time, start_time'
+                      source:
+                        parameter: sort
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/10032
+        '429':
+          $ref: '#/components/responses/RateLimitExceededResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerErrorResponse'
+        default:
+          $ref: '#/components/responses/call-control_GenericErrorResponse'
   /dialogflow_connections/{connection_id}:
     delete:
       summary: Delete stored Dialogflow Connection
@@ -68664,6 +68972,37 @@ components:
           example:
             error:
               message: Provider request timed out
+    RateLimitExceededResponse:
+      description: Too many requests. The API request rate limit was exceeded. Wait before retrying; honor `Retry-After` when
+        present. See API rate limiting. This is the request rate limit, not the dials-per-second limit of outbound calls.
+      headers:
+        X-RateLimit-Limit:
+          description: Request limit for the current window.
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          description: Requests remaining in the current window.
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          description: Reset timing signal for the current window.
+          schema:
+            type: integer
+        Retry-After:
+          description: Seconds to wait before another attempt, when supplied.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/call-control_Errors'
+          example:
+            errors:
+            - code: '10011'
+              title: Too many requests
+              detail: You have exceeded the maximum number of allowed requests.
+              meta:
+                url: https://developers.telnyx.com/docs/overview/errors/10011
     RecordingMediaAuthenticationUnavailable:
       description: The authentication service is unavailable.
       content:
@@ -95514,6 +95853,131 @@ components:
       example:
         To: '+12065550100'
         From: '+12065550200'
+    DialMetric:
+      type: object
+      title: Dial Metrics Bucket
+      description: Dial counts and rates for one region in one time bucket. One record per region per bucket.
+      properties:
+        record_type:
+          type: string
+          enum:
+          - dial_metric
+          example: dial_metric
+        region:
+          type: string
+          description: Region where the dials were handled. Current values are `us`, `eu`, `australia`, `middle_east`, `canada`
+            and `india`. New values can be added, so clients must tolerate values not listed here. Buckets of different regions
+            are separate records.
+          example: us
+        start_time:
+          type: string
+          format: date-time
+          description: Start of the bucket (inclusive), UTC.
+          example: '2026-09-29T12:00:00.000Z'
+        end_time:
+          type: string
+          format: date-time
+          description: End of the bucket (exclusive), UTC. Five seconds, one minute or one hour after `start_time`, depending
+            on `granularity`.
+          example: '2026-09-29T13:00:00.000Z'
+        dials:
+          type: object
+          description: Dial attempt counts in the bucket.
+          properties:
+            total:
+              type: integer
+              minimum: 0
+              description: 'All dial attempts, rejected ones included: accepted plus every rejected count.'
+              example: 85600
+            accepted:
+              type: integer
+              minimum: 0
+              description: Dial attempts that were not rejected by a limit.
+              example: 85240
+            rejected:
+              type: object
+              description: Dial attempts rejected by a limit.
+              properties:
+                dps_limit:
+                  type: integer
+                  minimum: 0
+                  description: Rejected by the dials-per-second limit.
+                  example: 360
+                hourly_limit:
+                  type: integer
+                  minimum: 0
+                  description: Rejected by an hourly limit.
+                  example: 0
+                daily_limit:
+                  type: integer
+                  minimum: 0
+                  description: Rejected by a daily limit.
+                  example: 0
+        average_dps:
+          type: number
+          description: '`dials.total` divided by the bucket duration in seconds, rounded to 4 decimal places. Counts every
+            dial attempt, rejected ones included.'
+          example: 23.7778
+        peak_dps:
+          type: number
+          description: Dials per second, rounded to 4 decimal places, in the busiest 5-second window of the bucket, summed
+            across all call-processing nodes of the region. Counts every dial attempt, rejected ones included, so `peak_dps`
+            above `dps_limit` is expected when dials were rejected. For `granularity=second` it equals `average_dps`.
+          example: 104.0
+        dps_limit:
+          type:
+          - integer
+          - 'null'
+          description: DPS limit in force during the busiest 5-second window, so it compares directly with `peak_dps`. `null`
+            means unlimited. Enforcement near the limit is approximate; `dials.rejected.dps_limit` is the authoritative signal
+            that the limit was reached.
+          example: 100
+    DialMetricsListMeta:
+      type: object
+      title: Dial Metrics List Meta
+      properties:
+        granularity:
+          type: string
+          enum:
+          - second
+          - minute
+          - hour
+          description: Echo of the requested granularity.
+          example: hour
+        start_time:
+          type: string
+          format: date-time
+          description: Echo of the requested `start_time`.
+          example: '2026-09-29T12:00:00.000Z'
+        end_time:
+          type: string
+          format: date-time
+          description: Echo of the requested `end_time`.
+          example: '2026-09-29T14:00:00.000Z'
+        cursors:
+          type: object
+          description: Empty on the last page. When `page[after]` matched no records, the page is empty and `after` and `before`
+            both echo the given cursor.
+          properties:
+            after:
+              type: string
+              description: Opaque cursor for the next page. Pass it as `page[after]`.
+              example: MTc5MDY4NjgwMDpldQ
+            before:
+              type: string
+              description: 'Present only on an empty page for a cursor that matched nothing: echoes that cursor.'
+              example: MTc5MDY4MzIwMDp1cw
+        next:
+          type: string
+          description: Path to the next page, repeating this request's parameters. Absent on the last page.
+          example: /v2/dial_metrics?end_time=2026-09-29T14%3A00%3A00.000Z&granularity=hour&page%5Bafter%5D=MTc5MDY4NjgwMDpldQ&page%5Blimit%5D=2&sort=-start_time&start_time=2026-09-29T12%3A00%3A00.000Z
+        sort:
+          type: string
+          enum:
+          - -start_time
+          - start_time
+          description: Echo of the applied sort order.
+          example: -start_time
     DialogflowConfig:
       type: object
       title: Dialogflow Config
@@ -107860,6 +108324,16 @@ components:
         records:
           type: string
           description: Link to the underlying detail records.
+    ListDialMetricsResponse:
+      type: object
+      title: List Dial Metrics Response
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DialMetric'
+        meta:
+          $ref: '#/components/schemas/DialMetricsListMeta'
     ListMeta:
       type: object
       properties:
