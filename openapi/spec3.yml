@@ -55195,16 +55195,41 @@ paths:
         required: true
         schema:
           type: string
+      - $ref: '#/components/parameters/telephony-credentials_IdempotencyKey'
       responses:
         '201':
           description: JWT
+          headers:
+            Idempotent-Replayed:
+              $ref: '#/components/headers/IdempotentReplayed'
           content:
             text/plain:
               schema:
                 type: string
                 example: eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ0ZWxueXhfdGVsZXBob255IiwiZXhwIjoxNTkwMDEwMTQzLCJpYXQiOjE1ODc1OTA5NDMsImlzcyI6InRlbG55eF90ZWxlcGhvbnkiLCJqdGkiOiJiOGM3NDgzNy1kODllLTRhNjUtOWNmMi0zNGM3YTZmYTYwYzgiLCJuYmYiOjE1ODc1OTA5NDIsInN1YiI6IjVjN2FjN2QwLWRiNjUtNGYxMS05OGUxLWVlYzBkMWQ1YzZhZSIsInRlbF90b2tlbiI6InJqX1pra1pVT1pNeFpPZk9tTHBFVUIzc2lVN3U2UmpaRmVNOXMtZ2JfeENSNTZXRktGQUppTXlGMlQ2Q0JSbWxoX1N5MGlfbGZ5VDlBSThzRWlmOE1USUlzenl6U2xfYURuRzQ4YU81MHlhSEd1UlNZYlViU1ltOVdJaVEwZz09IiwidHlwIjoiYWNjZXNzIn0.gNEwzTow5MLLPLQENytca7pUN79PmPj6FyqZWW06ZeEmesxYpwKh0xRtA0TzLh6CDYIRHrI8seofOO0YFGDhpQ
+        '400':
+          description: Bad Request / Validation Failed (10015). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key
+            headers are rejected by Edge with HTTP 400 and error code 10015.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/telephony-credentials_ErrorResponse'
         '404':
           description: Resource not Found
+        '409':
+          $ref: '#/components/responses/IdempotencyConflictResponse'
+        '422':
+          description: Validation failed. Reusing an Idempotency-Key with a different request also returns 422 (10027).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/telephony-credentials_ErrorResponse'
+        '503':
+          description: Service unavailable (10016), including unavailable Edge idempotency protection for a keyed request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/telephony-credentials_ErrorResponse'
   /terms_of_service/agreements:
     get:
       summary: List the calling user's Terms of Service agreements
@@ -67016,6 +67041,19 @@ components:
           sip_username:
             type: string
             description: Filter by sip_username
+    telephony-credentials_IdempotencyKey:
+      description: 'Unique key for safely retrying the same logical request. Generate a UUID v4 for each operation and reuse
+        it only when retrying that operation with the same request body. Valid characters: A-Z, a-z, 0-9, -, and _. Length:
+        1-255 characters. Do not include sensitive data in the key.'
+      in: header
+      name: Idempotency-Key
+      required: false
+      example: 8e03978e-40d5-43e8-bc93-6894a57f9326
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+        pattern: ^[A-Za-z0-9_-]{1,255}$
     telephony-credentials_PageConsolidated:
       name: page
       in: query
@@ -68634,10 +68672,10 @@ components:
           example:
             errors:
             - code: '10036'
-              title: Resource is being processed
               detail: A request with this Idempotency-Key is already being processed.
               source:
                 pointer: /header/Idempotency-Key
+              title: Resource is being processed
     InboundMessageLabelResponse:
       description: The updated message, including its current label set.
       content:
@@ -158828,6 +158866,41 @@ components:
                 properties:
                   pointer:
                     type: string
+    telephony-credentials_ErrorObject:
+      type: object
+      properties:
+        code:
+          description: Telnyx error code. Edge idempotency errors use 10027 or 10036. Fallback 404/500 responses from the
+            framework may use string status codes ('404', '500') instead.
+          enum:
+          - '10015'
+          - '10016'
+          - '10027'
+          - '10036'
+          - '404'
+          - '500'
+          type: string
+        detail:
+          type: string
+        source:
+          type: object
+          properties:
+            pointer:
+              type: string
+        title:
+          type: string
+      required:
+      - code
+      - title
+    telephony-credentials_ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/telephony-credentials_ErrorObject'
+      required:
+      - errors
     telnyx_models:
       type: string
       enum:
