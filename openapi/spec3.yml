@@ -457,12 +457,16 @@ tags:
   description: Regions for wireless services
 - name: cloudfs filesystems
   description: Manage CloudFS filesystems — JuiceFS-compatible filesystems backed by Telnyx Cloud Storage
+- name: functions
+  description: Manage Edge Compute functions
 - name: kv keys
   description: Read and write keys within a KV namespace
 - name: kv namespaces
   description: Manage KV storage namespaces
 - name: sql databases
   description: Manage SQL databases and run SQL against them
+- name: stateful actors
+  description: Inspect Stateful Actor types
 - name: x402 Payment Transactions
   description: Operations for x402 cryptocurrency payment transactions. Fund your Telnyx account using USDC stablecoin payments
     via the x402 protocol.
@@ -16716,6 +16720,96 @@ paths:
         '500':
           $ref: '#/components/responses/GenericErrorResponse'
       description: Marks the specified comment as read. The response contains the updated read state for the comment.
+  /compute/actors/{id}:
+    get:
+      tags:
+      - stateful actors
+      summary: Retrieve a Stateful Actor type
+      description: Retrieve one account-scoped Stateful Actor type. owner_function_id identifies the function that owns and
+        ships the actor class; other functions may reference the same actor type through actor bindings.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Actor type ID
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Actor type retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComputeActorTypeResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '404':
+          description: Actor type not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '422':
+          description: Invalid actor type ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      operationId: GetComputeActor
+  /compute/funcs:
+    get:
+      tags:
+      - functions
+      summary: List functions
+      description: List functions for the authenticated organization. Each function includes its persisted function-scoped
+        bindings. Actor bindings expose actor_type and env_name, allowing clients to identify every function attached to a
+        Stateful Actor type.
+      parameters:
+      - name: page[number]
+        in: query
+        description: Page number
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+      - name: page[size]
+        in: query
+        description: Page size (maximum 250)
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 250
+      responses:
+        '200':
+          description: Functions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComputeFunctionListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorResponse'
+      operationId: ListComputeFunctions
   /compute/funcs/{id}/logs:
     get:
       operationId: GetComputeFunctionLogs
@@ -53984,10 +54078,10 @@ paths:
         description: 'The value to store, sent as the raw request body. Maximum size: 1 MiB (1048576 bytes).'
         required: true
       responses:
-        '201':
-          description: Key created
         '200':
           description: Key updated
+        '201':
+          description: Key created
         '400':
           description: Bad request — invalid `id`, key name, or request body
           content:
@@ -72923,6 +73017,51 @@ components:
           description: Indicates the duration of the call in seconds
           type: integer
           example: 50
+    ActorClusterResult:
+      type: object
+      properties:
+        cluster_id:
+          type: string
+          description: Public region, or unknown when no mapping exists
+        status:
+          type: string
+        success:
+          type: boolean
+        error:
+          type: string
+        error_code:
+          type: string
+    ActorPlacement:
+      type: object
+      description: Last deployment fan-out report, not a live probe. Omitted on actor types without a placement-aware deployment.
+      properties:
+        policy:
+          type: string
+          enum:
+          - everywhere
+          - single_site
+        clusters:
+          type: array
+          items:
+            type: string
+          description: Public regions with successful deployment
+        excluded_clusters:
+          type: array
+          items:
+            type: string
+        unchecked_clusters:
+          type: array
+          items:
+            type: string
+        partial:
+          type: boolean
+        observed_at:
+          type: string
+          description: Optional ISO-8601 millisecond timestamp
+        cluster_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActorClusterResult'
     AddGroupSuppressionRequest:
       type: object
       required:
@@ -85920,6 +86059,105 @@ components:
         status: in-progress
         type: sim_card_network_preferences
         updated_at: '2018-02-02T22:25:27.521Z'
+    ComputeActorType:
+      type: object
+      properties:
+        record_type:
+          type: string
+          example: compute_actor_type
+        id:
+          type: string
+        type:
+          type: string
+          example: Counter
+        status:
+          type: string
+        owner_function_id:
+          type: string
+          description: ID of the function that owns and ships this actor type. Empty when the type is unowned.
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        placement:
+          $ref: '#/components/schemas/ActorPlacement'
+    ComputeActorTypeResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ComputeActorType'
+    ComputeBinding:
+      type: object
+      description: A function-scoped binding persisted at ship time. For binding_type=actor, actor_type is the referenced
+        Stateful Actor type and env_name is the binding name exposed to the function.
+      properties:
+        record_type:
+          type: string
+          example: compute_binding
+        binding_id:
+          type: string
+        binding_type:
+          type: string
+          example: actor
+        env_name:
+          type: string
+          example: COUNTER
+        status:
+          type: string
+        actor_type:
+          type: string
+          example: Counter
+        secret_name:
+          type: string
+        sqldb_id:
+          type: string
+        kv_id:
+          type: string
+        bucket_id:
+          type: string
+        func_id:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    ComputeFunction:
+      type: object
+      properties:
+        record_type:
+          type: string
+          example: compute_func
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        status_detail:
+          type: string
+        invoke_url:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        bindings:
+          type: array
+          description: Always present; empty when the function has no bindings.
+          items:
+            $ref: '#/components/schemas/ComputeBinding'
+        message:
+          type: string
+          example: Function deployed successfully
+    ComputeFunctionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComputeFunction'
+        meta:
+          $ref: '#/components/schemas/edge-compute_PaginationMeta'
     Conference:
       type: object
       title: Conference
