@@ -88506,7 +88506,7 @@
     "/voice_clones/from_upload": {
       "post": {
         "summary": "Create a voice clone from an audio file upload",
-        "description": "Creates a new voice clone by uploading an audio file directly. Supported formats: WAV, MP3, FLAC, OGG, M4A. For best results, provide 5\u201360 seconds of clear speech (Ultra accepts up to 60 seconds; Qwen3TTS auto-trims to 10 seconds; Minimax accepts up to 5 minutes). Maximum file size: 5MB for Telnyx, 20MB for Minimax.",
+        "description": "Creates a new voice clone by uploading an audio file directly. Supported formats: WAV, MP3, FLAC, OGG, M4A. Maximum file size: 20MB. Reference audio is trimmed per model: Qwen3TTS and Bayan use the first 10 seconds, Ultra uses up to 60 seconds, and Minimax accepts 10 seconds to 5 minutes. Ultra clones return `202` with status `pending`; all other models return `201` with status `active`. Bayan clones require `ref_text` (the exact transcript of the reference audio) and support `ar` (default) and `en` only.",
         "operationId": "createVoiceCloneFromUpload",
         "tags": [
           "Voice Clones"
@@ -88551,7 +88551,7 @@
             }
           },
           "400": {
-            "description": "Bad request \u2014 the audio file is invalid, unsupported, or exceeds the size limit.",
+            "description": "Bad request \u2014 the audio file is invalid or cannot be processed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -88570,12 +88570,39 @@
               }
             }
           },
-          "422": {
-            "description": "Unprocessable entity \u2014 validation error in the request body.",
+          "413": {
+            "description": "Payload too large \u2014 the audio file exceeds the 20MB limit.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/voice-designs_ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable entity \u2014 validation error in the request body. For example, an unsupported `language` for the model, or a missing `ref_text` with `model_id: Bayan`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/voice-designs_ErrorResponse"
+                },
+                "examples": {
+                  "bayan_missing_ref_text": {
+                    "summary": "Bayan clone without ref_text",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10027",
+                          "title": "Unprocessable Entity",
+                          "detail": "ref_text is required for model_id Bayan: provide the exact transcript of the reference audio",
+                          "source": {
+                            "pointer": "/ref_text"
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               }
             }
@@ -181180,6 +181207,73 @@
           "model": "foxtrot-1"
         }
       },
+      "TelnyxBayanClone": {
+        "type": "object",
+        "description": "Upload-based voice clone using the Telnyx Bayan model (Arabic and English). The clone is `active` on creation. Use it as voice `Telnyx.Bayan.<clone_id>`.",
+        "required": [
+          "audio_file",
+          "name",
+          "gender",
+          "model_id",
+          "ref_text"
+        ],
+        "properties": {
+          "audio_file": {
+            "type": "string",
+            "format": "binary",
+            "description": "Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. Converted to 24 kHz mono WAV and trimmed to the first 10 seconds. For best quality, provide about 10 seconds of clean, single-speaker speech. Maximum size: 20MB."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Name for the voice clone."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "default": "ar",
+            "description": "Language of the reference audio: `ar` (Arabic) or `en` (English). Defaults to `ar`. Other values return `422`."
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "male",
+              "female",
+              "neutral"
+            ],
+            "description": "Gender of the voice clone."
+          },
+          "ref_text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact transcript of the reference audio. Required for Bayan: a missing, empty, or whitespace-only value returns `422` with `source.pointer` `/ref_text`. An inaccurate transcript can make synthesis with the clone truncated or garbled. Record a known script of about 10 seconds and pass it verbatim.",
+            "pattern": "\\S"
+          },
+          "label": {
+            "type": "string",
+            "description": "Optional custom label describing the voice style."
+          },
+          "model_id": {
+            "type": "string",
+            "enum": [
+              "Bayan"
+            ],
+            "description": "TTS model identifier. Must be `Bayan`."
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "telnyx",
+              "Telnyx"
+            ],
+            "default": "telnyx",
+            "description": "Voice synthesis provider. Defaults to `telnyx`."
+          }
+        }
+      },
       "TelnyxBrand": {
         "title": "TelnyxBrand",
         "required": [
@@ -182389,12 +182483,12 @@
       },
       "TelnyxProviderParams": {
         "type": "object",
-        "description": "Telnyx provider-specific parameters. For the `Ultra` model, use `voice_speed`, `volume`, and `emotion`. `Bayan` and `Sukhan` don't use `temperature`, `volume`, or `emotion`, and don't support `voice_speed`. `Sukhan`'s `response_format` is restricted to `mp3` or `pcm` (no `wav`).",
+        "description": "Telnyx provider-specific parameters. For the `Ultra` model, use `voice_speed`, `volume`, and `emotion`. `Bayan` and `Sukhan` don't use `temperature`, `volume`, or `emotion`. `Bayan` accepts `voice_speed` from 0.5 to 2.0; `Sukhan` doesn't support it. `Bayan` synthesizes at a native 16 kHz: `sampling_rate` `8000`, `22050`, or `24000` is resampled, needs `response_format: pcm`, and isn't available with `output_type: audio_id`. `Sukhan`'s `response_format` is restricted to `mp3` or `pcm` (no `wav`).",
         "properties": {
           "voice_speed": {
             "type": "number",
             "format": "float",
-            "description": "Voice speed multiplier. Telnyx `Ultra` voices accept values from 0.6 to 1.5 \u2014 requests outside that range are rejected by the synthesis engine. `KokoroTTS` and `Qwen3TTS` accept the field but do not apply it. `Bayan` and `Sukhan` don't support it.",
+            "description": "Voice speed multiplier. Telnyx `Ultra` voices accept values from 0.6 to 1.5 \u2014 requests outside that range are rejected by the synthesis engine. `Bayan` accepts values from 0.5 to 2.0. `KokoroTTS` and `Qwen3TTS` accept the field but do not apply it. `Sukhan` doesn't support it.",
             "minimum": 0.1,
             "maximum": 2.0,
             "default": 1.0
@@ -182406,7 +182500,7 @@
           },
           "sampling_rate": {
             "type": "integer",
-            "description": "Audio sampling rate in Hz.",
+            "description": "Audio sampling rate in Hz. `Bayan` ignores the default and synthesizes at its native 16 kHz unless `8000`, `22050`, or `24000` is set explicitly with `response_format: pcm`. Resampled rates aren't available with `output_type: audio_id`.",
             "default": 24000
           },
           "volume": {
@@ -182446,7 +182540,7 @@
           "audio_file": {
             "type": "string",
             "format": "binary",
-            "description": "Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of clear, uninterrupted speech. Maximum size: 5MB."
+            "description": "Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. For best quality, provide 5\u201310 seconds of clear, uninterrupted speech. Maximum size: 20MB."
           },
           "name": {
             "type": "string",
@@ -182620,7 +182714,7 @@
           "audio_file": {
             "type": "string",
             "format": "binary",
-            "description": "Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. For best quality, provide up to 60 seconds of clear, uninterrupted speech. Maximum size: 5MB."
+            "description": "Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. For best quality, provide up to 60 seconds of clear, uninterrupted speech. Maximum size: 20MB."
           },
           "name": {
             "type": "string",
@@ -182630,7 +182724,7 @@
           "language": {
             "type": "string",
             "pattern": "^([Aa]uto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})*)$",
-            "description": "ISO 639-1 language code from the Ultra language set (40 languages)."
+            "description": "ISO 639-1 language code from the Ultra language set (42 languages)."
           },
           "gender": {
             "type": "string",
@@ -198398,6 +198492,7 @@
             "enum": [
               "Qwen3TTS",
               "Ultra",
+              "Bayan",
               "speech-2.8-turbo"
             ],
             "description": "TTS model identifier for the voice clone."
@@ -198512,13 +198607,16 @@
         }
       },
       "VoiceCloneUploadRequest": {
-        "description": "Multipart form data for creating a voice clone from a direct audio upload. Maximum file size: 5MB for Telnyx, 20MB for Minimax.",
+        "description": "Multipart form data for creating a voice clone from a direct audio upload. Maximum file size: 20MB.",
         "oneOf": [
           {
             "$ref": "#/components/schemas/TelnyxQwen3TTSClone"
           },
           {
             "$ref": "#/components/schemas/TelnyxUltraClone"
+          },
+          {
+            "$ref": "#/components/schemas/TelnyxBayanClone"
           },
           {
             "$ref": "#/components/schemas/MinimaxClone"
