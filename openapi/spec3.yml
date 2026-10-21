@@ -83,10 +83,6 @@ tags:
   description: Identify common themes and patterns in your embedded documents
 - name: Comments
   description: Read messages from the Telnyx vetting team and reply with clarifying information.
-- name: Community TTS Engines
-  description: Register and manage text-to-speech (TTS) engines you publish, and find the public engines other organizations
-    published, so an AI Assistant, TeXML or Call Control can speak with one of their voices, using your own key for it, instead
-    of a Telnyx-integrated vendor.
 - name: Conference Commands
   description: Conference command operations
 - name: Connections
@@ -41714,10 +41710,13 @@ paths:
               minLength: 1
               maxLength: 250
               example: yourcustomerrefhere
-              description: Returns jobs whose creation-time customer reference exactly matches the supplied value, not the
-                current reference on a phone number. Only jobs within the lookup window (90 days by default) are returned.
-                Supply a single non-blank string of up to 250 characters, without null characters, using `filter[customer_reference]=yourcustomerrefhere`.
-                An invalid filter value returns HTTP 422.
+              description: Exact, case-sensitive match for the customer reference supplied when the job was created. Only
+                jobs created within the last 90 days are returned, including for accounts otherwise exempt from job retention
+                limits. Searches the stored job reference, not the current reference on a phone number. Multiple jobs may
+                share a reference. Combines with the other filters and account ownership. Supply a single non-blank string
+                of up to 250 characters, without null characters, using `filter[customer_reference]=yourcustomerrefhere`.
+                Whitespace is preserved; blank strings, arrays, and objects return HTTP 422. An invalid filter value returns
+                HTTP 422. The literal string `null` is matched as text.
             phone_number:
               oneOf:
               - type: string
@@ -42034,7 +42033,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PhoneNumbersJobUpdatePhoneNumbersRequest'
+              $ref: '#/components/schemas/numbers_PhoneNumbersJobUpdatePhoneNumbersRequest'
       responses:
         '202':
           description: Update job accepted. The response contains a background job; poll GET /phone_numbers/jobs/{id} with
@@ -57482,944 +57481,6 @@ paths:
           $ref: '#/components/responses/wireless_UnprocessableEntity_c5290d5308'
         default:
           $ref: '#/components/responses/wireless_GenericErrorResponse_c5290d5308'
-  /tts_integrations:
-    get:
-      tags:
-      - Community TTS Engines
-      summary: List your community TTS engines
-      description: List every community TTS engine your organization has registered, at any status or visibility. Use `GET
-        /tts_integrations/discoverable` instead to also see other organizations' public, active engines.
-      operationId: list_community_tts_engines
-      parameters:
-      - $ref: '#/components/parameters/StatusFilter'
-      - $ref: '#/components/parameters/VisibilityFilter'
-      - $ref: '#/components/parameters/community-tts-engines_Page'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngineListResponse'
-              example:
-                data:
-                - id: 11111111-1111-1111-1111-111111111111
-                  name: acme
-                  websocket_url: wss://tts.acme.example/v1
-                  voices_url: https://tts.acme.example/voices
-                  supported_audio_formats:
-                  - linear16
-                  - mulaw
-                  capabilities:
-                    streamed_audio: true
-                    flush_support: true
-                    force_interrupt_support: false
-                    ssml_support: false
-                    voice_settings_schema:
-                      voice_speed:
-                        type: number
-                        min: 0.5
-                        max: 2.0
-                        default: 1.0
-                      emotion:
-                        type: enum
-                        values:
-                        - neutral
-                        - happy
-                        - sad
-                        default: neutral
-                  connect_timeout_ms: 3000
-                  voices_api_key_ref: null
-                  status: active
-                  visibility: public
-                  review_status: approved
-                  review_notes: null
-                  reviewed_at: '2026-10-16T17:37:32.080472Z'
-                  voices_count: 3
-                  voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                  voices_degraded: false
-                  contact_email: null
-                  documentation_url: https://tts.acme.example/docs
-                  data_retention_policy_url: null
-                  created_at: '2026-10-16T16:28:01.088824Z'
-                  updated_at: '2026-10-16T16:28:01.088824Z'
-                meta:
-                  total_pages: 1
-                  total_results: 1
-                  page_number: 1
-                  page_size: 20
-        '400':
-          description: An invalid `status` or `visibility` filter value.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: Bad Request
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Register a community TTS engine
-      description: 'Register a WebSocket text-to-speech engine. Telnyx reads the engine''s `voices_url` while it registers
-        the engine and refuses the registration with a `422` if the list is unreachable or invalid. The engine starts at `status:
-        draft` and cannot serve other organizations'' traffic until Telnyx approves it (your own organization can try it with
-        its own key meanwhile). It is `visibility: private` unless you set `public`: a private engine can be used only by
-        your organization, a public one by any organization once it is `active`. See the [Community TTS engines guide](/docs/voice/tts/community-engines)
-        for the full review flow.
-
-
-        `websocket_url` must be `wss://` and `voices_url` must be `https://`, both on a public host; a plain `ws://` URL is
-        rejected, and so is a credential embedded in either. Callers bring their own key for your engine: Telnyx stores none,
-        so there is nothing to register here for synthesis. `voices_api_key_ref` is optional and used only to read your voice
-        list.'
-      operationId: create_community_tts_engine
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCommunityTtsEngineRequest'
-            examples:
-              minimal:
-                value:
-                  name: acme
-                  websocket_url: wss://tts.acme.example/v1
-                  voices_url: https://tts.acme.example/voices
-                  supported_audio_formats:
-                  - linear16
-                  capabilities:
-                    streamed_audio: true
-              with_capabilities:
-                value:
-                  name: acme
-                  websocket_url: wss://tts.acme.example/v1
-                  voices_url: https://tts.acme.example/voices
-                  supported_audio_formats:
-                  - linear16
-                  - mulaw
-                  capabilities:
-                    streamed_audio: true
-                    flush_support: true
-                    force_interrupt_support: false
-                    ssml_support: false
-                    voice_settings_schema:
-                      voice_speed:
-                        type: number
-                        min: 0.5
-                        max: 2.0
-                        default: 1.0
-                      emotion:
-                        type: enum
-                        values:
-                        - neutral
-                        - happy
-                        - sad
-                        default: neutral
-                  documentation_url: https://tts.acme.example/docs
-                  visibility: private
-      responses:
-        '201':
-          description: The engine was registered.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: private
-                review_status: null
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '422':
-          description: Validation error, including a `name` that is invalid, reserved or already taken, a URL that is not
-            allowed, and a voice list that cannot be read (`voices_url_unreachable`, `voices_url_invalid_schema`).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
-              example:
-                errors:
-                  name:
-                  - is reserved
-  /tts_integrations/discoverable:
-    get:
-      tags:
-      - Community TTS Engines
-      summary: List community TTS engines, including other organizations' public ones
-      description: 'List the engines you can use: your own, at any status, and other organizations'' engines that are `public`
-        and `active`. Each entry carries what a caller needs to choose an engine: its `name` (the first part of its voices,
-        `<name>.<voice_id>`), `voices_count`, audio formats, capabilities, and `documentation_url`. It never carries the publisher''s
-        contact details, review notes, or `voices_api_key_ref`. Read an engine''s voices with `GET /tts_integrations/{id}/voices`.'
-      operationId: list_discoverable_community_tts_engines
-      parameters:
-      - $ref: '#/components/parameters/StatusFilter'
-      - $ref: '#/components/parameters/VisibilityFilter'
-      - $ref: '#/components/parameters/community-tts-engines_Page'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngineDiscoveryListResponse'
-              example:
-                data:
-                - id: 11111111-1111-1111-1111-111111111111
-                  name: acme
-                  websocket_url: wss://tts.acme.example/v1
-                  supported_audio_formats:
-                  - linear16
-                  - mulaw
-                  capabilities:
-                    streamed_audio: true
-                    flush_support: true
-                    force_interrupt_support: false
-                    ssml_support: false
-                    voice_settings_schema:
-                      voice_speed:
-                        type: number
-                        min: 0.5
-                        max: 2.0
-                        default: 1.0
-                      emotion:
-                        type: enum
-                        values:
-                        - neutral
-                        - happy
-                        - sad
-                        default: neutral
-                  voices_count: 3
-                  connect_timeout_ms: 3000
-                  visibility: public
-                  status: active
-                  data_retention_policy_url: null
-                  documentation_url: https://tts.acme.example/docs
-                  created_at: '2026-10-16T16:28:01.088824Z'
-                meta:
-                  total_pages: 1
-                  total_results: 1
-                  page_number: 1
-                  page_size: 20
-        '400':
-          description: An invalid `status` or `visibility` filter value.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: Bad Request
-  /tts_integrations/{id}:
-    delete:
-      tags:
-      - Community TTS Engines
-      summary: Delete a community TTS engine
-      description: 'Delete one of your own community TTS engines. The engine disappears from every listing and lookup and
-        can no longer serve traffic, but its `name` stays reserved for your organization: no other organization can register
-        it, and you can register it again later. An assistant or call still configured with one of its voices cannot use it
-        until an engine with that name exists again.'
-      operationId: delete_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '204':
-          description: The resource was deleted successfully.
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-    get:
-      tags:
-      - Community TTS Engines
-      summary: Get a community TTS engine
-      description: Retrieve one of your own community TTS engines by ID.
-      operationId: get_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: private
-                review_status: null
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-    patch:
-      tags:
-      - Community TTS Engines
-      summary: Partially update a community TTS engine
-      description: 'Same as `PUT`: only the fields you send change.'
-      operationId: partially_update_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCommunityTtsEngineRequest'
-            examples:
-              visibility:
-                value:
-                  visibility: public
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: public
-                review_status: null
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-        '422':
-          description: Validation error, including a voice list that cannot be read, or `null` sent for a required field.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
-              example:
-                errors:
-                  supported_audio_formats:
-                  - must only contain mp3, linear16, wav, mulaw, alaw, ogg_vorbis
-    put:
-      tags:
-      - Community TTS Engines
-      summary: Update a community TTS engine
-      description: 'Change one of your own community TTS engines. Every field is optional: omit a field to leave it unchanged.
-        `name` cannot be changed. Telnyx reads the `voices_url` again and refuses an update that leaves the engine with an
-        unreadable list. Changing `websocket_url`, `voices_url`, `supported_audio_formats` or `capabilities`, or making a
-        `private` engine `public`, sends the engine back to `status: draft` and clears its review. See the [Community TTS
-        engines guide](/docs/voice/tts/community-engines) for the full review flow.'
-      operationId: update_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCommunityTtsEngineRequest'
-            examples:
-              documentation:
-                value:
-                  documentation_url: https://tts.acme.example/docs
-                  contact_email: voices@acme.example
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: private
-                review_status: null
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: voices@acme.example
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-        '422':
-          description: Validation error, including a voice list that cannot be read, or `null` sent for a required field.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
-              example:
-                errors:
-                  voices_url:
-                  - must be an https URL on a public host
-  /tts_integrations/{id}/actions/disable:
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Disable a community TTS engine
-      description: Pause an `active` engine so it stops serving traffic, without deleting it. Owner-initiated and owner-reversible
-        via `enable`. Only an `active` engine can be disabled. While an engine is disabled, no organization can use it, including
-        other organizations if it is `public`.
-      operationId: disable_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: disabled
-                visibility: private
-                review_status: approved
-                review_notes: null
-                reviewed_at: '2026-10-16T17:37:32.080472Z'
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '400':
-          $ref: '#/components/responses/community-tts-engines_BadRequest'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-  /tts_integrations/{id}/actions/enable:
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Enable a community TTS engine
-      description: Resume a `disabled` engine. Only a `disabled` engine can be enabled; a `suspended` engine can only be reinstated
-        by Telnyx.
-      operationId: enable_community_tts_engine
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: active
-                visibility: private
-                review_status: approved
-                review_notes: null
-                reviewed_at: '2026-10-16T17:37:32.080472Z'
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '400':
-          $ref: '#/components/responses/community-tts-engines_BadRequest'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-  /tts_integrations/{id}/actions/refresh_voices:
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Read the voices of a community TTS engine again
-      description: Make Telnyx read the engine's `voices_url` now instead of at the next scheduled read (every 15 minutes).
-        On success the stored list is replaced and `voices_degraded` is cleared. The previous list is kept when the read fails.
-      operationId: refresh_community_tts_engine_voices
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: private
-                review_status: null
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-        '422':
-          description: The voices list could not be read (`voices_url_unreachable`) or does not match the required shape (`voices_url_invalid_schema`).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: 'The voices list of the community TTS engine {id} could not be refreshed (voices_url_unreachable:
-                    status 503).'
-  /tts_integrations/{id}/actions/request_review:
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Submit a community TTS engine for review
-      description: 'Ask Telnyx to review a `draft` engine so it can serve other organizations. Only a `draft` engine with
-        no pending or approved review can be submitted (a rejected one can be submitted again). The engine moves to `review_status:
-        pending`; Telnyx approves it (`status: active`, `review_status: approved`) or rejects it with `review_notes`. See
-        the [Community TTS engines guide](/docs/voice/tts/community-engines) for the full review flow.'
-      operationId: request_community_tts_engine_review
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsEngine'
-              example:
-                id: 11111111-1111-1111-1111-111111111111
-                name: acme
-                websocket_url: wss://tts.acme.example/v1
-                voices_url: https://tts.acme.example/voices
-                supported_audio_formats:
-                - linear16
-                - mulaw
-                capabilities:
-                  streamed_audio: true
-                  flush_support: true
-                  force_interrupt_support: false
-                  ssml_support: false
-                  voice_settings_schema:
-                    voice_speed:
-                      type: number
-                      min: 0.5
-                      max: 2.0
-                      default: 1.0
-                    emotion:
-                      type: enum
-                      values:
-                      - neutral
-                      - happy
-                      - sad
-                      default: neutral
-                connect_timeout_ms: 3000
-                voices_api_key_ref: null
-                status: draft
-                visibility: private
-                review_status: pending
-                review_notes: null
-                reviewed_at: null
-                voices_count: 3
-                voices_fetched_at: '2026-10-16T16:28:01.088824Z'
-                voices_degraded: false
-                contact_email: null
-                documentation_url: https://tts.acme.example/docs
-                data_retention_policy_url: null
-                created_at: '2026-10-16T16:28:01.088824Z'
-                updated_at: '2026-10-16T16:28:01.088824Z'
-        '400':
-          description: The engine is not a draft without a pending or approved review.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: The community TTS engine {id} cannot be submitted for review from status=active, review_status=approved.
-                    Only a draft engine with no pending or approved review can be submitted.
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-  /tts_integrations/{id}/actions/test_connection:
-    post:
-      tags:
-      - Community TTS Engines
-      summary: Test the connection to a community TTS engine
-      description: 'Check an engine end to end with your own key, without a call. Telnyx reads the voice list, connects to
-        the engine''s `websocket_url` with the Integration Secret named by `api_key_ref`, sends a short text, and checks the
-        answer: the handshake, the credentials, the audio, the final frame and a clean close. The result is recorded (see
-        `conformance_runs`) and returned. A test within 10 seconds of the previous one is refused with `429`, and a `suspended`
-        engine cannot be tested. See [Try your engine before approval](/docs/voice/tts/community-engines#try-your-engine-before-approval).'
-      operationId: test_community_tts_engine_connection
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TestCommunityTtsEngineConnectionRequest'
-            examples:
-              first_voice:
-                value:
-                  api_key_ref: acme-engine-key
-              named_voice:
-                value:
-                  api_key_ref: acme-engine-key
-                  voice_id: alpha
-      responses:
-        '200':
-          description: The test ran. `success` says whether every check passed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsConformanceRun'
-              example:
-                id: 2a12e95d-313b-40ce-acf3-1efd8d5dfa11
-                kind: test_connection
-                voice_id: alpha
-                success: true
-                latency_ms: 3769
-                time_to_first_audio_ms: 1331
-                checks:
-                  voices_url_reachable: ok
-                  voices_schema_valid: ok
-                  handshake: ok
-                  auth: ok
-                  init_accepted: ok
-                  audio_received: ok
-                  final_frame_received: ok
-                  clean_close: ok
-                error: null
-                started_at: '2026-10-16T16:28:46.341805Z'
-        '400':
-          description: The engine is suspended, or its `websocket_url` points at a host that is not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: The community TTS engine {id} is suspended and cannot be tested. Only Telnyx support can reinstate
-                    it.
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-        '422':
-          description: '`api_key_ref` is missing or names no Integration Secret in your organization, or `voice_id` is not
-            in the engine''s voice list.'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: 'api_key_ref is required: it names the Integration Secret the engine is dialed with.'
-        '429':
-          description: The engine was tested moments ago.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: This engine was dialed moments ago. Wait a few seconds before the next test.
-        '503':
-          description: The test could not run right now. This says nothing about the engine.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BusinessErrorResponse'
-              example:
-                errors:
-                  detail: The connection test could not run right now. This says nothing about the engine; try again.
-  /tts_integrations/{id}/conformance_runs:
-    get:
-      tags:
-      - Community TTS Engines
-      summary: List the connection tests of a community TTS engine
-      description: The recorded runs of `test_connection` for one of your engines, newest first. Telnyx keeps the latest 50.
-      operationId: list_community_tts_engine_conformance_runs
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      - $ref: '#/components/parameters/community-tts-engines_Page'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsConformanceRunListResponse'
-              example:
-                data:
-                - id: 2a12e95d-313b-40ce-acf3-1efd8d5dfa11
-                  kind: test_connection
-                  voice_id: alpha
-                  success: true
-                  latency_ms: 3769
-                  time_to_first_audio_ms: 1331
-                  checks:
-                    voices_url_reachable: ok
-                    voices_schema_valid: ok
-                    handshake: ok
-                    auth: ok
-                    init_accepted: ok
-                    audio_received: ok
-                    final_frame_received: ok
-                    clean_close: ok
-                  error: null
-                  started_at: '2026-10-16T16:28:46.341805Z'
-                meta:
-                  total_pages: 1
-                  total_results: 1
-                  page_number: 1
-                  page_size: 20
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
-  /tts_integrations/{id}/voices:
-    get:
-      tags:
-      - Community TTS Engines
-      summary: List the voices of a community TTS engine
-      description: The voices Telnyx last read from the engine's `voices_url`, in the shape the engine published. A caller
-        selects one as `<engine name>.<voice_id>`. The list is replaced only when a new read succeeds, so an engine whose
-        `voices_url` is down keeps serving its last list. `[]` until the first read succeeds.
-      operationId: list_community_tts_engine_voices
-      parameters:
-      - $ref: '#/components/parameters/EngineId'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommunityTtsVoicesResponse'
-              example:
-                voices:
-                - provider: acme
-                  name: Alpha
-                  voice_id: alpha
-                  language: en-US
-                  gender: female
-                - provider: acme
-                  name: Beta
-                  voice_id: beta
-                  language: en-US
-                  gender: male
-                - provider: acme
-                  name: Gamma
-                  voice_id: gamma
-                  language: en-GB
-                  gender: neutral
-        '404':
-          $ref: '#/components/responses/community-tts-engines_NotFound'
   /uac_connections:
     get:
       description: Returns a list of your UAC connections. A UAC (User Agent Client) Connection registers Telnyx to your PBX
@@ -65162,14 +64223,6 @@ components:
         type: string
         x-stainless-param: EndTime_lt
       example: '2023-05-22'
-    EngineId:
-      name: id
-      in: path
-      description: Unique identifier of the community TTS engine.
-      required: true
-      schema:
-        type: string
-        title: Engine Id
     EnterpriseId:
       name: enterprise_id
       in: path
@@ -66609,12 +65662,6 @@ components:
         - busy
         - no-answer
       example: no-answer
-    StatusFilter:
-      name: status
-      in: query
-      description: Filter by status.
-      schema:
-        $ref: '#/components/schemas/CommunityTtsEngineStatus'
     StreamingSid:
       description: Uniquely identifies the streaming by id.
       name: streaming_sid
@@ -66749,12 +65796,6 @@ components:
         type: string
         format: uuid
         example: 6a09ccbd-8f9b-4c3a-9b0e-2f1d3c4b5a6e
-    VisibilityFilter:
-      name: visibility
-      in: query
-      description: Filter by visibility.
-      schema:
-        $ref: '#/components/schemas/CommunityTtsEngineVisibility'
     VoiceSdkCallReportSort:
       name: sort
       in: query
@@ -67225,35 +66266,6 @@ components:
         maximum: 100
         default: 20
         example: 20
-    community-tts-engines_Page:
-      name: page
-      in: query
-      style: deepObject
-      explode: true
-      description: 'Consolidated page parameter (deepObject style). Originally: page[size], page[number]'
-      schema:
-        type: object
-        properties:
-          size:
-            type: integer
-            title: Page Size
-            description: Clamped to 1-100.
-            example: 20
-          number:
-            type: integer
-            title: Page Number
-            example: 1
-      examples:
-        page[number]=1&page[size]=20:
-          value:
-            number: 1
-            size: 20
-          summary: First page with 20 results per page
-        page[number]=2&page[size]=50:
-          value:
-            number: 2
-            size: 50
-          summary: Second page with 50 results per page
     conference-participants_AccountSid:
       name: account_sid
       in: path
@@ -70721,7 +69733,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/rcs-registration_ValidationErrorResponse'
+            $ref: '#/components/schemas/ValidationErrorResponse'
     ValidationErrorQuery:
       description: Query-param validation error (`source.pointer /<field>`).
       content:
@@ -71532,25 +70544,6 @@ components:
             - code: '10027'
               title: Unprocessable Entity
               detail: The server understood the syntax of the request but was unable to process the instructions.
-    community-tts-engines_BadRequest:
-      description: The engine is not in a status this action can apply to.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/BusinessErrorResponse'
-          example:
-            errors:
-              detail: The community TTS engine {id} cannot be disabled from status=draft. Only an engine at status=active
-                can be disabled.
-    community-tts-engines_NotFound:
-      description: The community TTS engine does not exist.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/BusinessErrorResponse'
-          example:
-            errors:
-              detail: The community TTS engine {id} does not exist.
     connections_BadRequestResponse:
       description: Bad request, the request was unacceptable, often due to missing a required parameter.
       content:
@@ -73054,40 +72047,6 @@ components:
       properties:
         assistant:
           $ref: '#/components/schemas/CallAssistantRequest'
-        voice:
-          type: string
-          description: The voice the assistant speaks with on this call, in place of the assistant's own voice. Use the same
-            formats as the `voice` of the [speak](/api-reference/call-commands/speak-text) command. A community engine voice
-            is `<EngineName>.<VoiceId>` (e.g., `acme.alpha`) and needs `voice_settings.api_key_ref`; see the [Community TTS
-            engines guide](/docs/voice/tts/community-engines). Without `voice`, the assistant's own voice is used.
-          example: acme.alpha
-        voice_settings:
-          description: The settings of `voice`. A community engine voice requires `api_key_ref`; the other keys are the engine's
-            own settings.
-          anyOf:
-          - oneOf:
-            - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
-            - $ref: '#/components/schemas/TelnyxVoiceSettings'
-            - $ref: '#/components/schemas/AWSVoiceSettings'
-            - $ref: '#/components/schemas/MinimaxVoiceSettings'
-            - $ref: '#/components/schemas/AzureVoiceSettings'
-            - $ref: '#/components/schemas/ResembleVoiceSettings'
-            - $ref: '#/components/schemas/InworldVoiceSettings'
-            - $ref: '#/components/schemas/XAIVoiceSettings'
-            - $ref: '#/components/schemas/SonioxVoiceSettings'
-            discriminator:
-              propertyName: type
-              mapping:
-                elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
-                telnyx: '#/components/schemas/TelnyxVoiceSettings'
-                aws: '#/components/schemas/AWSVoiceSettings'
-                minimax: '#/components/schemas/MinimaxVoiceSettings'
-                azure: '#/components/schemas/AzureVoiceSettings'
-                resemble: '#/components/schemas/ResembleVoiceSettings'
-                inworld: '#/components/schemas/InworldVoiceSettings'
-                xai: '#/components/schemas/XAIVoiceSettings'
-                soniox: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/CommunityVoiceSettings'
         greeting:
           description: Text that will be played when the assistant starts, if none then nothing will be played when the assistant
             starts. The greeting can be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There is a 3,000 character
@@ -78853,20 +77812,6 @@ components:
           title: Billing Service
           type: string
           example: emergency
-    BusinessErrorResponse:
-      type: object
-      title: BusinessErrorResponse
-      properties:
-        errors:
-          type: object
-          properties:
-            detail:
-              type: string
-              title: Detail
-            code:
-              type: string
-              title: Code
-              description: A stable machine-readable code, on the answers that have one.
     Call:
       type: object
       title: Call
@@ -86448,432 +85393,6 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/DirComment'
-    CommunityTtsAudioFormat:
-      type: string
-      title: Audio Format
-      description: 'An audio format an engine can produce. Offer `linear16`: it serves every surface. Telnyx converts `linear16`
-        to MP3 for the commands that play MP3.'
-      enum:
-      - mp3
-      - linear16
-      - wav
-      - mulaw
-      - alaw
-      - ogg_vorbis
-    CommunityTtsConformanceRun:
-      type: object
-      title: CommunityTtsConformanceRun
-      description: One recorded run of `test_connection`.
-      required:
-      - id
-      - kind
-      - success
-      - checks
-      properties:
-        id:
-          type: string
-          title: Id
-        kind:
-          type: string
-          title: Kind
-          enum:
-          - test_connection
-          - conformance
-          description: '`test_connection`: run by the owner. `conformance`: run by Telnyx during review.'
-        voice_id:
-          type:
-          - string
-          - 'null'
-          title: Voice Id
-        success:
-          type: boolean
-          title: Success
-          description: '`true` when every check is `ok`.'
-        latency_ms:
-          type:
-          - integer
-          - 'null'
-          title: Latency (ms)
-          description: How long the whole run took.
-        time_to_first_audio_ms:
-          type:
-          - integer
-          - 'null'
-          title: Time To First Audio (ms)
-        checks:
-          type: object
-          title: Checks
-          description: 'Each check is `ok`, `failed` or `skipped`: `voices_url_reachable`, `voices_schema_valid`, `handshake`,
-            `auth`, `init_accepted`, `audio_received`, `final_frame_received`, `clean_close`.'
-          additionalProperties:
-            type: string
-            enum:
-            - ok
-            - failed
-            - skipped
-        error:
-          type:
-          - string
-          - 'null'
-          title: Error
-          description: The first failure, in words.
-        started_at:
-          type: string
-          format: date-time
-          title: Started At
-    CommunityTtsConformanceRunListResponse:
-      type: object
-      title: CommunityTtsConformanceRunListResponse
-      required:
-      - data
-      - meta
-      properties:
-        data:
-          type: array
-          title: Data
-          items:
-            $ref: '#/components/schemas/CommunityTtsConformanceRun'
-        meta:
-          $ref: '#/components/schemas/CommunityTtsEngineListMeta'
-    CommunityTtsEngine:
-      type: object
-      title: CommunityTtsEngine
-      description: The full record of a community TTS engine you own. Select its voices by the engine's `name`, as `<name>.<voice_id>`,
-        with your own key for it (`api_key_ref`).
-      required:
-      - id
-      - name
-      - websocket_url
-      - voices_url
-      - supported_audio_formats
-      - capabilities
-      - status
-      - visibility
-      properties:
-        id:
-          type: string
-          title: Id
-        name:
-          type: string
-          title: Name
-          description: 'The engine''s unique name: the first part of its voices.'
-        websocket_url:
-          type: string
-          title: Websocket URL
-        voices_url:
-          type: string
-          title: Voices URL
-        supported_audio_formats:
-          type: array
-          title: Supported Audio Formats
-          items:
-            $ref: '#/components/schemas/CommunityTtsAudioFormat'
-        capabilities:
-          $ref: '#/components/schemas/CommunityTtsEngineCapabilities'
-        connect_timeout_ms:
-          type: integer
-          title: Connect Timeout (ms)
-        voices_api_key_ref:
-          type:
-          - string
-          - 'null'
-          title: Voices API Key Ref
-        status:
-          $ref: '#/components/schemas/CommunityTtsEngineStatus'
-        visibility:
-          $ref: '#/components/schemas/CommunityTtsEngineVisibility'
-        review_status:
-          $ref: '#/components/schemas/CommunityTtsEngineReviewStatus'
-        review_notes:
-          type:
-          - string
-          - 'null'
-          title: Review Notes
-          description: The reviewer's notes on a rejection.
-        reviewed_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-          title: Reviewed At
-        voices_count:
-          type: integer
-          title: Voices Count
-          description: The number of voices in the stored list.
-        voices_fetched_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-          title: Voices Fetched At
-          description: When the stored list was last read successfully.
-        voices_degraded:
-          type: boolean
-          title: Voices Degraded
-          description: '`true` after three failed reads in a row, until a read succeeds. A degraded engine keeps serving from
-            its last list.'
-        contact_email:
-          type:
-          - string
-          - 'null'
-          title: Contact Email
-        documentation_url:
-          type:
-          - string
-          - 'null'
-          title: Documentation URL
-        data_retention_policy_url:
-          type:
-          - string
-          - 'null'
-          title: Data Retention Policy URL
-        created_at:
-          type: string
-          format: date-time
-          title: Created At
-        updated_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-          title: Updated At
-    CommunityTtsEngineCapabilities:
-      type: object
-      title: Capabilities
-      description: What the engine supports. An unknown key is rejected.
-      additionalProperties: false
-      required:
-      - streamed_audio
-      properties:
-        streamed_audio:
-          type: boolean
-          description: Required. `true` when the engine sends audio in small frames as it synthesizes; `false` when it sends
-            one frame per sentence.
-        flush_support:
-          type: boolean
-          default: false
-          description: 'The engine speaks the buffered text when a frame carries `"flush": true`.'
-        force_interrupt_support:
-          type: boolean
-          default: false
-          description: The engine supports a restart of the current speech (barge-in).
-        ssml_support:
-          type: boolean
-          default: false
-          description: The engine accepts SSML in the text.
-        voice_settings_schema:
-          type:
-          - object
-          - 'null'
-          description: 'The settings callers can pass to the engine in `voice_settings`, one entry per setting: `{"type":
-            "number" | "integer", "min", "max"}`, `{"type": "boolean"}`, `{"type": "string"}` (at most 1000 characters) or
-            `{"type": "enum", "values": [...]}`, each with an optional `default`. A caller''s settings are checked against
-            it before Telnyx connects to the engine: an undeclared setting, a value of the wrong type, or a value out of bounds
-            is refused. An engine that declares none receives the settings as sent.'
-          additionalProperties:
-            type: object
-          example:
-            voice_speed:
-              type: number
-              min: 0.5
-              max: 2.0
-              default: 1.0
-            emotion:
-              type: enum
-              values:
-              - neutral
-              - happy
-              - sad
-              default: neutral
-    CommunityTtsEngineDiscoveryEntry:
-      type: object
-      title: CommunityTtsEngineDiscoveryEntry
-      description: What a caller needs to choose an engine. It carries no publisher contact details, review notes or credential
-        references.
-      required:
-      - id
-      - name
-      - status
-      - visibility
-      properties:
-        id:
-          type: string
-          title: Id
-        name:
-          type: string
-          title: Name
-        websocket_url:
-          type: string
-          title: Websocket URL
-        supported_audio_formats:
-          type: array
-          title: Supported Audio Formats
-          items:
-            $ref: '#/components/schemas/CommunityTtsAudioFormat'
-        capabilities:
-          $ref: '#/components/schemas/CommunityTtsEngineCapabilities'
-        voices_count:
-          type: integer
-          title: Voices Count
-        connect_timeout_ms:
-          type: integer
-          title: Connect Timeout (ms)
-        visibility:
-          $ref: '#/components/schemas/CommunityTtsEngineVisibility'
-        status:
-          $ref: '#/components/schemas/CommunityTtsEngineStatus'
-        data_retention_policy_url:
-          type:
-          - string
-          - 'null'
-          title: Data Retention Policy URL
-        documentation_url:
-          type:
-          - string
-          - 'null'
-          title: Documentation URL
-        created_at:
-          type: string
-          format: date-time
-          title: Created At
-    CommunityTtsEngineDiscoveryListResponse:
-      type: object
-      title: CommunityTtsEngineDiscoveryListResponse
-      required:
-      - data
-      - meta
-      properties:
-        data:
-          type: array
-          title: Data
-          items:
-            $ref: '#/components/schemas/CommunityTtsEngineDiscoveryEntry'
-        meta:
-          $ref: '#/components/schemas/CommunityTtsEngineListMeta'
-    CommunityTtsEngineListMeta:
-      type: object
-      title: CommunityTtsEngineListMeta
-      required:
-      - total_pages
-      - total_results
-      - page_number
-      - page_size
-      properties:
-        total_pages:
-          type: integer
-          title: Total Pages
-        total_results:
-          type: integer
-          title: Total Results
-        page_number:
-          type: integer
-          title: Page Number
-        page_size:
-          type: integer
-          title: Page Size
-    CommunityTtsEngineListResponse:
-      type: object
-      title: CommunityTtsEngineListResponse
-      required:
-      - data
-      - meta
-      properties:
-        data:
-          type: array
-          title: Data
-          items:
-            $ref: '#/components/schemas/CommunityTtsEngine'
-        meta:
-          $ref: '#/components/schemas/CommunityTtsEngineListMeta'
-    CommunityTtsEngineReviewStatus:
-      type:
-      - string
-      - 'null'
-      title: Review Status
-      description: '`null`: never submitted, or an approved engine whose review-sensitive field changed and awaits re-review.
-        `pending`: submitted. `approved`: approved. `rejected`: rejected, with `review_notes`.'
-      enum:
-      - pending
-      - approved
-      - rejected
-      - null
-    CommunityTtsEngineStatus:
-      type: string
-      title: Status
-      description: 'Whether the engine can serve traffic right now, independent of `visibility` and `review_status`. `draft`:
-        not yet approved (new and awaiting its first review, rejected and awaiting a fix, or approved earlier and awaiting
-        re-review after a review-sensitive change). `active`: serving traffic. `disabled`: owner-paused, reversible via `enable`.
-        `suspended`: paused by Telnyx (repeated failures of a public engine, or an abuse action); the owner cannot clear this
-        by calling `enable`, and Telnyx can reinstate it.'
-      enum:
-      - draft
-      - active
-      - disabled
-      - suspended
-    CommunityTtsEngineVisibility:
-      type: string
-      title: Visibility
-      description: '`private`: only your organization can use the engine. `public`: any organization can, once it is `active`.'
-      enum:
-      - private
-      - public
-    CommunityTtsVoice:
-      type: object
-      title: CommunityTtsVoice
-      required:
-      - voice_id
-      properties:
-        voice_id:
-          type: string
-          title: Voice Id
-          description: Unique in the list; no dots. A caller selects the voice as `<engine name>.<voice_id>`.
-          pattern: ^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$
-        name:
-          type: string
-          title: Name
-          description: A display name.
-        language:
-          type: string
-          title: Language
-          description: A BCP-47 tag, at most 35 characters.
-        gender:
-          type: string
-          title: Gender
-          description: A display string, for example `male`, `female` or `neutral`.
-        provider:
-          type: string
-          title: Provider
-          description: A display string.
-    CommunityTtsVoicesResponse:
-      type: object
-      title: CommunityTtsVoicesResponse
-      required:
-      - voices
-      properties:
-        voices:
-          type: array
-          title: Voices
-          items:
-            $ref: '#/components/schemas/CommunityTtsVoice'
-    CommunityVoiceSettings:
-      type: object
-      title: CommunityVoiceSettings
-      description: Settings for a community text-to-speech engine voice (`<EngineName>.<VoiceId>`). `api_key_ref` is required.
-        Every other key is a setting the engine declares in its `voice_settings_schema`, and is passed to the engine as sent.
-        See the [Community TTS engines guide](/docs/voice/tts/community-engines).
-      required:
-      - api_key_ref
-      properties:
-        api_key_ref:
-          type: string
-          description: The `identifier` of an integration secret that holds your key for the engine. See [integration secrets
-            documentation](https://developers.telnyx.com/api/secrets-manager/integration-secrets/create-integration-secret)
-            for details.
-          example: acme-engine-key
-      additionalProperties: true
-      example:
-        api_key_ref: acme-engine-key
-        voice_speed: 1.2
     ComparativeLine:
       type: object
       properties:
@@ -91266,102 +89785,6 @@ components:
           description: Optional retrieval settings.
           allOf:
           - $ref: '#/components/schemas/RetrievalSettingsWrapper'
-    CreateCommunityTtsEngineRequest:
-      type: object
-      title: CreateCommunityTtsEngineRequest
-      required:
-      - name
-      - websocket_url
-      - voices_url
-      - supported_audio_formats
-      - capabilities
-      properties:
-        name:
-          type: string
-          title: Name
-          description: 'The engine''s unique name, and the first part of its voices (`<name>.<voice_id>`). 1-64 characters:
-            lowercase letters, digits, hyphens and underscores, starting with a letter or digit. Built-in vendor names and
-            the generic voice names `male`, `female`, `man`, `woman`, `alice` and `custom` are reserved. Unique across all
-            Telnyx accounts and cannot be changed later. A deleted engine''s name stays reserved for the organization that
-            owned it.'
-          pattern: ^[a-z0-9][a-z0-9_-]{0,63}$
-          example: acme
-        websocket_url:
-          type: string
-          title: Websocket URL
-          description: 'The `wss://` URL Telnyx connects to. It must be reachable on the public internet: plain `ws://`, private,
-            loopback, link-local, shared, documentation, multicast and reserved addresses, and internal hostnames are rejected,
-            as are credentials embedded in the URL or in credential-looking query parameters. At most 2048 characters.'
-          pattern: ^wss://
-          maxLength: 2048
-          example: wss://tts.acme.example/v1
-        voices_url:
-          type: string
-          title: Voices URL
-          description: 'The `https://` URL of the engine''s voice listing, with the same host rules. It answers `GET` with
-            `{"voices": [{"provider", "name", "voice_id", "language", "gender"}]}`: at most 1000 voices, each `voice_id` unique
-            and matching `^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$`, each `language` at most 35 characters. Telnyx reads it when
-            the engine is registered or updated, every 15 minutes, and on `refresh_voices`.'
-          pattern: ^https://
-          maxLength: 2048
-          example: https://tts.acme.example/voices
-        supported_audio_formats:
-          type: array
-          title: Supported Audio Formats
-          description: The audio formats the engine can produce, at least one, without duplicates.
-          minItems: 1
-          uniqueItems: true
-          items:
-            $ref: '#/components/schemas/CommunityTtsAudioFormat'
-          example:
-          - linear16
-          - mulaw
-        capabilities:
-          $ref: '#/components/schemas/CommunityTtsEngineCapabilities'
-        connect_timeout_ms:
-          type: integer
-          title: Connect Timeout (ms)
-          description: 'How long Telnyx waits for the WebSocket connection to open, from 500 to 10000. Default: 3000.'
-          minimum: 500
-          maximum: 10000
-          default: 3000
-        voices_api_key_ref:
-          type:
-          - string
-          - 'null'
-          title: Voices API Key Ref
-          description: The identifier of an Integration Secret in your organization. When set, Telnyx sends its value as a
-            bearer token when it reads `voices_url`. It is never used for synthesis. Send `null` on an update to clear it.
-            At most 255 characters.
-          maxLength: 255
-        visibility:
-          $ref: '#/components/schemas/CommunityTtsEngineVisibility'
-        contact_email:
-          type:
-          - string
-          - 'null'
-          title: Contact Email
-          description: A contact address stored for the Telnyx platform team. Telnyx does not email it automatically. At most
-            254 characters.
-          maxLength: 254
-        documentation_url:
-          type:
-          - string
-          - 'null'
-          title: Documentation URL
-          description: An `https://` page where callers learn how to get a key for the engine and how to use it, with a host
-            and no credentials in it, at most 2048 characters. It is returned in the discoverable listing.
-          pattern: ^https://
-          maxLength: 2048
-          example: https://tts.acme.example/docs
-        data_retention_policy_url:
-          type:
-          - string
-          - 'null'
-          title: Data Retention Policy URL
-          description: URL of the publisher's data retention policy, at most 2048 characters. It is returned in the discoverable
-            listing.
-          maxLength: 2048
     CreateConferenceRequest:
       required:
       - call_control_id
@@ -105366,41 +103789,34 @@ components:
             \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
             - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
             \ Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`,\
-            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\
-            - **Community engines:** Use `<EngineName>.<VoiceId>` (e.g., `acme.alpha`), where `EngineName` is the lowercase\
-            \ name of a community text-to-speech engine and `VoiceId` is one of the voices it lists. You must provide your\
-            \ key for the engine as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"\
-            }`; any other key in `voice_settings` is a setting of the engine. See the [Community TTS engines guide](/docs/voice/tts/community-engines).\n\
-            \nFor service_level basic, you may define the gender of the speaker (male or female)."
+            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\n\
+            For service_level basic, you may define the gender of the speaker (male or female)."
           type: string
           example: Telnyx.KokoroTTS.af
         voice_settings:
-          description: The settings associated with the voice selected. For a community engine voice, `api_key_ref` plus the
-            engine's own settings.
-          anyOf:
-          - oneOf:
-            - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
-            - $ref: '#/components/schemas/TelnyxVoiceSettings'
-            - $ref: '#/components/schemas/AWSVoiceSettings'
-            - $ref: '#/components/schemas/MinimaxVoiceSettings'
-            - $ref: '#/components/schemas/AzureVoiceSettings'
-            - $ref: '#/components/schemas/ResembleVoiceSettings'
-            - $ref: '#/components/schemas/InworldVoiceSettings'
-            - $ref: '#/components/schemas/XAIVoiceSettings'
-            - $ref: '#/components/schemas/SonioxVoiceSettings'
-            discriminator:
-              propertyName: type
-              mapping:
-                elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
-                telnyx: '#/components/schemas/TelnyxVoiceSettings'
-                aws: '#/components/schemas/AWSVoiceSettings'
-                minimax: '#/components/schemas/MinimaxVoiceSettings'
-                azure: '#/components/schemas/AzureVoiceSettings'
-                resemble: '#/components/schemas/ResembleVoiceSettings'
-                inworld: '#/components/schemas/InworldVoiceSettings'
-                xai: '#/components/schemas/XAIVoiceSettings'
-                soniox: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/CommunityVoiceSettings'
+          description: The settings associated with the voice selected
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
+          - $ref: '#/components/schemas/AzureVoiceSettings'
+          - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/InworldVoiceSettings'
+          - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
+          discriminator:
+            propertyName: type
+            mapping:
+              elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              telnyx: '#/components/schemas/TelnyxVoiceSettings'
+              aws: '#/components/schemas/AWSVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
+              azure: '#/components/schemas/AzureVoiceSettings'
+              resemble: '#/components/schemas/ResembleVoiceSettings'
+              inworld: '#/components/schemas/InworldVoiceSettings'
+              xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -131015,41 +129431,34 @@ components:
             \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
             - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
             \ Use `Humain.<VoiceId>` (e.g., `Humain.sara-ar`). Available voices: `sara-en`, `abdulaziz-en`, `sara-ar`, `abdulaziz-ar`,\
-            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\
-            - **Community engines:** Use `<EngineName>.<VoiceId>` (e.g., `acme.alpha`), where `EngineName` is the lowercase\
-            \ name of a community text-to-speech engine and `VoiceId` is one of the voices it lists. You must provide your\
-            \ key for the engine as an integration identifier secret in `\"voice_settings\": {\"api_key_ref\": \"<secret_identifier>\"\
-            }`; any other key in `voice_settings` is a setting of the engine. See the [Community TTS engines guide](/docs/voice/tts/community-engines).\n\
-            \nFor service_level basic, you may define the gender of the speaker (male or female)."
+            \ `nourah-ar`, `abdullah-ar`. Native Arabic (Saudi dialect) and English voices only — no `ModelId` segment.\n\n\
+            For service_level basic, you may define the gender of the speaker (male or female)."
           type: string
           example: Telnyx.KokoroTTS.af
         voice_settings:
-          description: The settings associated with the voice selected. For a community engine voice, `api_key_ref` plus the
-            engine's own settings.
-          anyOf:
-          - oneOf:
-            - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
-            - $ref: '#/components/schemas/TelnyxVoiceSettings'
-            - $ref: '#/components/schemas/AWSVoiceSettings'
-            - $ref: '#/components/schemas/MinimaxVoiceSettings'
-            - $ref: '#/components/schemas/AzureVoiceSettings'
-            - $ref: '#/components/schemas/ResembleVoiceSettings'
-            - $ref: '#/components/schemas/InworldVoiceSettings'
-            - $ref: '#/components/schemas/XAIVoiceSettings'
-            - $ref: '#/components/schemas/SonioxVoiceSettings'
-            discriminator:
-              propertyName: type
-              mapping:
-                elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
-                telnyx: '#/components/schemas/TelnyxVoiceSettings'
-                aws: '#/components/schemas/AWSVoiceSettings'
-                minimax: '#/components/schemas/MinimaxVoiceSettings'
-                azure: '#/components/schemas/AzureVoiceSettings'
-                resemble: '#/components/schemas/ResembleVoiceSettings'
-                inworld: '#/components/schemas/InworldVoiceSettings'
-                xai: '#/components/schemas/XAIVoiceSettings'
-                soniox: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/CommunityVoiceSettings'
+          description: The settings associated with the voice selected
+          oneOf:
+          - $ref: '#/components/schemas/ElevenLabsVoiceSettings'
+          - $ref: '#/components/schemas/TelnyxVoiceSettings'
+          - $ref: '#/components/schemas/AWSVoiceSettings'
+          - $ref: '#/components/schemas/MinimaxVoiceSettings'
+          - $ref: '#/components/schemas/AzureVoiceSettings'
+          - $ref: '#/components/schemas/ResembleVoiceSettings'
+          - $ref: '#/components/schemas/InworldVoiceSettings'
+          - $ref: '#/components/schemas/XAIVoiceSettings'
+          - $ref: '#/components/schemas/SonioxVoiceSettings'
+          discriminator:
+            propertyName: type
+            mapping:
+              elevenlabs: '#/components/schemas/ElevenLabsVoiceSettings'
+              telnyx: '#/components/schemas/TelnyxVoiceSettings'
+              aws: '#/components/schemas/AWSVoiceSettings'
+              minimax: '#/components/schemas/MinimaxVoiceSettings'
+              azure: '#/components/schemas/AzureVoiceSettings'
+              resemble: '#/components/schemas/ResembleVoiceSettings'
+              inworld: '#/components/schemas/InworldVoiceSettings'
+              xai: '#/components/schemas/XAIVoiceSettings'
+              soniox: '#/components/schemas/SonioxVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -135160,23 +133569,6 @@ components:
           type: string
           description: A short summary of the product these terms cover.
           example: Terms and Conditions for Telnyx Number Reputation service
-    TestCommunityTtsEngineConnectionRequest:
-      type: object
-      title: TestCommunityTtsEngineConnectionRequest
-      required:
-      - api_key_ref
-      properties:
-        api_key_ref:
-          type: string
-          title: API Key Ref
-          description: The identifier of the Integration Secret in your organization that Telnyx connects to the engine with,
-            as a caller would.
-          example: acme-engine-key
-        voice_id:
-          type: string
-          title: Voice Id
-          description: 'The voice to test. Default: the first voice in the engine''s list. It must be in the list.'
-          example: alpha
     TestDeviceCreateRequest:
       type: object
       additionalProperties: false
@@ -142890,67 +141282,6 @@ components:
         description:
           type: string
           example: Updated description.
-    UpdateCommunityTtsEngineRequest:
-      type: object
-      title: UpdateCommunityTtsEngineRequest
-      description: 'Only the fields you send change. `name` cannot be changed. Sending `null` for `websocket_url`, `voices_url`,
-        `supported_audio_formats`, `capabilities` or `connect_timeout_ms` is refused. Changing `websocket_url`, `voices_url`,
-        `supported_audio_formats` or `capabilities`, or making a `private` engine `public`, sends the engine back to `status:
-        draft` and clears its review.'
-      properties:
-        websocket_url:
-          type: string
-          title: Websocket URL
-          description: See the create request.
-          pattern: ^wss://
-          maxLength: 2048
-        voices_url:
-          type: string
-          title: Voices URL
-          description: See the create request.
-          pattern: ^https://
-          maxLength: 2048
-        supported_audio_formats:
-          type: array
-          title: Supported Audio Formats
-          minItems: 1
-          uniqueItems: true
-          items:
-            $ref: '#/components/schemas/CommunityTtsAudioFormat'
-        capabilities:
-          $ref: '#/components/schemas/CommunityTtsEngineCapabilities'
-        connect_timeout_ms:
-          type: integer
-          title: Connect Timeout (ms)
-          minimum: 500
-          maximum: 10000
-        voices_api_key_ref:
-          type:
-          - string
-          - 'null'
-          title: Voices API Key Ref
-          maxLength: 255
-        visibility:
-          $ref: '#/components/schemas/CommunityTtsEngineVisibility'
-        contact_email:
-          type:
-          - string
-          - 'null'
-          title: Contact Email
-          maxLength: 254
-        documentation_url:
-          type:
-          - string
-          - 'null'
-          title: Documentation URL
-          pattern: ^https://
-          maxLength: 2048
-        data_retention_policy_url:
-          type:
-          - string
-          - 'null'
-          title: Data Retention Policy URL
-          maxLength: 2048
     UpdateConferenceParticipantRequest:
       type: object
       title: Update Conference Participant Request
@@ -146479,15 +144810,34 @@ components:
           type: string
     ValidationErrorResponse:
       type: object
-      title: ValidationErrorResponse
-      description: Keys are the invalid field names; values are the list of validation messages for that field.
       properties:
-        errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  oneOf:
+                  - type: string
+                  - type: integer
+              msg:
+                type: string
+              type:
+                type: string
+            required:
+            - loc
+            - msg
+            - type
+      additionalProperties: true
+      example:
+        detail:
+        - loc:
+          - body
+          - display_name
+          msg: Field required
+          type: missing
     VariableSchemaEntry:
       type: object
       additionalProperties: false
@@ -155481,8 +153831,7 @@ components:
             field. See [integration secrets documentation](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret)
             for details. For Telnyx voices, use `Telnyx.<model_id>.<voice_id>` (e.g. Telnyx.KokoroTTS.af_heart). For Soniox
             voices, use `Soniox.tts-rt-v2.<voice_id>` (e.g. Soniox.tts-rt-v2.Emma); every Soniox voice speaks all supported
-            languages. For a voice of a community text-to-speech engine, use `<engine_name>.<voice_id>` (e.g. `acme.alpha`)
-            and reference your key for the engine under `api_key_ref` (see the [Community TTS engines guide](https://developers.telnyx.com/docs/voice/tts/community-engines)).
+            languages.
 
             The voice portion of the identifier supports [dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
             using mustache syntax (e.g. `Telnyx.Ultra.{{voice_id}}`). The variable is resolved at call time from your dynamic
@@ -155496,8 +153845,7 @@ components:
         api_key_ref:
           type: string
           description: 'The `identifier` for an integration secret [/v2/integration_secrets](https://developers.telnyx.com/api-reference/integration-secrets/create-a-secret)
-            that refers to your ElevenLabs API key. Warning: Free plans are unlikely to work with this integration. For a
-            community text-to-speech engine voice, it refers to your key for that engine and is required.'
+            that refers to your ElevenLabs API key. Warning: Free plans are unlikely to work with this integration.'
         temperature:
           type: number
           default: 0.5
@@ -159428,6 +157776,68 @@ components:
           items:
             $ref: '#/components/schemas/numbers_Error_73c9788e53'
       type: object
+    numbers_PhoneNumbersJobUpdatePhoneNumbersRequest:
+      type: object
+      required:
+      - phone_numbers
+      properties:
+        phone_numbers:
+          type: array
+          description: Array of phone number ids and/or phone numbers in E164 format to update. This parameter is required
+            if no filter parameters are provided. If you want to update specific numbers rather than all numbers matching
+            a filter, you must use this parameter. Each item must be either a valid phone number ID or a phone number in E164
+            format (e.g., '+13127367254').
+          items:
+            type: string
+        tags:
+          type: array
+          description: A list of user-assigned tags to help organize phone numbers.
+          items:
+            type: string
+        external_pin:
+          type: string
+          description: If someone attempts to port your phone number away from Telnyx and your phone number has an external
+            PIN set, we will attempt to verify that you provided the correct external PIN to the winning carrier. Note that
+            not all carriers cooperate with this security mechanism.
+        customer_reference:
+          type: string
+          description: Sets the customer reference on the selected phone numbers and retains the supplied value on the job.
+            Recover the job without its ID using GET /phone_numbers/jobs with filter[customer_reference] within 90 days of
+            job creation. This body field updates the numbers; the separate filter[customer_reference] query parameter selects
+            numbers by their current reference.
+          example: MY REF 001
+        connection_id:
+          type: string
+          description: Identifies the connection associated with the phone number.
+        billing_group_id:
+          type: string
+          description: Identifies the billing group associated with the phone number.
+        hd_voice_enabled:
+          type: boolean
+          description: Indicates whether to enable or disable HD Voice on each phone number. HD Voice is a paid feature and
+            may not be available for all phone numbers, more details about it can be found in the Telnyx support documentation.
+        deletion_lock_enabled:
+          type: boolean
+          description: Indicates whether to enable or disable the deletion lock on each phone number. When enabled, this prevents
+            the phone number from being deleted via the API or Telnyx portal.
+        voice:
+          $ref: '#/components/schemas/UpdatePhoneNumberVoiceSettingsRequest'
+      example:
+        phone_numbers:
+        - '1583466971586889004'
+        - '+13127367254'
+        tags:
+        - tag
+        external_pin: '123456'
+        customer_reference: customer-reference
+        connection_id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
+        billing_group_id: dc8e4d67-33a0-4cbb-af74-7b58f05bd494
+        deletion_lock_enabled: true
+        voice:
+          call_forwarding:
+            call_forwarding_enabled: true
+            forwards_to: '+13035559123'
+            forwarding_type: always
     numbers_SlimPhoneNumberDetailed:
       type: object
       example:
@@ -160106,36 +158516,6 @@ components:
       additionalProperties: true
       example:
         detail: The requested RCS resource was not found.
-    rcs-registration_ValidationErrorResponse:
-      type: object
-      properties:
-        detail:
-          type: array
-          items:
-            type: object
-            properties:
-              loc:
-                type: array
-                items:
-                  oneOf:
-                  - type: string
-                  - type: integer
-              msg:
-                type: string
-              type:
-                type: string
-            required:
-            - loc
-            - msg
-            - type
-      additionalProperties: true
-      example:
-        detail:
-        - loc:
-          - body
-          - display_name
-          msg: Field required
-          type: missing
     recordings_ConferenceRecordingResource:
       type: object
       title: Conference recording resource
