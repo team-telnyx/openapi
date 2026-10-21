@@ -66539,8 +66539,9 @@ components:
       in: query
       required: false
       description: Silence duration (in milliseconds) that triggers end-of-speech detection. When set, the engine uses this
-        value to determine when a speaker has stopped talking. Supported by `xAI`, `Deepgram`, `Google`, `Speechmatics`, and
-        `Soniox`. `Soniox` accepts values between 500 and 3000. Other engines may not support this parameter.
+        value to determine when a speaker has stopped talking. Supported by `xAI`, `Deepgram`, `Google`, `Speechmatics` (`speechmatics/standard`
+        only; `speechmatics/linden-1` uses fixed service-side voice activity detection and ignores it), and `Soniox`. `Soniox`
+        accepts values between 500 and 3000. Other engines may not support this parameter.
       schema:
         type: integer
       example: 500
@@ -66626,7 +66627,9 @@ components:
       required: false
       description: The language spoken in the audio stream. For `cohere/ar-stt`, this must be `ar` or `en` — unlike other
         engines, Cohere does not auto-detect the language, and rejects unsupported values including `auto`; omitting it defaults
-        to `ar`.
+        to `ar`. For `speechmatics/linden-1`, omitting it defaults to `en`; `auto`, `auto_beta`, `multi`, or a language outside
+        its supported list is rejected when the connection is established. `speechmatics/linden-1` also accepts `en-US`, `en-GB`,
+        `en-AU`, `cmn-Hans`, and `cmn-Hant`, which select the spelling or script variant (`en` alone uses the default spelling).
       schema:
         type: string
       example: en-US
@@ -67162,7 +67165,8 @@ components:
       in: query
       required: false
       description: Audio sample rate in Hz. Required when `input_format` is a raw encoding (`linear16`, `linear32`) — those
-        formats carry no header metadata. Ignored for container formats (`mp3`, `wav`), which self-describe their rate.
+        formats carry no header metadata. Ignored for container formats (`mp3`, `wav`), which self-describe their rate. `speechmatics/linden-1`
+        accepts only `16000`.
       schema:
         type: integer
       example: 16000
@@ -129547,7 +129551,17 @@ components:
     SpeechmaticsTranscriptionLanguage:
       title: Speechmatics transcription engine list of languages
       type: string
-      description: Language to use for speech recognition
+      description: 'Language to use for speech recognition. Accepted values depend on the selected `transcription_model`.
+        `speechmatics/standard` supports: `en`, `ba`, `eu`, `gl`, `ga`, `mt`, `mn`, `sw`, `ug`, `cy`, `ar_en`, `cmn_en`, `en_ms`,
+        `en_ta`, `tl`, `es-bilingual-en`, `cmn_en_ms_ta`. `speechmatics/linden-1` (preview) supports the same languages as
+        Speechmatics Realtime: `ar`, `ar_en`, `ba`, `be`, `bg`, `bn`, `ca`, `cmn`, `cmn_en`, `cmn_en_ms_ta`, `cs`, `cy`, `da`,
+        `de`, `el`, `en`, `en_ms`, `en_ta`, `eo`, `es`, `es-bilingual-en`, `et`, `eu`, `fa`, `fi`, `fr`, `ga`, `gl`, `he`,
+        `hi`, `hr`, `hu`, `ia`, `id`, `it`, `ja`, `ko`, `lt`, `lv`, `mn`, `mr`, `ms`, `mt`, `nl`, `no`, `pl`, `pt`, `ro`,
+        `ru`, `sk`, `sl`, `sv`, `sw`, `ta`, `th`, `tl`, `tr`, `ug`, `uk`, `ur`, `vi`, `yue`, plus the spelling and script
+        variants `en-US`, `en-GB`, `en-AU`, `cmn-Hans`, and `cmn-Hant` (`en` alone uses the default spelling). A value outside
+        the selected model''s list is rejected. For `speechmatics/standard`, unset, blank, `auto`, `auto_beta`, or `multi`
+        defaults to `en`; for `speechmatics/linden-1`, only an unset language defaults to `en`, and `auto`, `auto_beta`, or
+        `multi` is rejected.'
       example: en
       default: en
       enum:
@@ -129568,6 +129582,56 @@ components:
       - tl
       - es-bilingual-en
       - cmn_en_ms_ta
+      - ar
+      - be
+      - bg
+      - bn
+      - ca
+      - cmn
+      - cs
+      - da
+      - de
+      - el
+      - eo
+      - es
+      - et
+      - fa
+      - fi
+      - fr
+      - he
+      - hi
+      - hr
+      - hu
+      - ia
+      - id
+      - it
+      - ja
+      - ko
+      - lt
+      - lv
+      - mr
+      - ms
+      - nl
+      - 'no'
+      - pl
+      - pt
+      - ro
+      - ru
+      - sk
+      - sl
+      - sv
+      - ta
+      - th
+      - tr
+      - uk
+      - ur
+      - vi
+      - yue
+      - en-US
+      - en-GB
+      - en-AU
+      - cmn-Hans
+      - cmn-Hant
     SpendEvent:
       type: object
       additionalProperties: false
@@ -138141,6 +138205,9 @@ components:
 
             - `speechmatics/standard` and `speechmatics/enhanced` for live streaming transcription.
 
+            - `speechmatics/linden-1` (preview, vendor-hosted) for live streaming transcription; no auto-detect, so set `language`
+            from Speechmatics'' Realtime language list (defaults to `en`).
+
             - `assemblyai/universal-3-5-pro` for live streaming transcription. The legacy alias `assemblyai/universal-streaming`
             is still accepted and resolves to the same model.
 
@@ -138174,6 +138241,7 @@ components:
           - deepgram/nova-2
           - speechmatics/standard
           - speechmatics/enhanced
+          - speechmatics/linden-1
           - assemblyai/universal-3-5-pro
           - assemblyai/universal-streaming
           - xai/grok-stt
@@ -138205,7 +138273,10 @@ components:
             is omitted — omitting it applies `en` instead. For `reson8/turns`, supported values are `auto` (or unset) for
             automatic language detection, and the language codes `nl`, `en`, `fr`, `fy`, `de`, `it`, `pl`, `pt`, `es`, and
             `sv` to fix the transcription language. For `cohere/ar-stt`, supported values are `ar` and `en`; unlike other
-            models, this model does not auto-detect and defaults to `ar` when `language` is omitted.'
+            models, this model does not auto-detect and defaults to `ar` when `language` is omitted. For `speechmatics/linden-1`,
+            there is no auto-detect; set a code from Speechmatics'' Realtime language list (see `SpeechmaticsTranscriptionLanguage`);
+            unset defaults to `en`, while an explicit `auto`, `auto_beta`, or `multi` is rejected (unlike `speechmatics/standard`,
+            which defaults to `en`).'
     TranscriptionEndpointingPlan:
       type: object
       title: TranscriptionEndpointingPlan
@@ -138625,10 +138696,12 @@ components:
         language:
           $ref: '#/components/schemas/SpeechmaticsTranscriptionLanguage'
         transcription_model:
-          description: The model to use for transcription.
+          description: The model to use for transcription. `speechmatics/linden-1` is a preview, vendor-hosted model with
+            its own language support (see `language`).
           type: string
           enum:
           - speechmatics/standard
+          - speechmatics/linden-1
           default: speechmatics/standard
         interim_results:
           type: boolean
@@ -138983,6 +139056,8 @@ components:
           - deepgram/flux
           - deepgram/nova-3
           - deepgram/nova-2
+          - speechmatics/standard
+          - speechmatics/linden-1
           - azure/fast
           - assemblyai/universal-3-5-pro
           - assemblyai/universal-streaming
@@ -139005,6 +139080,12 @@ components:
             - `deepgram/nova-3` is multilingual with automatic language detection.
 
             - `deepgram/nova-2` is Deepgram''s previous-generation multilingual model.
+
+            - `speechmatics/standard` is a Speechmatics model self-hosted by Telnyx; it supports a fixed set of language packs
+            (including bilingual packs such as `ar_en`) and defaults to `en`.
+
+            - `speechmatics/linden-1` (preview) is a vendor-hosted streaming model with no auto-detect; set `language` from
+            Speechmatics'' Realtime language list (defaults to `en`).
 
             - `azure/fast` is a multilingual Azure transcription model.
 
@@ -139040,7 +139121,10 @@ components:
             supported values are `auto` (or unset) for automatic language detection, and the language codes `nl`, `en`, `fr`,
             `fy`, `de`, `it`, `pl`, `pt`, `es`, and `sv` to fix the transcription language. For `cohere/ar-stt`, supported
             values are `ar` and `en`; unlike other models, this model does not auto-detect and defaults to `ar` when `language`
-            is omitted.'
+            is omitted. For `speechmatics/linden-1`, there is no auto-detect; set a code from Speechmatics'' Realtime language
+            list (67 language codes, including `es-bilingual-en` for Spanish and English bilingual, and the spelling and script
+            variants `en-US`, `en-GB`, `en-AU`, `cmn-Hans`, and `cmn-Hant`; `en` alone uses the default spelling); unset defaults
+            to `en`, while an explicit `auto`, `auto_beta`, or `multi` is rejected with a 400.'
         api_key_ref:
           title: Api Key Ref
           type: string
@@ -139128,6 +139212,14 @@ components:
             syntax (e.g. `Telnyx,{{customer_name}},VoIP`). Variables are resolved at call time before the value is sent to
             the speech-to-text engine.
           maxLength: 1000
+        remove_disfluencies:
+          title: Remove Disfluencies
+          type: boolean
+          default: false
+          description: Available only for speechmatics/linden-1. When true, filler words such as "um" and "uh" are removed
+            from the transcript. Disfluency removal is supported only for `ar`, `cmn`, `da`, `de`, `el`, `en`, `es`, `fr`,
+            `he`, `hi`, `hu`, `it`, `ja`, `nl`, `pl`, `pt`, and `ru`, determined by the base language (so `en-US`, `en-GB`,
+            `en-AU`, `cmn-Hans`, and `cmn-Hant` are supported); for other languages, filler words remain in the transcript.
         end_of_turn_confidence_threshold:
           title: End Of Turn Confidence Threshold
           type: number
@@ -159013,8 +159105,12 @@ components:
             $ref: '#/components/schemas/speech-to-text_Error'
     speechmatics_models:
       type: string
+      description: 'Available Speechmatics models. `speechmatics/linden-1` is a preview, vendor-hosted model that accepts
+        only 16 kHz raw audio: set `input_format` to `linear16` or `linear32` and `sample_rate` to `16000`. `mp3`, `wav`,
+        and other sample rates are not supported for this model.'
       enum:
       - speechmatics/standard
+      - speechmatics/linden-1
     spend-limits_PaginationMeta:
       type: object
       properties:
