@@ -109312,7 +109312,7 @@
             "example": "https://example.com/file.mp3"
           },
           "model": {
-            "description": "ID of the model to use. `distil-whisper/distil-large-v2` is lower latency but English-only. `openai/whisper-large-v3-turbo` is multi-lingual but slightly higher latency. The `deepgram/*` models only accept mp3/wav files: `deepgram/nova-3` covers ~49 languages plus `multi` and `deepgram/nova-2` covers ~33, while the `-medical` variants are tuned for clinical vocabulary and accept English only (`en` and its regional variants, e.g. `en-US`, `en-GB`). `nvidia/parakeet-v3` is multilingual with automatic language detection; `omi-health/omi-med-stt-v1` is a medical model, English only.",
+            "description": "ID of the model to use. `distil-whisper/distil-large-v2` is lower latency but English-only. `openai/whisper-large-v3-turbo` is multi-lingual but slightly higher latency. The `deepgram/*` models only accept mp3/wav files: `deepgram/nova-3` covers ~49 languages plus `multi` and `deepgram/nova-2` covers ~33, while the `-medical` variants are tuned for clinical vocabulary and accept English only (`en` and its regional variants, e.g. `en-US`, `en-GB`). `nvidia/parakeet-v3` is multilingual with automatic language detection; `omi-health/omi-med-stt-v1` is a medical model, English only. `reson8/prerecorded` covers 10 languages, returns word timestamps, and labels speakers via `model_config`.",
             "example": "distil-whisper/distil-large-v2",
             "default": "distil-whisper/distil-large-v2",
             "type": "string",
@@ -109324,7 +109324,8 @@
               "deepgram/nova-3",
               "deepgram/nova-3-medical",
               "nvidia/parakeet-v3",
-              "omi-health/omi-med-stt-v1"
+              "omi-health/omi-med-stt-v1",
+              "reson8/prerecorded"
             ]
           },
           "response_format": {
@@ -109347,12 +109348,12 @@
           },
           "language": {
             "type": "string",
-            "description": "The language of the audio to be transcribed. `deepgram/nova-3` supports ~49 languages plus `multi`, and `deepgram/nova-2` supports ~33 plus `multi`; the `-medical` variants are English only (`en` and its regional variants, e.g. `en-US`, `en-GB`). Deepgram models validate on the base language and forward the full tag, so regional variants such as `de-CH` and `pt-BR` are accepted where the base language is supported; an unsupported language returns a 400. For `openai/whisper-large-v3-turbo`, supports multiple languages. `distil-whisper/distil-large-v2` does not support language parameter. `nvidia/parakeet-v3` detects the language automatically; `omi-health/omi-med-stt-v1` is English only.",
+            "description": "The language of the audio to be transcribed. `deepgram/nova-3` supports ~49 languages plus `multi`, and `deepgram/nova-2` supports ~33 plus `multi`; the `-medical` variants are English only (`en` and its regional variants, e.g. `en-US`, `en-GB`). Deepgram models validate on the base language and forward the full tag, so regional variants such as `de-CH` and `pt-BR` are accepted where the base language is supported; an unsupported language returns a 400. For `openai/whisper-large-v3-turbo`, supports multiple languages. `distil-whisper/distil-large-v2` does not support language parameter. `nvidia/parakeet-v3` detects the language automatically; `omi-health/omi-med-stt-v1` is English only. `reson8/prerecorded` accepts `nl`, `en`, `fr`, `fy`, `de`, `it`, `pl`, `pt`, `es` and `sv` (regional variants are transcribed as the base language) and detects the language when it is omitted.",
             "example": "en-US"
           },
           "model_config": {
             "type": "object",
-            "description": "Additional model-specific configuration parameters. Only allowed with the `deepgram/*` models. Sent as a JSON string in multipart requests and passed through to Deepgram as query parameters. Any other model with `model_config` returns 422. Can include Deepgram-specific options such as `smart_format`, `punctuate`, `diarize` (speaker labels), `multichannel` (transcribe each channel independently; billed duration is file duration multiplied by the number of channels), `utterances`, `numerals`, and `language`. If `language` is provided both as a top-level parameter and in `model_config`, the top-level parameter takes precedence.",
+            "description": "Additional model-specific configuration parameters. Only allowed with the `deepgram/*` models and `reson8/prerecorded`. Sent as a JSON string in multipart requests; for the `deepgram/*` models it is passed through to Deepgram as query parameters, while `reson8/prerecorded` accepts only `diarize` (speaker labels) and `max_speakers` (1 to 8). Any other model with `model_config` returns 400. Can include Deepgram-specific options such as `smart_format`, `punctuate`, `diarize` (speaker labels), `multichannel` (transcribe each channel independently; billed duration is file duration multiplied by the number of channels), `utterances`, `numerals`, and `language`. If `language` is provided both as a top-level parameter and in `model_config`, the top-level parameter takes precedence.",
             "additionalProperties": true,
             "example": {
               "smart_format": true,
@@ -109366,7 +109367,7 @@
       },
       "AudioTranscriptionResponse": {
         "type": "object",
-        "description": "Response fields vary by model. `distil-whisper/distil-large-v2` returns `text`, `duration`, and `segments` in `verbose_json` mode. `openai/whisper-large-v3-turbo` returns `text` only. The `deepgram/*` models return `text` and, depending on `model_config`, may include `words` with per-word timestamps and speaker labels. The Parakeet models (`nvidia/parakeet-v3`, `omi-health/omi-med-stt-v1`) return `text` only.",
+        "description": "Response fields vary by model. `distil-whisper/distil-large-v2` returns `text`, `duration`, and `segments` in `verbose_json` mode. `openai/whisper-large-v3-turbo` returns `text` only. The `deepgram/*` models return `text` and, depending on `model_config`, may include `words` with per-word timestamps and speaker labels. The Parakeet models (`nvidia/parakeet-v3`, `omi-health/omi-med-stt-v1`) return `text` only. `reson8/prerecorded` returns `text` and, in `verbose_json` mode, `duration` and `segments` with `words`; with `diarize`, one segment per speaker turn with speaker labels.",
         "properties": {
           "text": {
             "type": "string",
@@ -109416,14 +109417,14 @@
           },
           "words": {
             "type": "array",
-            "description": "Word-level timing detail for this segment. Returned by the `deepgram/*` models when word-level output is enabled via `model_config`.",
+            "description": "Word-level timing detail for this segment. Returned by the `deepgram/*` models when word-level output is enabled via `model_config`, and by `reson8/prerecorded`.",
             "items": {
               "$ref": "#/components/schemas/AudioTranscriptionResponseWord"
             }
           },
           "speakers": {
             "type": "array",
-            "description": "Speaker indices heard in this segment. Returned by the `deepgram/*` models when `diarize` is enabled via `model_config`. With `multichannel`, speakers are numbered per channel from 0, so identify a speaker by (`channel`, speaker).",
+            "description": "Speaker indices heard in this segment. Returned by the `deepgram/*` models and `reson8/prerecorded` when `diarize` is enabled via `model_config`. With `multichannel`, speakers are numbered per channel from 0, so identify a speaker by (`channel`, speaker).",
             "items": {
               "type": "integer"
             }
@@ -109442,7 +109443,7 @@
       },
       "AudioTranscriptionResponseWord": {
         "type": "object",
-        "description": "Word-level timing detail. Only present when using a `deepgram/*` model with `model_config` options that enable word timestamps.",
+        "description": "Word-level timing detail. Only present when using a `deepgram/*` model with `model_config` options that enable word timestamps, or `reson8/prerecorded`.",
         "properties": {
           "word": {
             "type": "string",
