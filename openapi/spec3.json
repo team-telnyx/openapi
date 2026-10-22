@@ -688,7 +688,7 @@
     },
     {
       "name": "Spend Limits",
-      "description": "Daily and monthly spend limits per product. A limit applies to the organization of the authenticated user, or to the user's own account when they belong to no organization; every user of the organization sees and changes the same limits.\n\n- **Periods.** `daily` covers the current UTC day and `monthly` the current UTC calendar month. The two limits are independent: you can set either, both or neither.\n- **Blocking.** When spend in a period goes above the limit (strictly greater), the product is blocked until the period ends: 00:00 UTC the next day for `daily`, 00:00 UTC on the 1st of the next month for `monthly`. A block appears within about 2 minutes (daily) or 10 minutes (monthly) of the spend being recorded.\n- **Changes apply immediately.** Creating, updating or deleting a limit checks the period's spend in the same request: raising the limit above the spend, or removing it, lifts that period's block, and lowering it below the spend blocks the product at once. The `evaluation` object in the response says what happened.\n- **Supported products.** Today only `inference` supports spend limits. A blocked account gets HTTP 403 with the error title `Inference spend limit reached` (code `10039`) on new billable chat completions, Responses, Anthropic Messages and classification requests; requests already running finish normally. Take the list of products from the list operation.\n- **Limits set by Telnyx.** Telnyx support can also set a limit on your account. It is listed with `origin: operator` and you can update or delete it like your own."
+      "description": "Daily and monthly spend limits per product. A limit applies to the organization of the authenticated user, or to the user's own account when they belong to no organization; every user of the organization sees and changes the same limits.\n\n- **Periods.** `daily` covers the current UTC day and `monthly` the current UTC calendar month. The two limits are independent: you can set either, both or neither.\n- **Blocking.** When spend in a period goes above the limit (strictly greater), the product is blocked until the period ends: 00:00 UTC the next day for `daily`, 00:00 UTC on the 1st of the next month for `monthly`. A block appears within about 2 minutes (daily) or 10 minutes (monthly) of the spend being recorded.\n- **Changes apply immediately.** Creating, updating or deleting a limit checks the period's spend in the same request: raising the limit above the spend, or removing it, lifts that period's block, and lowering it below the spend blocks the product at once. The `evaluation` object in the response says what happened.\n- **Supported products.** Today only `inference` supports spend limits. A blocked account gets HTTP 403 with the error title `Inference spend limit reached` (code `10039`) on new billable chat completions, Responses, Anthropic Messages and classification requests; requests already running finish normally. Take the list of products from the list operation.\n- **API key limits.** For `inference`, a limit can also apply to one API key, named by `credential_id`: the key's identifier as recorded on usage, never its secret. When the key's spend goes above its own limit, only that key is blocked, with the error title `API key spend limit reached` (code `10039`); the account's other keys keep working. The API key limits of a period cannot add up to more than the total limit when the total has an amount. Only language-model requests authenticated with an API key count toward its limit.\n- **Limits set by Telnyx.** Telnyx support can also set a limit on your account. It is listed with `origin: operator` and you can update or delete it like your own."
     },
     {
       "name": "Stored Payment Transactions",
@@ -76111,7 +76111,7 @@
     "/spend_limits": {
       "get": {
         "summary": "List spend limits",
-        "description": "Returns one entry per product and period you can set a limit on, with the limit, the spend so far in the period and whether the product is blocked. An entry without a limit is still listed (`limit: null`). When the spend cannot be read, the entry is returned with `spend_usd: null` and `spend_error` set. The list is not paginated.",
+        "description": "Returns one entry per product and period you can set a limit on, with the limit, the spend so far in the period and whether the product is blocked. An entry without a limit is still listed (`limit: null`). When the spend cannot be read, the entry is returned with `spend_usd: null` and `spend_error` set. The list is not paginated. Each entry also lists the API key limits of its product and period in `credential_limits`, with each key's spend and block, and in `allocation` how much of the total limit they use.",
         "operationId": "listSpendLimits",
         "tags": [
           "Spend Limits"
@@ -76223,6 +76223,93 @@
                         "page_size": 2
                       }
                     }
+                  },
+                  "api_key_limits": {
+                    "summary": "A daily total limit with two API key limits, one of them blocked",
+                    "value": {
+                      "data": [
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "daily",
+                          "period_start": "2026-10-20",
+                          "period_end": "2026-10-21",
+                          "credential_id": null,
+                          "limit": {
+                            "amount": "1000.00",
+                            "unlimited": false,
+                            "origin": "self_service",
+                            "updated_at": "2026-10-20T08:01:12Z"
+                          },
+                          "effective_limit_usd": "1000.00",
+                          "spend_usd": "412.90",
+                          "spend_error": null,
+                          "blocked": false,
+                          "block": null,
+                          "allocation": {
+                            "total_limit_usd": "1000.00",
+                            "allocated_usd": "800.00",
+                            "unallocated_usd": "200.00",
+                            "over_allocated_usd": "0.00"
+                          },
+                          "credential_limits": [
+                            {
+                              "credential_id": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2",
+                              "limit": {
+                                "amount": "300.00",
+                                "origin": "self_service",
+                                "updated_at": "2026-10-20T08:03:40Z"
+                              },
+                              "spend_usd": "120.00",
+                              "spend_error": null,
+                              "blocked": false,
+                              "block": null
+                            },
+                            {
+                              "credential_id": "KEY01A0B0C0D0E0F0A1B1C1D1E1F1A2B2",
+                              "limit": {
+                                "amount": "500.00",
+                                "origin": "operator",
+                                "updated_at": "2026-10-19T17:44:02Z"
+                              },
+                              "spend_usd": "510.30",
+                              "spend_error": null,
+                              "blocked": true,
+                              "block": {
+                                "detected_at": "2026-10-20T11:02:19Z",
+                                "spend_usd": "503.10",
+                                "limit_usd": "500.00",
+                                "blocked_until": "2026-10-21"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "record_type": "spend_limit",
+                          "product": "inference",
+                          "product_name": "Inference",
+                          "period": "monthly",
+                          "period_start": "2026-10-01",
+                          "period_end": "2026-11-01",
+                          "credential_id": null,
+                          "limit": null,
+                          "effective_limit_usd": null,
+                          "spend_usd": "8120.03",
+                          "spend_error": null,
+                          "blocked": false,
+                          "block": null,
+                          "allocation": null,
+                          "credential_limits": []
+                        }
+                      ],
+                      "meta": {
+                        "total_pages": 1,
+                        "total_results": 2,
+                        "page_number": 1,
+                        "page_size": 2
+                      }
+                    }
                   }
                 }
               }
@@ -76280,7 +76367,7 @@
       },
       "post": {
         "summary": "Create a spend limit",
-        "description": "Sets a limit for a product and period that has none. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: if it is already above the new limit, the product is blocked immediately (`evaluation.blocked_now`). Returns 409 when a limit already exists for the product and period; update it instead.",
+        "description": "Sets a limit for a product and period that has none. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: if it is already above the new limit, the product is blocked immediately (`evaluation.blocked_now`). Returns 409 when a limit already exists for the product and period; update it instead. With `credential_id`, the limit applies to that API key only: it needs an `amount`, and the period's API key limits cannot add up to more than the total limit when the total has an amount.",
         "operationId": "createSpendLimit",
         "tags": [
           "Spend Limits"
@@ -76310,6 +76397,16 @@
                     "product": "inference",
                     "period": "monthly",
                     "unlimited": true
+                  }
+                },
+                "api_key": {
+                  "summary": "A daily limit of 300 USD for one API key",
+                  "value": {
+                    "product": "inference",
+                    "period": "daily",
+                    "credential_id": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2",
+                    "amount": 300,
+                    "reason": "Staging key"
                   }
                 }
               }
@@ -76388,13 +76485,53 @@
                         }
                       }
                     }
+                  },
+                  "api_key_created": {
+                    "summary": "API key limit created, spend below the limit",
+                    "value": {
+                      "data": {
+                        "record_type": "spend_limit",
+                        "product": "inference",
+                        "product_name": "Inference",
+                        "period": "daily",
+                        "period_start": "2026-10-20",
+                        "period_end": "2026-10-21",
+                        "credential_id": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2",
+                        "limit": {
+                          "amount": "300",
+                          "unlimited": false,
+                          "origin": "self_service",
+                          "updated_at": "2026-10-20T08:03:40Z"
+                        },
+                        "effective_limit_usd": "300",
+                        "spend_usd": "120.00",
+                        "spend_error": null,
+                        "blocked": false,
+                        "block": null,
+                        "allocation": {
+                          "total_limit_usd": "1000.00",
+                          "allocated_usd": "800.00",
+                          "unallocated_usd": "200.00",
+                          "over_allocated_usd": "0.00"
+                        },
+                        "evaluation": {
+                          "spend_usd": "120.00",
+                          "released": false,
+                          "blocked_now": false,
+                          "still_over_limit": false,
+                          "still_blocked_other_period": false,
+                          "account_blocked": false,
+                          "evaluation_deferred": false
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed.",
+            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed. For an API key limit (`credential_id`): API key limits are not available for the product or period, `credential_id` is invalid, `unlimited` was sent, the period already has the maximum number of API key limits, or the period's API key limits would add up to more than the total limit. Creating a total limit below the sum of the period's API key limits is refused too.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76472,6 +76609,66 @@
                         }
                       ]
                     }
+                  },
+                  "api_key_limits_not_available": {
+                    "summary": "API key limits not available for the product",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "API key limits are not available",
+                          "detail": "API key limits are not available for inference"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_credential_id": {
+                    "summary": "Invalid credential_id",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid credential_id",
+                          "detail": "credential_id must be 1 to 255 characters, not blank, and contain no control characters"
+                        }
+                      ]
+                    }
+                  },
+                  "api_key_limit_needs_amount": {
+                    "summary": "unlimited sent for an API key",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "API key limits need an amount",
+                          "detail": "An API key limit is an amount in USD; it cannot be unlimited. Without an API key limit a key is limited only by the total limit"
+                        }
+                      ]
+                    }
+                  },
+                  "too_many_api_key_limits": {
+                    "summary": "Too many API key limits",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Too many API key limits",
+                          "detail": "At most 100 API key limits per product and period (inference, daily); remove one first"
+                        }
+                      ]
+                    }
+                  },
+                  "allocation_exceeded": {
+                    "summary": "API key limits would exceed the total limit",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Limit exceeds the total limit",
+                          "detail": "The daily total limit for inference is 1000.00 USD and 800.00 USD is already allocated to API key limits; this API key can be given at most 200.00 USD"
+                        }
+                      ]
+                    }
                   }
                 }
               }
@@ -76526,7 +76723,7 @@
             }
           },
           "409": {
-            "description": "Conflict. A limit already exists for the product and period.",
+            "description": "Conflict. A limit already exists for the product and period, or for the API key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76544,6 +76741,18 @@
                         }
                       ]
                     }
+                  },
+                  "api_key_limit_exists": {
+                    "summary": "API key limit already exists",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Limit already exists",
+                          "detail": "An active daily limit exists for inference and API key KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2; update it instead"
+                        }
+                      ]
+                    }
                   }
                 }
               }
@@ -76555,7 +76764,7 @@
     "/spend_limits/{product}": {
       "delete": {
         "summary": "Delete a spend limit",
-        "description": "Removes the limit for the product and period. For `inference`, which has no default limit, the product becomes unlimited for the period and the period's block is lifted (`evaluation.released`). The response carries `limit: null` and the `effective_limit_usd` that applies after the removal. Returns 404 when no limit is set.",
+        "description": "Removes the limit for the product and period. For `inference`, which has no default limit, the product becomes unlimited for the period and the period's block is lifted (`evaluation.released`). The response carries `limit: null` and the `effective_limit_usd` that applies after the removal. Returns 404 when no limit is set. With the `credential_id` query parameter, the request removes that API key's limit for the period and lifts the key's block in that period at once. A block under the key's limit in the other period stays (`evaluation.still_blocked_other_period`). Removing the total limit leaves the API key limits in place.",
         "operationId": "deleteSpendLimit",
         "tags": [
           "Spend Limits"
@@ -76580,6 +76789,18 @@
             "description": "Limit period. Defaults to `daily`; send it explicitly.",
             "schema": {
               "$ref": "#/components/schemas/SpendLimitPeriod"
+            }
+          },
+          {
+            "name": "credential_id",
+            "in": "query",
+            "required": false,
+            "description": "Identifier of one API key as recorded on usage, never the key's secret, percent-encoded: the request is then about that key's limit. Absent means the total limit; present but blank is refused.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "example": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2"
             }
           },
           {
@@ -76634,7 +76855,7 @@
             }
           },
           "400": {
-            "description": "Bad request. The product does not support self-service spend limits or the period is invalid.",
+            "description": "Bad request. The product does not support self-service spend limits, the period is invalid, or `credential_id` is present but invalid.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76661,6 +76882,18 @@
                           "code": "10015",
                           "title": "Invalid period",
                           "detail": "period must be daily or monthly"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_credential_id": {
+                    "summary": "Invalid credential_id",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid credential_id",
+                          "detail": "credential_id must be 1 to 255 characters, not blank, and contain no control characters"
                         }
                       ]
                     }
@@ -76718,7 +76951,7 @@
             }
           },
           "404": {
-            "description": "Not found. No spend limit is set for the product and period.",
+            "description": "Not found. No spend limit is set for the product and period, or for the API key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76736,6 +76969,18 @@
                         }
                       ]
                     }
+                  },
+                  "api_key_limit_not_found": {
+                    "summary": "No limit for the API key",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10005",
+                          "title": "Limit not found",
+                          "detail": "No active daily limit for inference (API key KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2); nothing to delete"
+                        }
+                      ]
+                    }
                   }
                 }
               }
@@ -76745,7 +76990,7 @@
       },
       "patch": {
         "summary": "Update a spend limit",
-        "description": "Replaces the value of the existing limit for the product and period. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: raising the limit above the spend lifts the period's block (`evaluation.released`), and lowering it below the spend blocks the product (`evaluation.blocked_now`). Returns 404 when no limit is set; create it instead.",
+        "description": "Replaces the value of the existing limit for the product and period. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: raising the limit above the spend lifts the period's block (`evaluation.released`), and lowering it below the spend blocks the product (`evaluation.blocked_now`). Returns 404 when no limit is set; create it instead. With the `credential_id` query parameter, the request changes that API key's limit; it needs an `amount`, and raising it is subject to the allocation rule.",
         "operationId": "updateSpendLimit",
         "tags": [
           "Spend Limits"
@@ -76770,6 +77015,18 @@
             "description": "Limit period. Defaults to `daily`; send it explicitly.",
             "schema": {
               "$ref": "#/components/schemas/SpendLimitPeriod"
+            }
+          },
+          {
+            "name": "credential_id",
+            "in": "query",
+            "required": false,
+            "description": "Identifier of one API key as recorded on usage, never the key's secret, percent-encoded: the request is then about that key's limit. Absent means the total limit; present but blank is refused.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "example": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2"
             }
           }
         ],
@@ -76875,7 +77132,7 @@
             }
           },
           "400": {
-            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed.",
+            "description": "Bad request. The product does not support self-service spend limits, the period is invalid or not available, not exactly one of `amount` and `unlimited` was sent, `amount` is negative, `reason` is longer than 500 characters, or the body has a field that is not listed. For an API key limit (`credential_id`): API key limits are not available for the product or period, `credential_id` is invalid, `unlimited` was sent, or the period's API key limits would add up to more than the total limit. Lowering the total limit below the sum of the period's API key limits is refused too.",
             "content": {
               "application/json": {
                 "schema": {
@@ -76953,6 +77210,66 @@
                         }
                       ]
                     }
+                  },
+                  "api_key_limits_not_available": {
+                    "summary": "API key limits not available for the product",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "API key limits are not available",
+                          "detail": "API key limits are not available for inference"
+                        }
+                      ]
+                    }
+                  },
+                  "invalid_credential_id": {
+                    "summary": "Invalid credential_id",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Invalid credential_id",
+                          "detail": "credential_id must be 1 to 255 characters, not blank, and contain no control characters"
+                        }
+                      ]
+                    }
+                  },
+                  "api_key_limit_needs_amount": {
+                    "summary": "unlimited sent for an API key",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "API key limits need an amount",
+                          "detail": "An API key limit is an amount in USD; it cannot be unlimited. Without an API key limit a key is limited only by the total limit"
+                        }
+                      ]
+                    }
+                  },
+                  "allocation_exceeded": {
+                    "summary": "Raising an API key limit beyond the total limit",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Limit exceeds the total limit",
+                          "detail": "The daily total limit for inference is 1000.00 USD and 800.00 USD is allocated to API key limits; this API key can be given at most 500.00 USD"
+                        }
+                      ]
+                    }
+                  },
+                  "total_below_allocation": {
+                    "summary": "Lowering the total limit below the API key limits",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10015",
+                          "title": "Limit exceeds the total limit",
+                          "detail": "800.00 USD of the daily inference limit is allocated to API key limits; the total can be at least 800.00 USD"
+                        }
+                      ]
+                    }
                   }
                 }
               }
@@ -77007,7 +77324,7 @@
             }
           },
           "404": {
-            "description": "Not found. No spend limit is set for the product and period.",
+            "description": "Not found. No spend limit is set for the product and period, or for the API key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -77022,6 +77339,18 @@
                           "code": "10005",
                           "title": "Limit not found",
                           "detail": "No active daily limit for inference; create it instead"
+                        }
+                      ]
+                    }
+                  },
+                  "api_key_limit_not_found": {
+                    "summary": "No limit for the API key",
+                    "value": {
+                      "errors": [
+                        {
+                          "code": "10005",
+                          "title": "Limit not found",
+                          "detail": "No active daily limit for inference and API key KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2; create it instead"
                         }
                       ]
                     }
@@ -95728,12 +96057,14 @@
         "name": "type",
         "in": "query",
         "required": false,
-        "description": "Specifies the type of number lookup to be performed",
+        "description": "Specifies the type of number lookup to be performed. May be supplied more than once to request several data sources in a single call (for example, `?type=carrier&type=enhanced-caller-name`). Each requested type populates the corresponding object in the response.",
         "schema": {
           "type": "string",
           "enum": [
             "carrier",
-            "caller-name"
+            "caller-name",
+            "caller-identity",
+            "enhanced-caller-name"
           ]
         }
       },
@@ -120419,6 +120750,39 @@
           }
         }
       },
+      "CallerIdentity": {
+        "type": "object",
+        "description": "Identity information for the phone number's owner, including name and postal address. Populated when `type=caller-identity` is requested.",
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name associated with the phone number.",
+            "example": "Jane Doe"
+          },
+          "address": {
+            "$ref": "#/components/schemas/number-lookup_Address"
+          },
+          "confidence_score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "How strongly the phone number is linked to the returned name, on a scale of 50 to 90 (higher means more supporting signals). Reflects signal strength, not probability: 70 indicates stronger, more consistent evidence than 60, not a 70% chance of being correct. As a guide, 70+ is high confidence, 60 moderate, and 50 limited. Below 50 no name is returned, so scores under 50 are never present.",
+            "example": 80.0
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A lookup-specific error code if the identity could not be resolved; otherwise null.",
+            "example": null
+          }
+        }
+      },
       "CallerName": {
         "type": "object",
         "properties": {
@@ -132328,7 +132692,7 @@
       },
       "CreateSpendLimitUnlimited": {
         "title": "Unlimited",
-        "description": "Explicitly no cap.",
+        "description": "Explicitly no cap. Not available for API key limits.",
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -132373,6 +132737,14 @@
           },
           "period": {
             "$ref": "#/components/schemas/SpendLimitPeriod"
+          },
+          "credential_id": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Optional. Identifier of one API key as recorded on usage, never the key's secret: the limit then applies to that key only. Absent or `null` sets the total limit. A blank value, or one with control characters, is refused; it never means the total limit. An API key limit always has an `amount`.",
+            "example": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2"
           },
           "amount": {
             "type": "number",
@@ -140790,6 +141162,28 @@
         },
         "type": "object",
         "title": "EnhanceInstructionsRequest"
+      },
+      "EnhancedCallerName": {
+        "type": "object",
+        "description": "Enhanced caller name for the phone number's owner. Populated when `type=enhanced-caller-name` is requested.",
+        "properties": {
+          "caller_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name associated with the phone number.",
+            "example": "Jane Doe"
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A lookup-specific error code if the enhanced caller name could not be resolved; otherwise null.",
+            "example": null
+          }
+        }
       },
       "EnqueueRequest": {
         "type": "object",
@@ -159346,6 +159740,39 @@
           },
           "portability": {
             "$ref": "#/components/schemas/Portability"
+          },
+          "nnid_override": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Network number ID (NNID) override for the phone number, when one applies (available only to accounts enabled for NNID); otherwise null.",
+            "properties": {
+              "nnid": {
+                "type": "string",
+                "description": "The network number ID."
+              },
+              "name": {
+                "type": "string",
+                "description": "Name associated with the NNID."
+              },
+              "type": {
+                "type": "string",
+                "description": "The NNID type."
+              }
+            },
+            "example": null
+          },
+          "valid_number": {
+            "type": "boolean",
+            "description": "Indicates whether the phone number is valid.",
+            "example": true
+          },
+          "enhanced_caller_name": {
+            "$ref": "#/components/schemas/EnhancedCallerName"
+          },
+          "caller_identity": {
+            "$ref": "#/components/schemas/CallerIdentity"
           }
         }
       },
@@ -166345,7 +166772,21 @@
           },
           "line_type": {
             "type": "string",
-            "description": "Type of number",
+            "description": "The line type of the phone number. Uses the same value set as carrier.type; see the API reference for the full list.",
+            "enum": [
+              "fixed line",
+              "mobile",
+              "voip",
+              "fixed line or mobile",
+              "toll free",
+              "premium rate",
+              "shared cost",
+              "personal number",
+              "pager",
+              "uan",
+              "voicemail",
+              "unknown"
+            ],
             "example": "voip"
           },
           "spid": {
@@ -178850,7 +179291,7 @@
       },
       "SpendLimit": {
         "type": "object",
-        "description": "The spend limit, spend and block state of one product and period.",
+        "description": "The spend limit, spend and block state of one product and period. The top-level fields describe the total limit of the account; API key limits are nested in `credential_limits`.",
         "properties": {
           "record_type": {
             "type": "string",
@@ -178882,6 +179323,12 @@
             "description": "Exclusive end of the current period, a UTC date.",
             "example": "2026-09-25"
           },
+          "credential_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "In write responses, the API key the write was about; `null` for the total limit. Always `null` in list entries, which describe the total limit.",
+            "example": null
+          },
           "limit": {
             "$ref": "#/components/schemas/SpendLimitLimit"
           },
@@ -178905,11 +179352,21 @@
           },
           "blocked": {
             "type": "boolean",
-            "description": "The product is blocked for this period. Always `false` in write responses; list the limits to read the block state.",
+            "description": "The product is blocked for the whole account in this period (total limit). An API key's own block appears only in `credential_limits`. Always `false` in write responses; list the limits to read the block state.",
             "example": false
           },
           "block": {
             "$ref": "#/components/schemas/SpendLimitBlock"
+          },
+          "allocation": {
+            "$ref": "#/components/schemas/SpendLimitAllocation"
+          },
+          "credential_limits": {
+            "type": "array",
+            "description": "List responses only. One item per API key limit of the product and period, sorted by `credential_id`, plus every API key that is still blocked. `[]` when there are none.",
+            "items": {
+              "$ref": "#/components/schemas/SpendLimitCredentialLimit"
+            }
           },
           "evaluation": {
             "$ref": "#/components/schemas/SpendLimitEvaluation"
@@ -178928,6 +179385,39 @@
           "spend_error",
           "blocked",
           "block"
+        ]
+      },
+      "SpendLimitAllocation": {
+        "type": "object",
+        "nullable": true,
+        "description": "How much of the period's total limit is given to API key limits. `null` unless the period has a total limit with an amount.",
+        "properties": {
+          "total_limit_usd": {
+            "type": "string",
+            "description": "The total limit in USD, as a decimal string.",
+            "example": "1000.00"
+          },
+          "allocated_usd": {
+            "type": "string",
+            "description": "Sum of the period's API key limits in USD, as a decimal string.",
+            "example": "800.00"
+          },
+          "unallocated_usd": {
+            "type": "string",
+            "description": "The part of the total not given to API key limits, as a decimal string: the largest amount a new API key limit can have.",
+            "example": "200.00"
+          },
+          "over_allocated_usd": {
+            "type": "string",
+            "description": "How far the API key limits exceed the total, as a decimal string. Non-zero only after Telnyx support lowered the total below them.",
+            "example": "0.00"
+          }
+        },
+        "required": [
+          "total_limit_usd",
+          "allocated_usd",
+          "unallocated_usd",
+          "over_allocated_usd"
         ]
       },
       "SpendLimitBlock": {
@@ -178965,6 +179455,80 @@
           "blocked_until"
         ]
       },
+      "SpendLimitCredentialLimit": {
+        "type": "object",
+        "description": "The limit, spend and block state of one API key in the product and period.",
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "description": "Identifier of the API key as recorded on usage. Never the key's secret.",
+            "example": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/SpendLimitCredentialLimitValue"
+          },
+          "spend_usd": {
+            "type": "string",
+            "nullable": true,
+            "description": "Spend in USD in the period made with exactly this API key, as a decimal string. Usage without an API key identifier, or with another one, counts only toward the total. `null` when it could not be read.",
+            "example": "120.00"
+          },
+          "spend_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Set when `spend_usd` is `null`.",
+            "example": null
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "This API key is blocked for the period.",
+            "example": false
+          },
+          "block": {
+            "$ref": "#/components/schemas/SpendLimitBlock"
+          }
+        },
+        "required": [
+          "credential_id",
+          "limit",
+          "spend_usd",
+          "spend_error",
+          "blocked",
+          "block"
+        ]
+      },
+      "SpendLimitCredentialLimitValue": {
+        "type": "object",
+        "nullable": true,
+        "description": "The limit of one API key. It always has an amount. `null` for an API key that is still blocked after its limit was removed.",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "Limit in USD, as a decimal string.",
+            "example": "300.00"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "self_service",
+              "operator"
+            ],
+            "description": "`self_service` when a user of the account set it, `operator` when Telnyx support did.",
+            "example": "self_service"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the limit was last set or changed.",
+            "example": "2026-10-20T08:03:40Z"
+          }
+        },
+        "required": [
+          "amount",
+          "origin",
+          "updated_at"
+        ]
+      },
       "SpendLimitEvaluation": {
         "type": "object",
         "description": "What a create, update or delete did to the period at once. Only present in write responses.",
@@ -178992,7 +179556,12 @@
           },
           "still_blocked_other_period": {
             "type": "boolean",
-            "description": "The other period has an active block, so the product stays blocked whatever this period's result.",
+            "description": "The other period has an active block, so the product stays blocked whatever this period's result. For an API key write, the API key's limit in the other period.",
+            "example": false
+          },
+          "account_blocked": {
+            "type": "boolean",
+            "description": "API key writes only: the account itself remains blocked for the product under a total limit. Absent for total limit writes.",
             "example": false
           },
           "evaluation_deferred": {
@@ -213360,6 +213929,68 @@
           }
         },
         "type": "object"
+      },
+      "number-lookup_Address": {
+        "type": "object",
+        "description": "Postal address associated with the phone number's owner.",
+        "properties": {
+          "street_line_1": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "First line of the street address.",
+            "example": "123 Main St"
+          },
+          "street_line_2": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Second line of the street address, if any.",
+            "example": null
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "City.",
+            "example": "Anytown"
+          },
+          "state_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Two-letter state or province code.",
+            "example": "CA"
+          },
+          "postal_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Postal or ZIP code.",
+            "example": "90210"
+          },
+          "zip4": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ZIP+4 extension, if available.",
+            "example": "1234"
+          },
+          "country_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Two-letter ISO 3166-1 country code.",
+            "example": "US"
+          }
+        }
       },
       "number-lookup_Error": {
         "required": [
