@@ -25549,7 +25549,8 @@ paths:
     post:
       operationId: createDedicatedIp
       summary: Purchase a dedicated IP
-      description: 'Purchase a dedicated sending IP. Requires a verified or enterprise account. Telnyx allocates the next
+      description: 'Purchase a dedicated sending IP. Requires a verified, enterprise, or legacy account, and an `Idempotency-Key`
+        header: a request without the header returns `400` (code `10015`) and allocates nothing. Telnyx allocates the next
         available IP from stock. The optional `region` and `ip_version` fields each restrict which stock IP is allocated;
         they never change the allocated IP''s metadata. An omitted field applies no restriction for that field, and omitting
         the body applies neither restriction. An unsupported selector value returns `422`; a supported value that matches
@@ -25558,6 +25559,22 @@ paths:
         and carries no mail until you call `start_warmup` and add it to a pool that routes mail.'
       tags:
       - Dedicated IPs
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        description: Required. Opaque, unquoted key for safely retrying the same purchase. Keys must contain 1 to 255 letters,
+          numbers, hyphens, or underscores. Generate a unique UUID v4 for each purchase and reuse it only when retrying that
+          purchase with the same request. A missing header, or an invalid one —including duplicate, empty, malformed, or overlong
+          values—returns 400 with error code 10015. A request already in progress with the same key returns 409; reusing the
+          key with a different request returns 422. Only successful responses are replayed, for up to 24 hours. Do not include
+          sensitive data in the key.
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: ^[A-Za-z0-9_-]{1,255}$
+        example: 8e03978e-40d5-43e8-bc93-6894a57f9326
       requestBody:
         required: false
         content:
@@ -25611,11 +25628,18 @@ paths:
                   created_at: '2026-09-30T02:03:09.474123Z'
                   updated_at: '2026-10-14T20:30:00.000000Z'
         '400':
-          description: Malformed request
+          description: Malformed request, or a missing or invalid `Idempotency-Key` header
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+              example:
+                errors:
+                - code: '10015'
+                  title: Bad Request
+                  detail: Idempotency-Key header is required.
+                  source:
+                    pointer: /header/Idempotency-Key
         '401':
           description: Unauthorized
           content:
@@ -25623,7 +25647,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '403':
-          description: Forbidden - dedicated IP purchases require a verified or enterprise account
+          description: 'Forbidden - the account is not eligible to purchase dedicated IPs (eligible: verified, enterprise,
+            legacy)'
           content:
             application/json:
               schema:
