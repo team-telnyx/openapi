@@ -240,6 +240,8 @@ tags:
   description: Mobile voice connection operations
 - name: Monthly Charges
   description: Monthly Charges Report
+- name: Network Routes
+  description: Routes on a Network that send a CIDR to a next hop, such as a tunnel.
 - name: Networks
   description: Network operations
 - name: Noise Suppression Engines
@@ -427,6 +429,8 @@ tags:
   description: Text to Speech commands operations
 - name: Traffic Policy Profiles
   description: Traffic Policy Profiles operations
+- name: Tunnels
+  description: Tunnels connect a Network to hosts behind a tunnel process within the user's network.
 - name: UAC Connections
   description: UAC connection operations
 - name: Usage Reports (BETA)
@@ -43790,6 +43794,308 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
+  /network_routes:
+    get:
+      summary: List all Network Routes
+      operationId: ListNetworkRoutes
+      tags:
+      - Network Routes
+      description: 'Lists the routes of the account''s Networks. A Network''s list is its effective route table: the routes
+        added with `POST /network_routes` (`origin` `static`) and the routes that its attachments install (`origin` `attachment`).
+        Lookup is longest prefix within the Network.'
+      parameters:
+      - name: filter
+        in: query
+        style: deepObject
+        explode: true
+        description: 'Consolidated filter parameter (deepObject style). Originally: filter[network_id], filter[origin], filter[next_hop.type],
+          filter[cidr], filter[status]'
+        schema:
+          type: object
+          required:
+          - network_id
+          properties:
+            network_id:
+              type: string
+              format: uuid
+              description: The id of the Network whose route table is returned. Required.
+              example: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+            origin:
+              type: string
+              enum:
+              - static
+              - attachment
+              description: Only routes of this origin.
+              example: static
+            next_hop.type:
+              type: string
+              enum:
+              - tunnel
+              - wireguard_peer
+              - wireguard_interface
+              - private_wireless_gateway
+              - virtual_cross_connect
+              - ipsec_tunnel
+              - public_internet_gateway
+              description: Only routes whose next hop has this type.
+              example: tunnel
+            cidr:
+              type: string
+              description: Only routes with this CIDR.
+              example: 10.20.0.0/16
+            status:
+              type: string
+              enum:
+              - pending
+              - active
+              - inactive
+              - failed
+              description: Only routes with this status.
+              example: active
+        required: true
+      - name: sort
+        in: query
+        description: Sorts the results by a field, ascending, or descending with a leading `-`. The default is `-created_at`.
+        schema:
+          type: string
+          enum:
+          - cidr
+          - -cidr
+          - status
+          - -status
+          - created_at
+          - -created_at
+          example: -created_at
+      - $ref: '#/components/parameters/PageCursorConsolidated'
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NetworkRoute'
+                  meta:
+                    $ref: '#/components/schemas/netapps_CursorPaginationMeta'
+              example:
+                data:
+                - id: b6a10cb9-2d4e-4f61-9a3b-7e5c8d1f0a26
+                  record_type: network_route
+                  network_id: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+                  cidr: 172.27.0.0/24
+                  next_hop:
+                    type: wireguard_interface
+                    id: b6a10cb9-2d4e-4f61-9a3b-7e5c8d1f0a26
+                  origin: attachment
+                  status: active
+                  created_at: '2026-10-21T15:04:05.123456Z'
+                - id: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+                  record_type: network_route
+                  network_id: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+                  cidr: 10.20.0.0/16
+                  next_hop:
+                    type: tunnel
+                    id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  origin: static
+                  status: active
+                  created_at: '2026-10-21T15:04:05.123456Z'
+                meta:
+                  cursors: {}
+        '422':
+          description: 'Unprocessable entity: `filter[network_id]` is missing, or a query parameter is not valid, such as
+            an unsupported `sort` field.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10022'
+                  title: Unprocessable Entity
+                  detail: filter[network_id] is required
+                  source:
+                    parameter: filter[network_id]
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      summary: Create a Network Route
+      operationId: CreateNetworkRoute
+      tags:
+      - Network Routes
+      description: Adds a route to a Network. Traffic on the Network to an address in `cidr` goes via `next_hop`. With a tunnel
+        as the next hop, functions on the Network reach the CIDR through the tunnel without a redeploy. A Network holds each
+        CIDR once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkRouteCreate'
+            example:
+              network_id: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+              cidr: 10.20.0.0/16
+              next_hop:
+                type: tunnel
+                id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NetworkRoute'
+              example:
+                data:
+                  id: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+                  record_type: network_route
+                  network_id: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+                  cidr: 10.20.0.0/16
+                  next_hop:
+                    type: tunnel
+                    id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  origin: static
+                  status: pending
+                  created_at: '2026-10-21T15:04:05.123456Z'
+        '404':
+          description: 'Not found: no tunnel with the `next_hop.id` exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: tunnel 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39 not found
+        '409':
+          description: 'Conflict: the Network already has a route for this CIDR.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10021'
+                  title: Resource conflict
+                  detail: 'create route: resource already exists'
+        '422':
+          description: 'Unprocessable entity: the body failed validation. `source.pointer` names the field.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10022'
+                  title: Unprocessable Entity
+                  detail: cidr must be a valid CIDR range (e.g. 10.20.0.0/16)
+                  source:
+                    pointer: /cidr
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+  /network_routes/{id}:
+    delete:
+      summary: Delete a Network Route
+      operationId: DeleteNetworkRoute
+      tags:
+      - Network Routes
+      description: Deletes a route that was added with `POST /network_routes`. Traffic to its CIDR stops going via the next
+        hop at once. Routes that an attachment installs (`origin` `attachment`) leave with the attachment and cannot be deleted
+        here.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The id of the route.
+        schema:
+          type: string
+          format: uuid
+          example: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          description: 'Not found: no route with this id exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: 'get route: not found'
+        '409':
+          description: 'Conflict: the route was installed by an attachment.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10021'
+                  title: Resource conflict
+                  detail: network_route b6a10cb9-2d4e-4f61-9a3b-7e5c8d1f0a26 was installed by an attachment (wireguard_interface
+                    on network 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24); it is read-only and is removed with the attachment
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+    get:
+      summary: Retrieve a Network Route
+      operationId: GetNetworkRoute
+      tags:
+      - Network Routes
+      description: Retrieves a route and its status.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The id of the route.
+        schema:
+          type: string
+          format: uuid
+          example: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NetworkRoute'
+              example:
+                data:
+                  id: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+                  record_type: network_route
+                  network_id: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+                  cidr: 10.20.0.0/16
+                  next_hop:
+                    type: tunnel
+                    id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  origin: static
+                  status: active
+                  created_at: '2026-10-21T15:04:05.123456Z'
+        '404':
+          description: 'Not found: no route with this id exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: 'get route: not found'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
   /networks:
     get:
       summary: List all Networks
@@ -64358,6 +64664,312 @@ paths:
           $ref: '#/components/responses/wireless_UnprocessableEntity_c5290d5308'
         default:
           $ref: '#/components/responses/wireless_GenericErrorResponse_c5290d5308'
+  /tunnels:
+    get:
+      summary: List all Tunnels
+      operationId: ListTunnels
+      tags:
+      - Tunnels
+      description: Lists the tunnels on the account with their status and connected tunnel processes. Responses never include
+        `tunnel_token`.
+      parameters:
+      - name: filter
+        in: query
+        style: deepObject
+        explode: true
+        description: 'Consolidated filter parameter (deepObject style). Originally: filter[name], filter[status]'
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: The name of the tunnel.
+              example: chicago-dc
+            status:
+              type: string
+              enum:
+              - inactive
+              - healthy
+              - degraded
+              description: The status of the tunnel.
+              example: healthy
+      - name: sort
+        in: query
+        description: Sorts the results by a field, ascending, or descending with a leading `-`. The default is `-created_at`.
+        schema:
+          type: string
+          enum:
+          - name
+          - -name
+          - status
+          - -status
+          - created_at
+          - -created_at
+          - updated_at
+          - -updated_at
+          example: -created_at
+      - $ref: '#/components/parameters/PageCursorConsolidated'
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tunnel'
+                  meta:
+                    $ref: '#/components/schemas/netapps_CursorPaginationMeta'
+              example:
+                data:
+                - id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  record_type: tunnel
+                  name: chicago-dc
+                  status: healthy
+                  connection_count: 2
+                  connections:
+                  - hostname: dc1-tunnel-a
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  - hostname: dc1-tunnel-b
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  created_at: '2026-10-21T15:04:05.123456Z'
+                meta:
+                  cursors: {}
+        '422':
+          description: 'Unprocessable entity: a query parameter is not valid, such as an unsupported `sort` field.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10022'
+                  title: Unprocessable Entity
+                  detail: unsupported sort field
+                  source:
+                    pointer: sort
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      summary: Create a Tunnel
+      operationId: CreateTunnel
+      tags:
+      - Tunnels
+      description: Creates a tunnel and returns its `tunnel_token`. The token is the only credential the tunnel process needs,
+        and this response and `POST /tunnels/{id}/actions/rotate_token` are the only ones that return it. A new tunnel is
+        `inactive` until a tunnel process connects with the token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TunnelCreate'
+            example:
+              name: chicago-dc
+      responses:
+        '201':
+          description: Created. The response carries the tunnel token, once.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TunnelWithToken'
+              example:
+                data:
+                  id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  record_type: tunnel
+                  name: chicago-dc
+                  tunnel_token: tnl_example-token-shown-once
+                  status: inactive
+                  connection_count: 0
+                  connections: []
+                  created_at: '2026-10-21T15:04:05.123456Z'
+        '422':
+          description: 'Unprocessable entity: the body failed validation. `source.pointer` names the field.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10022'
+                  title: Unprocessable Entity
+                  detail: name is required
+                  source:
+                    pointer: /name
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+  /tunnels/{id}:
+    delete:
+      summary: Delete a Tunnel
+      operationId: DeleteTunnel
+      tags:
+      - Tunnels
+      description: Deletes a tunnel. A tunnel that a route names as its next hop cannot be deleted; delete those routes first.
+        Connected tunnel processes are disconnected and cannot reconnect with the tunnel's token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The id of the tunnel.
+        schema:
+          type: string
+          format: uuid
+          example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          description: 'Not found: no tunnel with this id exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: 'get tunnel: not found'
+        '409':
+          description: 'Conflict: one or more routes name the tunnel as their next hop. `detail` and `meta.route_ids` list
+            them.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10021'
+                  title: Resource conflict
+                  detail: 'tunnel 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39 is the next hop of 1 route; delete it first: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53'
+                  meta:
+                    route_ids:
+                    - e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+    get:
+      summary: Retrieve a Tunnel
+      operationId: GetTunnel
+      tags:
+      - Tunnels
+      description: Retrieves a tunnel with its status and the tunnel processes connected to it. The response never includes
+        `tunnel_token`.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The id of the tunnel.
+        schema:
+          type: string
+          format: uuid
+          example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Tunnel'
+              example:
+                data:
+                  id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  record_type: tunnel
+                  name: chicago-dc
+                  status: healthy
+                  connection_count: 2
+                  connections:
+                  - hostname: dc1-tunnel-a
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  - hostname: dc1-tunnel-b
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  created_at: '2026-10-21T15:04:05.123456Z'
+        '404':
+          description: 'Not found: no tunnel with this id exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: 'get tunnel: not found'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
+  /tunnels/{id}/actions/rotate_token:
+    post:
+      summary: Rotate a Tunnel Token
+      operationId: RotateTunnelToken
+      tags:
+      - Tunnels
+      description: Issues a new `tunnel_token` and invalidates the previous one. Tunnel processes already connected stay connected
+        until they reconnect, and are then refused until they use the new token.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The id of the tunnel.
+        schema:
+          type: string
+          format: uuid
+          example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+      responses:
+        '200':
+          description: Successful response. The response carries the new tunnel token, once.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TunnelWithToken'
+              example:
+                data:
+                  id: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+                  record_type: tunnel
+                  name: chicago-dc
+                  status: healthy
+                  connection_count: 2
+                  connections:
+                  - hostname: dc1-tunnel-a
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  - hostname: dc1-tunnel-b
+                    version: 0.6.0
+                    region_code: chicago-il
+                    connected_at: '2026-10-21T15:04:05.123456Z'
+                  created_at: '2026-10-21T15:04:05.123456Z'
+                  tunnel_token: tnl_example-new-token-shown-once
+        '404':
+          description: 'Not found: no tunnel with this id exists on the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                errors:
+                - code: '10020'
+                  title: Resource not found
+                  detail: 'get tunnel: not found'
+        default:
+          $ref: '#/components/responses/GenericErrorResponse'
   /uac_connections:
     get:
       description: Returns a list of your UAC connections. A UAC (User Agent Client) Connection registers Telnyx to your PBX
@@ -72116,6 +72728,24 @@ components:
       schema:
         type: string
       example: eyJpbnNlcnRlZF9hdCI6IjIwMjQtMDEtMDEifQ
+    PageCursorConsolidated:
+      name: page
+      in: query
+      style: deepObject
+      explode: true
+      description: 'Consolidated page parameter (deepObject style). Originally: page[after], page[limit]'
+      schema:
+        type: object
+        properties:
+          after:
+            type: string
+            description: The cursor from `meta.cursors.after` of the previous page.
+          limit:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            description: The number of results per page.
     PageNumber:
       name: page[number]
       in: query
@@ -122842,6 +123472,122 @@ components:
             description: Identifies the type of the interface.
             readOnly: true
             example: wireguard_interface
+    NetworkRoute:
+      type: object
+      title: NetworkRoute
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Identifies the resource.
+          example: e8a2c5d0-3f7b-4a19-b6d2-9c1e0f8a7b53
+        record_type:
+          type: string
+          readOnly: true
+          description: Identifies the type of the resource.
+          example: network_route
+        network_id:
+          type: string
+          format: uuid
+          description: The id of the Network the route belongs to.
+          example: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+        cidr:
+          type: string
+          description: The IPv4 CIDR the route covers.
+          example: 10.20.0.0/16
+        next_hop:
+          $ref: '#/components/schemas/NetworkRouteNextHop'
+        origin:
+          type: string
+          enum:
+          - static
+          - attachment
+          readOnly: true
+          description: '`static` for a route added with `POST /network_routes`, `attachment` for a route that another resource
+            installed and removes.'
+          example: static
+        status:
+          type: string
+          enum:
+          - pending
+          - active
+          - inactive
+          - failed
+          readOnly: true
+          description: '`pending` until Telnyx installs the route on the Network, then `active`. `inactive` while a tunnel
+            next hop has no connected process. `failed` (Preview, not reported yet) when Telnyx could not install the route.'
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: ISO 8601 formatted date-time indicating when the resource was created.
+          example: '2026-10-21T15:04:05.123456Z'
+    NetworkRouteCreate:
+      type: object
+      title: NetworkRouteCreate
+      required:
+      - network_id
+      - cidr
+      - next_hop
+      properties:
+        network_id:
+          type: string
+          format: uuid
+          description: The id of the Network to add the route to.
+          example: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
+        cidr:
+          type: string
+          description: The IPv4 subnet to route, such as a subnet behind the tunnel. It must be a canonical CIDR. Default,
+            loopback, link-local, multicast, and shared address space (`100.64.0.0/10`) ranges are rejected. So are ranges
+            that overlap the Tailscale Subnet Router ranges, `172.27.254.0/24` and `198.18.0.0/20`, or a subnet already on
+            the Network.
+          example: 10.20.0.0/16
+        next_hop:
+          type: object
+          required:
+          - type
+          - id
+          description: Where the Network sends traffic for `cidr`.
+          properties:
+            type:
+              type: string
+              enum:
+              - tunnel
+              description: The type of the next hop.
+              example: tunnel
+            id:
+              type: string
+              format: uuid
+              description: The id of the tunnel.
+              example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+    NetworkRouteNextHop:
+      type: object
+      title: NetworkRouteNextHop
+      required:
+      - type
+      - id
+      description: Where the Network sends traffic for the route's CIDR.
+      properties:
+        type:
+          type: string
+          enum:
+          - tunnel
+          - wireguard_peer
+          - wireguard_interface
+          - private_wireless_gateway
+          - virtual_cross_connect
+          - ipsec_tunnel
+          - public_internet_gateway
+          description: The type of the next hop. Routes added with `POST /network_routes` use `tunnel`. Routes that attachments
+            install carry the attachment's type.
+          example: tunnel
+        id:
+          type: string
+          format: uuid
+          description: The id of the tunnel or attachment.
+          example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
     NewBillingGroup:
       type: object
       properties:
@@ -150601,6 +151347,99 @@ components:
           audio_chunk: '#/components/schemas/AudioChunkFrame'
           final: '#/components/schemas/FinalFrame'
           error: '#/components/schemas/ErrorFrame'
+    Tunnel:
+      type: object
+      title: Tunnel
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Identifies the resource.
+          example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
+        record_type:
+          type: string
+          readOnly: true
+          description: Identifies the type of the resource.
+          example: tunnel
+        name:
+          type: string
+          minLength: 1
+          description: A user specified name for the tunnel.
+          example: chicago-dc
+        status:
+          type: string
+          enum:
+          - inactive
+          - healthy
+          - degraded
+          readOnly: true
+          description: '`inactive` when no tunnel process is connected, and `healthy` when one or more are. `degraded` (Preview,
+            not reported yet) when a process is connected but fails to reach its destinations.'
+          example: healthy
+        connection_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: The number of tunnel processes connected with the tunnel's token.
+          example: 2
+        connections:
+          type: array
+          readOnly: true
+          description: The tunnel processes connected with the tunnel's token.
+          items:
+            $ref: '#/components/schemas/TunnelConnection'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: ISO 8601 formatted date-time indicating when the resource was created.
+          example: '2026-10-21T15:04:05.123456Z'
+    TunnelConnection:
+      type: object
+      title: TunnelConnection
+      description: A tunnel process connected to the tunnel.
+      properties:
+        hostname:
+          type: string
+          description: 'The name the host reports for itself. Preview: empty until the CLI reports it.'
+          example: dc1-tunnel-a
+        version:
+          type: string
+          description: 'The `telnyx-edge` CLI version of the process. Preview: empty until the CLI reports it.'
+          example: 0.6.0
+        region_code:
+          type: string
+          description: 'The Telnyx region the process is connected to. Preview: empty until the CLI reports it.'
+          example: chicago-il
+        connected_at:
+          type: string
+          format: date-time
+          description: When the process connected.
+          example: '2026-10-21T15:04:05.123456Z'
+    TunnelCreate:
+      type: object
+      title: TunnelCreate
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: A user specified name for the tunnel.
+          example: chicago-dc
+    TunnelWithToken:
+      title: TunnelWithToken
+      allOf:
+      - $ref: '#/components/schemas/Tunnel'
+      - type: object
+        properties:
+          tunnel_token:
+            type: string
+            readOnly: true
+            description: The credential that a tunnel process presents with `telnyx-edge tunnel run --token`. Returned only
+              by create and rotate_token. Telnyx stores only a hash of it.
+            example: tnl_example-token-shown-once
     TwimlRecordingChannels:
       type: integer
       enum:
@@ -167520,6 +168359,27 @@ components:
       description: The neighborhood of the address. This field is not used for addresses in the US but is used for some international
         addresses.
       example: Ciudad de los deportes
+    netapps_CursorPaginationMeta:
+      type: object
+      title: CursorPaginationMeta
+      properties:
+        cursors:
+          type: object
+          description: Opaque cursors. Absent keys mean there is no such page.
+          properties:
+            after:
+              type: string
+              description: Pass as `page[after]` to fetch the next page. Absent on the last page.
+            before:
+              type: string
+              description: The cursor of the previous page. Present when the request used `page[after]`.
+        next:
+          type: string
+          description: The path of the next page, with the same query parameters. Absent on the last page.
+          example: /v2/network_routes?filter%5Bnetwork_id%5D=91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24&page%5Bafter%5D=MjAyNi0xMC0yMVQxNjowNjowMC4wNDMwNDRa&page%5Blimit%5D=1
+        previous:
+          type: string
+          description: The path of the previous page. Present when the request used `page[after]`.
     netapps_Error:
       required:
       - code
