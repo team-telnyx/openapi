@@ -63959,7 +63959,6 @@ paths:
                 response_format: string
                 language_boost: string
               resemble:
-                api_key: string
                 precision: string
                 sample_rate: string
                 format: string
@@ -64028,7 +64027,7 @@ paths:
         voices for that provider only. Otherwise, returns voices from all providers.
 
 
-        Some providers (ElevenLabs, Resemble) require an API key to list voices.'
+        Some providers (ElevenLabs) require an API key to list voices.'
       operationId: listVoices
       tags:
       - Text To Speech Commands
@@ -68071,6 +68070,7 @@ paths:
       - $ref: '#/components/parameters/voice-designs_PageSize'
       - $ref: '#/components/parameters/FilterName'
       - $ref: '#/components/parameters/FilterProvider'
+      - $ref: '#/components/parameters/FilterModelId'
       - $ref: '#/components/parameters/voice-designs_Sort'
       responses:
         '200':
@@ -68133,10 +68133,11 @@ paths:
     post:
       summary: Create a voice clone from an audio file upload
       description: 'Creates a new voice clone by uploading an audio file directly. Supported formats: WAV, MP3, FLAC, OGG,
-        M4A. Maximum file size: 20MB. Reference audio is trimmed per model: Qwen3TTS and Bayan use the first 10 seconds, Ultra
-        uses up to 60 seconds, and Minimax accepts 10 seconds to 5 minutes. Ultra clones return `202` with status `pending`;
-        all other models return `201` with status `active`. Bayan clones require `ref_text` (the exact transcript of the reference
-        audio) and support `ar` (default) and `en` only.'
+        M4A. Maximum file size: 20MB. Reference audio is trimmed per model: Qwen3TTS, Bayan, and Resemble use the first 10
+        seconds, Ultra uses up to 60 seconds, and Minimax accepts 10 seconds to 5 minutes. Ultra clones return `202` with
+        status `pending`; all other models return `201` with status `active`. Bayan clones require `ref_text` (the exact transcript
+        of the reference audio) and support `ar` (default) and `en` only. Resemble clones (`provider: resemble`) take `model_id`
+        `Pro`, `Turbo`, or `Urdu`.'
       operationId: createVoiceCloneFromUpload
       tags:
       - Voice Clones
@@ -68187,7 +68188,7 @@ paths:
                 $ref: '#/components/schemas/voice-designs_ErrorResponse'
         '422':
           description: 'Unprocessable entity — validation error in the request body. For example, an unsupported `language`
-            for the model, or a missing `ref_text` with `model_id: Bayan`.'
+            for the model, a missing `language` with `model_id: Pro`, or a missing `ref_text` with `model_id: Bayan`.'
           content:
             application/json:
               schema:
@@ -72036,6 +72037,21 @@ components:
             type: boolean
             example: true
             description: Filter by network_preferences_enabled.
+    FilterModelId:
+      name: filter[model_id]
+      in: query
+      required: false
+      description: Filter by TTS model. Case-insensitive.
+      schema:
+        type: string
+        enum:
+        - Qwen3TTS
+        - Ultra
+        - Bayan
+        - speech-2.8-turbo
+        - Pro
+        - Turbo
+        - Urdu
     FilterName:
       name: filter[name]
       in: query
@@ -72131,8 +72147,10 @@ components:
         enum:
         - telnyx
         - minimax
+        - resemble
         - Telnyx
         - Minimax
+        - Resemble
     FilterReason:
       name: filter[reason]
       in: query
@@ -95598,14 +95616,15 @@ components:
             \ `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed`\
             \ is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`).\
             \ Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings`\
-            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g.,\
-            \ `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate,\
-            \ and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`,\
-            \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
-            \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
-            \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
-            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Turbo.Aaron_en-US`). Supported models: `Pro`, `Turbo`, `Urdu`. `<VoiceId>` is a stock voice name or\
+            \ the ID of a Resemble voice clone. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:**\
+            \ Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`).\
+            \ Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`,\
+            \ `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`).\
+            \ Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:**\
+            \ Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog\
+            \ via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
             \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
             \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
             - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
@@ -113072,14 +113091,15 @@ components:
             \ `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed`\
             \ is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`).\
             \ Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings`\
-            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g.,\
-            \ `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate,\
-            \ and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`,\
-            \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
-            \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
-            \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
-            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Turbo.Aaron_en-US`). Supported models: `Pro`, `Turbo`, `Urdu`. `<VoiceId>` is a stock voice name or\
+            \ the ID of a Resemble voice clone. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:**\
+            \ Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`).\
+            \ Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`,\
+            \ `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`).\
+            \ Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:**\
+            \ Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog\
+            \ via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
             \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
             \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
             - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
@@ -135586,13 +135606,85 @@ components:
           - string
           - 'null'
           description: Always present in poll responses; `null` unless the task failed.
+    ResembleClone:
+      type: object
+      description: Upload-based voice clone using the Resemble provider. The clone is `active` on creation. Use it as voice
+        `Resemble.<model_id>.<clone_id>`.
+      required:
+      - audio_file
+      - name
+      - gender
+      - provider
+      - model_id
+      properties:
+        audio_file:
+          type: string
+          format: binary
+          description: 'Audio file to clone the voice from. Supported formats: WAV, MP3, FLAC, OGG, M4A. Converted to WAV
+            and trimmed to the first 10 seconds. For best quality, provide about 10 seconds of clean, single-speaker speech.
+            Maximum size: 20MB.'
+        name:
+          type: string
+          maxLength: 255
+          description: Name for the voice clone.
+        language:
+          type: string
+          description: 'Language of the reference audio, matched case-insensitively. Pro: required, one of `ar`, `da`, `de`,
+            `el`, `en-US`, `es`, `fi`, `fr-fr`, `he`, `hi`, `it`, `ja`, `ko`, `ms`, `nl`, `no`, `pl`, `pt`, `ru`, `sv`, `sw`,
+            `tr`, `zh`. Turbo: `en` or `en-US` (default `en-US`). Urdu: `ur` (default). Other values return `422`.'
+          enum:
+          - ar
+          - da
+          - de
+          - el
+          - en
+          - en-US
+          - es
+          - fi
+          - fr-fr
+          - he
+          - hi
+          - it
+          - ja
+          - ko
+          - ms
+          - nl
+          - 'no'
+          - pl
+          - pt
+          - ru
+          - sv
+          - sw
+          - tr
+          - ur
+          - zh
+        gender:
+          type: string
+          enum:
+          - male
+          - female
+          - neutral
+          description: Gender of the voice clone.
+        label:
+          type: string
+          description: Optional custom label describing the voice style.
+        model_id:
+          type: string
+          enum:
+          - Pro
+          - Turbo
+          - Urdu
+          description: 'Resemble model: `Pro`, `Turbo` (English only), or `Urdu`. A clone works only with this model.'
+        provider:
+          type: string
+          enum:
+          - resemble
+          - Resemble
+          description: Voice synthesis provider. Must be `resemble`.
     ResembleProviderParams:
       type: object
       description: Resemble AI provider-specific parameters.
       properties:
-        api_key:
-          type: string
-          description: Custom Resemble API key.
         precision:
           type: string
           description: Synthesis precision.
@@ -139891,14 +139983,15 @@ components:
             \ `Telnyx.Bayan.Amanda`). `Sukhan` provides Urdu voices (e.g., `Telnyx.Sukhan.urdu-professor`); `voice_speed`\
             \ is not supported.\n- **Minimax:** Use `Minimax.<ModelId>.<VoiceId>` (e.g., `Minimax.speech-02-hd.Wise_Woman`).\
             \ Supported models: `speech-02-turbo`, `speech-02-hd`, `speech-2.6-turbo`, `speech-2.8-turbo`. Use `voice_settings`\
-            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.Turbo.<voice_id>` (e.g.,\
-            \ `Resemble.Turbo.my_voice`). Only `Turbo` model is supported. Use `voice_settings` to configure precision, sample_rate,\
-            \ and format.\n- **Inworld:** Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`,\
-            \ `Inworld.TTS2.Loretta`). Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode`\
-            \ (`STABLE`, `BALANCED`, `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>`\
-            \ (e.g., `FishAudio.s2.1-pro.<reference_id>`). Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish\
-            \ Voice-Library reference ID.\n- **Soniox:** Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`).\
-            \ Supported model: `tts-rt-v2`. Browse the catalog via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
+            \ to configure speed, volume, pitch, and language_boost.\n- **Resemble:** Use `Resemble.<ModelId>.<VoiceId>` (e.g.,\
+            \ `Resemble.Turbo.Aaron_en-US`). Supported models: `Pro`, `Turbo`, `Urdu`. `<VoiceId>` is a stock voice name or\
+            \ the ID of a Resemble voice clone. Use `voice_settings` to configure precision, sample_rate, and format.\n- **Inworld:**\
+            \ Use `Inworld.<ModelId>.<VoiceId>` (e.g., `Inworld.Mini.Loretta`, `Inworld.Max.Oliver`, `Inworld.TTS2.Loretta`).\
+            \ Supported models: `Mini`, `Max`, `TTS2`. Use `voice_settings` to configure `delivery_mode` (`STABLE`, `BALANCED`,\
+            \ `CREATIVE`), supported by `TTS2` only.\n- **Fish Audio:** Use `FishAudio.<ModelId>.<VoiceId>` (e.g., `FishAudio.s2.1-pro.<reference_id>`).\
+            \ Supported models: `s2.1-pro`, `s2-pro`, `s1`. `VoiceId` is a Fish Voice-Library reference ID.\n- **Soniox:**\
+            \ Use `Soniox.<ModelId>.<VoiceId>` (e.g., `Soniox.tts-rt-v2.Emma`). Supported model: `tts-rt-v2`. Browse the catalog\
+            \ via the [Voices API](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices).\
             \ Every voice speaks all supported languages; set `language` to the two-letter ISO 639-1 code of the text, for\
             \ example `it`. SSML is not supported. Use `voice_settings` to configure `speed` (0.7 to 1.3) and `reduce_silence`.\n\
             - **xAI:** Use `xAI.<VoiceId>` (e.g., `xAI.eve`). Available voices: `eve`, `ara`, `rex`, `sal`, `leo`.\n- **Humain:**\
@@ -157948,7 +158041,7 @@ components:
           type:
           - string
           - 'null'
-          description: ISO 639-1 language code of the voice clone.
+          description: Language code of the voice clone (ISO 639-1, or the Resemble catalogue code such as `en-US`).
         gender:
           type:
           - string
@@ -157978,8 +158071,10 @@ components:
           enum:
           - telnyx
           - minimax
+          - resemble
           - Telnyx
           - Minimax
+          - Resemble
           description: Voice synthesis provider used for this clone.
         provider_supported_models:
           type: array
@@ -157999,6 +158094,9 @@ components:
           - Ultra
           - Bayan
           - speech-2.8-turbo
+          - Pro
+          - Turbo
+          - Urdu
           description: TTS model identifier for the voice clone.
         status:
           type: string
@@ -158086,6 +158184,7 @@ components:
       - $ref: '#/components/schemas/TelnyxUltraClone'
       - $ref: '#/components/schemas/TelnyxBayanClone'
       - $ref: '#/components/schemas/MinimaxClone'
+      - $ref: '#/components/schemas/ResembleClone'
     VoiceConfig:
       description: "The voice to be used by the voice assistant. Currently we support ElevenLabs, Telnyx and AWS voices.\n\
         \n **Supported Providers:**\n- **AWS:** Use `AWS.Polly.<VoiceId>` (e.g., `AWS.Polly.Joanna`). For neural voices, which\
