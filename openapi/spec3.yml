@@ -18037,6 +18037,326 @@ paths:
           $ref: '#/components/responses/UnprocessableEntityErrorResponse'
         default:
           $ref: '#/components/responses/GenericErrorResponse'
+  /bot_challenge:
+    post:
+      summary: Issue a bot challenge
+      description: Generates a reverse-CAPTCHA challenge used to gate the bot signup flow. A random active problem is selected
+        from the pool; math problems are returned obfuscated (case randomization, symbol injection, spacing noise) with an
+        unobfuscated rounding instruction appended, while string and binary problems are returned as-is. The response contains
+        a single-use nonce, the problem text, and the current terms-and-conditions and privacy-policy URLs, which must be
+        echoed back on the signup request. Challenges expire after a short window (10 minutes by default) and can only be
+        answered once. This endpoint is public and unauthenticated.
+      operationId: createBotChallenge
+      x-latency-category: responsive
+      tags:
+      - Bot Signup
+      x-endpoint-cost: light
+      security: []
+      requestBody:
+        required: false
+        description: Optional self-reported metadata about the LLM solving the challenge. Used for analytics only; it does
+          not influence which problem is served.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BotChallengeRequest'
+            example:
+              llm_model_name: claude-opus-4
+              llm_parameter_count: 175B
+              llm_quantization: int8
+      responses:
+        '201':
+          description: Challenge issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotChallengeResponse'
+              example:
+                data:
+                  nonce: c6feda4e-6501-4db9-a21f-665e5b4ce2ba
+                  problem: W#hAt iS f!Ve tImEs sEvEn? Round to 0 decimal places. Omit units.
+                  challenge_type: math
+                  precision: 0
+                  terms_and_conditions_url: https://telnyx.com/terms-and-conditions-of-service
+                  privacy_policy_url: https://telnyx.com/privacy-policy
+        '400':
+          description: The JSON request body could not be parsed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: There was a problem in the JSON you submitted. Please check your formatting and try again.
+        '503':
+          description: No bot challenge problems are currently available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: No bot challenge problems available
+  /bot_sessions:
+    get:
+      summary: Exchange a magic link token for a session
+      description: Consumes the one-time portal redirect (magic link) token emailed during bot signup and returns an API session.
+        The token is a UUIDv7 that encodes its creation time; it expires after a configurable validity window (15 minutes
+        by default) and is cleared on first use. Although the action creates a session, the route uses the GET verb because
+        it is opened from an email link. On first use the account is also initialized. For bot signup (freemium) accounts
+        the response is a minimal envelope containing only the `api_v2_token`; accounts that are permitted to use magic links
+        but are not freemium accounts may instead receive an extended session payload when additional steps (such as two-factor
+        authentication or identity verification) are required. This endpoint is public; the magic link token in the query
+        string is the credential.
+      operationId: createBotSession
+      x-latency-category: responsive
+      tags:
+      - Bot Signup
+      x-endpoint-cost: medium
+      security: []
+      parameters:
+      - name: email
+        in: query
+        required: true
+        description: Email address associated with the magic link token.
+        schema:
+          type: string
+          format: email
+          example: agent-owner@example.com
+      - name: portal_redirect_token
+        in: query
+        required: true
+        description: Single-use portal redirect (magic link) token, a UUIDv7 sent to the account owner's email.
+        schema:
+          type: string
+          format: uuid
+          example: 01890a7e-e2f7-7c3d-8dbb-9a2c5f3d1e0b
+      responses:
+        '200':
+          description: Session created. Bot signup accounts receive a minimal token envelope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotSessionResponse'
+              example:
+                data:
+                  api_v2_token: KEY0189A1B2C3D4E5F6071829AB3C4D5E_5FhZonmFvcw8Yq0dME27Bg
+        '400':
+          description: The account could not be initialized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Account could not be initialized
+        '401':
+          description: Missing or invalid email or token, expired token, or the account is not eligible to sign in (inactive,
+            suspended, not permitted to use magic links, or must use SSO).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Your sign-in link has expired. Please request a new one-time sign-in link.
+        '403':
+          description: Request blocked by security policy (for example, the caller's country is not accepted).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
+                    contact support for assistance.
+        '404':
+          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - code: '10005'
+                  title: Resource not found
+                  detail: The requested resource or URL could not be found.
+                  source:
+                    pointer: /
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+  /bot_signup:
+    post:
+      summary: Register via bot signup
+      description: Creates a freemium Telnyx account through the agentic signup flow. The request must carry a valid answer
+        to a previously issued bot challenge (`bot_challenge_nonce` and `bot_challenge_answer`), accept the terms of service,
+        and echo the exact terms-and-conditions and privacy-policy URLs returned by the challenge endpoint. When EU consent
+        enforcement is enabled, `terms_of_service_eu` and `terms_and_conditions_eu_url` are also required. On success a one-time
+        sign-in (magic) link is emailed to the address provided; if the email address belongs to an existing account, a sign-in
+        link is sent instead of creating a duplicate account. `email` may only be omitted when placeholder-email registration
+        is enabled server-side. This endpoint is public and unauthenticated, gated by the freemium feature flags and per-country
+        availability, and subject to per-IP and per-domain registration limits.
+      operationId: createBotSignup
+      x-latency-category: responsive
+      tags:
+      - Bot Signup
+      x-endpoint-cost: medium
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BotSignupRequest'
+            example:
+              email: agent-owner@example.com
+              terms_of_service: true
+              terms_and_conditions_url: https://telnyx.com/terms-and-conditions-of-service
+              privacy_policy_url: https://telnyx.com/privacy-policy
+              bot_challenge_nonce: c6feda4e-6501-4db9-a21f-665e5b4ce2ba
+              bot_challenge_answer: '35'
+      responses:
+        '200':
+          description: Registration accepted and a magic link emailed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: A one-time sign-in link has been sent to your email address.
+        '400':
+          description: Bot challenge parameters missing or verification failed, terms of service not accepted, or terms/privacy
+            URLs missing or not matching the expected values.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Bot challenge parameters are required
+        '403':
+          description: Registration blocked by security policy (for example, registration from the caller's country is not
+            accepted).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
+                    contact support for assistance.
+        '404':
+          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - code: '10005'
+                  title: Resource not found
+                  detail: The requested resource or URL could not be found.
+                  source:
+                    pointer: /
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
+        '422':
+          description: Validation failed (for example an invalid email address), or the IP address has reached its bot signup
+            limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - code: '10027'
+                  title: Unprocessable Entity
+                  detail: Email is invalid
+                  source:
+                    pointer: /email
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10027
+        '429':
+          description: Too many registrations from this email domain.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - code: '10011'
+                  title: Too many requests
+                  detail: You have exceeded the maximum number of allowed requests.
+                  source:
+                    pointer: /
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10011
+  /bot_signup/resend_magic_link:
+    post:
+      summary: Resend a bot signup magic link
+      description: Resends the one-time sign-in (magic) link for an eligible bot signup account. Eligibility (account exists,
+        was registered through bot signup, is active, and has not exceeded the resend limit or rate window) is evaluated server-side;
+        the response is intentionally uniform and does not reveal whether the account exists or whether a link was actually
+        sent. This endpoint is public and unauthenticated, gated by the freemium feature flags and per-country availability.
+      operationId: resendBotSignupMagicLink
+      x-latency-category: responsive
+      tags:
+      - Bot Signup
+      x-endpoint-cost: light
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendMagicLinkRequest'
+            example:
+              email: agent-owner@example.com
+      responses:
+        '200':
+          description: Uniform acknowledgement, returned whether or not a link was sent.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                message: A one-time sign-in link has been sent to your email address.
+        '400':
+          description: The JSON request body could not be parsed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: There was a problem in the JSON you submitted. Please check your formatting and try again.
+        '403':
+          description: Request blocked by security policy (for example, the caller's country is not accepted).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
+                    contact support for assistance.
+        '404':
+          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bot-signup_ErrorResponse'
+              example:
+                errors:
+                - code: '10005'
+                  title: Resource not found
+                  detail: The requested resource or URL could not be found.
+                  source:
+                    pointer: /
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10005
   /browser_sessions:
     get:
       summary: List browser sessions
@@ -65745,326 +66065,6 @@ paths:
                         $ref: '#/components/schemas/UserTagList'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
-  /v2/bot_challenge:
-    post:
-      summary: Issue a bot challenge
-      description: Generates a reverse-CAPTCHA challenge used to gate the bot signup flow. A random active problem is selected
-        from the pool; math problems are returned obfuscated (case randomization, symbol injection, spacing noise) with an
-        unobfuscated rounding instruction appended, while string and binary problems are returned as-is. The response contains
-        a single-use nonce, the problem text, and the current terms-and-conditions and privacy-policy URLs, which must be
-        echoed back on the signup request. Challenges expire after a short window (10 minutes by default) and can only be
-        answered once. This endpoint is public and unauthenticated.
-      operationId: createBotChallenge
-      x-latency-category: responsive
-      tags:
-      - Bot Signup
-      x-endpoint-cost: light
-      security: []
-      requestBody:
-        required: false
-        description: Optional self-reported metadata about the LLM solving the challenge. Used for analytics only; it does
-          not influence which problem is served.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BotChallengeRequest'
-            example:
-              llm_model_name: claude-opus-4
-              llm_parameter_count: 175B
-              llm_quantization: int8
-      responses:
-        '201':
-          description: Challenge issued.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BotChallengeResponse'
-              example:
-                data:
-                  nonce: c6feda4e-6501-4db9-a21f-665e5b4ce2ba
-                  problem: W#hAt iS f!Ve tImEs sEvEn? Round to 0 decimal places. Omit units.
-                  challenge_type: math
-                  precision: 0
-                  terms_and_conditions_url: https://telnyx.com/terms-and-conditions-of-service
-                  privacy_policy_url: https://telnyx.com/privacy-policy
-        '400':
-          description: The JSON request body could not be parsed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: There was a problem in the JSON you submitted. Please check your formatting and try again.
-        '503':
-          description: No bot challenge problems are currently available.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: No bot challenge problems available
-  /v2/bot_sessions:
-    get:
-      summary: Exchange a magic link token for a session
-      description: Consumes the one-time portal redirect (magic link) token emailed during bot signup and returns an API session.
-        The token is a UUIDv7 that encodes its creation time; it expires after a configurable validity window (15 minutes
-        by default) and is cleared on first use. Although the action creates a session, the route uses the GET verb because
-        it is opened from an email link. On first use the account is also initialized. For bot signup (freemium) accounts
-        the response is a minimal envelope containing only the `api_v2_token`; accounts that are permitted to use magic links
-        but are not freemium accounts may instead receive an extended session payload when additional steps (such as two-factor
-        authentication or identity verification) are required. This endpoint is public; the magic link token in the query
-        string is the credential.
-      operationId: createBotSession
-      x-latency-category: responsive
-      tags:
-      - Bot Signup
-      x-endpoint-cost: medium
-      security: []
-      parameters:
-      - name: email
-        in: query
-        required: true
-        description: Email address associated with the magic link token.
-        schema:
-          type: string
-          format: email
-          example: agent-owner@example.com
-      - name: portal_redirect_token
-        in: query
-        required: true
-        description: Single-use portal redirect (magic link) token, a UUIDv7 sent to the account owner's email.
-        schema:
-          type: string
-          format: uuid
-          example: 01890a7e-e2f7-7c3d-8dbb-9a2c5f3d1e0b
-      responses:
-        '200':
-          description: Session created. Bot signup accounts receive a minimal token envelope.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BotSessionResponse'
-              example:
-                data:
-                  api_v2_token: KEY0189A1B2C3D4E5F6071829AB3C4D5E_5FhZonmFvcw8Yq0dME27Bg
-        '400':
-          description: The account could not be initialized.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Account could not be initialized
-        '401':
-          description: Missing or invalid email or token, expired token, or the account is not eligible to sign in (inactive,
-            suspended, not permitted to use magic links, or must use SSO).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Your sign-in link has expired. Please request a new one-time sign-in link.
-        '403':
-          description: Request blocked by security policy (for example, the caller's country is not accepted).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
-                    contact support for assistance.
-        '404':
-          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - code: '10005'
-                  title: Resource not found
-                  detail: The requested resource or URL could not be found.
-                  source:
-                    pointer: /
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10005
-  /v2/bot_signup:
-    post:
-      summary: Register via bot signup
-      description: Creates a freemium Telnyx account through the agentic signup flow. The request must carry a valid answer
-        to a previously issued bot challenge (`bot_challenge_nonce` and `bot_challenge_answer`), accept the terms of service,
-        and echo the exact terms-and-conditions and privacy-policy URLs returned by the challenge endpoint. When EU consent
-        enforcement is enabled, `terms_of_service_eu` and `terms_and_conditions_eu_url` are also required. On success a one-time
-        sign-in (magic) link is emailed to the address provided; if the email address belongs to an existing account, a sign-in
-        link is sent instead of creating a duplicate account. `email` may only be omitted when placeholder-email registration
-        is enabled server-side. This endpoint is public and unauthenticated, gated by the freemium feature flags and per-country
-        availability, and subject to per-IP and per-domain registration limits.
-      operationId: createBotSignup
-      x-latency-category: responsive
-      tags:
-      - Bot Signup
-      x-endpoint-cost: medium
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BotSignupRequest'
-            example:
-              email: agent-owner@example.com
-              terms_of_service: true
-              terms_and_conditions_url: https://telnyx.com/terms-and-conditions-of-service
-              privacy_policy_url: https://telnyx.com/privacy-policy
-              bot_challenge_nonce: c6feda4e-6501-4db9-a21f-665e5b4ce2ba
-              bot_challenge_answer: '35'
-      responses:
-        '200':
-          description: Registration accepted and a magic link emailed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-              example:
-                success: true
-                message: A one-time sign-in link has been sent to your email address.
-        '400':
-          description: Bot challenge parameters missing or verification failed, terms of service not accepted, or terms/privacy
-            URLs missing or not matching the expected values.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Bot challenge parameters are required
-        '403':
-          description: Registration blocked by security policy (for example, registration from the caller's country is not
-            accepted).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
-                    contact support for assistance.
-        '404':
-          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - code: '10005'
-                  title: Resource not found
-                  detail: The requested resource or URL could not be found.
-                  source:
-                    pointer: /
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10005
-        '422':
-          description: Validation failed (for example an invalid email address), or the IP address has reached its bot signup
-            limit.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - code: '10027'
-                  title: Unprocessable Entity
-                  detail: Email is invalid
-                  source:
-                    pointer: /email
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10027
-        '429':
-          description: Too many registrations from this email domain.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - code: '10011'
-                  title: Too many requests
-                  detail: You have exceeded the maximum number of allowed requests.
-                  source:
-                    pointer: /
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10011
-  /v2/bot_signup/resend_magic_link:
-    post:
-      summary: Resend a bot signup magic link
-      description: Resends the one-time sign-in (magic) link for an eligible bot signup account. Eligibility (account exists,
-        was registered through bot signup, is active, and has not exceeded the resend limit or rate window) is evaluated server-side;
-        the response is intentionally uniform and does not reveal whether the account exists or whether a link was actually
-        sent. This endpoint is public and unauthenticated, gated by the freemium feature flags and per-country availability.
-      operationId: resendBotSignupMagicLink
-      x-latency-category: responsive
-      tags:
-      - Bot Signup
-      x-endpoint-cost: light
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResendMagicLinkRequest'
-            example:
-              email: agent-owner@example.com
-      responses:
-        '200':
-          description: Uniform acknowledgement, returned whether or not a link was sent.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-              example:
-                success: true
-                message: A one-time sign-in link has been sent to your email address.
-        '400':
-          description: The JSON request body could not be parsed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: There was a problem in the JSON you submitted. Please check your formatting and try again.
-        '403':
-          description: Request blocked by security policy (for example, the caller's country is not accepted).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - detail: Your registration cannot be accepted as it does not comply with our security standards. You may
-                    contact support for assistance.
-        '404':
-          description: Bot signup is not available (freemium master switch disabled or the caller's country is not enabled).
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/bot-signup_ErrorResponse'
-              example:
-                errors:
-                - code: '10005'
-                  title: Resource not found
-                  detail: The requested resource or URL could not be found.
-                  source:
-                    pointer: /
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10005
   /v2/mobile_phone_numbers:
     get:
       summary: List Mobile Phone Numbers
