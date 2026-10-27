@@ -85960,7 +85960,7 @@
     "/spend_limits": {
       "get": {
         "summary": "List spend limits",
-        "description": "Returns one entry per product and period you can set a limit on, with the limit, the spend so far in the period and whether the product is blocked. An entry without a limit is still listed (`limit: null`). When the spend cannot be read, the entry is returned with `spend_usd: null` and `spend_error` set. The list is not paginated. Each entry also lists the API key limits of its product and period in `credential_limits`, with each key's spend and block, and in `allocation` how much of the total limit they use.",
+        "description": "Returns one entry per product and period you can set a limit on, with the limit, the spend so far in the period and whether the product is blocked. An entry without a limit is still listed (`limit: null`). When the spend cannot be read, the entry is returned with `spend_usd: null` and `spend_error` set. The list is not paginated. Each entry also lists the API key limits of its product and period in `credential_limits`, with each key's spend and block. Each API key limit can be at most the total limit; together they may add up to more than it.",
         "operationId": "listSpendLimits",
         "tags": [
           "Spend Limits"
@@ -86096,22 +86096,17 @@
                           "spend_error": null,
                           "blocked": false,
                           "block": null,
-                          "allocation": {
-                            "total_limit_usd": "1000.00",
-                            "allocated_usd": "800.00",
-                            "unallocated_usd": "200.00",
-                            "over_allocated_usd": "0.00"
-                          },
                           "credential_limits": [
                             {
                               "credential_id": "KEY0192F3A1B2C3D4E5F6A7B8C9D0E1F2",
                               "limit": {
-                                "amount": "300.00",
+                                "amount": "900.00",
                                 "origin": "self_service",
                                 "updated_at": "2026-10-20T08:03:40Z"
                               },
                               "spend_usd": "120.00",
                               "spend_error": null,
+                              "exceeds_total": false,
                               "blocked": false,
                               "block": null
                             },
@@ -86124,6 +86119,7 @@
                               },
                               "spend_usd": "510.30",
                               "spend_error": null,
+                              "exceeds_total": false,
                               "blocked": true,
                               "block": {
                                 "detected_at": "2026-10-20T11:02:19Z",
@@ -86148,7 +86144,6 @@
                           "spend_error": null,
                           "blocked": false,
                           "block": null,
-                          "allocation": null,
                           "credential_limits": []
                         }
                       ],
@@ -86357,12 +86352,6 @@
                         "spend_error": null,
                         "blocked": false,
                         "block": null,
-                        "allocation": {
-                          "total_limit_usd": "1000.00",
-                          "allocated_usd": "800.00",
-                          "unallocated_usd": "200.00",
-                          "over_allocated_usd": "0.00"
-                        },
                         "evaluation": {
                           "spend_usd": "120.00",
                           "released": false,
@@ -86507,14 +86496,14 @@
                       ]
                     }
                   },
-                  "allocation_exceeded": {
-                    "summary": "API key limits would exceed the total limit",
+                  "api_key_limit_above_total": {
+                    "summary": "An API key limit above the total limit",
                     "value": {
                       "errors": [
                         {
                           "code": "10015",
                           "title": "Limit exceeds the total limit",
-                          "detail": "The daily total limit for inference is 1000.00 USD and 800.00 USD is already allocated to API key limits; this API key can be given at most 200.00 USD"
+                          "detail": "The daily total limit for inference is 200.00 USD; an API key limit can be at most the total, so this API key can be given at most 200.00 USD"
                         }
                       ]
                     }
@@ -86839,7 +86828,7 @@
       },
       "patch": {
         "summary": "Update a spend limit",
-        "description": "Replaces the value of the existing limit for the product and period. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: raising the limit above the spend lifts the period's block (`evaluation.released`), and lowering it below the spend blocks the product (`evaluation.blocked_now`). Returns 404 when no limit is set; create it instead. With the `credential_id` query parameter, the request changes that API key's limit; it needs an `amount`, and raising it is subject to the allocation rule.",
+        "description": "Replaces the value of the existing limit for the product and period. Send exactly one of `amount` and `unlimited: true`. The period's spend is checked at once: raising the limit above the spend lifts the period's block (`evaluation.released`), and lowering it below the spend blocks the product (`evaluation.blocked_now`). Returns 404 when no limit is set; create it instead. With the `credential_id` query parameter, the request changes that API key's limit; it needs an `amount`, and it can be at most the period's total limit. Lowering the total limit below the period's highest API key limit is refused.",
         "operationId": "updateSpendLimit",
         "tags": [
           "Spend Limits"
@@ -87096,26 +87085,26 @@
                       ]
                     }
                   },
-                  "allocation_exceeded": {
-                    "summary": "Raising an API key limit beyond the total limit",
+                  "api_key_limit_above_total": {
+                    "summary": "Raising an API key limit above the total limit",
                     "value": {
                       "errors": [
                         {
                           "code": "10015",
                           "title": "Limit exceeds the total limit",
-                          "detail": "The daily total limit for inference is 1000.00 USD and 800.00 USD is allocated to API key limits; this API key can be given at most 500.00 USD"
+                          "detail": "The daily total limit for inference is 200.00 USD; an API key limit can be at most the total, so this API key can be given at most 200.00 USD"
                         }
                       ]
                     }
                   },
-                  "total_below_allocation": {
-                    "summary": "Lowering the total limit below the API key limits",
+                  "total_below_api_key_limit": {
+                    "summary": "Lowering the total limit below an API key limit",
                     "value": {
                       "errors": [
                         {
                           "code": "10015",
                           "title": "Limit exceeds the total limit",
-                          "detail": "800.00 USD of the daily inference limit is allocated to API key limits; the total can be at least 800.00 USD"
+                          "detail": "The highest daily inference API key limit is 175.00 USD; the total can be at least 175.00 USD"
                         }
                       ]
                     }
@@ -193401,9 +193390,6 @@
           "block": {
             "$ref": "#/components/schemas/SpendLimitBlock"
           },
-          "allocation": {
-            "$ref": "#/components/schemas/SpendLimitAllocation"
-          },
           "credential_limits": {
             "type": "array",
             "description": "List responses only. One item per API key limit of the product and period, sorted by `credential_id`, plus every API key that is still blocked. `[]` when there are none.",
@@ -193428,39 +193414,6 @@
           "spend_error",
           "blocked",
           "block"
-        ]
-      },
-      "SpendLimitAllocation": {
-        "type": "object",
-        "nullable": true,
-        "description": "How much of the period's total limit is given to API key limits. `null` unless the period has a total limit with an amount.",
-        "properties": {
-          "total_limit_usd": {
-            "type": "string",
-            "description": "The total limit in USD, as a decimal string.",
-            "example": "1000.00"
-          },
-          "allocated_usd": {
-            "type": "string",
-            "description": "Sum of the period's API key limits in USD, as a decimal string.",
-            "example": "800.00"
-          },
-          "unallocated_usd": {
-            "type": "string",
-            "description": "The part of the total not given to API key limits, as a decimal string: the largest amount a new API key limit can have.",
-            "example": "200.00"
-          },
-          "over_allocated_usd": {
-            "type": "string",
-            "description": "How far the API key limits exceed the total, as a decimal string. Non-zero only after Telnyx support lowered the total below them.",
-            "example": "0.00"
-          }
-        },
-        "required": [
-          "total_limit_usd",
-          "allocated_usd",
-          "unallocated_usd",
-          "over_allocated_usd"
         ]
       },
       "SpendLimitBlock": {
@@ -193521,6 +193474,11 @@
             "nullable": true,
             "description": "Set when `spend_usd` is `null`.",
             "example": null
+          },
+          "exceeds_total": {
+            "type": "boolean",
+            "description": "The API key's limit is above the period's total limit. Only a change by Telnyx support can cause it; the total limit still applies to the whole account. Lower the API key limit or raise the total.",
+            "example": false
           },
           "blocked": {
             "type": "boolean",
