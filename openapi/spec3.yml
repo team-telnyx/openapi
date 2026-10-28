@@ -3136,7 +3136,7 @@ paths:
               $ref: '#/components/schemas/ValidateAddressRequest'
       responses:
         '200':
-          description: Action response
+          description: The address passed validation. The validation result is `valid`.
           content:
             application/json:
               schema:
@@ -3144,9 +3144,77 @@ paths:
                 title: Validate address action response
                 properties:
                   data:
-                    $ref: '#/components/schemas/ValidateAddressResult'
+                    allOf:
+                    - $ref: '#/components/schemas/ValidateAddressResult'
+                    - type: object
+                      properties:
+                        result:
+                          type: string
+                          enum:
+                          - valid
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: 'Address validation failed. A completed validation with an invalid result returns `data.result: invalid`,
+            with normalized or suggested address fields in `data.suggested` when available, and a top-level `errors` array.
+            Other validation errors can return only `errors`, without `data`. Check `errors` before accessing the optional
+            validation result.'
+          content:
+            application/json:
+              examples:
+                invalid_result:
+                  summary: Invalid result with errors
+                  description: Completed invalid validation with suggested address fields and the generic invalid-address
+                    error.
+                  value:
+                    data:
+                      result: invalid
+                      suggested:
+                        extended_address: ''
+                        locality: FULSHEAR
+                        street_address: 5419 CEDAR ELM LN
+                        administrative_area: TX
+                        country_code: US
+                        postal_code: '77441'
+                        borough: ''
+                        neighborhood: ''
+                        latitude: null
+                        longitude: null
+                      record_type: address_validation
+                    errors:
+                    - code: '20200'
+                      title: Invalid address
+                      detail: Invalid address
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/20200
+                errors_only:
+                  summary: Validation error without a result
+                  description: Address rejected before validation produces a result; data is omitted.
+                  value:
+                    errors:
+                    - code: '20200'
+                      title: Invalid address
+                      detail: The street address must contain a house number or the extended address must have a house name
+                      meta:
+                        url: https://developers.telnyx.com/docs/overview/errors/20200
+              schema:
+                title: Validate address failure response
+                required:
+                - errors
+                allOf:
+                - $ref: '#/components/schemas/Errors'
+                - type: object
+                  properties:
+                    data:
+                      description: Present when a validation result is available; omitted for errors that do not produce a
+                        validation result.
+                      allOf:
+                      - $ref: '#/components/schemas/ValidateAddressResult'
+                      - type: object
+                        properties:
+                          result:
+                            type: string
+                            enum:
+                            - invalid
+                            example: invalid
   /addresses/{id}:
     delete:
       description: Permanently deletes the specified address from your account.
@@ -121927,8 +121995,16 @@ components:
           description: Enables AI detection of inbound opt-out messages that do not follow the standard STOP/UNSTOP/HELP opt-out
             keyword pattern. When enabled, the messaging platform applies an AI model to identify non-standard opt-out requests
             (e.g. natural-language phrases) and treats them as opt-outs.
+        auto_chunk_long_messages:
+          type: boolean
+          description: 'Enables server-side chunking of outbound SMS. When enabled, an outbound message that exceeds the maximum
+            number of segments allowed for its destination (10 segments by default; some aggregators accept up to 25) is automatically
+            split into multiple child messages, each within the segment limit, and sent sequentially in order. Splitting is
+            encoding-aware: GSM-7 bodies split at 153-character boundaries and UCS-2 bodies at 134-character boundaries. When
+            disabled (the default), messages exceeding the segment limit are rejected with an error.'
       example:
         ai_opt_out_detection_enabled: true
+        auto_chunk_long_messages: true
     MessagingSettings:
       properties:
         default_messaging_profile_id:
@@ -123203,6 +123279,12 @@ components:
           title: Is Vision Supported
           default: false
           description: Whether the model accepts image inputs in chat completions (multimodal vision support).
+        beta:
+          type: boolean
+          title: Beta
+          default: false
+          description: 'Whether the model is in beta. New Telnyx-hosted models launch with `beta: true`; the label is removed
+            once the model is established.'
         description:
           type:
           - string
@@ -156566,6 +156648,20 @@ components:
           $ref: '#/components/schemas/postal_code'
         country_code:
           $ref: '#/components/schemas/country_code'
+        borough:
+          $ref: '#/components/schemas/borough'
+        neighborhood:
+          $ref: '#/components/schemas/neighborhood'
+        latitude:
+          type:
+          - number
+          - 'null'
+          description: Latitude of the suggested address, when available.
+        longitude:
+          type:
+          - number
+          - 'null'
+          description: Longitude of the suggested address, when available.
     ValidateAddressRequest:
       type: object
       required:
@@ -166775,6 +166871,7 @@ components:
         mobile_only: false
         features:
           ai_opt_out_detection_enabled: true
+          auto_chunk_long_messages: true
     messaging_OutboundMessagePayloadCancelled:
       type: object
       properties:
