@@ -5288,7 +5288,7 @@
             }
           },
           "400": {
-            "description": "Bad Request / Validation Failed (10015). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key headers are rejected by Edge with HTTP 400 and error code 10015. The assistant configuration is validated too: enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, or when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted.",
+            "description": "Bad Request / Validation Failed (10015). Invalid, duplicate, empty, malformed, or overlong Idempotency-Key headers are rejected by Edge with HTTP 400 and error code 10015. The assistant configuration is validated too: enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted, or when its `insight_settings.model` is not available in that region.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6562,7 +6562,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, or when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted. The response detail names the model and where it is configured. Validation runs against the merged result of the update, not only the fields sent.",
+            "description": "Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted, or when its `insight_settings.model` is not available in that region. The response detail names the model and where it is configured. Validation runs against the merged result of the update, not only the fields sent.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8528,7 +8528,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, or when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted. The response detail names the model and where it is configured. Validation runs against the merged result of the update, not only the fields sent.",
+            "description": "Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality` is refused when the organization's data-locality region has no in-region inference, when any model the assistant could use \u2014 its `model`, its `fallback_config`, or a conversation-flow node override \u2014 is not Telnyx-hosted, or when its `insight_settings.model` is not available in that region. The response detail names the model and where it is configured. Validation runs against the merged result of the update, not only the fields sent.",
             "content": {
               "application/json": {
                 "schema": {
@@ -162814,6 +162814,7 @@
         "anyOf": [
           {
             "type": "object",
+            "title": "Ingest Payload Object",
             "additionalProperties": true
           },
           {
@@ -162822,7 +162823,8 @@
               "string",
               "number",
               "boolean"
-            ]
+            ],
+            "title": "Ingest Payload Value"
           }
         ]
       },
@@ -178291,6 +178293,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -178359,6 +178362,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -178427,6 +178431,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -178495,6 +178500,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -178563,6 +178569,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -178631,6 +178638,7 @@
                   },
                   {
                     "type": "array",
+                    "title": "Pay Tool Prompt List",
                     "minItems": 1,
                     "items": {
                       "type": "object",
@@ -183910,7 +183918,7 @@
           "in_transit_data_locality": {
             "type": "boolean",
             "default": false,
-            "description": "Requires every model call made for a web chat turn to be received and served inside your organization's data-locality region, rather than only stored there. Applies to web chat only \u2014 voice and messaging assistants are unaffected. Enabling it requires a data-locality region with in-region inference (USA, EU, AUS, UAE; see [Inference regions](https://developers.telnyx.com/docs/inference/models/regions)) and Telnyx-hosted models for the assistant, its fallback, and any conversation-flow node that overrides the model; the request is rejected otherwise. Once enabled, send chat requests to your region's API hostname: a request entering the platform in another region is rejected rather than forwarded, because forwarding it would already have moved the content across the border. Defaults to false."
+            "description": "Requires this assistant's conversations to be processed inside your organization's data-locality region, rather than only stored there, on every channel: for web chat, every model call of a turn; for voice, the call's model calls and the Telnyx-hosted speech services it uses; for SMS and WhatsApp, the model calls of each turn (how messages travel through carriers is not covered). Covered processing that cannot be handled in region fails rather than being served elsewhere. Enabling it requires a data-locality region with in-region inference (USA, EU, AUS, UAE; see [Inference regions](https://developers.telnyx.com/docs/inference/models/regions)), Telnyx-hosted models for the assistant, its fallback, and any conversation-flow node that overrides the model, and, when `insight_settings.model` is set, an insight model available in that region; the request is rejected otherwise. A voice call fails when it starts if its STT model or TTS voice is not self-hosted by Telnyx, if the assistant uses a speech-to-speech model, or if the call's media is anchored outside the region. Once enabled, send web chat requests and WebSocket or WebRTC conversations to your region's API hostname: one entering the platform in another region is refused rather than forwarded, because forwarding it would already have moved the content across the border. See [Data residency](https://developers.telnyx.com/docs/inference/data-residency#in-region-processing-for-ai-assistants). Defaults to false."
           }
         },
         "type": "object"
@@ -222608,43 +222616,51 @@
                 }
               },
               "cost": {
-                "type": [
-                  "object",
-                  "string"
-                ],
                 "description": "The session's cost breakdown from Session Analysis, covering every product billed on the call: the AI Voice Assistant engine minutes (`ai-voice-assistant`), LLM inference tokens (`inference`), and call-control, SIP trunking, and recording lines. If cost data could not be retrieved after retries, this field carries the placeholder string `No cost data available.` instead of an object.",
-                "properties": {
-                  "total": {
-                    "type": "string",
-                    "example": "0.060300",
-                    "description": "The total cost of the call, summed across every product in the breakdown."
-                  },
-                  "currency": {
-                    "type": "string",
-                    "example": "USD",
-                    "description": "The currency of the cost amounts."
-                  },
-                  "breakdown": {
-                    "type": "array",
-                    "description": "Cost lines grouped by product.",
-                    "items": {
-                      "type": "object",
-                      "title": "Cost Breakdown",
-                      "properties": {
-                        "product": {
-                          "type": "string",
-                          "example": "ai-voice-assistant",
-                          "description": "The Telnyx product the cost line belongs to (for example `ai-voice-assistant`, `inference`, `callcontrol-cdrs`, `siptrunking-cdrs`, `recording-cdrs`)."
-                        },
-                        "cost": {
-                          "type": "string",
-                          "example": "0.050000",
-                          "description": "Total cost for this product across the call, in the currency given by `cost.currency`."
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "title": "Call Cost Breakdown",
+                    "description": "The itemized cost of the call.",
+                    "properties": {
+                      "total": {
+                        "type": "string",
+                        "example": "0.060300",
+                        "description": "The total cost of the call, summed across every product in the breakdown."
+                      },
+                      "currency": {
+                        "type": "string",
+                        "example": "USD",
+                        "description": "The currency of the cost amounts."
+                      },
+                      "breakdown": {
+                        "type": "array",
+                        "description": "Cost lines grouped by product.",
+                        "items": {
+                          "type": "object",
+                          "title": "Cost Breakdown",
+                          "properties": {
+                            "product": {
+                              "type": "string",
+                              "example": "ai-voice-assistant",
+                              "description": "The Telnyx product the cost line belongs to (for example `ai-voice-assistant`, `inference`, `callcontrol-cdrs`, `siptrunking-cdrs`, `recording-cdrs`)."
+                            },
+                            "cost": {
+                              "type": "string",
+                              "example": "0.050000",
+                              "description": "Total cost for this product across the call, in the currency given by `cost.currency`."
+                            }
+                          }
                         }
                       }
                     }
+                  },
+                  {
+                    "type": "string",
+                    "title": "Call Cost Unavailable",
+                    "description": "The placeholder string `No cost data available.`, returned when cost data could not be retrieved after retries."
                   }
-                }
+                ]
               },
               "recordings": {
                 "type": [
