@@ -7860,7 +7860,10 @@ paths:
       tags:
       - Conversations
       summary: Delete a conversation
-      description: Delete a specific conversation by its ID.
+      description: 'Delete a specific conversation by its ID. Permanently deletes the conversation and its associated data:
+        the conversation''s messages, its insight generation results, any conversation memories, and its webhook request logs.
+        Recordings are not deleted — recordings are managed separately through the /v2/recordings endpoints. This action cannot
+        be undone.'
       operationId: delete_conversation_by_id_public_conversations_delete
       parameters:
       - name: conversation_id
@@ -7871,7 +7874,8 @@ paths:
         description: The ID of the conversation to delete
       responses:
         '200':
-          description: Successful Response
+          description: Successful Response. The conversation and its associated data (messages, insight generation results,
+            memories, webhook request logs) are permanently deleted.
         '404':
           description: Conversation Not Found
         '422':
@@ -7989,6 +7993,42 @@ paths:
                   total_results: 0
                   page_number: 0
                   page_size: 0
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /ai/conversations/{conversation_id}/conversations-insights/{insight_id}:
+    delete:
+      tags:
+      - Conversations
+      summary: Delete a conversation's insight generation results
+      description: Delete one insight generation request for a conversation. Generation results are stored per conversation
+        and per insight template; deleting a request permanently removes the stored result but does not stop insight generation
+        from running again. To remove every insight result for the conversation, delete the conversation itself. A successful
+        delete returns an empty response.
+      operationId: delete_conversation_insight
+      parameters:
+      - name: conversation_id
+        in: path
+        description: Unique identifier of the conversation.
+        required: true
+        schema:
+          type: string
+      - name: insight_id
+        in: path
+        description: Unique identifier of the insight generation request to delete, as returned as `data.id` by the insight
+          generation and insights-list operations. Note that the nested `conversation_insights[].insight_id` field returned
+          in the insights-list response is the insight template ID, not the ID accepted here.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful Response. The stored insight generation result is permanently deleted.
+        '404':
+          description: Conversation Insight Not Found
         '422':
           description: Validation Error
           content:
