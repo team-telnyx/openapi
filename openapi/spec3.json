@@ -91924,6 +91924,61 @@
         }
       }
     },
+    "/telephony_credentials/{id}/token_material": {
+      "get": {
+        "description": "Returns the material a server needs to mint login tokens for the credential locally, with no request per token: `kid`, `tel_token` and `signing_secret`. The same material is in the response of `POST /telephony_credentials`. Treat it like the SIP password.",
+        "summary": "Retrieve token material.",
+        "operationId": "RetrieveTelephonyCredentialTokenMaterial",
+        "tags": [
+          "Access Tokens"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identifies the resource.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token material for the credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Token Material Response",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TokenMaterial"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Resource not Found"
+          },
+          "422": {
+            "description": "The credential is expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/telephony-credentials_ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/terms_of_service/agreements": {
       "get": {
         "summary": "List the calling user's Terms of Service agreements",
@@ -159193,13 +159248,16 @@
             ]
           },
           "username": {
+            "type": "string",
             "description": "Nonblank string required for basic authentication. Returned in connector responses."
           },
           "password": {
+            "type": "string",
             "description": "Nonblank string required for basic authentication. Write-only; omitted from responses. Re-send when replacing a basic-auth config.",
             "writeOnly": true
           },
           "token": {
+            "type": "string",
             "description": "Nonblank string required for bearer authentication. Write-only; omitted from responses. Re-send when replacing a bearer-auth config.",
             "writeOnly": true
           },
@@ -168305,7 +168363,8 @@
               }
             ],
             "deprecated": true,
-            "description": "Deprecated name field retained for compatibility. Its value is the bare stored event name, never email.-prefixed. Use event_type for the legacy rendering or canonical_event_type for the canonical name."
+            "description": "Deprecated name field retained for compatibility. Its value is the bare stored event name, never email.-prefixed. Use event_type for the legacy rendering or canonical_event_type for the canonical name.",
+            "x-stainless-deprecation-message": "Use event_type instead."
           },
           "event_type": {
             "type": "string",
@@ -177701,6 +177760,7 @@
                 ]
               },
               "username": {
+                "type": "string",
                 "description": "Stored username, when supplied. Required to be a nonblank string for basic authentication."
               },
               "timeout": {
@@ -197166,6 +197226,10 @@
             "type": "string",
             "description": "ISO-8601 formatted date indicating when the resource will expire.",
             "example": "2018-02-02T22:25:27.521Z"
+          },
+          "token_material": {
+            "$ref": "#/components/schemas/TokenMaterial",
+            "description": "Returned when the credential is created. See `GET /telephony_credentials/{id}/token_material` to fetch it again."
           }
         },
         "example": {
@@ -197334,6 +197398,15 @@
             "type": "boolean",
             "default": false,
             "description": "When enabled, the `messages` array of the `call.conversation.ended` webhook contains the full conversation history in order: user and assistant turns, assistant tool calls (`tool_calls`), tool results (`role: tool` with `tool_call_id`), and informational `system` and `developer` entries. The assistant's instructions are never included. When disabled, `messages` contains only user and assistant text turns."
+          },
+          "greeting_delay_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 2000,
+            "description": "Milliseconds to wait after an inbound call is answered before the assistant starts and speaks its greeting. Increase it if the beginning of the greeting is cut off on some connections (for example, WebRTC calls). When unset (`null`), the platform default of 250 ms is used. Set to `0` to start without a delay. Maximum 2000."
           },
           "voicemail_detection": {
             "type": "object",
@@ -204851,6 +204924,28 @@
           "data"
         ]
       },
+      "TokenMaterial": {
+        "type": "object",
+        "title": "Token Material",
+        "description": "What a server needs to mint login tokens for the credential itself, with no request per token (`TelephonyCredential#to_jwt` in telnyx-ruby 3.1.0 or later). As sensitive as `sip_password`: keep it on the server.",
+        "properties": {
+          "kid": {
+            "type": "string",
+            "description": "Identifies the Telnyx signing key the `signing_secret` was derived with. Goes in the token header.",
+            "example": "v1"
+          },
+          "tel_token": {
+            "type": "string",
+            "description": "Opaque value Telnyx uses to resolve the credential. Carried in the token's `tel_token` claim as is.",
+            "example": "rj_ZkkZUOZMxZOfOmLpEUB3siU7u6RjZFeM9s-gb_xCR56WFKFAJiMyF2T6CBRmlh_Sy0i_lfyT9AI8sEif8MTIIszyzSl_aDnG48aO50yaHGuRSYbUbSYm9WIiQ0g=="
+          },
+          "signing_secret": {
+            "type": "string",
+            "description": "The HMAC-SHA256 key the token is signed with, base64url without padding.",
+            "example": "cCL985ACi7wpbe_2xh1VDF3NabPJ90u1wCKmJCPNpxw"
+          }
+        }
+      },
       "TokenRequest": {
         "type": "object",
         "properties": {
@@ -206878,7 +206973,8 @@
             "minimum": 0,
             "maximum": 1,
             "description": "Deprecated and ignored. Accepted for backwards compatibility. AssemblyAI turn detection is configured with min_turn_silence and max_turn_silence.",
-            "deprecated": true
+            "deprecated": true,
+            "x-stainless-deprecation-message": "Ignored. Configure AssemblyAI turn detection with min_turn_silence and max_turn_silence instead."
           },
           "prompt": {
             "title": "Prompt",
