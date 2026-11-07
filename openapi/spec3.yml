@@ -236,6 +236,8 @@ tags:
   description: Managed Accounts operations
 - name: Media Storage API
   description: Media Storage operations
+- name: Meeting Calendar Connections
+  description: Connect calendars and manage automatic meeting joins.
 - name: Meeting Session Actions
   description: Send real-time speech and chat actions to an active meeting session.
 - name: Meeting Session Artifacts
@@ -7534,8 +7536,8 @@ paths:
             headers are rejected by Edge with HTTP 400 and error code 10015. The assistant configuration is validated too:
             enabling `privacy_settings.in_transit_data_locality` is refused when the organization''s data-locality region
             has no in-region inference, when any model the assistant could use — its `model`, its `fallback_config`, or a
-            conversation-flow node override — is not Telnyx-hosted, or when its `insight_settings.model` is not available
-            in that region.'
+            conversation-flow node override — is a third-party model (a customer-provided `external_llm` endpoint is accepted),
+            or when its `insight_settings.model` is not available in that region.'
           content:
             application/json:
               schema:
@@ -8396,9 +8398,10 @@ paths:
         '400':
           description: Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality`
             is refused when the organization's data-locality region has no in-region inference, when any model the assistant
-            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is not Telnyx-hosted, or
-            when its `insight_settings.model` is not available in that region. The response detail names the model and where
-            it is configured. Validation runs against the merged result of the update, not only the fields sent.
+            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is a third-party model
+            (a customer-provided `external_llm` endpoint is accepted), or when its `insight_settings.model` is not available
+            in that region. The response detail names the model and where it is configured. Validation runs against the merged
+            result of the update, not only the fields sent.
           content:
             application/json:
               schema:
@@ -9747,9 +9750,10 @@ paths:
         '400':
           description: Bad Request. The resulting assistant configuration was rejected. For example, enabling `privacy_settings.in_transit_data_locality`
             is refused when the organization's data-locality region has no in-region inference, when any model the assistant
-            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is not Telnyx-hosted, or
-            when its `insight_settings.model` is not available in that region. The response detail names the model and where
-            it is configured. Validation runs against the merged result of the update, not only the fields sent.
+            could use — its `model`, its `fallback_config`, or a conversation-flow node override — is a third-party model
+            (a customer-provided `external_llm` endpoint is accepted), or when its `insight_settings.model` is not available
+            in that region. The response detail names the model and where it is configured. Validation runs against the merged
+            result of the update, not only the fields sent.
           content:
             application/json:
               schema:
@@ -23049,6 +23053,428 @@ paths:
           $ref: '#/components/responses/bundle-pricing_NotFoundErrorResponse'
         default:
           $ref: '#/components/responses/bundle-pricing_GenericErrorResponse'
+  /calendar_connections:
+    get:
+      operationId: listMeetingCalendarConnections
+      summary: List meeting calendar connections
+      description: List only the authenticated connecting user’s calendar connections. Session resources created by those
+        connections are shared within the organization.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnectionListResponse'
+              example:
+                data:
+                - id: calconn_example
+                  platform: google_calendar
+                  platform_email: organizer@example.com
+                  status: connected
+                  status_detail: null
+                  auto_join_policy: all_meetings
+                  bot_name: Notetaker
+                  default_barge_in: null
+                  default_summarize_on_end: null
+                  default_voice: null
+                  default_assistant: null
+                  default_recording: null
+                  default_recording_export: null
+                  default_webhook_url: null
+                  created_at: '2026-11-05T09:00:00Z'
+                  updated_at: '2026-11-05T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+    post:
+      operationId: createMeetingCalendarConnection
+      summary: Connect a meeting calendar
+      description: Start Google Calendar or Microsoft Outlook OAuth. Open oauth_url in a browser. No connection exists until
+        authorization succeeds. The resulting connection is owned by the connecting user.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '201':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnectionPendingResponse'
+              example:
+                data:
+                  platform: google_calendar
+                  status: pending_oauth
+                  oauth_url: https://accounts.google.com/o/oauth2/v2/auth?client_id=example
+        '400':
+          $ref: '#/components/responses/meeting-sessions_BadRequest'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/meeting-sessions_UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCalendarConnectionRequest'
+            example:
+              platform: google_calendar
+  /calendar_connections/{id}:
+    delete:
+      operationId: disconnectMeetingCalendar
+      summary: Disconnect a meeting calendar
+      description: Disconnect the calendar, cancel future joins, and clear retained calendar identity fields. Previously created
+        session records, transcripts, artifacts, and Storage objects remain. The response is the updated connection.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnectionResponse'
+              example:
+                data:
+                  id: calconn_example
+                  platform: google_calendar
+                  platform_email: organizer@example.com
+                  status: disconnected
+                  status_detail: null
+                  auto_join_policy: all_meetings
+                  bot_name: Notetaker
+                  default_barge_in: null
+                  default_summarize_on_end: null
+                  default_voice: null
+                  default_assistant: null
+                  default_recording: null
+                  default_recording_export: null
+                  default_webhook_url: null
+                  created_at: '2026-11-05T09:00:00Z'
+                  updated_at: '2026-11-05T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/meeting-sessions_NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Calendar connection ID.
+        schema:
+          type: string
+    get:
+      operationId: retrieveMeetingCalendarConnection
+      summary: Retrieve a meeting calendar connection
+      description: Retrieve a calendar connection owned by the authenticated connecting user. Missing and foreign connections
+        both return 404. Signing secrets are omitted.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnectionResponse'
+              example:
+                data:
+                  id: calconn_example
+                  platform: google_calendar
+                  platform_email: organizer@example.com
+                  status: connected
+                  status_detail: null
+                  auto_join_policy: all_meetings
+                  bot_name: Notetaker
+                  default_barge_in: null
+                  default_summarize_on_end: null
+                  default_voice: null
+                  default_assistant: null
+                  default_recording: null
+                  default_recording_export: null
+                  default_webhook_url: null
+                  created_at: '2026-11-05T09:00:00Z'
+                  updated_at: '2026-11-05T09:00:00Z'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/meeting-sessions_NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Calendar connection ID.
+        schema:
+          type: string
+    patch:
+      operationId: updateMeetingCalendarConnection
+      summary: Update a meeting calendar connection
+      description: Update policy or defaults for future sessions. Supply at least one field. Existing sessions retain their
+        configuration. Null clears nullable overrides. Assistant, recording, and webhook defaults apply to Google Meet and
+        Teams. Assistant defaults require default_barge_in to be false or null and default_voice to be null. Recording=true
+        requires a destination; false rejects one. A non-null default_webhook_url update returns webhook_secret once; save
+        it to verify future session deliveries.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnectionUpdatedResponse'
+              example:
+                data:
+                  id: calconn_example
+                  platform: google_calendar
+                  platform_email: organizer@example.com
+                  status: connected
+                  status_detail: null
+                  auto_join_policy: all_meetings
+                  bot_name: Notetaker
+                  default_barge_in: null
+                  default_summarize_on_end: null
+                  default_voice: null
+                  default_assistant: null
+                  default_recording: true
+                  default_recording_export:
+                    bucket: meeting-recordings
+                  default_webhook_url: https://example.com/meeting-events
+                  created_at: '2026-11-05T09:00:00Z'
+                  updated_at: '2026-11-05T09:00:00Z'
+                  webhook_secret: whsec_example
+        '400':
+          $ref: '#/components/responses/meeting-sessions_BadRequest'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/meeting-sessions_NotFound'
+        '409':
+          $ref: '#/components/responses/meeting-sessions_Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/meeting-sessions_UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Calendar connection ID.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCalendarConnectionRequest'
+            example:
+              default_recording: true
+              default_recording_export:
+                bucket: meeting-recordings
+              default_webhook_url: https://example.com/meeting-events
+  /calendar_connections/{id}/meetings:
+    get:
+      operationId: listMeetingCalendarMeetings
+      summary: List calendar meetings
+      description: List tracked meetings in a window. Defaults from now through seven days from now. from must not exceed
+        to and the window must not exceed 31 days. bot_will_join is the effective policy decision; check session_id and the
+        linked session status for actual attendance.
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarMeetingListResponse'
+              example:
+                data:
+                - id: calmtg_example
+                  platform: google_meet
+                  start_time: '2026-12-05T09:00:00Z'
+                  end_time: '2026-12-05T09:30:00Z'
+                  organizer:
+                    email: organizer@example.com
+                    display_name: Organizer
+                    self: true
+                  attendees: []
+                  is_external_organizer: false
+                  bot_will_join: true
+                  bot_will_join_override: null
+                  decision: scheduled
+                  session_id: mtgsess_example
+        '400':
+          $ref: '#/components/responses/meeting-sessions_BadRequest'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/meeting-sessions_NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Calendar connection ID.
+        schema:
+          type: string
+      - name: from
+        in: query
+        description: Window start; defaults to now.
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        description: Window end; defaults to seven days from now.
+        schema:
+          type: string
+          format: date-time
+  /calendar_connections/{id}/meetings/{meeting_id}:
+    patch:
+      operationId: updateMeetingCalendarMeeting
+      summary: Update calendar meeting auto-join
+      description: 'Set an individual meeting override: true opts in, false opts out, null follows the connection policy.
+        A supported meeting link is required. Changes re-evaluate the meeting immediately; poll the linked session for its
+        final lifecycle outcome.'
+      tags:
+      - Meeting Calendar Connections
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarMeetingResponse'
+              example:
+                data:
+                  id: calmtg_example
+                  platform: google_meet
+                  start_time: '2026-12-05T09:00:00Z'
+                  end_time: '2026-12-05T09:30:00Z'
+                  organizer:
+                    email: organizer@example.com
+                    display_name: Organizer
+                    self: true
+                  attendees: []
+                  is_external_organizer: false
+                  bot_will_join: false
+                  bot_will_join_override: false
+                  decision: skipped_policy
+                  session_id: mtgsess_example
+        '400':
+          $ref: '#/components/responses/meeting-sessions_BadRequest'
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/meeting-sessions_NotFound'
+        '409':
+          $ref: '#/components/responses/meeting-sessions_Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: Calendar connection ID.
+        schema:
+          type: string
+      - name: meeting_id
+        in: path
+        required: true
+        description: Tracked meeting ID.
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCalendarMeetingRequest'
+            example:
+              bot_will_join: false
   /call_control_applications:
     get:
       description: Return a list of call control applications.
@@ -44746,13 +45172,83 @@ paths:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
         default:
           $ref: '#/components/responses/media-storage_GenericErrorResponse'
+  /meeting_bot/calendar/oauth_callback:
+    get:
+      operationId: completeMeetingCalendarAuthorization
+      summary: Complete meeting calendar authorization
+      description: Browser redirect after calendar consent. Use the returned oauth_url rather than constructing this request.
+        Verified state identifies the connecting user. Returns HTML for success, cancellation, or failure; no JSON error envelope
+        or bearer token is used.
+      tags:
+      - Meeting Calendar Connections
+      security: []
+      parameters:
+      - name: code
+        in: query
+        description: Authorization code supplied by the calendar provider.
+        schema:
+          type: string
+      - name: state
+        in: query
+        description: Unmodified signed state from the authorization URL.
+        schema:
+          type: string
+      - name: error
+        in: query
+        description: Authorization error supplied by the calendar provider, such as access_denied.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Calendar connected, or the user cancelled authorization.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Calendar connected</h1></body></html>
+        '400':
+          description: Invalid, expired, or rejected authorization.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Invalid request</h1></body></html>
+        '409':
+          description: This user already has a connection for this calendar platform.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Calendar already connected</h1></body></html>
+        '500':
+          description: Unexpected connection failure.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Calendar connection failed</h1></body></html>
+        '502':
+          description: Calendar authorization exchange failed.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Calendar connection failed</h1></body></html>
+        '503':
+          description: Calendar connection is temporarily unavailable.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <!doctype html><html><body><h1>Calendar connections unavailable</h1></body></html>
   /meeting_sessions:
     get:
       operationId: listMeetingSessions
       tags:
       - Meeting Sessions
       summary: List meeting sessions
-      description: Returns a list of meeting sessions, optionally filtered by status.
+      description: Returns a list of meeting sessions, optionally filtered by status. List items omit assistant.dynamic_variables
+        and recording_export. Some items include remote_state_observed_at; retrieve the individual session for current state.
       parameters:
       - name: status
         in: query
@@ -44798,6 +45294,9 @@ paths:
                     barge_in: false
                     summarize_on_end: true
                     chat_on_enter: null
+                    deepfake_detection:
+                      audio: false
+                      video: false
                   avatar: null
                   avatar_state: null
                   avatar_state_changed_at: null
@@ -44824,22 +45323,22 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
     post:
       operationId: createMeetingSession
       tags:
       - Meeting Sessions
       summary: Create a meeting session
-      description: 'Creates a new meeting session. When an idempotency_key is supplied in the request body, replay lookup
-        is scoped to the authenticated account and compares only the key; the request payload is not fingerprinted or compared.
-        If a session with that key already exists for the account, the existing session is replayed (200); otherwise a new
-        session is created (201). The session may enter asynchronous states (e.g. joining, waiting_for_admission) before becoming
-        active. Optional `camera_image` input is write-only and applies only when no avatar or Assistant webpage output takes
-        precedence. An ignored URL is not fetched. An effective URL source is resolved before bot creation; neither the source
-        URL nor image bytes are persisted, returned, or logged. Treat signed URLs as credentials. With `assistant.avatar:
-        true`, the assistant is read before the bot is created: an assistant without a Telnyx avatar configured is rejected
-        with 400 `invalid_request` (message prefix `assistant_avatar_not_configured:`), an unknown assistant with 400 `invalid_request`
-        (prefix `assistant_not_found:`), and a failed lookup with 503 `assistant_lookup_unavailable`; no bot is created in
-        any of these cases.'
+      description: 'Creates a meeting session and returns 201, or 200 for a replay. Use a unique `idempotency_key` per intended
+        join and reuse the same key and request on retries. Reusing a key with a different join configuration or meeting URL
+        can return 409 invalid_state. Always retry with the original request. The session can pass through joining and waiting_for_admission
+        before active. Optional `camera_image` input is write-only and applies when no assistant avatar takes precedence.
+        An ignored URL is not fetched. An effective URL source is resolved before bot creation; the source URL and image bytes
+        are not returned in the session response. Treat signed URLs as credentials. With `assistant.avatar: true`, the assistant
+        is read before the bot is created: an assistant without a Telnyx avatar configured is rejected with 400 `invalid_request`
+        (message prefix `assistant_avatar_not_configured:`), an unknown assistant with 400 `invalid_request` (prefix `assistant_not_found:`),
+        and a failed lookup with 503 `assistant_lookup_unavailable`; no bot is created in any of these cases.'
       requestBody:
         required: true
         content:
@@ -44867,7 +45366,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          $ref: '#/components/responses/MeetingCreateTooManyRequests'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '422':
@@ -44878,6 +45377,16 @@ paths:
           $ref: '#/components/responses/MeetingCreateProviderError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+        '409':
+          description: The idempotency key belongs to a different or cancelled join.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
+              example:
+                error:
+                  code: invalid_state
+                  message: The idempotency key belongs to a different join
   /meeting_sessions/{id}:
     delete:
       operationId: deleteMeetingSession
@@ -44885,7 +45394,9 @@ paths:
       - Meeting Sessions
       summary: Delete a meeting session
       description: Stops a meeting session without deleting its persisted record. Scheduled bots are cancelled, while bots
-        that are joining or active are asked to leave. The persisted meeting session record remains available.
+        that are joining or active are asked to leave. The persisted meeting session record remains available. A successful
+        response can report leaving while departure is pending. Poll until ended, failed, or admission_denied. Exported Storage
+        objects are unaffected.
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       responses:
@@ -44912,6 +45423,9 @@ paths:
                     barge_in: false
                     summarize_on_end: true
                     chat_on_enter: null
+                    deepfake_detection:
+                      audio: false
+                      video: false
                   avatar: null
                   avatar_state: null
                   avatar_state_changed_at: null
@@ -44975,6 +45489,9 @@ paths:
                     barge_in: false
                     summarize_on_end: true
                     chat_on_enter: null
+                    deepfake_detection:
+                      audio: false
+                      video: false
                   avatar: null
                   avatar_state: null
                   avatar_state_changed_at: null
@@ -45001,6 +45518,8 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
     patch:
       operationId: updateMeetingSession
       tags:
@@ -45008,7 +45527,9 @@ paths:
       summary: Update a meeting session
       description: Updates mutable properties of a meeting session. Only sessions in the scheduled state can be updated; any
         other state returns 409 with the invalid_state error code. All request fields are optional, and an empty object is
-        a valid no-op update.
+        a valid no-op update. Calendar-controlled Google Meet and Teams sessions return 409 calendar_managed; change the event
+        instead. A conflicting pending edit returns 409 edit_in_progress. On a timeout or 503, read the session and retry
+        the same changes.
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       requestBody:
@@ -45043,6 +45564,9 @@ paths:
                     barge_in: false
                     summarize_on_end: true
                     chat_on_enter: null
+                    deepfake_detection:
+                      audio: false
+                      video: false
                   avatar: null
                   avatar_state: null
                   avatar_state_changed_at: null
@@ -45068,7 +45592,7 @@ paths:
         '404':
           $ref: '#/components/responses/meeting-sessions_NotFound'
         '409':
-          $ref: '#/components/responses/meeting-sessions_Conflict'
+          $ref: '#/components/responses/MeetingScheduleConflict'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '500':
@@ -45083,7 +45607,11 @@ paths:
       tags:
       - Meeting Session Actions
       summary: Send chat in a meeting session
-      description: Sends a chat message into a meeting session.
+      description: Send chat as the bot in an active meeting. Returns 202 with data.accepted=true. Google Meet and Teams confirm
+        sending before success; 502 chat_not_sent means not sent, while chat_delivery_unknown means delivery may have occurred.
+        Inspect chat and chat.sent events before retrying an uncertain send. Each request is a new message and is not idempotent.
+        Google Meet and Teams allow at most 1000 chat requests per session, including an entrance message; exceeding this
+        returns 409 invalid_state.
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       requestBody:
@@ -45129,13 +45657,12 @@ paths:
       tags:
       - Meeting Session Actions
       summary: Speak in a meeting session
-      description: 'Sends audio / text-to-speech into a meeting session. With a Telnyx AI Assistant attached, the bot is a
-        webpage-output bot: the speak audio routes through the assistant''s output page rather than the bot mic and plays
-        once the assistant is connected -- it is not refused. If that page cannot be reached, delivery fails with the 502
-        below, which may arrive without an error envelope, so branch on the status code before parsing a body. The assistant
-        is designed to own the conversation, so prefer letting it speak or use `send_chat`. With a digital avatar (`assistant.avatar:
-        true`), speak is refused with 409 `invalid_state` (message prefix `avatar_requires_assistant_speech:`): the avatar
-        renders only the assistant''s own speech.'
+      description: 'Sends audio / text-to-speech into a meeting session. With a Telnyx AI Assistant attached, wait for the
+        assistant to connect before requesting speech. If audio delivery fails, the response can be 502, which may arrive
+        without an error envelope, so branch on the status code before parsing a body. The assistant is designed to own the
+        conversation, so prefer letting it speak or use `send_chat`. With a digital avatar (`assistant.avatar: true`), speak
+        is refused with 409 `invalid_state` (message prefix `avatar_requires_assistant_speech:`): the avatar renders only
+        the assistant''s own speech.'
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       requestBody:
@@ -45240,6 +45767,8 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
     post:
       operationId: createMeetingSessionArtifact
       tags:
@@ -45247,11 +45776,12 @@ paths:
       summary: Create a meeting session artifact
       description: 'Requests asynchronous generation of one artifact: `summary`, `action_items`, `decisions`, `topics`, `open_questions`,
         or `custom`. Each request produces one artifact. `custom` is answered from a `prompt` you supply, which is required
-        for `custom` and rejected on the five named types. Generation requires transcript content and configured inference
-        and currently reads at most the first 10,000 segments, so exceptionally long transcripts may produce incomplete artifacts
-        or fail model limits. **Not idempotent, and every call is billed**: each request is a separate inference run, so a
-        retry or a duplicate POST produces a second artifact and a second charge. Guard the call rather than relying on the
-        service to collapse it. The automatic `summarize_on_end` attempt is billed on the same basis.'
+        for `custom` and rejected on the five named types. Generation requires transcript content. Input is limited to 10,000
+        segments and 1,000,000 UTF-8 bytes including segment text, speaker labels, timestamps, and sequence numbers. An oversized
+        transcript returns 409 invalid_state before an artifact is created; it is not silently truncated. Model context limits
+        can still cause an accepted artifact to fail. **Not idempotent, and every call is billed**: each request is a separate
+        inference run, so a retry or a duplicate POST produces a second artifact and a second charge. Guard the call rather
+        than relying on the service to collapse it. The automatic `summarize_on_end` attempt is billed on the same basis.'
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       requestBody:
@@ -45316,6 +45846,8 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
   /meeting_sessions/{id}/events:
     get:
       operationId: listMeetingSessionEvents
@@ -45358,6 +45890,8 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
   /meeting_sessions/{id}/recording_media:
     delete:
       operationId: deleteMeetingSessionRecordingMedia
@@ -45367,7 +45901,9 @@ paths:
       description: Irreversibly requests deletion of the aggregate recording media for the session. The operation retains
         the Telnyx-local Meeting session, transcript segments, events, artifacts, and usage records. It is separate from `DELETE
         /meeting_sessions/{id}`, which stops or cancels participation without deleting the persisted session. A missing/foreign
-        session returns 404; a deletion request whose outcome is unknown returns 502.
+        session returns 404; a deletion request whose outcome is unknown returns 502. Customer Storage exports do not support
+        this operation (422 unsupported_capability); delete the exported object through Storage instead. Stopping a session
+        does not delete an exported object.
       security:
       - bearerAuth: []
       parameters:
@@ -45397,15 +45933,97 @@ paths:
           $ref: '#/components/responses/RecordingMediaProviderError'
         '503':
           $ref: '#/components/responses/RecordingMediaAuthenticationUnavailable'
+  /meeting_sessions/{id}/recordings:
+    get:
+      operationId: listMeetingSessionRecordings
+      summary: List meeting session recordings
+      description: Retrieve recording export status. Customer Storage exports include recording_export with the bucket, region,
+        key and pending/exported/failed status, or null when no reference is available. The data array is empty for these
+        exports. Download or share the object using the Storage API once its status is exported. Zoom recordings and existing
+        Google Meet or Teams recordings held by the Meeting service continue returning temporary download links in data through
+        this same endpoint and session ID. Those recordings do not require Storage setup or migration. Refresh this endpoint
+        when a link expires. Select the download method from the returned fields, not the platform alone.
+      tags:
+      - Meeting Session Data
+      parameters:
+      - $ref: '#/components/parameters/MeetingSessionId'
+      responses:
+        '200':
+          description: Recording results; a pending or empty result does not mean a file is ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingSessionRecordingsResponse'
+              examples:
+                exported:
+                  value:
+                    data: []
+                    recording_export:
+                      type: video
+                      bucket: meeting-recordings
+                      region: us-central-1
+                      key: weekly-planning/recording.mp4
+                      bytes: 1048576
+                      status: exported
+                      exported_at: '2026-11-03T12:00:00Z'
+                pending:
+                  value:
+                    data: []
+                    recording_export:
+                      type: video
+                      bucket: meeting-recordings
+                      region: us-central-1
+                      key: weekly-planning/recording.mp4
+                      bytes: null
+                      status: pending
+                      exported_at: null
+                failed:
+                  value:
+                    data: []
+                    recording_export:
+                      type: video
+                      bucket: meeting-recordings
+                      region: us-central-1
+                      key: weekly-planning/recording.mp4
+                      bytes: null
+                      status: failed
+                      exported_at: null
+                disabled:
+                  value:
+                    data: []
+                    recording_export: null
+                download:
+                  value:
+                    data:
+                    - type: video_mixed
+                      url: https://example.com/recording.mp4
+                      expires_at: null
+                  summary: Download links for Meeting-service recordings, including existing Google Meet and Teams recordings
+        '401':
+          $ref: '#/components/responses/meeting-sessions_Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/RecordingMediaResourceNotFound'
+        '503':
+          $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/meeting-sessions_InternalServerError'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
+      security:
+      - bearerAuth: []
   /meeting_sessions/{id}/transcript:
     get:
       operationId: listMeetingSessionTranscript
       tags:
       - Meeting Session Data
       summary: List meeting session transcript
-      description: 'Returns transcript segments ordered by ascending `seq`. Default `limit` is 100 and maximum is 1,000. Continue
-        with `after=meta.next_after`. A long-poll timeout returns 200 with empty `data` and `meta.next_after: null`; retain
-        the cursor supplied to that request because null is not a replacement cursor.'
+      description: Returns transcript segments ordered by ascending seq. Default limit is 100, maximum 1000. Continue with
+        after=meta.next_after. On an empty page, meta.next_after preserves a positive supplied after cursor, or is null when
+        no positive cursor was supplied. wait_seconds holds an empty read for up to 25 seconds; a timeout still returns 200.
       parameters:
       - $ref: '#/components/parameters/MeetingSessionId'
       - $ref: '#/components/parameters/After'
@@ -45432,6 +46050,8 @@ paths:
           $ref: '#/components/responses/meeting-sessions_InternalServerError'
         '503':
           $ref: '#/components/responses/MeetingReadAuthUnavailable'
+        '502':
+          $ref: '#/components/responses/MeetingReadUnavailable'
   /messages:
     post:
       summary: Send a message
@@ -47922,6 +48542,40 @@ paths:
           description: Unauthorized
         default:
           $ref: '#/components/responses/wireless_GenericErrorResponse_c5290d5308'
+  /mobile_phone_numbers:
+    get:
+      summary: List Mobile Phone Numbers
+      operationId: listMobilePhoneNumbers
+      tags:
+      - Mobile Phone Numbers
+      parameters:
+      - name: page[number]
+        in: query
+        description: The page number to load
+        schema:
+          type: integer
+      - name: page[size]
+        in: query
+        description: The size of the page
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MobilePhoneNumber'
+                  meta:
+                    $ref: '#/components/schemas/mobile_phone_numbers_PaginationMeta'
+        '401':
+          description: Unauthorized
+      description: Retrieve a paginated list of mobile phone numbers on your account.
   /mobile_phone_numbers/messaging:
     get:
       summary: List mobile phone numbers with messaging settings
@@ -47949,6 +48603,78 @@ paths:
         4XX:
           $ref: '#/components/responses/messaging_GenericErrorResponse_0b38e7044b'
       description: Returns mobile phone numbers with their current messaging configuration.
+  /mobile_phone_numbers/{id}:
+    get:
+      summary: Retrieve a Mobile Phone Number
+      operationId: retrieveMobilePhoneNumber
+      tags:
+      - Mobile Phone Numbers
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the mobile phone number
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobilePhoneNumber'
+        '404':
+          description: Resource not found
+      description: Retrieve the details of a specific mobile phone number.
+    patch:
+      summary: Update a Mobile Phone Number
+      operationId: updateMobilePhoneNumber
+      tags:
+      - Mobile Phone Numbers
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the mobile phone number
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobilePhoneNumberUpdate'
+            example:
+              noise_suppression: false
+              inbound_call_screening: disabled
+              caller_id_name_enabled: false
+              tags:
+              - string
+              call_forwarding:
+                forwarding_type: always
+                call_forwarding_enabled: false
+              cnam_listing:
+                cnam_listing_enabled: false
+              call_recording:
+                inbound_call_recording_enabled: false
+                inbound_call_recording_channels: single
+                inbound_call_recording_format: wav
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobilePhoneNumber'
+        '422':
+          description: Unprocessable Entity
+      description: Update the settings of a specific mobile phone number.
   /mobile_phone_numbers/{id}/messaging:
     get:
       summary: Retrieve a mobile phone number with messaging settings
@@ -48130,6 +48856,200 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Errors'
+  /mobile_voice_connections:
+    get:
+      summary: List Mobile Voice Connections
+      operationId: listMobileVoiceConnections
+      tags:
+      - Mobile Voice Connections
+      parameters:
+      - name: page[number]
+        in: query
+        description: The page number to load
+        schema:
+          type: integer
+      - name: page[size]
+        in: query
+        description: The size of the page
+        schema:
+          type: integer
+      - name: filter[connection_name][contains]
+        in: query
+        description: Filter by connection name containing the given string
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: Sort by field (e.g., created_at, connection_name, active). Prefix with - for descending order.
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MobileVoiceConnection'
+                  meta:
+                    $ref: '#/components/schemas/mobile_voice_connections_PaginationMeta'
+        '401':
+          description: Unauthorized
+      description: Retrieve a paginated list of mobile voice connections on your account.
+    post:
+      summary: Create a Mobile Voice Connection
+      operationId: createMobileVoiceConnection
+      tags:
+      - Mobile Voice Connections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileVoiceConnectionCreate'
+            example:
+              active: true
+              connection_name: Telnyx Mobile Voice IMS
+              webhook_api_version: '2'
+              tags:
+              - string
+              outbound:
+                channel_limit: 0
+                outbound_voice_profile_id: string
+              inbound:
+                channel_limit: 0
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobileVoiceConnection'
+        '403':
+          description: Unauthorized or Limit Reached
+        '422':
+          description: Unprocessable Entity
+      description: Creates a new mobile voice connection with the provided configuration and returns the created connection.
+  /mobile_voice_connections/{id}:
+    delete:
+      summary: Delete a Mobile Voice Connection
+      operationId: deleteMobileVoiceConnection
+      tags:
+      - Mobile Voice Connections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the mobile voice connection
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobileVoiceConnection'
+        '404':
+          description: Resource not found
+      description: Delete a mobile voice connection from your account.
+    get:
+      summary: Retrieve a Mobile Voice Connection
+      operationId: retrieveMobileVoiceConnection
+      tags:
+      - Mobile Voice Connections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the mobile voice connection
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobileVoiceConnection'
+        '404':
+          description: Resource not found
+      description: Retrieve the details of a specific mobile voice connection.
+    patch:
+      summary: Update a Mobile Voice Connection
+      operationId: updateMobileVoiceConnection
+      tags:
+      - Mobile Voice Connections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        description: The ID of the mobile voice connection
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileVoiceConnectionUpdate'
+            example:
+              active: false
+              connection_name: string
+              webhook_api_version: '1'
+              webhook_timeout_secs: 0
+              tags:
+              - string
+              outbound:
+                channel_limit: 0
+                outbound_voice_profile_id: string
+              inbound:
+                channel_limit: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobileVoiceConnection'
+        '404':
+          description: Resource not found
+        '409':
+          description: Conflict. Another update to this connection is still in progress. Wait and retry the request later.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        detail:
+                          type: string
+              example:
+                errors:
+                - detail: A previous update to this connection is still in progress. Please try again later.
+        '422':
+          description: Unprocessable Entity
+      description: Update the settings of a specific mobile voice connection.
   /network_coverage:
     get:
       summary: List network coverage locations
@@ -52078,6 +52998,77 @@ paths:
           description: Resource not found
         '422':
           description: Bad request
+  /payment/stored_payment_transactions:
+    post:
+      summary: Create a stored payment transaction
+      operationId: createStoredPaymentTransaction
+      tags:
+      - Stored Payment Transactions
+      x-endpoint-cost: light
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoredPaymentTransactionRequest'
+            example:
+              amount: '120.00'
+      responses:
+        '200':
+          description: Stored payment transaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoredPaymentTransactionResponse'
+              example:
+                data:
+                  id: de06811a-2e43-4561-af5a-7d0a26e20aaa
+                  record_type: transaction
+                  amount_cents: 12000
+                  processor_status: submitted_for_settlement
+                  amount_currency: USD
+                  created_at: '2026-02-25T10:00:00Z'
+                  auto_recharge: false
+                  transaction_processing_type: stored_payment
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
+              example:
+                errors:
+                - code: '10009'
+                  title: Authentication failed
+                  detail: The required authentication headers were either invalid or not included in the request.
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
+              example:
+                errors:
+                - code: '10010'
+                  title: Authorization failed
+                  detail: You do not have permission to perform the requested action on the specified resource or resources.
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
+              example:
+                errors:
+                - code: '10027'
+                  title: Invalid amount format
+                  detail: Amount must include dollars and cents (e.g. "120.00").
+                  meta:
+                    url: https://developers.telnyx.com/docs/overview/errors/10027
+                  source:
+                    pointer: /
+      x-latency-category: responsive
+      description: Create a transaction that charges a stored payment method on the account.
   /phone_number_blocks/jobs:
     get:
       summary: Lists the phone number blocks jobs
@@ -68274,7 +69265,7 @@ paths:
         JSON frames containing base64-encoded audio chunks.
 
 
-        Supported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`, `soniox`, `assemblyai`.
+        Supported providers: `aws`, `telnyx`, `azure`, `minimax`, `resemble`, `elevenlabs`, `xai`, `humain`, `soniox`.
 
 
         **Connection flow:**
@@ -68341,7 +69332,7 @@ paths:
         `Telnyx.Ultra.<voice_id>`). Alternatively, specify `provider` explicitly along with provider-specific parameters.
 
 
-        Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`, `soniox`, `assemblyai`.
+        Supported providers: `aws`, `telnyx`, `azure`, `elevenlabs`, `minimax`, `resemble`, `xai`, `humain`, `soniox`.
 
 
         The Telnyx `Ultra` model supports 44 languages with emotion control, speed adjustment, and volume control. Use the
@@ -68411,11 +69402,6 @@ paths:
                 model_id: tts-rt-v2
                 language: en
                 speed: 1.0
-                audio_format: mp3
-              assemblyai:
-                voice_id: aai-jane
-                model_id: assemblyai-tts-1
-                language: en
                 audio_format: mp3
       responses:
         '200':
@@ -68489,7 +69475,6 @@ paths:
           - xai
           - humain
           - soniox
-          - assemblyai
       - name: api_key
         in: query
         required: false
@@ -70398,377 +71383,6 @@ paths:
                         $ref: '#/components/schemas/UserTagList'
         '401':
           $ref: '#/components/responses/UnauthenticatedResponse'
-  /v2/mobile_phone_numbers:
-    get:
-      summary: List Mobile Phone Numbers
-      operationId: listMobilePhoneNumbers
-      tags:
-      - Mobile Phone Numbers
-      parameters:
-      - name: page[number]
-        in: query
-        description: The page number to load
-        schema:
-          type: integer
-      - name: page[size]
-        in: query
-        description: The size of the page
-        schema:
-          type: integer
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MobilePhoneNumber'
-                  meta:
-                    $ref: '#/components/schemas/mobile_phone_numbers_PaginationMeta'
-        '401':
-          description: Unauthorized
-      description: Retrieve a paginated list of mobile phone numbers on your account.
-  /v2/mobile_phone_numbers/{id}:
-    get:
-      summary: Retrieve a Mobile Phone Number
-      operationId: retrieveMobilePhoneNumber
-      tags:
-      - Mobile Phone Numbers
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The ID of the mobile phone number
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobilePhoneNumber'
-        '404':
-          description: Resource not found
-      description: Retrieve the details of a specific mobile phone number.
-    patch:
-      summary: Update a Mobile Phone Number
-      operationId: updateMobilePhoneNumber
-      tags:
-      - Mobile Phone Numbers
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The ID of the mobile phone number
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MobilePhoneNumberUpdate'
-            example:
-              noise_suppression: false
-              inbound_call_screening: disabled
-              caller_id_name_enabled: false
-              tags:
-              - string
-              call_forwarding:
-                forwarding_type: always
-                call_forwarding_enabled: false
-              cnam_listing:
-                cnam_listing_enabled: false
-              call_recording:
-                inbound_call_recording_enabled: false
-                inbound_call_recording_channels: single
-                inbound_call_recording_format: wav
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobilePhoneNumber'
-        '422':
-          description: Unprocessable Entity
-      description: Update the settings of a specific mobile phone number.
-  /v2/mobile_voice_connections:
-    get:
-      summary: List Mobile Voice Connections
-      operationId: listMobileVoiceConnections
-      tags:
-      - Mobile Voice Connections
-      parameters:
-      - name: page[number]
-        in: query
-        description: The page number to load
-        schema:
-          type: integer
-      - name: page[size]
-        in: query
-        description: The size of the page
-        schema:
-          type: integer
-      - name: filter[connection_name][contains]
-        in: query
-        description: Filter by connection name containing the given string
-        schema:
-          type: string
-      - name: sort
-        in: query
-        description: Sort by field (e.g., created_at, connection_name, active). Prefix with - for descending order.
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MobileVoiceConnection'
-                  meta:
-                    $ref: '#/components/schemas/mobile_voice_connections_PaginationMeta'
-        '401':
-          description: Unauthorized
-      description: Retrieve a paginated list of mobile voice connections on your account.
-    post:
-      summary: Create a Mobile Voice Connection
-      operationId: createMobileVoiceConnection
-      tags:
-      - Mobile Voice Connections
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MobileVoiceConnectionCreate'
-            example:
-              active: true
-              connection_name: Telnyx Mobile Voice IMS
-              webhook_api_version: '2'
-              tags:
-              - string
-              outbound:
-                channel_limit: 0
-                outbound_voice_profile_id: string
-              inbound:
-                channel_limit: 0
-      responses:
-        '201':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobileVoiceConnection'
-        '403':
-          description: Unauthorized or Limit Reached
-        '422':
-          description: Unprocessable Entity
-      description: Creates a new mobile voice connection with the provided configuration and returns the created connection.
-  /v2/mobile_voice_connections/{id}:
-    delete:
-      summary: Delete a Mobile Voice Connection
-      operationId: deleteMobileVoiceConnection
-      tags:
-      - Mobile Voice Connections
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The ID of the mobile voice connection
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobileVoiceConnection'
-        '404':
-          description: Resource not found
-      description: Delete a mobile voice connection from your account.
-    get:
-      summary: Retrieve a Mobile Voice Connection
-      operationId: retrieveMobileVoiceConnection
-      tags:
-      - Mobile Voice Connections
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The ID of the mobile voice connection
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobileVoiceConnection'
-        '404':
-          description: Resource not found
-      description: Retrieve the details of a specific mobile voice connection.
-    patch:
-      summary: Update a Mobile Voice Connection
-      operationId: updateMobileVoiceConnection
-      tags:
-      - Mobile Voice Connections
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The ID of the mobile voice connection
-        schema:
-          type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MobileVoiceConnectionUpdate'
-            example:
-              active: false
-              connection_name: string
-              webhook_api_version: '1'
-              webhook_timeout_secs: 0
-              tags:
-              - string
-              outbound:
-                channel_limit: 0
-                outbound_voice_profile_id: string
-              inbound:
-                channel_limit: 0
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/MobileVoiceConnection'
-        '404':
-          description: Resource not found
-        '409':
-          description: Conflict. Another update to this connection is still in progress. Wait and retry the request later.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        detail:
-                          type: string
-              example:
-                errors:
-                - detail: A previous update to this connection is still in progress. Please try again later.
-        '422':
-          description: Unprocessable Entity
-      description: Update the settings of a specific mobile voice connection.
-  /v2/payment/stored_payment_transactions:
-    post:
-      summary: Create a stored payment transaction
-      operationId: createStoredPaymentTransaction
-      tags:
-      - Stored Payment Transactions
-      x-endpoint-cost: light
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StoredPaymentTransactionRequest'
-            example:
-              amount: '120.00'
-      responses:
-        '200':
-          description: Stored payment transaction created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StoredPaymentTransactionResponse'
-              example:
-                data:
-                  id: de06811a-2e43-4561-af5a-7d0a26e20aaa
-                  record_type: transaction
-                  amount_cents: 12000
-                  processor_status: submitted_for_settlement
-                  amount_currency: USD
-                  created_at: '2026-02-25T10:00:00Z'
-                  auto_recharge: false
-                  transaction_processing_type: stored_payment
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
-              example:
-                errors:
-                - code: '10009'
-                  title: Authentication failed
-                  detail: The required authentication headers were either invalid or not included in the request.
-        '403':
-          description: Forbidden - insufficient permissions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
-              example:
-                errors:
-                - code: '10010'
-                  title: Authorization failed
-                  detail: You do not have permission to perform the requested action on the specified resource or resources.
-        '422':
-          description: Unprocessable entity
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/stored-payment-transactions_ErrorResponse'
-              example:
-                errors:
-                - code: '10027'
-                  title: Invalid amount format
-                  detail: Amount must include dollars and cents (e.g. "120.00").
-                  meta:
-                    url: https://developers.telnyx.com/docs/overview/errors/10027
-                  source:
-                    pointer: /
-      x-latency-category: responsive
-      description: Create a transaction that charges a stored payment method on the account.
   /v2/whatsapp/business_accounts:
     get:
       tags:
@@ -78916,7 +79530,6 @@ components:
         - xai
         - humain
         - soniox
-        - assemblyai
         default: telnyx
     push-notifications_PageConsolidated:
       name: page
@@ -80907,26 +81520,104 @@ components:
             error:
               code: provider_error
               message: meeting provider rejected bot creation
+    MeetingCreateTooManyRequests:
+      description: Meeting capacity is reached (capacity_exceeded), or authentication is overloaded (auth_overloaded). Honor
+        Retry-After when present; otherwise back off. Retry the original create request with the same idempotency key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
+          examples:
+            capacity_exceeded:
+              value:
+                error:
+                  code: capacity_exceeded
+                  message: Meeting capacity is reached; retry later.
+            auth_overloaded:
+              value:
+                error:
+                  code: auth_overloaded
+                  message: authentication temporarily overloaded
+      headers:
+        Retry-After:
+          description: Seconds to wait, when supplied.
+          schema:
+            type: integer
+            minimum: 1
     MeetingReadAuthUnavailable:
-      description: Authentication is temporarily unavailable.
+      description: Authentication or session data is temporarily unavailable. Retry reads with backoff.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
-          example:
-            error:
-              code: auth_unavailable
-              message: authentication service unavailable
+          examples:
+            authentication:
+              value:
+                error:
+                  code: auth_unavailable
+                  message: authentication service unavailable
+            session:
+              value:
+                error:
+                  code: not_configured
+                  message: Session data is temporarily unavailable.
+    MeetingReadUnavailable:
+      description: Current meeting data could not be retrieved. Retry the read with backoff.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
+          examples:
+            provider_error:
+              value:
+                error:
+                  code: provider_error
+                  message: Meeting data is temporarily unavailable.
+    MeetingScheduleConflict:
+      description: The session is no longer editable, the calendar controls it, or another edit remains pending.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
+          examples:
+            invalid_state:
+              value:
+                error:
+                  code: invalid_state
+                  message: only scheduled sessions can be updated
+            calendar_managed:
+              value:
+                error:
+                  code: calendar_managed
+                  message: edit the calendar event for this session
+            edit_in_progress:
+              value:
+                error:
+                  code: edit_in_progress
+                  message: a previous schedule edit is still reconciling
     MeetingSendChatProviderError:
-      description: The meeting provider rejected native chat delivery.
+      description: Chat failed or its delivery is uncertain. Each new action sends a new message. Check chat before retrying
+        an unknown outcome.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/meeting-sessions_ErrorResponse'
-          example:
-            error:
-              code: provider_error
-              message: meeting provider rejected chat message
+          examples:
+            chat_not_sent:
+              value:
+                error:
+                  code: chat_not_sent
+                  message: Chat was not sent.
+            chat_delivery_unknown:
+              value:
+                error:
+                  code: chat_delivery_unknown
+                  message: Chat delivery is uncertain; check meeting chat before retrying.
+            provider_error:
+              value:
+                error:
+                  code: provider_error
+                  message: meeting provider rejected chat message
     MeetingSpeakUpstreamError:
       description: Text-to-speech generation or meeting audio delivery failed.
       content:
@@ -85644,6 +86335,7 @@ components:
           - azure_content_safety
         settings:
           type: object
+          additionalProperties: true
           description: 'The type''s settings. `content_filter`: `patterns` (prebuilt patterns by name, such as `us_ssn` or
             `email`), `regexes`, `keywords`, and `categories` (such as `prompt_injection`), each with an `action` of `block`
             or `mask`. `tool_permission`: `rules` (`id`, `tool_name`, `tool_type`, `decision`, `argument_patterns`), a `default`
@@ -85708,6 +86400,7 @@ components:
           description: The kind of check. It cannot change after create.
         settings:
           type: object
+          additionalProperties: true
           description: 'The type''s settings. `content_filter`: `patterns` (prebuilt patterns by `name`, such as `us_ssn`
             or `email`), `regexes` (each a `name`, which tags masked matches, and a `pattern`), `keywords` (each a `keyword`),
             and `categories` (each a `name`), each entry with an `action` of `block` or `mask`. `tool_permission`: `rules`
@@ -85764,6 +86457,7 @@ components:
             requests that name it.'
         settings:
           type: object
+          additionalProperties: true
           description: 'The type''s settings. `content_filter`: `patterns` (prebuilt patterns by name, such as `us_ssn` or
             `email`), `regexes`, `keywords`, and `categories` (such as `prompt_injection`), each with an `action` of `block`
             or `mask`. `tool_permission`: `rules` (`id`, `tool_name`, `tool_type`, `decision`, `argument_patterns`), a `default`
@@ -88244,65 +88938,6 @@ components:
       properties:
         text:
           type: string
-    AssemblyAIProviderParams:
-      type: object
-      description: AssemblyAI provider-specific parameters. Every voice speaks all six supported languages; set `language`
-        to the language of the text.
-      required:
-      - voice_id
-      properties:
-        voice_id:
-          type: string
-          description: AssemblyAI voice from the [voices listing](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices),
-            for example `aai-jane`.
-        model_id:
-          type: string
-          description: AssemblyAI model.
-          enum:
-          - assemblyai-tts-1
-          default: assemblyai-tts-1
-        language:
-          type: string
-          description: Two-letter ISO 639-1 code of the text. AssemblyAI does not detect the language.
-          enum:
-          - en
-          - es
-          - de
-          - fr
-          - it
-          - pt
-          default: en
-        audio_format:
-          type: string
-          description: Audio output format.
-          enum:
-          - mp3
-          - wav
-          - pcm_s16le
-          - pcm_mulaw
-          - pcm_alaw
-          default: mp3
-        sample_rate:
-          type: integer
-          description: Audio sample rate in Hz. Defaults to 24000, or 8000 for `pcm_mulaw` and `pcm_alaw`.
-          enum:
-          - 8000
-          - 16000
-          - 22050
-          - 24000
-          - 44100
-          - 48000
-    AssemblyAIVoiceSettings:
-      type: object
-      title: AssemblyAI Voice Settings
-      properties:
-        type:
-          type: string
-          enum:
-          - assemblyai
-          description: Voice settings provider type
-      required:
-      - type
     AssignProfileToCampaignRequest:
       title: AssignProfileToCampaignRequest
       required:
@@ -92084,6 +92719,485 @@ components:
           title: Billing Service
           type: string
           example: emergency
+    CalendarAssistantDefaults:
+      title: CalendarAssistantDefaults
+      type: object
+      additionalProperties: false
+      description: Default assistant for future calendar-scheduled Google Meet and Teams sessions. The saved configuration
+        must fit within 8 KiB. Use id, audio_gate, dynamic_variables, and leave_on_end; avatar is not accepted. audio_gate
+        defaults to full_duplex.
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Identifier of the assistant to attach.
+        audio_gate:
+          type: string
+          enum:
+          - half_duplex
+          - full_duplex
+          description: Use full_duplex (default) to allow participants to interrupt, or half_duplex to pause listening while
+            the assistant speaks. Full-duplex pricing depends on participant audio usage; see the Meeting pricing guide.
+          default: full_duplex
+        dynamic_variables:
+          type: object
+          description: Per-conversation values for the [dynamic variables](/docs/inference/ai-assistants/dynamic-variables)
+            used in the Assistant's instructions, greeting, or tools. Delivered before the Assistant's first utterance, so
+            they resolve for the opening line as well as the rest of the conversation. At most 63 entries; keys 1-128 characters;
+            values must be strings. The map is budgeted in aggregate at 1,047,552 bytes (1023 KiB) rather than capped per
+            value. `streaming_audio`, `ai_assistant_streaming_audio` and `meeting_session_id` are reserved and rejected with
+            `400 invalid_request`.
+          maxProperties: 63
+          propertyNames:
+            minLength: 1
+            maxLength: 128
+            not:
+              enum:
+              - streaming_audio
+              - ai_assistant_streaming_audio
+              - meeting_session_id
+          additionalProperties:
+            type: string
+        leave_on_end:
+          type: boolean
+          default: false
+          description: Leave when the assistant conversation ends or fails. Defaults to false. Other leave-policy rules and
+            explicit leave requests still apply.
+    CalendarAttendee:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          anyOf:
+          - type: string
+            description: Email address.
+          - type: 'null'
+        display_name:
+          anyOf:
+          - type: string
+            description: Display name.
+          - type: 'null'
+        self:
+          anyOf:
+          - type: boolean
+            description: Whether this is the connected calendar user.
+          - type: 'null'
+        response_status:
+          anyOf:
+          - type: string
+            description: Calendar RSVP status.
+          - type: 'null'
+        optional:
+          anyOf:
+          - type: boolean
+            description: Whether attendance is optional.
+          - type: 'null'
+      required:
+      - email
+      - display_name
+      - self
+      - response_status
+      - optional
+    CalendarConnection:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Calendar connection ID.
+        platform:
+          type: string
+          description: 'Calendar provider: Google Calendar or Microsoft Outlook.'
+          enum:
+          - google_calendar
+          - microsoft_outlook
+        platform_email:
+          anyOf:
+          - type: string
+            description: Connected calendar email address.
+          - type: 'null'
+        status:
+          type: string
+          description: Connection status.
+          enum:
+          - connected
+          - disconnected
+          - error
+        status_detail:
+          anyOf:
+          - type: string
+            description: Additional connection status detail.
+          - type: 'null'
+        auto_join_policy:
+          type: string
+          description: all_meetings joins eligible events; external_organizer_excluded requires the connected user to be the
+            organizer; per_meeting requires an explicit opt-in.
+          enum:
+          - all_meetings
+          - external_organizer_excluded
+          - per_meeting
+        bot_name:
+          anyOf:
+          - type: string
+            description: Bot display name; null clears the override.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_barge_in:
+          anyOf:
+          - type: boolean
+            description: Default manual speech interruption. Cannot be true with default_assistant.
+          - type: 'null'
+        default_summarize_on_end:
+          anyOf:
+          - type: boolean
+            description: Generate a summary when each future session transcript finalizes.
+          - type: 'null'
+        default_voice:
+          anyOf:
+          - type: string
+            description: Manual-speech voice; must be null when default_assistant is set.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_assistant:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionAssistant'
+          - type: 'null'
+        default_recording:
+          anyOf:
+          - type: boolean
+            description: Google Meet and Teams recording intent. When null, recording is enabled only if a destination is
+              set. True requires default_recording_export; false cannot be combined with a destination.
+          - type: 'null'
+        default_recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingDestination'
+          - type: 'null'
+        default_webhook_url:
+          anyOf:
+          - type: string
+            description: HTTPS destination for future session webhooks. Null clears the default. A non-null update returns
+              webhook_secret once; save it to verify signatures for sessions created with this default. Existing sessions
+              retain their original signing secret.
+            format: uri
+            maxLength: 2048
+          - type: 'null'
+        created_at:
+          type: string
+          description: Creation time.
+          format: date-time
+        updated_at:
+          type: string
+          description: Last update time.
+          format: date-time
+      required:
+      - id
+      - platform
+      - platform_email
+      - status
+      - status_detail
+      - auto_join_policy
+      - bot_name
+      - default_barge_in
+      - default_summarize_on_end
+      - default_voice
+      - default_assistant
+      - default_recording
+      - default_recording_export
+      - default_webhook_url
+      - created_at
+      - updated_at
+    CalendarConnectionListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarConnection'
+      required:
+      - data
+    CalendarConnectionPending:
+      type: object
+      additionalProperties: false
+      properties:
+        platform:
+          type: string
+          description: 'Calendar provider: Google Calendar or Microsoft Outlook.'
+          enum:
+          - google_calendar
+          - microsoft_outlook
+        status:
+          type: string
+          description: Authorization has not completed.
+          const: pending_oauth
+        oauth_url:
+          type: string
+          description: Open in a browser to authorize calendar access.
+          format: uri
+      required:
+      - platform
+      - status
+      - oauth_url
+    CalendarConnectionPendingResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/CalendarConnectionPending'
+      required:
+      - data
+    CalendarConnectionResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/CalendarConnection'
+      required:
+      - data
+    CalendarConnectionUpdated:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Calendar connection ID.
+        platform:
+          type: string
+          description: 'Calendar provider: Google Calendar or Microsoft Outlook.'
+          enum:
+          - google_calendar
+          - microsoft_outlook
+        platform_email:
+          anyOf:
+          - type: string
+            description: Connected calendar email address.
+          - type: 'null'
+        status:
+          type: string
+          description: Connection status.
+          enum:
+          - connected
+          - disconnected
+          - error
+        status_detail:
+          anyOf:
+          - type: string
+            description: Additional connection status detail.
+          - type: 'null'
+        auto_join_policy:
+          type: string
+          description: all_meetings joins eligible events; external_organizer_excluded requires the connected user to be the
+            organizer; per_meeting requires an explicit opt-in.
+          enum:
+          - all_meetings
+          - external_organizer_excluded
+          - per_meeting
+        bot_name:
+          anyOf:
+          - type: string
+            description: Bot display name; null clears the override.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_barge_in:
+          anyOf:
+          - type: boolean
+            description: Default manual speech interruption. Cannot be true with default_assistant.
+          - type: 'null'
+        default_summarize_on_end:
+          anyOf:
+          - type: boolean
+            description: Generate a summary when each future session transcript finalizes.
+          - type: 'null'
+        default_voice:
+          anyOf:
+          - type: string
+            description: Manual-speech voice; must be null when default_assistant is set.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_assistant:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionAssistant'
+          - type: 'null'
+        default_recording:
+          anyOf:
+          - type: boolean
+            description: Google Meet and Teams recording intent. When null, recording is enabled only if a destination is
+              set. True requires default_recording_export; false cannot be combined with a destination.
+          - type: 'null'
+        default_recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingDestination'
+          - type: 'null'
+        default_webhook_url:
+          anyOf:
+          - type: string
+            description: HTTPS destination for future session webhooks. Null clears the default. A non-null update returns
+              webhook_secret once; save it to verify signatures for sessions created with this default. Existing sessions
+              retain their original signing secret.
+            format: uri
+            maxLength: 2048
+          - type: 'null'
+        created_at:
+          type: string
+          description: Creation time.
+          format: date-time
+        updated_at:
+          type: string
+          description: Last update time.
+          format: date-time
+        webhook_secret:
+          type: string
+          description: Returned only when PATCH supplies a non-null default_webhook_url. Not returned by list or retrieve.
+            Save this secret to verify webhooks for future sessions.
+      required:
+      - id
+      - platform
+      - platform_email
+      - status
+      - status_detail
+      - auto_join_policy
+      - bot_name
+      - default_barge_in
+      - default_summarize_on_end
+      - default_voice
+      - default_assistant
+      - default_recording
+      - default_recording_export
+      - default_webhook_url
+      - created_at
+      - updated_at
+    CalendarConnectionUpdatedResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/CalendarConnectionUpdated'
+      required:
+      - data
+    CalendarMeeting:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Tracked calendar meeting ID.
+        platform:
+          type: string
+          enum:
+          - zoom
+          - google_meet
+          - teams
+          - webex
+          - unknown
+          description: Detected meeting platform.
+        start_time:
+          type: string
+          description: Event start time.
+          format: date-time
+        end_time:
+          anyOf:
+          - type: string
+            description: Event end time.
+            format: date-time
+          - type: 'null'
+        organizer:
+          anyOf:
+          - $ref: '#/components/schemas/CalendarPerson'
+          - type: 'null'
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarAttendee'
+          description: Calendar attendees; identity fields are cleared after the retention window.
+        is_external_organizer:
+          anyOf:
+          - type: boolean
+            description: Whether the connected calendar user is not the organizer.
+          - type: 'null'
+        bot_will_join:
+          type: boolean
+          description: Effective policy decision, not proof that the bot has joined.
+        bot_will_join_override:
+          anyOf:
+          - type: boolean
+            description: Explicit override; null follows the connection policy.
+          - type: 'null'
+        decision:
+          type: string
+          description: Scheduling decision.
+          enum:
+          - pending
+          - scheduled
+          - skipped_policy
+          - skipped_no_url
+          - skipped_duplicate
+          - skipped_unsupported
+          - cancelled
+        session_id:
+          anyOf:
+          - type: string
+            description: Linked meeting session ID, or null until one exists.
+          - type: 'null'
+      required:
+      - id
+      - platform
+      - start_time
+      - end_time
+      - organizer
+      - attendees
+      - is_external_organizer
+      - bot_will_join
+      - bot_will_join_override
+      - decision
+      - session_id
+    CalendarMeetingListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarMeeting'
+      required:
+      - data
+    CalendarMeetingResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/CalendarMeeting'
+      required:
+      - data
+    CalendarPerson:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          anyOf:
+          - type: string
+            description: Email address.
+          - type: 'null'
+        display_name:
+          anyOf:
+          - type: string
+            description: Display name.
+          - type: 'null'
+        self:
+          anyOf:
+          - type: boolean
+            description: Whether this is the connected calendar user.
+          - type: 'null'
+      required:
+      - email
+      - display_name
+      - self
     Call:
       type: object
       title: Call
@@ -101823,7 +102937,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -101836,7 +102949,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -102978,7 +104090,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -102991,7 +104102,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         tts_provider:
           type: string
           description: Text-to-speech provider. If omitted, Telnyx derives it from `voice` or `provider`.
@@ -103121,7 +104231,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -103134,7 +104243,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         transcription_engine:
           description: Engine to use for speech recognition. Legacy values `A` - `Google`, `B` - `Telnyx` are supported for
             backward compatibility. When provided in a Conversation Relay language entry, Telnyx derives `transcription_provider`
@@ -103249,7 +104357,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -103262,7 +104369,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         greeting:
           type: string
           description: Text played when the relay session starts.
@@ -104112,6 +105218,18 @@ components:
           type: string
           description: Webhook failover URL for brand status updates.
           example: https://webhook.com/9010a453-4df8-4be6-a551-1070892888d6
+    CreateCalendarConnectionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        platform:
+          type: string
+          description: 'Calendar provider: Google Calendar or Microsoft Outlook.'
+          enum:
+          - google_calendar
+          - microsoft_outlook
+      required:
+      - platform
     CreateCallControlApplicationRequest:
       type: object
       title: Create Call Control Application Request
@@ -106263,11 +107381,12 @@ components:
 
         - The `assistant` options, including `avatar`, take effect at session creation and cannot be modified later.
 
-        - A digital avatar or Assistant webpage output takes precedence over `camera_image`; the static image is ignored and
-        a URL source is not fetched.
+        - An avatar takes precedence over `camera_image`; ordinary assistant sessions can use a static camera image.
 
-        - The former top-level `avatar` object (bring-your-own-key avatar) has been removed and is rejected with 400 `invalid_request`;
-        use `assistant.avatar` instead.'
+
+        Google Meet and Teams recording requires a recording_export destination. Use join_at to schedule a meeting, or omit
+        it to join now. Zoom recordings are enabled automatically; Zoom does not support recording, recording_view or recording_export,
+        and ignores leave_policy. Digital avatars require avatar support.'
       required:
       - meeting_url
       properties:
@@ -106283,21 +107402,22 @@ components:
         join_at:
           type: string
           format: date-time
-          description: ISO-8601 timestamp in the future at which the bot should join. If omitted, the bot joins immediately.
+          description: Future ISO-8601 join timestamp including timezone. Google Meet and Teams accept dates at most three
+            years ahead. Omit for an immediate join. Assistant sessions created through this endpoint must join immediately.
         voice:
           type: string
           minLength: 1
           maxLength: 100
           description: Session-default voice identifier used for `speak_on_enter` and ordinary speak actions. A voice supplied
-            on an individual speak action overrides this default for that utterance.
+            on an individual speak action overrides this default for that utterance. With an assistant attached, its conversational
+            voice remains configured on the assistant.
         speak_on_enter:
           type: string
           minLength: 1
           maxLength: 4000
-          description: 'Text the bot speaks when it enters the meeting. **Not spoken when an `assistant` is attached**: the
-            value is accepted and echoed back on the session, but the assistant owns the voice and the line is never delivered,
-            with no event reporting the omission. Use `chat_on_enter` to announce an assistant-backed bot. Rejected with 400
-            `invalid_request` when `assistant.avatar` is `true`.'
+          description: Text the bot speaks after joining. Available for sessions without a digital avatar. With an AI Assistant,
+            the greeting waits until the assistant is connected. Rejected with 400 invalid_request when assistant.avatar is
+            true.
         chat_on_enter:
           type: string
           minLength: 1
@@ -106305,7 +107425,8 @@ components:
           description: 'A message the bot posts to the meeting''s chat as soon as it becomes active — typically a recording
             disclosure. Delivered at most once. Independent of `speak_on_enter`: both may be set, and the chat message posts
             first because it does not wait for text-to-speech or avatar startup. Rejected with 422 `unsupported_capability`
-            on platforms without meeting chat.'
+            on platforms without meeting chat. For Google Meet and Teams, text must be nonblank, at most 4096 UTF-8 bytes,
+            with no control characters except tabs and line breaks. Counts toward the 1000-chat-request session limit.'
         barge_in:
           type: boolean
           default: false
@@ -106331,29 +107452,42 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-          description: Client-supplied idempotency key to safely retry creation requests without duplicating sessions. Lookup
-            is scoped to the authenticated account and compares the key only; the request payload is not fingerprinted or
-            compared.
+          description: Use a unique key per intended join and reuse the same key and request on retries. Reusing a key with
+            a different join configuration or meeting URL can return 409 invalid_state. Always retry with the original request.
         assistant:
           $ref: '#/components/schemas/MeetingSessionAssistantRequest'
+        leave_policy:
+          $ref: '#/components/schemas/MeetingSessionLeavePolicy'
+        recording:
+          type: boolean
+          description: Google Meet and Teams only. Defaults to true when recording_export is supplied and false otherwise.
+            True requires recording_export.bucket; false cannot be combined with recording_export. Fixed at creation, with
+            no pause/resume action. Zoom rejects recording, recording_view, and recording_export with 422 unsupported_capability;
+            omit these fields for Zoom.
+        recording_view:
+          type: string
+          enum:
+          - speaker_view
+          - gallery_view
+          - speaker_view_no_sidebar
+          description: Recording layout for Google Meet and Teams. Defaults to speaker_view. Accepted at creation only; does
+            not enable recording by itself.
+          default: speaker_view
+        recording_export:
+          $ref: '#/components/schemas/MeetingSessionRecordingDestination'
       examples:
       - meeting_url: https://zoom.us/j/1234567890
         bot_name: Notetaker
       - meeting_url: https://meet.google.com/abc-defg-hij
-        bot_name: Avatar Assistant
-        assistant:
-          id: asst_fake-uuid-1234
-          audio_gate: full_duplex
-          avatar: true
-          leave_on_end: true
-      - meeting_url: https://teams.microsoft.com/l/meetup-join/example
-        bot_name: Voice Assistant
-        assistant:
-          id: asst_fake-uuid-1234
-          audio_gate: half_duplex
-          dynamic_variables:
-            candidate_name: Ada Lovelace
-            role: Staff Engineer
+        bot_name: Notetaker
+        idempotency_key: weekly-planning-2026-11-10
+        recording: true
+        recording_export:
+          bucket: meeting-recordings
+          prefix: weekly-planning
+        leave_policy:
+          alone_seconds: 300
+          max_duration_seconds: 7200
     CreateMeetingSessionResponse:
       type: object
       additionalProperties: false
@@ -119092,7 +120226,6 @@ components:
           - $ref: '#/components/schemas/ResembleVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -119103,7 +120236,6 @@ components:
               resemble: '#/components/schemas/ResembleVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         greeting:
           description: Text that will be played when the gathering starts, if none then nothing will be played when the gathering
             starts. The greeting can be text for any voice or SSML for `AWS.Polly.<voice_id>` voices. There is a 3,000 character
@@ -119356,7 +120488,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -119369,7 +120500,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -119616,7 +120746,6 @@ components:
           - xai
           - humain
           - soniox
-          - assemblyai
         language:
           type: string
           description: Language code (e.g. `en-US`). Usage varies by provider.
@@ -119661,8 +120790,6 @@ components:
           $ref: '#/components/schemas/HumainProviderParams'
         soniox:
           $ref: '#/components/schemas/SonioxProviderParams'
-        assemblyai:
-          $ref: '#/components/schemas/AssemblyAIProviderParams'
     GenerateTestMetricsRequest:
       type: object
       properties:
@@ -125914,8 +127041,8 @@ components:
       title: MeetingSession
       type: object
       additionalProperties: false
-      description: Represents a meeting session. All serializer fields are present and required; nullable fields use null
-        when absent. No actor, provider-bot, idempotency, routing, key, or internal fields are exposed.
+      description: Represents a meeting session. Core serializer fields are required; platform-specific fields are optional.
+        Nullable fields use null when absent. No actor, provider-bot, idempotency, routing, key, or internal fields are exposed.
       required:
       - id
       - account_id
@@ -125950,7 +127077,8 @@ components:
           description: Identifier of the owning account.
         provider:
           type: string
-          description: Provider handling the meeting session.
+          description: Always telnyx.
+          const: telnyx
         status:
           type: string
           enum:
@@ -125970,7 +127098,11 @@ components:
           type:
           - string
           - 'null'
-          description: Additional human-readable detail about the status, or null.
+          description: A machine-readable lifecycle reason, or null. Values include left_on_request, meeting_ended, everyone_left,
+            no_one_joined, silence_timeout, max_duration_reached, admission_timeout, admission_denied, removed_from_meeting,
+            recording_permission_denied, meeting_not_found, meeting_not_started, meeting_access_denied, meeting_full, cancelled,
+            cancelled_calendar_disconnected, cancelled_calendar_event_deleted, cancelled_calendar_superseded, cancelled_policy,
+            internal_error, and other. Treat this vocabulary as extensible.
         recording:
           type: boolean
           description: Whether the session is being recorded.
@@ -126052,7 +127184,11 @@ components:
           type:
           - string
           - 'null'
-          description: Human-readable failure reason if the session failed, or null.
+          description: A machine-readable lifecycle reason, or null. Values include left_on_request, meeting_ended, everyone_left,
+            no_one_joined, silence_timeout, max_duration_reached, admission_timeout, admission_denied, removed_from_meeting,
+            recording_permission_denied, meeting_not_found, meeting_not_started, meeting_access_denied, meeting_full, cancelled,
+            cancelled_calendar_disconnected, cancelled_calendar_event_deleted, cancelled_calendar_superseded, cancelled_policy,
+            internal_error, and other. Treat this vocabulary as extensible.
         created_at:
           type: string
           format: date-time
@@ -126080,6 +127216,17 @@ components:
           type: string
           format: date-time
           description: Timestamp of the last update to the session.
+        recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingExport'
+          - type: 'null'
+          description: Included on Google Meet and Teams create/retrieve responses, omitted from lists and update/leave responses.
+            Null when disabled or no export reference is available.
+        remote_state_observed_at:
+          type: string
+          format: date-time
+          description: Optional observation time on session list items. Retrieve the individual session when current state
+            is required.
     MeetingSessionArtifact:
       type: object
       required:
@@ -126187,7 +127334,6 @@ components:
       required:
       - id
       - audio_gate
-      - dynamic_variables
       - leave_on_end
       properties:
         id:
@@ -126205,7 +127351,8 @@ components:
             additionalProperties:
               type: string
           - type: 'null'
-          description: The dynamic variables in force for this session, or null when none were supplied.
+          description: Dynamic variables in individual-session responses; null when none were supplied. Omitted from session
+            list items.
         leave_on_end:
           type: boolean
           description: Whether the bot leaves when the Assistant's conversation ends or fails.
@@ -126213,9 +127360,8 @@ components:
       title: MeetingSessionAssistantRequest
       type: object
       additionalProperties: false
-      description: Attach a Telnyx AI Assistant to the session. Supply the Assistant's ID; the Meeting service connects it
-        to the meeting directly. The Call Control connection, caller ID and loopback SIP URI previously required here have
-        been removed and are now rejected as unknown fields.
+      description: Attach a Telnyx AI Assistant owned by the authenticated account. Supply its ID and optional conversation
+        settings. Unknown fields are rejected.
       required:
       - id
       properties:
@@ -126229,11 +127375,9 @@ components:
           enum:
           - half_duplex
           - full_duplex
+          description: Use half_duplex (default) to pause listening while the assistant speaks, or full_duplex to allow participants
+            to interrupt. Full-duplex pricing depends on participant audio usage; see the Meeting pricing guide.
           default: half_duplex
-          description: 'Audio gating strategy for the assistant call leg. `half_duplex` (default) sends the assistant a single
-            mixed meeting stream and mutes it while the assistant speaks, so the assistant cannot hear itself and cannot be
-            interrupted. `full_duplex` sends a separate stream per participant, which allows barge-in and removes self-hearing,
-            and COSTS SIGNIFICANTLY MORE: per-participant streams multiply the per-minute cost by the number of participants.'
         dynamic_variables:
           type: object
           description: Per-conversation values for the [dynamic variables](/docs/inference/ai-assistants/dynamic-variables)
@@ -126241,8 +127385,7 @@ components:
             they resolve for the opening line as well as the rest of the conversation. At most 63 entries; keys 1-128 characters;
             values must be strings. The map is budgeted in aggregate at 1,047,552 bytes (1023 KiB) rather than capped per
             value. `streaming_audio`, `ai_assistant_streaming_audio` and `meeting_session_id` are reserved and rejected with
-            `400 invalid_request` -- they toggle provider infrastructure or are set by the service rather than fill a prompt
-            template.
+            `400 invalid_request`.
           maxProperties: 63
           propertyNames:
             minLength: 1
@@ -126257,18 +127400,17 @@ components:
         leave_on_end:
           type: boolean
           default: false
-          description: 'Leave the meeting when the Assistant''s conversation reaches a terminal state -- `ended` **or** `failed`.
-            Off by default, which leaves the bot in the meeting after the Assistant stops. Fires once: a second terminal transition
-            does not leave twice, and a leave the provider refuses is logged without changing how the session settles.'
+          description: Leave when the assistant conversation ends or fails. Defaults to false. Other leave-policy rules and
+            explicit leave requests still apply.
         avatar:
           type: boolean
           default: false
           description: 'Beta. Show the avatar configured on the assistant (its `avatar_settings`; see [AI Assistant avatars](/docs/inference/ai-assistants/avatars))
             as the bot''s camera, lip-synced to the assistant''s own speech. The request carries no avatar ID or key: the
             assistant is read at creation and the request is rejected with 400 `invalid_request` if it has no Telnyx avatar
-            configured. Supported on Google Meet, Zoom, Microsoft Teams and Webex; other platforms return 422 `unsupported_capability`.
-            REST-only. Not echoed back on `assistant`; the session''s top-level `avatar` and `avatar_state` fields report
-            it instead. If the avatar fails, the session continues voice-only and `avatar_state` becomes `degraded`.'
+            configured. Available for Google Meet, Zoom, and Teams sessions. REST-only. Not echoed back on `assistant`; the
+            session''s top-level `avatar` and `avatar_state` fields report it instead. If the avatar fails, the session continues
+            voice-only and `avatar_state` becomes `degraded`.'
     MeetingSessionAvatar:
       title: MeetingSessionAvatar
       type: object
@@ -126297,10 +127439,11 @@ components:
     MeetingSessionCameraImage:
       title: MeetingSessionCameraImage
       type: object
-      description: Write-only static camera-tile image for this session, not a native account or participant profile photo.
-        Supply exactly one JPEG source. When effective, the image is used as the bot's static camera/video output; presentation
-        varies by meeting platform and recording configuration and is not guaranteed in recordings. An effective Avatar or
-        Assistant webpage output takes precedence, so this input is ignored and a URL source is not fetched.
+      description: Not supported for Google Meet and Teams joins (422 unsupported_capability). Write-only static camera-tile
+        image for this session, not an account or participant profile photo. Supply exactly one JPEG source. When effective,
+        the image is used as the bot's static camera/video output; presentation varies by meeting platform and recording configuration
+        and is not guaranteed in recordings. An attached assistant or avatar takes precedence, so this input is ignored and
+        a URL source is not fetched.
       writeOnly: true
       oneOf:
       - $ref: '#/components/schemas/MeetingSessionCameraImageBase64Source'
@@ -126325,7 +127468,7 @@ components:
           description: Canonical plain RFC 4648 Base64 for a valid decoded JPEG. Data URIs, whitespace, and the URL-safe alphabet
             are rejected. The encoded value is limited to 1,835,008 characters and the decoded JPEG to 1,363,148 bytes. The
             JPEG is limited to 4,096 pixels per dimension, 4 megapixels, and 128 MB of decoder memory. The image bytes are
-            not persisted, returned, or logged.
+            not returned in the session response.
       examples:
       - format: jpeg
         base64_data: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAACAAIBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACP/EAB4QAAAEBwAAAAAAAAAAAAAAAAAEBgcCFic1RVNi/9oACAEBAAA/AH8hGJbWR09TxKW4vhC2qHgf/9k=
@@ -126351,7 +127494,7 @@ components:
             raw control characters, or explicit non-default port. Signed queries are allowed but must be treated as credentials.
             Fetching is limited to public network destinations, a five-second timeout, no redirects, a 2xx image/jpeg response
             with identity or no content encoding, and a 1,363,148-byte limit enforced against both declared and streamed content.
-            The service resolves the URL before bot creation and does not persist, return, or log the URL or image bytes.
+            The service resolves the URL before bot creation and does not return the URL or image bytes in the session response.
       examples:
       - format: jpeg
         url: https://cdn.example.com/bot-camera.jpg
@@ -126365,6 +127508,7 @@ components:
       - barge_in
       - summarize_on_end
       - chat_on_enter
+      - deepfake_detection
       properties:
         voice:
           type:
@@ -126388,6 +127532,30 @@ components:
         summarize_on_end:
           type: boolean
           description: Whether a summary artifact is generated on session end.
+        leave_policy:
+          $ref: '#/components/schemas/MeetingSessionLeavePolicy'
+        recording:
+          type: boolean
+          description: Recording intent set at creation for Google Meet and Teams. Distinct from the top-level recording field,
+            which reports current activity.
+        recording_view:
+          type: string
+          enum:
+          - gallery_view
+          - speaker_view_no_sidebar
+          description: Non-default recording layout. Omitted for the default speaker_view layout.
+        deepfake_detection:
+          type: object
+          required:
+          - audio
+          - video
+          additionalProperties: false
+          properties:
+            audio:
+              type: boolean
+            video:
+              type: boolean
+          description: Detection settings. Enabling audio or video detection is currently unsupported.
     MeetingSessionCreated:
       title: MeetingSessionCreated
       type: object
@@ -126430,7 +127598,8 @@ components:
           description: Identifier of the owning account.
         provider:
           type: string
-          description: Provider handling the meeting session.
+          description: Always telnyx.
+          const: telnyx
         status:
           type: string
           enum:
@@ -126450,7 +127619,11 @@ components:
           type:
           - string
           - 'null'
-          description: Additional human-readable detail about the status, or null.
+          description: A machine-readable lifecycle reason, or null. Values include left_on_request, meeting_ended, everyone_left,
+            no_one_joined, silence_timeout, max_duration_reached, admission_timeout, admission_denied, removed_from_meeting,
+            recording_permission_denied, meeting_not_found, meeting_not_started, meeting_access_denied, meeting_full, cancelled,
+            cancelled_calendar_disconnected, cancelled_calendar_event_deleted, cancelled_calendar_superseded, cancelled_policy,
+            internal_error, and other. Treat this vocabulary as extensible.
         recording:
           type: boolean
           description: Whether the session is being recorded.
@@ -126532,7 +127705,11 @@ components:
           type:
           - string
           - 'null'
-          description: Human-readable failure reason if the session failed, or null.
+          description: A machine-readable lifecycle reason, or null. Values include left_on_request, meeting_ended, everyone_left,
+            no_one_joined, silence_timeout, max_duration_reached, admission_timeout, admission_denied, removed_from_meeting,
+            recording_permission_denied, meeting_not_found, meeting_not_started, meeting_access_denied, meeting_full, cancelled,
+            cancelled_calendar_disconnected, cancelled_calendar_event_deleted, cancelled_calendar_superseded, cancelled_policy,
+            internal_error, and other. Treat this vocabulary as extensible.
         created_at:
           type: string
           format: date-time
@@ -126565,6 +127742,17 @@ components:
           readOnly: true
           description: Secret for validating webhook signatures. Returned only on the first successful create when `webhook_url`
             is configured. Never replayed, listed, or retrievable on subsequent requests.
+        recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingExport'
+          - type: 'null'
+          description: Included on Google Meet and Teams create/retrieve responses, omitted from lists and update/leave responses.
+            Null when disabled or no export reference is available.
+        remote_state_observed_at:
+          type: string
+          format: date-time
+          description: Optional observation time on session list items. Retrieve the individual session when current state
+            is required.
       examples:
       - id: mtgsess_a1b2c3d4-e5f6-7890-abcd-ef1234567890
         account_id: acct_fake-uuid-0001
@@ -126581,6 +127769,9 @@ components:
           barge_in: false
           summarize_on_end: false
           chat_on_enter: null
+          deepfake_detection:
+            audio: false
+            video: false
         avatar: null
         avatar_state: null
         avatar_state_changed_at: null
@@ -126610,6 +127801,9 @@ components:
           barge_in: false
           summarize_on_end: true
           chat_on_enter: null
+          deepfake_detection:
+            audio: false
+            video: false
         avatar: null
         avatar_state: null
         avatar_state_changed_at: null
@@ -126658,6 +127852,63 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MeetingSessionEvent'
+    MeetingSessionLeavePolicy:
+      type: object
+      additionalProperties: false
+      description: Automatic departure settings for Google Meet and Teams. Omitted fields use the default behavior. Set at
+        creation; cannot be changed later. Zoom ignores this policy.
+      properties:
+        silence_seconds:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          default: 600
+          description: Continuous audio inactivity before departure after the silence grace period.
+        silence_grace_seconds:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          default: 1200
+          description: Seconds after joining before silence detection starts a fresh inactivity timer.
+        alone_seconds:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          default: 60
+          description: Seconds alone after another participant has attended and left. Does not start just because the bot
+            arrives first.
+        host_wait_seconds:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          default: 600
+          description: Seconds to wait for the host to start the meeting.
+        lobby_wait_seconds:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+          default: 900
+          description: Seconds to wait for lobby admission.
+        max_duration_seconds:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+          maximum: 2147483647
+          default: null
+          description: Maximum seconds after joining. Null means no per-join duration limit; service safety limits still apply.
+        bot_name_keywords:
+          type:
+          - array
+          - 'null'
+          maxItems: 100
+          items:
+            type: string
+            minLength: 1
+            maxLength: 100
+          default: null
+          description: Case-insensitive names or phrases identifying other bots to exclude when deciding whether this bot
+            is alone. Matching splits names on spaces, hyphens and underscores. Null or an empty array disables filtering.
     MeetingSessionListResponse:
       type: object
       additionalProperties: false
@@ -126668,6 +127919,66 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MeetingSession'
+    MeetingSessionRecordingDestination:
+      type: object
+      additionalProperties: false
+      required:
+      - bucket
+      description: Customer-owned Telnyx Storage destination for recording exports. Uses the authenticated organization and
+        user; do not supply credentials, region, organization ID or object key.
+      properties:
+        bucket:
+          type: string
+          minLength: 3
+          maxLength: 63
+          pattern: ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$
+          description: Existing accessible bucket. Consecutive dots and IPv4-address names are rejected.
+        prefix:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: ^[A-Za-z0-9/_.-]+$
+          description: Optional object-key prefix. One trailing slash is normalized. Empty path segments, . and .. segments
+            are rejected.
+    MeetingSessionRecordingExport:
+      type: object
+      additionalProperties: false
+      required:
+      - type
+      - bucket
+      - region
+      - key
+      - bytes
+      - status
+      - exported_at
+      properties:
+        type:
+          type: string
+          const: video
+        bucket:
+          type: string
+        region:
+          type: string
+        key:
+          type: string
+        bytes:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        status:
+          type: string
+          enum:
+          - pending
+          - exported
+          - failed
+        exported_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      description: Customer Storage recording reference. Pending is not downloadable; exported means upload was verified;
+        failed is terminal. Download with ordinary Storage authorization. No presigned URL is returned.
     MeetingSessionRecordingMediaDeletionResponse:
       type: object
       additionalProperties: false
@@ -126703,6 +128014,39 @@ components:
           provider: telnyx
           scope: provider_recording_media
           deletion_status: requested
+    MeetingSessionRecordingsResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          description: Temporary download URLs for recordings held by the Meeting service, including Zoom and existing Google
+            Meet and Teams recordings. Empty for customer Storage exports; use recording_export instead. Choose the download
+            method from these fields rather than the platform alone.
+          items:
+            type: object
+            required:
+            - type
+            - url
+            - expires_at
+            properties:
+              type:
+                type: string
+              url:
+                type: string
+                format: uri
+              expires_at:
+                type:
+                - string
+                - 'null'
+                format: date-time
+        recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingExport'
+          - type: 'null'
+          description: Customer Storage export, or null while unavailable/disabled. Omitted for sessions without Storage export
+            support.
     MeetingSessionResponse:
       type: object
       additionalProperties: false
@@ -138036,7 +139380,7 @@ components:
         details:
           type: array
           items:
-            $ref: '#/components/schemas/PortingOrdersExceptionType'
+            $ref: '#/components/schemas/PortingOrderStatusDetails'
           description: A list of 0 or more details about this porting order's status
         value:
           type: string
@@ -138051,6 +139395,106 @@ components:
           - ported
           - cancelled
           - cancel-pending
+    PortingOrderStatusDetails:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Identifier of the exception. Includes legacy codes persisted on older orders
+          enum:
+          - ACCOUNT_NUMBER_MISMATCH
+          - ACCOUNT_NUMBER_MISMATCH_OR_MISSING
+          - ACCOUNT_NUMBER_REQUIRED
+          - ALL_DATA_MISMATCH
+          - AUTH_PERSON_MISMATCH
+          - BTN_ATN_MISMATCH
+          - DOCUMENT_BLOCKED
+          - ENTITY_NAME_MISMATCH
+          - FOC_EXPIRED
+          - FOC_REJECTED
+          - INCORRECT_LOA_TEMPLATE
+          - INCORRECT_LOSING_COMMUNICATION_PROVIDER
+          - INCORRECT_PORT_TYPE
+          - INVALID_OR_MISSING_INVOICE
+          - INVALID_OR_MISSING_LOA
+          - INVALID_SIGNATURE_ON_THE_LOA
+          - J2_PASSCODE_PIN_INVALID
+          - LOA_ILLEGIBLE
+          - LOCATION_MISMATCH
+          - LOSING_CARRIER_OUTAGE
+          - LSR_PENDING
+          - MAIN_BTN_PORTING
+          - MISSING_MANDATORY_REQUIREMENT
+          - MISSING_NUMBER_DETAILS
+          - NUMBER_HAS_ASSOCIATED_SERVICES
+          - ORDER_REFLOW
+          - OSP_IRRESPONSIVE
+          - OTHER
+          - PASSCODE_PIN_INVALID
+          - PHONE_NUMBER_HAS_SPECIAL_FEATURE
+          - PHONE_NUMBER_MISMATCH
+          - PHONE_NUMBER_NOT_PORTABLE
+          - PORTING_ORDER_SPLIT_REQUIRED
+          - PORT_TYPE_INCORRECT
+          - POSTAL_CODE_MISMATCH
+          - RATE_CENTER_NOT_PORTABLE
+          - RESELLER_INVALID
+          - STRANDED_SERVICES_NEED_NEW_BTN
+          - SV_CONFLICT
+          - SV_UNKNOWN_FAILURE
+          - TNS_ON_MULTIPLE_ACCOUNTS
+          - TN_BUILD_CONFLICT
+          - TN_DISCONNECTED
+          - UNAUTHORIZED_PERSON_SIGNATURE
+          example: ENTITY_NAME_MISMATCH
+        description:
+          type: string
+          description: Description of the exception
+          example: Entity name does not match that on the CSR
+        remediation:
+          type: object
+          description: Structured remediation steps so an agent can map the exception to a fix via the API alone
+          properties:
+            action:
+              type: string
+              description: The type of remediation action to take
+              enum:
+              - update_order_fields
+              - upload_document
+              - create_orders
+              - assign_foc_datetime
+              - wait
+              - external_action
+              - contact_support
+              example: update_order_fields
+            fields:
+              type: array
+              description: Patchable field paths to correct, empty when no field update applies
+              items:
+                type: string
+              example:
+              - end_user.location.postal_code
+            required_document:
+              type:
+              - string
+              - 'null'
+              description: The document to (re)upload, when applicable
+              enum:
+              - loa
+              - invoice
+              - 'null'
+            retryable:
+              type: boolean
+              description: Whether resubmission or polling alone can unblock the order
+          required:
+          - action
+          - fields
+          - required_document
+          - retryable
+      required:
+      - code
+      - description
+      - remediation
     PortingOrderType:
       type: string
       description: A port can be either 'full' or 'partial'. When type is 'full' the other attributes should be omitted.
@@ -138197,31 +139641,93 @@ components:
           description: Identifier of an exception type
           enum:
           - ACCOUNT_NUMBER_MISMATCH
+          - ACCOUNT_NUMBER_MISMATCH_OR_MISSING
+          - ACCOUNT_NUMBER_REQUIRED
+          - ALL_DATA_MISMATCH
           - AUTH_PERSON_MISMATCH
           - BTN_ATN_MISMATCH
+          - DOCUMENT_BLOCKED
           - ENTITY_NAME_MISMATCH
           - FOC_EXPIRED
           - FOC_REJECTED
+          - INCORRECT_LOA_TEMPLATE
+          - INCORRECT_LOSING_COMMUNICATION_PROVIDER
+          - INCORRECT_PORT_TYPE
+          - INVALID_OR_MISSING_INVOICE
+          - INVALID_OR_MISSING_LOA
+          - INVALID_SIGNATURE_ON_THE_LOA
+          - J2_PASSCODE_PIN_INVALID
           - LOCATION_MISMATCH
           - LSR_PENDING
           - MAIN_BTN_PORTING
+          - MISSING_MANDATORY_REQUIREMENT
+          - MISSING_NUMBER_DETAILS
+          - NUMBER_HAS_ASSOCIATED_SERVICES
+          - ORDER_REFLOW
           - OSP_IRRESPONSIVE
           - OTHER
           - PASSCODE_PIN_INVALID
-          - PHONE_NUMBER_HAS_SPECIAL_FEATURE
           - PHONE_NUMBER_MISMATCH
           - PHONE_NUMBER_NOT_PORTABLE
-          - PORT_TYPE_INCORRECT
-          - PORTING_ORDER_SPLIT_REQUIRED
           - POSTAL_CODE_MISMATCH
           - RATE_CENTER_NOT_PORTABLE
+          - RESELLER_INVALID
+          - STRANDED_SERVICES_NEED_NEW_BTN
           - SV_CONFLICT
           - SV_UNKNOWN_FAILURE
+          - TNS_ON_MULTIPLE_ACCOUNTS
+          - TN_BUILD_CONFLICT
+          - TN_DISCONNECTED
+          - UNAUTHORIZED_PERSON_SIGNATURE
           example: ENTITY_NAME_MISMATCH
         description:
           type: string
           description: Description of an exception type
           example: Entity name does not match that on the CSR
+        remediation:
+          type: object
+          description: Structured remediation steps so an agent can map the exception to a fix via the API alone
+          properties:
+            action:
+              type: string
+              description: The type of remediation action to take
+              enum:
+              - update_order_fields
+              - upload_document
+              - create_orders
+              - assign_foc_datetime
+              - wait
+              - external_action
+              - contact_support
+              example: update_order_fields
+            fields:
+              type: array
+              description: Patchable field paths to correct, empty when no field update applies
+              items:
+                type: string
+              example:
+              - end_user.location.postal_code
+            required_document:
+              type:
+              - string
+              - 'null'
+              description: The document to (re)upload, when applicable
+              enum:
+              - loa
+              - invoice
+              - 'null'
+            retryable:
+              type: boolean
+              description: Whether resubmission or polling alone can unblock the order
+          required:
+          - action
+          - fields
+          - required_document
+          - retryable
+      required:
+      - code
+      - description
+      - remediation
     PortingPhoneNumber:
       type: object
       properties:
@@ -139111,14 +140617,17 @@ components:
             the call''s model calls and the Telnyx-hosted speech services it uses; for SMS and WhatsApp, the model calls of
             each turn (how messages travel through carriers is not covered). Covered processing that cannot be handled in
             region fails rather than being served elsewhere. Enabling it requires a data-locality region with in-region inference
-            (USA, EU, AUS, UAE; see [Inference regions](https://developers.telnyx.com/docs/inference/models/regions)), Telnyx-hosted
-            models for the assistant, its fallback, and any conversation-flow node that overrides the model, and, when `insight_settings.model`
+            (USA, EU, AUS, UAE; see [Inference regions](https://developers.telnyx.com/docs/inference/models/regions)), models
+            for the assistant, its fallback, and any conversation-flow node that overrides the model that are either Telnyx-hosted
+            or a customer-provided `external_llm` endpoint (third-party model providers are refused), and, when `insight_settings.model`
             is set, an insight model available in that region; the request is rejected otherwise. A voice call fails when
             it starts if its STT model or TTS voice is not self-hosted by Telnyx, if the assistant uses a speech-to-speech
-            model, or if the call''s media is anchored outside the region. Once enabled, send web chat requests and WebSocket
-            or WebRTC conversations to your region''s API hostname: one entering the platform in another region is refused
-            rather than forwarded, because forwarding it would already have moved the content across the border. See [Data
-            residency](https://developers.telnyx.com/docs/inference/data-residency#in-region-processing-for-ai-assistants).
+            model, or if the call''s media is anchored outside the region. URLs Telnyx is configured to call — an `external_llm`
+            endpoint, webhook tools, Voice API callbacks, or a recording storage destination — are followed as-is: Telnyx
+            cannot verify where a customer-supplied URL processes requests, and keeping those steps in your region is your
+            responsibility. Once enabled, send web chat requests and WebSocket or WebRTC conversations to your region''s API
+            hostname: one entering the platform in another region is refused rather than forwarded, because forwarding it
+            would already have moved the content across the border. See [Data residency](https://developers.telnyx.com/docs/inference/data-residency#in-region-processing-for-ai-assistants).
             Defaults to false.'
       type: object
     PrivateWirelessGateway:
@@ -144835,7 +146344,8 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
-          description: Chat message text to send in the meeting.
+          description: Message text, 1–4000 characters. On Google Meet and Teams, also at most 4096 UTF-8 bytes and nonblank;
+            control characters other than tab and line breaks are rejected. CRLF is normalized to LF.
     SendDTMFRequest:
       type: object
       title: Send DTMF Request
@@ -146671,7 +148181,6 @@ components:
           - $ref: '#/components/schemas/InworldVoiceSettings'
           - $ref: '#/components/schemas/XAIVoiceSettings'
           - $ref: '#/components/schemas/SonioxVoiceSettings'
-          - $ref: '#/components/schemas/AssemblyAIVoiceSettings'
           discriminator:
             propertyName: type
             mapping:
@@ -146684,7 +148193,6 @@ components:
               inworld: '#/components/schemas/InworldVoiceSettings'
               xai: '#/components/schemas/XAIVoiceSettings'
               soniox: '#/components/schemas/SonioxVoiceSettings'
-              assemblyai: '#/components/schemas/AssemblyAIVoiceSettings'
         language:
           description: The language you want spoken. This parameter is ignored when a `Polly.*` voice is specified.
           type: string
@@ -156123,6 +157631,8 @@ components:
       properties:
         seq:
           type: integer
+          description: Monotonic transcript append cursor. This is separate from the event-history cursor and does not establish
+            conversational turn order.
         text:
           type: string
         confidence:
@@ -156135,6 +157645,8 @@ components:
           type:
           - string
           - 'null'
+          description: Recorded participant or bot label, or null when unavailable. Labels are attribution, not verified identity.
+            Segments from concurrent speakers can finalize in a different order from the conversation.
         relative_ts:
           type:
           - number
@@ -159511,6 +161023,77 @@ components:
           maxLength: 50
           type: string
           description: Alternate business identifier such as DUNS, LEI, or GIIN
+    UpdateCalendarConnectionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        auto_join_policy:
+          type: string
+          description: all_meetings joins eligible events; external_organizer_excluded requires the connected user to be the
+            organizer; per_meeting requires an explicit opt-in.
+          enum:
+          - all_meetings
+          - external_organizer_excluded
+          - per_meeting
+        bot_name:
+          anyOf:
+          - type: string
+            description: Bot display name; null clears the override.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_barge_in:
+          anyOf:
+          - type: boolean
+            description: Default manual speech interruption. Cannot be true with default_assistant.
+          - type: 'null'
+        default_summarize_on_end:
+          anyOf:
+          - type: boolean
+            description: Generate a summary when each future session transcript finalizes.
+          - type: 'null'
+        default_voice:
+          anyOf:
+          - type: string
+            description: Manual-speech voice; must be null when default_assistant is set.
+            minLength: 1
+            maxLength: 100
+          - type: 'null'
+        default_assistant:
+          anyOf:
+          - $ref: '#/components/schemas/CalendarAssistantDefaults'
+          - type: 'null'
+        default_recording:
+          anyOf:
+          - type: boolean
+            description: Google Meet and Teams recording intent. When null, recording is enabled only if a destination is
+              set. True requires default_recording_export; false cannot be combined with a destination.
+          - type: 'null'
+        default_recording_export:
+          anyOf:
+          - $ref: '#/components/schemas/MeetingSessionRecordingDestination'
+          - type: 'null'
+        default_webhook_url:
+          anyOf:
+          - type: string
+            description: HTTPS destination for future session webhooks. Null clears the default. A non-null update returns
+              webhook_secret once; save it to verify signatures for sessions created with this default. Existing sessions
+              retain their original signing secret.
+            format: uri
+            maxLength: 2048
+          - type: 'null'
+      minProperties: 1
+    UpdateCalendarMeetingRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        bot_will_join:
+          anyOf:
+          - type: boolean
+            description: True opts in, false opts out, null follows connection policy. A supported meeting URL is still required.
+          - type: 'null'
+      required:
+      - bot_will_join
     UpdateCallControlApplicationRequest:
       type: object
       title: Update Call Control Application Request
@@ -173023,8 +174606,7 @@ components:
           - string
           - 'null'
           description: Two-letter ISO 639-1 code of the language the voice speaks, for example `es`. Only applicable to Soniox
-            and AssemblyAI voices, which speak every language of their model. AssemblyAI accepts `en`, `es`, `de`, `fr`, `it`,
-            and `pt`. When unset, the voice speaks English.
+            voices, which speak every language of their model. When unset, the voice speaks English.
           default: null
         language_boost:
           type:
@@ -185359,6 +186941,201 @@ webhooks:
         schema:
           type: string
         x-webhook-equivalent: webhook-signature
+  recordingExportFailed:
+    post:
+      summary: recording.export_failed
+      description: Sent when a customer Storage recording export fails terminally. Uses the same signed envelope and retry
+        contract as other meeting webhooks. Applies to recordings exported to customer Storage buckets.
+      tags:
+      - Meeting Session Webhooks
+      parameters:
+      - name: X-Meeting-Bot-Signature
+        in: header
+        required: true
+        description: Signature header `t=<unix-seconds>,v1=<hex>`. Compute HMAC-SHA256 with the webhook secret over the timestamp
+          ASCII bytes, a literal `.` byte, and the exact raw request-body bytes; hex-encode and compare `v1` in constant time.
+          Reject timestamps outside your accepted skew. No bearer token is sent.
+        schema:
+          type: string
+        example: t=1784297100,v1=5e8f...a3c1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - id
+              - event
+              - version
+              - occurred_at
+              - data
+              properties:
+                id:
+                  type: string
+                  description: Unique event id; deduplicate deliveries on it.
+                  example: whdel_9f2c...
+                event:
+                  type: string
+                  description: Event type.
+                  enum:
+                  - recording.export_failed
+                version:
+                  type: string
+                  description: Envelope version.
+                  example: '1'
+                occurred_at:
+                  type: string
+                  format: date-time
+                  description: When the event occurred.
+                data:
+                  type: object
+                  required:
+                  - session_id
+                  - type
+                  - bucket
+                  - region
+                  - key
+                  - reason
+                  additionalProperties: false
+                  properties:
+                    session_id:
+                      type: string
+                    type:
+                      type: string
+                      const: video
+                    bucket:
+                      type: string
+                    region:
+                      type: string
+                    key:
+                      type: string
+                    reason:
+                      type: string
+                      enum:
+                      - invalid_target
+                      - invalid_media
+                      - source_changed
+                      - source_unavailable
+                      - too_large
+                      - storage_unavailable
+                      - object_conflict
+                      - verification_failed
+                      - worker_lost
+                      - internal_error
+              additionalProperties: false
+            example:
+              id: whdel_9f2c...
+              event: recording.export_failed
+              version: '1'
+              occurred_at: '2026-06-16T09:06:00Z'
+              data:
+                session_id: mtgsess_example
+                type: video
+                bucket: meeting-recordings
+                region: us-central-1
+                key: weekly-planning/recording.mp4
+                reason: storage_unavailable
+      responses:
+        '200':
+          description: Return any 2xx status promptly to acknowledge the delivery; non-2xx responses and timeouts are retried.
+      operationId: MeetingRecordingExportFailedWebhook
+      security: []
+  recordingExported:
+    post:
+      summary: recording.exported
+      description: Sent after a customer Storage recording export is verified. Uses the same signed envelope and retry contract
+        as other meeting webhooks. Applies to recordings exported to customer Storage buckets.
+      tags:
+      - Meeting Session Webhooks
+      parameters:
+      - name: X-Meeting-Bot-Signature
+        in: header
+        required: true
+        description: Signature header `t=<unix-seconds>,v1=<hex>`. Compute HMAC-SHA256 with the webhook secret over the timestamp
+          ASCII bytes, a literal `.` byte, and the exact raw request-body bytes; hex-encode and compare `v1` in constant time.
+          Reject timestamps outside your accepted skew. No bearer token is sent.
+        schema:
+          type: string
+        example: t=1784297100,v1=5e8f...a3c1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - id
+              - event
+              - version
+              - occurred_at
+              - data
+              properties:
+                id:
+                  type: string
+                  description: Unique event id; deduplicate deliveries on it.
+                  example: whdel_9f2c...
+                event:
+                  type: string
+                  description: Event type.
+                  enum:
+                  - recording.exported
+                version:
+                  type: string
+                  description: Envelope version.
+                  example: '1'
+                occurred_at:
+                  type: string
+                  format: date-time
+                  description: When the event occurred.
+                data:
+                  type: object
+                  required:
+                  - session_id
+                  - type
+                  - bucket
+                  - region
+                  - key
+                  - bytes
+                  - sha256
+                  additionalProperties: false
+                  properties:
+                    session_id:
+                      type: string
+                    type:
+                      type: string
+                      const: video
+                    bucket:
+                      type: string
+                    region:
+                      type: string
+                    key:
+                      type: string
+                    bytes:
+                      type: integer
+                      minimum: 1
+                    sha256:
+                      type: string
+                      pattern: ^[0-9a-f]{64}$
+              additionalProperties: false
+            example:
+              id: whdel_9f2c...
+              event: recording.exported
+              version: '1'
+              occurred_at: '2026-06-16T09:06:00Z'
+              data:
+                session_id: mtgsess_example
+                type: video
+                bucket: meeting-recordings
+                region: us-central-1
+                key: weekly-planning/recording.mp4
+                bytes: 1048576
+                sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      responses:
+        '200':
+          description: Return any 2xx status promptly to acknowledge the delivery; non-2xx responses and timeouts are retried.
+      operationId: MeetingRecordingExportedWebhook
+      security: []
   replacedLinkClick:
     post:
       summary: Replaced Link Click
@@ -185471,6 +187248,18 @@ webhooks:
                     recording:
                       type: boolean
                       description: Whether the session is recording at this lifecycle edge.
+                    previous_status:
+                      type: string
+                      description: Previous lifecycle status, when supplied.
+                      enum:
+                      - scheduled
+                      - joining
+                      - waiting_for_admission
+                      - active
+                      - leaving
+                      - ended
+                      - failed
+                      - admission_denied
                   description: Status transition details.
                   additionalProperties: false
                   required:
