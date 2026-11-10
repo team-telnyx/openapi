@@ -49255,8 +49255,8 @@ paths:
       tags:
       - Network Routes
       description: Adds a route to a Network. Traffic on the Network to an address in `cidr` goes via `next_hop`. With a tunnel
-        as the next hop, functions on the Network reach the CIDR through the tunnel without a redeploy. A Network holds each
-        CIDR once.
+        as the next hop, functions on the Network reach the CIDR through the tunnel without a redeploy. With a WireGuard peer
+        as the next hop, the peer routes the CIDR as a subnet router. A Network holds each CIDR once.
       requestBody:
         required: true
         content:
@@ -84588,8 +84588,17 @@ components:
                 developer: '#/components/schemas/DeveloperMessage'
         trigger_response:
           type: boolean
-          description: When `true`, the injected messages immediately trigger an assistant response/turn instead of waiting
-            for the next natural turn or idle timeout. This may interrupt a user who is still speaking.
+          description: 'When `true`, the injected messages immediately trigger an assistant response/turn instead of waiting
+            for the next natural turn or idle timeout. This may interrupt a user who is still speaking. How the turn starts
+            depends on the last message in `messages`: if it is a `user` message, the assistant responds to that message as
+            if the caller had said it, whether or not `trigger_response` is set. Any other last role (`system`, `developer`,
+            `assistant`, `tool`) starts a turn with no new user input, as after a long silence. When `trigger_response` is
+            not set, a payload that does not end in a `user` message is context only and does not start a turn. GPT Live models
+            (`openai/gpt-live-*`) do not support a forced mid-session turn: injected `system`, `developer`, and `assistant`
+            content is appended to the Live session''s instructions and the model brings it into its next turn on its own;
+            an injected `tool` record is not forwarded to the Live session, so it stays context only and never reaches the
+            Live model. Any of `user`, `system`, `developer`, or `assistant` is the supported way to get content into the
+            Live session.'
           default: false
       example:
         client_state: aGF2ZSBhIG5pY2UgZGF5ID1d
@@ -124339,6 +124348,81 @@ components:
           - whisper
           - monitor
           default: barge
+        StreamUrl:
+          description: The destination WebSocket address where the call's media stream is delivered, for example `wss://www.example.com/websocket`.
+            When set, a media stream is started on the outbound call. Required when any other `Stream*` parameter is set.
+            Can't be combined with `SuperviseCallSid`.
+          example: wss://www.example.com/websocket
+          type: string
+        StreamTrack:
+          description: Specifies which track should be streamed. Requires `StreamUrl`.
+          type: string
+          enum:
+          - inbound_track
+          - outbound_track
+          - both_tracks
+          default: inbound_track
+          example: both_tracks
+        StreamCodec:
+          description: Specifies the codec to be used for the streamed audio. When set to `default` or when transcoding is
+            not possible, the codec from the call will be used. Requires `StreamUrl`.
+          type: string
+          enum:
+          - PCMU
+          - PCMA
+          - G722
+          - OPUS
+          - AMR-WB
+          - L16
+          - default
+          default: default
+          example: PCMA
+        StreamBidirectionalMode:
+          description: 'Configures the method of bidirectional streaming: `mp3` or `rtp`. Requires `StreamUrl`.'
+          type: string
+          enum:
+          - mp3
+          - rtp
+          default: mp3
+          example: rtp
+        StreamBidirectionalCodec:
+          description: Indicates the codec for bidirectional streaming RTP payloads. Used only with `StreamBidirectionalMode=rtp`.
+            Case sensitive. Requires `StreamUrl`.
+          type: string
+          enum:
+          - PCMU
+          - PCMA
+          - G722
+          - OPUS
+          - AMR-WB
+          - L16
+          default: PCMU
+          example: G722
+        StreamBidirectionalSamplingRate:
+          description: Audio sampling rate for bidirectional streaming, in Hz. Requires `StreamUrl`.
+          type: integer
+          enum:
+          - 8000
+          - 16000
+          - 22050
+          - 24000
+          - 48000
+          default: 8000
+          example: 16000
+        StreamAuthToken:
+          description: An authentication token for the WebSocket server. It is sent as the `x-telnyx-streaming-auth-token`
+            header of the WebSocket handshake and repeated as `connected.x-telnyx-streaming-auth-token` in the `connected`
+            event. Maximum length is 4000 characters. Requires `StreamUrl`.
+          type: string
+          maxLength: 4000
+          example: your-auth-token
+        StreamEstablishBeforeCallOriginate:
+          description: Establishes the WebSocket connection before the destination is dialed, so no audio is missed while
+            the connection is set up. If the WebSocket connection can't be established, the call is not placed and the request
+            fails with a `422` error. `StreamUrl` is required when this is `true`.
+          type: boolean
+          default: false
+          example: true
         Timeout:
           description: The number of seconds to wait for the called party to answer the call before the call is canceled.
             The minimum value is 5 and the maximum value is 120. Default is 30 seconds.
@@ -131179,10 +131263,10 @@ components:
           example: 91446ee3-5b1c-4f0e-8d2a-6c7e9b0a1f24
         cidr:
           type: string
-          description: The IPv4 subnet to route, such as a subnet behind the tunnel. It must be a canonical CIDR. Default,
-            loopback, link-local, multicast, and shared address space (`100.64.0.0/10`) ranges are rejected. So are ranges
-            that overlap the Tailscale Subnet Router ranges, `172.27.254.0/24` and `198.18.0.0/20`, or a subnet already on
-            the Network.
+          description: The IPv4 subnet to route, such as a subnet behind a tunnel or a WireGuard peer. It must be a canonical
+            CIDR. Default, loopback, link-local, multicast, and shared address space (`100.64.0.0/10`) ranges are rejected.
+            So are ranges that overlap the Tailscale Subnet Router ranges, `172.27.254.0/24` and `198.18.0.0/20`, or a subnet
+            already on the Network.
           example: 10.20.0.0/16
         next_hop:
           type: object
@@ -131195,12 +131279,13 @@ components:
               type: string
               enum:
               - tunnel
+              - wireguard_peer
               description: The type of the next hop.
               example: tunnel
             id:
               type: string
               format: uuid
-              description: The id of the tunnel.
+              description: The id of the tunnel, or of a WireGuard peer on the Network's WireGuard Interface.
               example: 62d438d2-8a51-4c5e-9d0c-1f6b2a7e4c39
     NetworkRouteNextHop:
       type: object
@@ -142941,23 +143026,32 @@ components:
       properties:
         remediated:
           type: array
+          description: The reputation partner approved redress (redress approved) or reported that the number had already
+            been redressed recently (already recently redressed). This does not guarantee removal from every spam list.
           items:
             type: string
             example: '+19493253498'
         not_flagged:
           type: array
+          description: The reputation partner reported no prior spam label for the number (no prior spam label).
           items:
             type: string
         requires_review:
           type: array
+          description: The number needs further review, or the partner response did not match a recognized outcome.
           items:
             type: string
         ineligible:
           type: array
+          description: Numbers the reputation partner did not re-review because it had already reviewed them within the previous
+            60 days (already reviewed). The cooldown is measured from the partner's most recent review, not the API submission
+            date. This array identifies the numbers but does not include their last-review or re-eligibility dates.
           items:
             type: string
         refused:
           type: array
+          description: The reputation partner reviewed the number and declined the redress request (redress declined); the
+            number remains flagged.
           items:
             type: string
     RemediationRequest:
@@ -142991,7 +143085,8 @@ components:
           example: 2
         phone_numbers_ineligible:
           type: integer
-          description: Numbers rejected before submission (e.g. cooldown).
+          description: Number of phone numbers the reputation partner did not re-review because it had reviewed them within
+            the previous 60 days.
           example: 0
         call_purpose:
           type: string
